@@ -1,15 +1,3 @@
-//
-//  HomeView.swift
-//  Classlly
-//
-//  Created by Robu Darius on 14.11.2025.
-//
-
-
-// File: Classlly/Views/HomeView.swift
-// Note: This is the main dashboard view, shown on the first tab.
-// It uses @Query to fetch all subjects and tasks for display.
-
 import SwiftUI
 import SwiftData
 
@@ -40,7 +28,6 @@ struct HomeView: View {
         }
     }
     
-    // ... (Rest of the file is unchanged) ...
     // ... (welcomeHeader, quickStatsSection, StatCard, etc.) ...
     
     private var welcomeHeader: some View {
@@ -212,13 +199,19 @@ struct SubjectPerformanceCard: View {
     let subject: Subject
     @Environment(\.colorScheme) var colorScheme
     
+    // --- THIS IS THE FIX ---
     private var averageGrade: Double? {
-        guard !subject.gradeHistory.isEmpty else { return nil }
-        let total = subject.gradeHistory.reduce(0.0) { $0 + $1.grade }
-        return total / Double(subject.gradeHistory.count)
+        // 1. Safely unwrap `subject.gradeHistory`
+        guard let gradeHistory = subject.gradeHistory, !gradeHistory.isEmpty else { return nil }
+        
+        // 2. Use the unwrapped `gradeHistory`
+        let total = gradeHistory.reduce(0.0) { $0 + $1.grade }
+        return total / Double(gradeHistory.count)
     }
+    // --- END OF FIX ---
     
     private var gradeColor: Color {
+        // (This logic is now safe because `averageGrade` handles the unwrapping)
         guard let grade = averageGrade else { return .gray }
         switch grade {
         case 8.5...10: return .themeSuccess
@@ -229,6 +222,7 @@ struct SubjectPerformanceCard: View {
     }
     
     private var attendanceColor: Color {
+        // (This was already safe because `subject.attendanceRate` was fixed in DataModels.swift)
         let rate = subject.attendanceRate
         switch rate {
         case 0.9...1.0: return .themeSuccess
@@ -270,6 +264,7 @@ struct SubjectPerformanceCard: View {
                             .font(.system(size: 12))
                             .foregroundColor(gradeColor)
                         
+                        // (This is now safe)
                         if let grade = averageGrade {
                             Text(String(format: "%.1f", grade))
                                 .font(.system(size: 14, weight: .semibold))
@@ -286,6 +281,7 @@ struct SubjectPerformanceCard: View {
                             .font(.system(size: 12))
                             .foregroundColor(attendanceColor)
                         
+                        // (This is now safe)
                         Text("\(Int(subject.attendanceRate * 100))%")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(attendanceColor)
@@ -304,6 +300,7 @@ struct SubjectPerformanceCard: View {
     }
 }
 
+// ... (Rest of HomeView.swift and its helper structs are unchanged) ...
 struct StatCard: View {
     let title: String
     let value: String

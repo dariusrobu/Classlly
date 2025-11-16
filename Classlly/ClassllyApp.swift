@@ -1,8 +1,3 @@
-// File: Classlly/ClassllyApp.swift
-// Note: This is the FINAL corrected file. It now uses compiler flags
-// to create a local-only container for the simulator (to prevent
-// the crash) and the iCloud-enabled container for physical devices.
-
 import SwiftUI
 import UIKit
 import SwiftData
@@ -13,10 +8,9 @@ struct ClassllyApp: App {
     
     @StateObject private var authManager = AuthenticationManager()
     @StateObject private var calendarManager = AcademicCalendarManager()
-    @StateObject private var themeManager = AppTheme()
+    @StateObject private var themeManager = AppTheme() // Use AppTheme
 
-    // --- THIS IS THE FIX ---
-    // This container is now set up conditionally.
+    // --- THIS IS THE FINAL FIX ---
     var modelContainer: ModelContainer = {
         let schema = Schema([
             Subject.self,
@@ -25,40 +19,31 @@ struct ClassllyApp: App {
             AttendanceEntry.self,
             StudyCalendarEvent.self
         ])
-
-        // 1. Define the iCloud configuration
-        // Use the supported CloudKit parameter for your SDK.
-        let iCloudConfiguration = ModelConfiguration(
-            "ClassllySchemaV1",
-            schema: schema,
-            cloudKitDatabase: .private("iCloud.com.robu.darius.classlly")
-        )
         
-        // 2. Define a local-only configuration for the simulator
-        let localConfiguration = ModelConfiguration(
-            "ClassllySchemaV1",
-            schema: schema
+        // 1. Create a ModelConfiguration for iCloud using the CORRECT initializer
+        // This initializer matches the error message from your previous screenshot.
+        // SwiftData will automatically find the container ID from your .entitlements file.
+        let modelConfiguration = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: false,
+            allowsSave: true, // This was the missing 'allowsSave' parameter
+            groupContainer: .automatic,
+            cloudKitDatabase: .automatic // This must be .automatic, NOT a function call
         )
 
         do {
-            // 3. Check if we are running on the simulator
-            #if targetEnvironment(simulator)
-                // On the simulator, use the LOCAL database
-                return try ModelContainer(for: schema, configurations: [localConfiguration])
-            #else
-                // On a real device, use the ICLOUD database
-                return try ModelContainer(for: schema, configurations: [iCloudConfiguration])
-            #endif
-            
+            // 2. Pass this configuration to the container
+            return try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
-            // This will now report a *real* error if one happens
+            // Your crash will no longer happen here if the entitlements
+            // and data models are also fixed.
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
     // --- END OF FIX ---
     
     init() {
-        // (UI Appearance code is unchanged)
+        // --- This is the "off-black" theme for nav bars and lists ---
         let dynamicListBackground = UIColor.systemGroupedBackground
         let dynamicCellBackground = UIColor.secondarySystemGroupedBackground
 
@@ -75,6 +60,7 @@ struct ClassllyApp: App {
         UINavigationBar.appearance().standardAppearance = navBarAppearance
         UINavigationBar.appearance().scrollEdgeAppearance = navBarAppearance
         
+        // --- This reverts your tab bar to the original style ---
         let tabBarAppearance = UITabBarAppearance()
         tabBarAppearance.configureWithDefaultBackground()
         UITabBar.appearance().standardAppearance = tabBarAppearance
@@ -86,7 +72,7 @@ struct ClassllyApp: App {
             ContentView()
                 .environmentObject(authManager)
                 .environmentObject(calendarManager)
-                .environmentObject(themeManager)
+                .environmentObject(themeManager) // Pass the theme manager
         }
         .modelContainer(modelContainer)
     }

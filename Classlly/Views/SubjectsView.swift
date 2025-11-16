@@ -1,15 +1,3 @@
-//
-//  SubjectsView.swift
-//  Classlly
-//
-//  Created by Robu Darius on 14.11.2025.
-//
-
-
-// File: Classlly/Views/SubjectsView.swift
-// Note: This view displays a list of all Subject models.
-// It uses a @Query to fetch all subjects and sorts them by title.
-
 import SwiftUI
 import SwiftData
 
@@ -73,6 +61,7 @@ struct SubjectCard: View {
                         .foregroundColor(.themeTextSecondary)
                 }
                 Spacer()
+                // (This is safe, `currentGrade` is already fixed in DataModels.swift)
                 if let grade = subject.currentGrade {
                     GradeBadge(grade: grade)
                 }
@@ -86,10 +75,12 @@ struct SubjectCard: View {
             HStack(spacing: 16) {
                 ProgressIndicator(
                     title: "Attendance",
+                    // (This is safe, `attendanceRate` is fixed in DataModels.swift)
                     value: subject.attendanceRate,
                     color: .themeSuccess
                 )
                 
+                // (This is safe, `currentGrade` is fixed in DataModels.swift)
                 if let grade = subject.currentGrade {
                     ProgressIndicator(
                         title: "Grade",
@@ -100,15 +91,22 @@ struct SubjectCard: View {
                 
                 ProgressIndicator(
                     title: "Classes",
+                    // (This is safe, `totalClasses` is fixed in DataModels.swift)
                     value: Double(subject.totalClasses) / 20.0,
                     color: .themeWarning
                 )
             }
             
             HStack(spacing: 12) {
+                // (This is safe, `attendedClasses` is fixed in DataModels.swift)
                 StatPill(icon: "checkmark.circle", value: "\(subject.attendedClasses)", label: "Present")
+                // (This is safe, `totalClasses` and `attendedClasses` are fixed)
                 StatPill(icon: "xmark.circle", value: "\(subject.totalClasses - subject.attendedClasses)", label: "Absent")
-                StatPill(icon: "star", value: "\(subject.gradeHistory.count)", label: "Grades")
+                
+                // --- THIS IS THE FIX ---
+                // Safely unwrap `gradeHistory.count`
+                StatPill(icon: "star", value: "\(subject.gradeHistory?.count ?? 0)", label: "Grades")
+                // --- END OF FIX ---
             }
         }
         .padding()
@@ -121,6 +119,7 @@ struct SubjectCard: View {
     }
 }
 
+// ... (Rest of SubjectsView.swift and its helper structs are unchanged) ...
 struct StatPill: View {
     let icon: String
     let value: String

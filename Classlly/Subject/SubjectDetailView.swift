@@ -1,7 +1,3 @@
-// File: Classlly/Subject/SubjectDetailView.swift
-// Note: This file is corrected to create empty GradeEntry
-// and AttendanceEntry objects and set their properties.
-
 import SwiftUI
 import Combine
 import SwiftData
@@ -36,18 +32,20 @@ struct SubjectDetailView: View {
         _tasks = Query(filter: #Predicate { $0.subject?.id == subjectID })
     }
     
+    // --- FIX 1: SAFELY UNWRAP `gradeHistory` ---
     private var averageGrade: Double? {
-        guard !subject.gradeHistory.isEmpty else { return nil }
-        let total = subject.gradeHistory.reduce(0.0) { $0 + $1.grade }
-        return total / Double(subject.gradeHistory.count)
+        guard let gradeHistory = subject.gradeHistory, !gradeHistory.isEmpty else { return nil }
+        let total = gradeHistory.reduce(0.0) { $0 + $1.grade }
+        return total / Double(gradeHistory.count)
     }
     
+    // --- FIX 2: SAFELY UNWRAP `gradeHistory` ---
     private var gradeTrend: (icon: String, color: Color, description: String) {
-        guard subject.gradeHistory.count >= 2 else {
+        guard let gradeHistory = subject.gradeHistory, gradeHistory.count >= 2 else {
             return ("minus.circle", .gray, "No trend data")
         }
         
-        let sortedGrades = subject.gradeHistory.sorted { $0.date > $1.date }
+        let sortedGrades = gradeHistory.sorted { $0.date > $1.date }
         
         guard sortedGrades.count >= 2,
               let firstGrade = sortedGrades.first?.grade,
@@ -97,24 +95,20 @@ struct SubjectDetailView: View {
         }
         .sheet(isPresented: $showingAddGrade) {
             AddGradeSheet(isPresented: $showingAddGrade) { date, grade, description in
-                // --- THIS IS THE FIX ---
-                let newGrade = GradeEntry()
-                newGrade.date = date
-                newGrade.grade = grade
-                newGrade.descriptionText = description
+                let newGrade = GradeEntry(date: date, grade: grade, description: description)
                 newGrade.subject = subject
                 modelContext.insert(newGrade)
+                // --- FIX 3: Append to the optional array ---
+                subject.gradeHistory?.append(newGrade)
             }
         }
         .sheet(isPresented: $showingMarkAttendance) {
             MarkAttendanceSheet(isPresented: $showingMarkAttendance) { date, attended, notes in
-                // --- THIS IS THE FIX ---
-                let newAttendance = AttendanceEntry()
-                newAttendance.date = date
-                newAttendance.attended = attended
-                newAttendance.notes = notes
+                let newAttendance = AttendanceEntry(date: date, attended: attended, notes: notes)
                 newAttendance.subject = subject
                 modelContext.insert(newAttendance)
+                // --- FIX 4: Append to the optional array ---
+                subject.attendanceHistory?.append(newAttendance)
             }
         }
         .sheet(isPresented: $showingAddTask) {
@@ -125,13 +119,22 @@ struct SubjectDetailView: View {
         }
         .sheet(item: $editingGrade) { grade in
             EditGradeSheet(gradeEntry: grade) { updatedGrade in
-                // This logic is for *editing*, so it's different and correct.
-                // We are just refreshing the view, so we pass the object back.
+                // --- FIX 5: Safely find and update in optional array ---
+                if let index = subject.gradeHistory?.firstIndex(where: { $0.id == updatedGrade.id }) {
+                    subject.gradeHistory?[index].date = updatedGrade.date
+                    subject.gradeHistory?[index].grade = updatedGrade.grade
+                    subject.gradeHistory?[index].descriptionText = updatedGrade.descriptionText
+                }
             }
         }
         .sheet(item: $editingAttendance) { attendance in
             EditAttendanceSheet(attendanceEntry: attendance) { updatedAttendance in
-                // This logic is for *editing*, so it's different and correct.
+                // --- FIX 6: Safely find and update in optional array ---
+                if let index = subject.attendanceHistory?.firstIndex(where: { $0.id == updatedAttendance.id }) {
+                    subject.attendanceHistory?[index].date = updatedAttendance.date
+                    subject.attendanceHistory?[index].attended = updatedAttendance.attended
+                    subject.attendanceHistory?[index].notes = updatedAttendance.notes
+                }
             }
         }
         .alert("Delete Subject", isPresented: $showingDeleteAlert) {
@@ -144,9 +147,6 @@ struct SubjectDetailView: View {
             Text("Are you sure you want to delete \(subject.title)? This will also delete all associated grades, attendance records, and tasks.")
         }
     }
-    
-    // ... (Rest of the file is unchanged, including all helper components) ...
-    // ... (headerSection, subjectInfoSection, etc.) ...
     
     // MARK: - Enhanced Header Section
     private var headerSection: some View {
@@ -284,7 +284,8 @@ struct SubjectDetailView: View {
                     .padding(.top, 16)
                 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    DetailInfoCard(icon: "star.circle.fill", title: "Total Grades", value: "\(subject.gradeHistory.count)")
+                    // --- FIX 7: SAFELY UNWRAP COUNTS ---
+                    DetailInfoCard(icon: "star.circle.fill", title: "Total Grades", value: "\(subject.gradeHistory?.count ?? 0)")
                     DetailInfoCard(icon: "checkmark.circle.fill", title: "Classes Attended", value: "\(subject.attendedClasses)/\(subject.totalClasses)")
                     DetailInfoCard(icon: "chart.line.uptrend.xyaxis.circle.fill", title: "Attendance Rate", value: "\(Int(subject.attendanceRate * 100))%")
                     if let avgGrade = averageGrade {
@@ -370,7 +371,8 @@ struct SubjectDetailView: View {
                 PerformanceCard(
                     title: "Average Grade",
                     value: averageGrade != nil ? String(format: "%.1f", averageGrade!) : "N/A",
-                    subtitle: averageGrade != nil ? "/10 • \(subject.gradeHistory.count) grades" : "No grades yet",
+                    // --- FIX 8: SAFELY UNWRAP COUNT ---
+                    subtitle: averageGrade != nil ? "/10 • \(subject.gradeHistory?.count ?? 0) grades" : "No grades yet",
                     color: Color.themePrimary, // FIXED
                     icon: "star.fill",
                     progress: (averageGrade ?? 0) / 10,
@@ -440,7 +442,8 @@ struct SubjectDetailView: View {
                     .font(.headline)
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(subject.gradeHistory.count) entries")
+                    // --- FIX 9: SAFELY UNWRAP COUNT ---
+                    Text("\(subject.gradeHistory?.count ?? 0) entries")
                         .font(.caption)
                     if let average = averageGrade {
                         Text("Average: \(String(format: "%.1f", average))/10")
@@ -451,7 +454,8 @@ struct SubjectDetailView: View {
             }
             .padding(.horizontal)
             
-            if subject.gradeHistory.isEmpty {
+            // --- FIX 10: SAFELY CHECK IF EMPTY ---
+            if subject.gradeHistory?.isEmpty ?? true {
                 EmptyStateView(
                     icon: "chart.line.uptrend.xyaxis",
                     title: "No Grades Yet",
@@ -460,7 +464,8 @@ struct SubjectDetailView: View {
                 .padding(.horizontal)
             } else {
                 LazyVStack(spacing: 1) {
-                    ForEach(subject.gradeHistory.sorted(by: { $0.date > $1.date })) { grade in
+                    // --- FIX 11: SAFELY ITERATE ---
+                    ForEach(subject.gradeHistory?.sorted(by: { $0.date > $1.date }) ?? []) { grade in
                         GradeHistoryRow(grade: grade, averageGrade: averageGrade)
                             .padding(.horizontal)
                             .padding(.vertical, 12)
@@ -472,6 +477,8 @@ struct SubjectDetailView: View {
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
                                     modelContext.delete(grade)
+                                    // --- FIX 12: SAFELY REMOVE ---
+                                    subject.gradeHistory?.removeAll(where: { $0.id == grade.id })
                                 } label: {
                                     Label("Delete", systemImage: "trash.fill")
                                 }
@@ -500,7 +507,8 @@ struct SubjectDetailView: View {
                     .font(.headline)
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(subject.attendanceHistory.count) classes")
+                    // (These properties are already safe from DataModels.swift fix)
+                    Text("\(subject.totalClasses) classes")
                     Text("\(Int(subject.attendanceRate * 100))% overall")
                 }
                 .font(.caption)
@@ -508,7 +516,8 @@ struct SubjectDetailView: View {
             }
             .padding(.horizontal)
             
-            if subject.attendanceHistory.isEmpty {
+            // --- FIX 13: SAFELY CHECK IF EMPTY ---
+            if subject.attendanceHistory?.isEmpty ?? true {
                 EmptyStateView(
                     icon: "calendar",
                     title: "No Attendance Records",
@@ -517,7 +526,8 @@ struct SubjectDetailView: View {
                 .padding(.horizontal)
             } else {
                 LazyVStack(spacing: 1) {
-                    ForEach(subject.attendanceHistory.sorted(by: { $0.date > $1.date })) { attendance in
+                    // --- FIX 14: SAFELY ITERATE ---
+                    ForEach(subject.attendanceHistory?.sorted(by: { $0.date > $1.date }) ?? []) { attendance in
                         AttendanceHistoryRow(attendance: attendance)
                             .padding(.horizontal)
                             .padding(.vertical, 12)
@@ -529,6 +539,8 @@ struct SubjectDetailView: View {
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
                                     modelContext.delete(attendance)
+                                    // --- FIX 15: SAFELY REMOVE ---
+                                    subject.attendanceHistory?.removeAll(where: { $0.id == attendance.id })
                                 } label: {
                                     Label("Delete", systemImage: "trash.fill")
                                 }
@@ -556,6 +568,7 @@ struct SubjectDetailView: View {
                 Text("Related Tasks")
                     .font(.headline)
                 Spacer()
+                // (This is safe, `subjectTasks` is non-optional)
                 Text("\(subjectTasks.count) tasks")
                     .font(.caption)
                     .foregroundColor(Color.themeTextSecondary) // FIXED
@@ -605,8 +618,6 @@ struct SubjectDetailView: View {
         return formatter.string(from: date)
     }
 }
-
-// (All helper components... DetailInfoCard, SectionHeader, etc. are unchanged)
 
 // MARK: - Supporting Components
 
@@ -1046,53 +1057,62 @@ struct MarkAttendanceSheet: View {
 }
 
 struct EditGradeSheet: View {
-    @Bindable var gradeEntry: GradeEntry
+    let gradeEntry: GradeEntry
     let onSave: (GradeEntry) -> Void
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) private var colorScheme
     
-    @State private var gradeString: String
+    @State private var grade: String
+    @State private var description: String
+    @State private var date: Date
     
     init(gradeEntry: GradeEntry, onSave: @escaping (GradeEntry) -> Void) {
         self.gradeEntry = gradeEntry
         self.onSave = onSave
-        _gradeString = State(initialValue: String(format: "%.1f", gradeEntry.grade))
+        _grade = State(initialValue: String(format: "%.1f", gradeEntry.grade))
+        _description = State(initialValue: gradeEntry.descriptionText)
+        _date = State(initialValue: gradeEntry.date)
     }
     
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Grade Details").foregroundColor(Color.themeTextPrimary)) {
-                    DatePicker("Date", selection: $gradeEntry.date, displayedComponents: .date)
+                Section(header: Text("Grade Details").foregroundColor(Color.themeTextPrimary)) { // FIXED
+                    DatePicker("Date", selection: $date, displayedComponents: .date)
                     HStack {
                         Text("Grade")
-                        TextField("1-10", text: $gradeString)
+                        TextField("1-10", text: $grade)
                             .keyboardType(.decimalPad)
                         Text("/10")
                     }
-                    TextField("Description", text: $gradeEntry.descriptionText)
+                    TextField("Description", text: $description)
                 }
-                .listRowBackground(Color.themeSurface)
+                .listRowBackground(Color.themeSurface) // FIXED
             }
             .scrollContentBackground(.hidden)
-            .background(Color.themeBackground)
+            .background(Color.themeBackground) // FIXED
             .navigationTitle("Edit Grade")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
-                        .foregroundColor(Color.themePrimary)
+                        .foregroundColor(Color.themePrimary) // FIXED
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
-                        if let gradeValue = Double(gradeString), gradeValue >= 1 && gradeValue <= 10 {
-                            gradeEntry.grade = gradeValue
-                            onSave(gradeEntry)
+                        if let gradeValue = Double(grade), gradeValue >= 1 && gradeValue <= 10 {
+                            let updatedGrade = GradeEntry(
+                                id: gradeEntry.id,
+                                date: date,
+                                grade: gradeValue,
+                                description: description
+                            )
+                            onSave(updatedGrade)
                             dismiss()
                         }
                     }
-                    .disabled(Double(gradeString) == nil || Double(gradeString)! < 1 || Double(gradeString)! > 10)
-                    .foregroundColor(Color.themePrimary)
+                    .disabled(grade.isEmpty || Double(grade) == nil || Double(grade)! < 1 || Double(grade)! > 10)
+                    .foregroundColor(Color.themePrimary) // FIXED
                 }
             }
         }
@@ -1101,41 +1121,54 @@ struct EditGradeSheet: View {
 }
 
 struct EditAttendanceSheet: View {
-    @Bindable var attendanceEntry: AttendanceEntry
+    let attendanceEntry: AttendanceEntry
     let onSave: (AttendanceEntry) -> Void
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) private var colorScheme
     
+    @State private var status: Bool
+    @State private var notes: String
+    @State private var date: Date
+    
     init(attendanceEntry: AttendanceEntry, onSave: @escaping (AttendanceEntry) -> Void) {
         self.attendanceEntry = attendanceEntry
         self.onSave = onSave
+        _status = State(initialValue: attendanceEntry.attended)
+        _notes = State(initialValue: attendanceEntry.notes)
+        _date = State(initialValue: attendanceEntry.date)
     }
     
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Attendance").foregroundColor(Color.themeTextPrimary)) {
-                    DatePicker("Date", selection: $attendanceEntry.date, displayedComponents: .date)
-                    Toggle("Attended Class", isOn: $attendanceEntry.attended)
-                    TextField("Notes", text: $attendanceEntry.notes)
+                Section(header: Text("Attendance").foregroundColor(Color.themeTextPrimary)) { // FIXED
+                    DatePicker("Date", selection: $date, displayedComponents: .date)
+                    Toggle("Attended Class", isOn: $status)
+                    TextField("Notes", text: $notes)
                 }
-                .listRowBackground(Color.themeSurface)
+                .listRowBackground(Color.themeSurface) // FIXED
             }
             .scrollContentBackground(.hidden)
-            .background(Color.themeBackground)
+            .background(Color.themeBackground) // FIXED
             .navigationTitle("Edit Attendance")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
-                        .foregroundColor(Color.themePrimary)
+                        .foregroundColor(Color.themePrimary) // FIXED
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
-                        onSave(attendanceEntry)
+                        let updatedAttendance = AttendanceEntry(
+                            id: attendanceEntry.id,
+                            date: date,
+                            attended: status,
+                            notes: notes
+                        )
+                        onSave(updatedAttendance)
                         dismiss()
                     }
-                    .foregroundColor(Color.themePrimary)
+                    .foregroundColor(Color.themePrimary) // FIXED
                 }
             }
         }
