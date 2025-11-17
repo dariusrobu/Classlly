@@ -1,17 +1,34 @@
 import SwiftUI
-import UIKit
 import SwiftData
+import Combine
 
 @main
 struct ClassllyApp: App {
+    
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     @StateObject private var authManager = AuthenticationManager()
     @StateObject private var calendarManager = AcademicCalendarManager()
-    @StateObject private var themeManager = AppTheme() // Use AppTheme
+    @StateObject private var themeManager = AppTheme()
+    @StateObject private var dataController = DataController()
+    
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+                .environmentObject(authManager)
+                .environmentObject(calendarManager)
+                .environmentObject(themeManager)
+                .modelContainer(dataController.container)
+        }
+    }
+}
 
-    // --- THIS IS THE FINAL FIX ---
-    var modelContainer: ModelContainer = {
+@MainActor
+class DataController: ObservableObject {
+    @Published var container: ModelContainer
+    
+    init() {
+        // Always launch with an in-memory container first for immediate UI startup
         let schema = Schema([
             Subject.self,
             StudyTask.self,
@@ -19,61 +36,41 @@ struct ClassllyApp: App {
             AttendanceEntry.self,
             StudyCalendarEvent.self
         ])
-        
-        // 1. Create a ModelConfiguration for iCloud using the CORRECT initializer
-        // This initializer matches the error message from your previous screenshot.
-        // SwiftData will automatically find the container ID from your .entitlements file.
-        let modelConfiguration = ModelConfiguration(
-            schema: schema,
-            isStoredInMemoryOnly: false,
-            allowsSave: true, // This was the missing 'allowsSave' parameter
-            groupContainer: .automatic,
-            cloudKitDatabase: .automatic // This must be .automatic, NOT a function call
-        )
-
-        do {
-            // 2. Pass this configuration to the container
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            // Your crash will no longer happen here if the entitlements
-            // and data models are also fixed.
-            fatalError("Could not create ModelContainer: \(error)")
+        self.container = try! ModelContainer(for: schema, configurations: [
+            ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        ])
+        print("✅ Immediate in-memory ModelContainer created and used for UI launch!")
+        Task {
+            await setupContainer()
         }
-    }()
-    // --- END OF FIX ---
-    
-    init() {
-        // --- This is the "off-black" theme for nav bars and lists ---
-        let dynamicListBackground = UIColor.systemGroupedBackground
-        let dynamicCellBackground = UIColor.secondarySystemGroupedBackground
-
-        UITableView.appearance().backgroundColor = dynamicListBackground
-        UITableViewCell.appearance().backgroundColor = dynamicCellBackground
-        
-        let navBarAppearance = UINavigationBarAppearance()
-        navBarAppearance.configureWithOpaqueBackground()
-        
-        navBarAppearance.backgroundColor = dynamicListBackground
-        navBarAppearance.titleTextAttributes = [.foregroundColor: UIColor.label]
-        navBarAppearance.largeTitleTextAttributes = [.foregroundColor: UIColor.label]
-        
-        UINavigationBar.appearance().standardAppearance = navBarAppearance
-        UINavigationBar.appearance().scrollEdgeAppearance = navBarAppearance
-        
-        // --- This reverts your tab bar to the original style ---
-        let tabBarAppearance = UITabBarAppearance()
-        tabBarAppearance.configureWithDefaultBackground()
-        UITabBar.appearance().standardAppearance = tabBarAppearance
-        UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
     }
     
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-                .environmentObject(authManager)
-                .environmentObject(calendarManager)
-                .environmentObject(themeManager) // Pass the theme manager
+    private func setupContainer() async {
+        do {
+            let schema = Schema([
+                Subject.self,
+                StudyTask.self,
+                GradeEntry.self,
+                AttendanceEntry.self,
+                StudyCalendarEvent.self
+            ])
+            
+            let configuration = ModelConfiguration(
+                schema: schema,
+                isStoredInMemoryOnly: false,
+                allowsSave: true,
+                groupContainer: .none,
+                cloudKitDatabase: .private("iCloud.com.robudarius.classlly")
+            )
+            
+            let iCloudContainer = try ModelContainer(for: schema, configurations: [configuration])
+            await MainActor.run {
+                self.container = iCloudContainer
+            }
+            print("✅ iCloud ModelContainer created!")
+            
+        } catch {
+            print("❌ iCloud failed, continuing with existing container: \(error)")
         }
-        .modelContainer(modelContainer)
     }
 }

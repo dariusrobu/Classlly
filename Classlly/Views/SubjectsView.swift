@@ -105,7 +105,7 @@ struct SubjectCard: View {
                 
                 // --- THIS IS THE FIX ---
                 // Safely unwrap `gradeHistory.count`
-                StatPill(icon: "star", value: "\(subject.gradeHistory?.count ?? 0)", label: "Grades")
+                StatPill(icon: "star", value: "\(subject.gradeHistory.count)", label: "Grades")
                 // --- END OF FIX ---
             }
         }

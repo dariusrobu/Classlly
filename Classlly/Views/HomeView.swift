@@ -201,12 +201,10 @@ struct SubjectPerformanceCard: View {
     
     // --- THIS IS THE FIX ---
     private var averageGrade: Double? {
-        // 1. Safely unwrap `subject.gradeHistory`
-        guard let gradeHistory = subject.gradeHistory, !gradeHistory.isEmpty else { return nil }
-        
-        // 2. Use the unwrapped `gradeHistory`
-        let total = gradeHistory.reduce(0.0) { $0 + $1.grade }
-        return total / Double(gradeHistory.count)
+        // gradeHistory is a non-optional array, just check if it's empty
+        guard !subject.gradeHistory.isEmpty else { return nil }
+        let total = subject.gradeHistory.reduce(0.0) { $0 + $1.grade }
+        return total / Double(subject.gradeHistory.count)
     }
     // --- END OF FIX ---
     

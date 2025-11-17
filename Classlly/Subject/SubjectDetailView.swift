@@ -34,18 +34,18 @@ struct SubjectDetailView: View {
     
     // --- FIX 1: SAFELY UNWRAP `gradeHistory` ---
     private var averageGrade: Double? {
-        guard let gradeHistory = subject.gradeHistory, !gradeHistory.isEmpty else { return nil }
-        let total = gradeHistory.reduce(0.0) { $0 + $1.grade }
-        return total / Double(gradeHistory.count)
+        guard !subject.gradeHistory.isEmpty else { return nil }
+        let total = subject.gradeHistory.reduce(0.0) { $0 + $1.grade }
+        return total / Double(subject.gradeHistory.count)
     }
     
     // --- FIX 2: SAFELY UNWRAP `gradeHistory` ---
     private var gradeTrend: (icon: String, color: Color, description: String) {
-        guard let gradeHistory = subject.gradeHistory, gradeHistory.count >= 2 else {
+        guard subject.gradeHistory.count >= 2 else {
             return ("minus.circle", .gray, "No trend data")
         }
         
-        let sortedGrades = gradeHistory.sorted { $0.date > $1.date }
+        let sortedGrades = subject.gradeHistory.sorted { $0.date > $1.date }
         
         guard sortedGrades.count >= 2,
               let firstGrade = sortedGrades.first?.grade,
@@ -98,8 +98,8 @@ struct SubjectDetailView: View {
                 let newGrade = GradeEntry(date: date, grade: grade, description: description)
                 newGrade.subject = subject
                 modelContext.insert(newGrade)
-                // --- FIX 3: Append to the optional array ---
-                subject.gradeHistory?.append(newGrade)
+                // --- FIX 3: Append to the array ---
+                subject.gradeHistory.append(newGrade)
             }
         }
         .sheet(isPresented: $showingMarkAttendance) {
@@ -107,8 +107,8 @@ struct SubjectDetailView: View {
                 let newAttendance = AttendanceEntry(date: date, attended: attended, notes: notes)
                 newAttendance.subject = subject
                 modelContext.insert(newAttendance)
-                // --- FIX 4: Append to the optional array ---
-                subject.attendanceHistory?.append(newAttendance)
+                // --- FIX 4: Append to the array ---
+                subject.attendanceHistory.append(newAttendance)
             }
         }
         .sheet(isPresented: $showingAddTask) {
@@ -119,21 +119,21 @@ struct SubjectDetailView: View {
         }
         .sheet(item: $editingGrade) { grade in
             EditGradeSheet(gradeEntry: grade) { updatedGrade in
-                // --- FIX 5: Safely find and update in optional array ---
-                if let index = subject.gradeHistory?.firstIndex(where: { $0.id == updatedGrade.id }) {
-                    subject.gradeHistory?[index].date = updatedGrade.date
-                    subject.gradeHistory?[index].grade = updatedGrade.grade
-                    subject.gradeHistory?[index].descriptionText = updatedGrade.descriptionText
+                // --- FIX 5: Safely find and update in array ---
+                if let index = subject.gradeHistory.firstIndex(where: { $0.id == updatedGrade.id }) {
+                    subject.gradeHistory[index].date = updatedGrade.date
+                    subject.gradeHistory[index].grade = updatedGrade.grade
+                    subject.gradeHistory[index].descriptionText = updatedGrade.descriptionText
                 }
             }
         }
         .sheet(item: $editingAttendance) { attendance in
             EditAttendanceSheet(attendanceEntry: attendance) { updatedAttendance in
-                // --- FIX 6: Safely find and update in optional array ---
-                if let index = subject.attendanceHistory?.firstIndex(where: { $0.id == updatedAttendance.id }) {
-                    subject.attendanceHistory?[index].date = updatedAttendance.date
-                    subject.attendanceHistory?[index].attended = updatedAttendance.attended
-                    subject.attendanceHistory?[index].notes = updatedAttendance.notes
+                // --- FIX 6: Safely find and update in array ---
+                if let index = subject.attendanceHistory.firstIndex(where: { $0.id == updatedAttendance.id }) {
+                    subject.attendanceHistory[index].date = updatedAttendance.date
+                    subject.attendanceHistory[index].attended = updatedAttendance.attended
+                    subject.attendanceHistory[index].notes = updatedAttendance.notes
                 }
             }
         }
@@ -285,7 +285,7 @@ struct SubjectDetailView: View {
                 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                     // --- FIX 7: SAFELY UNWRAP COUNTS ---
-                    DetailInfoCard(icon: "star.circle.fill", title: "Total Grades", value: "\(subject.gradeHistory?.count ?? 0)")
+                    DetailInfoCard(icon: "star.circle.fill", title: "Total Grades", value: "\(subject.gradeHistory.count)")
                     DetailInfoCard(icon: "checkmark.circle.fill", title: "Classes Attended", value: "\(subject.attendedClasses)/\(subject.totalClasses)")
                     DetailInfoCard(icon: "chart.line.uptrend.xyaxis.circle.fill", title: "Attendance Rate", value: "\(Int(subject.attendanceRate * 100))%")
                     if let avgGrade = averageGrade {
@@ -372,7 +372,7 @@ struct SubjectDetailView: View {
                     title: "Average Grade",
                     value: averageGrade != nil ? String(format: "%.1f", averageGrade!) : "N/A",
                     // --- FIX 8: SAFELY UNWRAP COUNT ---
-                    subtitle: averageGrade != nil ? "/10 • \(subject.gradeHistory?.count ?? 0) grades" : "No grades yet",
+                    subtitle: averageGrade != nil ? "/10 • \(subject.gradeHistory.count) grades" : "No grades yet",
                     color: Color.themePrimary, // FIXED
                     icon: "star.fill",
                     progress: (averageGrade ?? 0) / 10,
@@ -443,7 +443,7 @@ struct SubjectDetailView: View {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     // --- FIX 9: SAFELY UNWRAP COUNT ---
-                    Text("\(subject.gradeHistory?.count ?? 0) entries")
+                    Text("\(subject.gradeHistory.count) entries")
                         .font(.caption)
                     if let average = averageGrade {
                         Text("Average: \(String(format: "%.1f", average))/10")
@@ -455,7 +455,7 @@ struct SubjectDetailView: View {
             .padding(.horizontal)
             
             // --- FIX 10: SAFELY CHECK IF EMPTY ---
-            if subject.gradeHistory?.isEmpty ?? true {
+            if subject.gradeHistory.isEmpty {
                 EmptyStateView(
                     icon: "chart.line.uptrend.xyaxis",
                     title: "No Grades Yet",
@@ -465,7 +465,7 @@ struct SubjectDetailView: View {
             } else {
                 LazyVStack(spacing: 1) {
                     // --- FIX 11: SAFELY ITERATE ---
-                    ForEach(subject.gradeHistory?.sorted(by: { $0.date > $1.date }) ?? []) { grade in
+                    ForEach(subject.gradeHistory.sorted(by: { $0.date > $1.date })) { grade in
                         GradeHistoryRow(grade: grade, averageGrade: averageGrade)
                             .padding(.horizontal)
                             .padding(.vertical, 12)
@@ -478,7 +478,7 @@ struct SubjectDetailView: View {
                                 Button(role: .destructive) {
                                     modelContext.delete(grade)
                                     // --- FIX 12: SAFELY REMOVE ---
-                                    subject.gradeHistory?.removeAll(where: { $0.id == grade.id })
+                                    subject.gradeHistory.removeAll(where: { $0.id == grade.id })
                                 } label: {
                                     Label("Delete", systemImage: "trash.fill")
                                 }
@@ -517,7 +517,7 @@ struct SubjectDetailView: View {
             .padding(.horizontal)
             
             // --- FIX 13: SAFELY CHECK IF EMPTY ---
-            if subject.attendanceHistory?.isEmpty ?? true {
+            if subject.attendanceHistory.isEmpty {
                 EmptyStateView(
                     icon: "calendar",
                     title: "No Attendance Records",
@@ -527,7 +527,7 @@ struct SubjectDetailView: View {
             } else {
                 LazyVStack(spacing: 1) {
                     // --- FIX 14: SAFELY ITERATE ---
-                    ForEach(subject.attendanceHistory?.sorted(by: { $0.date > $1.date }) ?? []) { attendance in
+                    ForEach(subject.attendanceHistory.sorted(by: { $0.date > $1.date })) { attendance in
                         AttendanceHistoryRow(attendance: attendance)
                             .padding(.horizontal)
                             .padding(.vertical, 12)
@@ -540,7 +540,7 @@ struct SubjectDetailView: View {
                                 Button(role: .destructive) {
                                     modelContext.delete(attendance)
                                     // --- FIX 15: SAFELY REMOVE ---
-                                    subject.attendanceHistory?.removeAll(where: { $0.id == attendance.id })
+                                    subject.attendanceHistory.removeAll(where: { $0.id == attendance.id })
                                 } label: {
                                     Label("Delete", systemImage: "trash.fill")
                                 }

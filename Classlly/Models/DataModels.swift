@@ -55,7 +55,7 @@ enum TaskReminderTime: String, CaseIterable, Codable, Hashable {
     }
 }
 
-// (GradeEntry model is unchanged - it already had defaults)
+// (GradeEntry model updated to ensure default values and non-optional properties)
 @Model
 final class GradeEntry {
     @Attribute(.unique) var id: UUID
@@ -64,7 +64,7 @@ final class GradeEntry {
     var descriptionText: String
     var subject: Subject?
     
-    init(id: UUID = UUID(), date: Date = Date(), grade: Double, description: String = "") {
+    init(id: UUID = UUID(), date: Date = Date(), grade: Double = 0.0, description: String = "") {
         self.id = id
         self.date = date
         self.grade = grade
@@ -72,7 +72,7 @@ final class GradeEntry {
     }
 }
 
-// (AttendanceEntry model is unchanged - it already had defaults)
+// (AttendanceEntry model updated to ensure default values and non-optional properties)
 @Model
 final class AttendanceEntry {
     @Attribute(.unique) var id: UUID
@@ -81,7 +81,7 @@ final class AttendanceEntry {
     var notes: String
     var subject: Subject?
     
-    init(id: UUID = UUID(), date: Date = Date(), attended: Bool, notes: String = "") {
+    init(id: UUID = UUID(), date: Date = Date(), attended: Bool = false, notes: String = "") {
         self.id = id
         self.date = date
         self.attended = attended
@@ -89,7 +89,7 @@ final class AttendanceEntry {
     }
 }
 
-// (Subject model is unchanged)
+// (Subject model updated: relationships are non-optional arrays with default empty arrays)
 @Model
 final class Subject {
     @Attribute(.unique) var id: UUID
@@ -110,18 +110,17 @@ final class Subject {
     var seminarDays: [Int]
     var seminarFrequency: ClassFrequency
     
-    // --- RELATIONSHIPS (Correctly optional for CloudKit) ---
+    // --- RELATIONSHIPS (non-optional arrays with default empty arrays) ---
     @Relationship(deleteRule: .cascade, inverse: \GradeEntry.subject)
-    var gradeHistory: [GradeEntry]? = []
+    var gradeHistory: [GradeEntry] = []
     
     @Relationship(deleteRule: .cascade, inverse: \AttendanceEntry.subject)
-    var attendanceHistory: [AttendanceEntry]? = []
+    var attendanceHistory: [AttendanceEntry] = []
 
     @Relationship(deleteRule: .cascade, inverse: \StudyTask.subject)
-    var tasks: [StudyTask]? = []
+    var tasks: [StudyTask] = []
     
     init(id: UUID = UUID(),
-         // --- FIX: ADD DEFAULT VALUES FOR CLOUDKIT ---
          title: String = "",
          courseTeacher: String = "",
          courseClassroom: String = "",
@@ -159,7 +158,6 @@ final class Subject {
         self.attendanceHistory = attendanceHistory
     }
     
-    // (courseTimeString, courseDaysString, etc. are unchanged)
     var courseTimeString: String {
         let timeFormatter = DateFormatter()
         timeFormatter.dateFormat = "HH:mm"
@@ -190,31 +188,24 @@ final class Subject {
         return seminarFrequency.rawValue
     }
     
-    // --- FIX: SAFELY UNWRAP COMPUTED PROPERTIES ---
     var currentGrade: Double? {
-        // Use optional chaining and nil-coalescing
-        (gradeHistory ?? []).last?.grade
+        gradeHistory.last?.grade
     }
     
     var attendanceRate: Double {
-        // Use `guard let`
-        guard let history = attendanceHistory, !history.isEmpty else { return 1.0 }
-        let attendedCount = history.filter { $0.attended }.count
-        return Double(attendedCount) / Double(history.count)
+        guard !attendanceHistory.isEmpty else { return 1.0 }
+        let attendedCount = attendanceHistory.filter { $0.attended }.count
+        return Double(attendedCount) / Double(attendanceHistory.count)
     }
     
     var totalClasses: Int {
-        // Use nil-coalescing
-        attendanceHistory?.count ?? 0
+        attendanceHistory.count
     }
     
     var attendedClasses: Int {
-        // Use nil-coalescing on the optional array
-        (attendanceHistory ?? []).filter { $0.attended }.count
+        attendanceHistory.filter { $0.attended }.count
     }
-    // --- END OF FIX ---
 
-    // (occursThisWeek func is unchanged)
     func occursThisWeek(academicWeek: Int?, isCourse: Bool = true) -> Bool {
         guard let academicWeek = academicWeek else {
             return false
@@ -231,8 +222,6 @@ final class Subject {
     }
 }
 
-// ... (StudyTask model is unchanged) ...
-
 @Model
 final class StudyTask {
     @Attribute(.unique) var id: UUID
@@ -242,19 +231,15 @@ final class StudyTask {
     var priority: TaskPriority
     var subject: Subject?
     var reminderTime: TaskReminderTime
-    
-    // --- 1. ADD THIS LINE ---
     var isFlagged: Bool
 
     init(id: UUID = UUID(),
-         // --- FIX: ADD DEFAULT VALUE FOR CLOUDKIT ---
          title: String = "",
          isCompleted: Bool = false,
          dueDate: Date? = nil,
          priority: TaskPriority = .medium,
          subject: Subject? = nil,
          reminderTime: TaskReminderTime = .hourBefore1,
-         // --- 2. ADD THIS (with a default value) ---
          isFlagged: Bool = false
     ) {
         self.id = id
@@ -264,20 +249,15 @@ final class StudyTask {
         self.priority = priority
         self.subject = subject
         self.reminderTime = reminderTime
-        // --- 3. ADD THIS LINE ---
         self.isFlagged = isFlagged
     }
 }
-
-// ... (TaskPriority enum is unchanged) ...
 
 enum TaskPriority: String, CaseIterable, Codable {
     case low = "Low"
     case medium = "Medium"
     case high = "High"
     
-    // --- THIS IS THE **ONLY** 'color' DEFINITION ---
-    // It fixes the "Invalid redeclaration" and "Ambiguous use" errors
     var color: Color {
         switch self {
         case .low:
@@ -306,8 +286,6 @@ enum TaskPriority: String, CaseIterable, Codable {
     }
 }
 
-// ... (StudyCalendarEvent model is unchanged) ...
-
 @Model
 final class StudyCalendarEvent {
     @Attribute(.unique) var id: UUID
@@ -328,7 +306,6 @@ final class StudyCalendarEvent {
     }
     
     init(id: UUID = UUID(),
-         // --- FIX: ADD DEFAULT VALUES FOR CLOUDKIT ---
          title: String = "",
          time: String = "",
          location: String = "",
@@ -346,7 +323,6 @@ final class StudyCalendarEvent {
         self.subjectId = subjectId
     }
 
-    // --- UPDATED to use new theme colors ---
     var color: Color {
         switch colorName {
         case "blue": return .themePrimary
