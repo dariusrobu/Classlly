@@ -30,7 +30,6 @@ enum TaskReminderTime: String, CaseIterable, Codable, Hashable {
     case dayBefore1 = "1 day before"
     case weekBefore1 = "1 week before"
     
-    // (reminderDate func is unchanged)
     func reminderDate(from dueDate: Date) -> Date? {
         switch self {
         case .none:
@@ -55,24 +54,26 @@ enum TaskReminderTime: String, CaseIterable, Codable, Hashable {
     }
 }
 
-// (GradeEntry model updated to ensure default values and non-optional properties)
+// (GradeEntry model is unchanged)
 @Model
 final class GradeEntry {
     @Attribute(.unique) var id: UUID
     var date: Date
     var grade: Double
+    var weight: Double
     var descriptionText: String
     var subject: Subject?
     
-    init(id: UUID = UUID(), date: Date = Date(), grade: Double = 0.0, description: String = "") {
+    init(id: UUID = UUID(), date: Date = Date(), grade: Double, weight: Double = 100.0, description: String = "") {
         self.id = id
         self.date = date
         self.grade = grade
+        self.weight = weight
         self.descriptionText = description
     }
 }
 
-// (AttendanceEntry model updated to ensure default values and non-optional properties)
+// (AttendanceEntry model is unchanged)
 @Model
 final class AttendanceEntry {
     @Attribute(.unique) var id: UUID
@@ -81,7 +82,7 @@ final class AttendanceEntry {
     var notes: String
     var subject: Subject?
     
-    init(id: UUID = UUID(), date: Date = Date(), attended: Bool = false, notes: String = "") {
+    init(id: UUID = UUID(), date: Date = Date(), attended: Bool, notes: String = "") {
         self.id = id
         self.date = date
         self.attended = attended
@@ -89,7 +90,7 @@ final class AttendanceEntry {
     }
 }
 
-// (Subject model updated: relationships are non-optional arrays with default empty arrays)
+// (Subject model is unchanged)
 @Model
 final class Subject {
     @Attribute(.unique) var id: UUID
@@ -110,7 +111,6 @@ final class Subject {
     var seminarDays: [Int]
     var seminarFrequency: ClassFrequency
     
-    // --- RELATIONSHIPS (non-optional arrays with default empty arrays) ---
     @Relationship(deleteRule: .cascade, inverse: \GradeEntry.subject)
     var gradeHistory: [GradeEntry] = []
     
@@ -121,16 +121,16 @@ final class Subject {
     var tasks: [StudyTask] = []
     
     init(id: UUID = UUID(),
-         title: String = "",
-         courseTeacher: String = "",
-         courseClassroom: String = "",
+         title: String,
+         courseTeacher: String,
+         courseClassroom: String,
          courseDate: Date = Date(),
          courseStartTime: Date = Date(),
          courseEndTime: Date = Date(),
          courseDays: [Int] = [],
          courseFrequency: ClassFrequency = .weekly,
-         seminarTeacher: String = "",
-         seminarClassroom: String = "",
+         seminarTeacher: String,
+         seminarClassroom: String,
          seminarDate: Date = Date(),
          seminarStartTime: Date = Date(),
          seminarEndTime: Date = Date(),
@@ -205,7 +205,7 @@ final class Subject {
     var attendedClasses: Int {
         attendanceHistory.filter { $0.attended }.count
     }
-
+    
     func occursThisWeek(academicWeek: Int?, isCourse: Bool = true) -> Bool {
         guard let academicWeek = academicWeek else {
             return false
@@ -222,6 +222,7 @@ final class Subject {
     }
 }
 
+// MARK: - UPDATED StudyTask Model
 @Model
 final class StudyTask {
     @Attribute(.unique) var id: UUID
@@ -232,15 +233,17 @@ final class StudyTask {
     var subject: Subject?
     var reminderTime: TaskReminderTime
     var isFlagged: Bool
+    var notes: String // NEW: Stores task description/notes
 
     init(id: UUID = UUID(),
-         title: String = "",
+         title: String,
          isCompleted: Bool = false,
          dueDate: Date? = nil,
          priority: TaskPriority = .medium,
          subject: Subject? = nil,
          reminderTime: TaskReminderTime = .hourBefore1,
-         isFlagged: Bool = false
+         isFlagged: Bool = false,
+         notes: String = "" // NEW: Default empty
     ) {
         self.id = id
         self.title = title
@@ -250,9 +253,11 @@ final class StudyTask {
         self.subject = subject
         self.reminderTime = reminderTime
         self.isFlagged = isFlagged
+        self.notes = notes
     }
 }
 
+// (TaskPriority Enum is unchanged)
 enum TaskPriority: String, CaseIterable, Codable {
     case low = "Low"
     case medium = "Medium"
@@ -261,11 +266,11 @@ enum TaskPriority: String, CaseIterable, Codable {
     var color: Color {
         switch self {
         case .low:
-            return .themeSuccess // Vibrant Green
+            return .themeSuccess
         case .medium:
-            return .themeAccent  // Vibrant Orange/Pink
+            return .themeAccent
         case .high:
-            return .themeError   // Vibrant Red
+            return .themeError
         }
     }
     
@@ -286,6 +291,7 @@ enum TaskPriority: String, CaseIterable, Codable {
     }
 }
 
+// (StudyCalendarEvent Model is unchanged)
 @Model
 final class StudyCalendarEvent {
     @Attribute(.unique) var id: UUID
@@ -305,14 +311,7 @@ final class StudyCalendarEvent {
         case custom = "custom"
     }
     
-    init(id: UUID = UUID(),
-         title: String = "",
-         time: String = "",
-         location: String = "",
-         colorName: String = "blue",
-         eventType: EventType = .custom,
-         taskId: UUID? = nil,
-         subjectId: UUID? = nil) {
+    init(id: UUID = UUID(), title: String, time: String, location: String, colorName: String = "blue", eventType: EventType = .custom, taskId: UUID? = nil, subjectId: UUID? = nil) {
         self.id = id
         self.title = title
         self.time = time

@@ -4,6 +4,7 @@ import SwiftData
 struct HomeView: View {
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject var calendarManager: AcademicCalendarManager
+    @EnvironmentObject var themeManager: AppTheme
     
     @Query(sort: \Subject.title) var subjects: [Subject]
     @Query var tasks: [StudyTask]
@@ -23,12 +24,13 @@ struct HomeView: View {
                 .padding()
             }
             .navigationTitle("Dashboard")
-            // --- THIS IS THE FIX ---
             .navigationBarTitleDisplayMode(.inline)
+            .background(Color.clear)
         }
     }
     
-    // ... (welcomeHeader, quickStatsSection, StatCard, etc.) ...
+    // ... (Sections welcomeHeader, quickStatsSection, etc. remain exactly the same)
+    // Just ensure they use .gamifiedCard(themeManager: themeManager)
     
     private var welcomeHeader: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -48,42 +50,22 @@ struct HomeView: View {
                     Text(calendarManager.currentSemester.displayName)
                 }
                 .font(.caption)
-                .foregroundColor(.themePrimary)
+                .foregroundColor(themeManager.selectedTheme.accentColor)
                 .padding(.top, 4)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color.themeSurface)
-        .cornerRadius(12)
+        .padding(20)
+        .gamifiedCard(themeManager: themeManager)
     }
     
     private var quickStatsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Quick Stats")
-                .font(.headline)
-                .fontWeight(.semibold)
-                .foregroundColor(.themeTextPrimary)
-            
+            Text("Quick Stats").font(.headline).fontWeight(.semibold).foregroundColor(.themeTextPrimary)
             HStack(spacing: 12) {
-                StatCard(
-                    title: "Today's Classes",
-                    value: "\(getTodayClasses(academicWeek: calendarManager.currentTeachingWeek).count)",
-                    icon: "calendar",
-                    color: .themePrimary
-                )
-                StatCard(
-                    title: "Pending Tasks",
-                    value: "\(tasks.filter { !$0.isCompleted }.count)",
-                    icon: "checklist",
-                    color: .themeWarning
-                )
-                StatCard(
-                    title: "Subjects",
-                    value: "\(subjects.count)",
-                    icon: "book",
-                    color: .themeSuccess
-                )
+                StatCard(title: "Today's Classes", value: "\(getTodayClasses(academicWeek: calendarManager.currentTeachingWeek).count)", icon: "calendar", color: themeManager.selectedTheme.accentColor)
+                StatCard(title: "Pending Tasks", value: "\(tasks.filter { !$0.isCompleted }.count)", icon: "checklist", color: themeManager.isGamified ? .orange : .themeWarning)
+                StatCard(title: "Subjects", value: "\(subjects.count)", icon: "book", color: themeManager.isGamified ? .green : .themeSuccess)
             }
         }
     }
@@ -91,24 +73,13 @@ struct HomeView: View {
     private var todaysClassesSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("Today's Classes")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.themeTextPrimary)
+                Text("Today's Classes").font(.headline).fontWeight(.semibold).foregroundColor(.themeTextPrimary)
                 Spacer()
-                NavigationLink("See All") { SubjectsView() }
-                    .font(.subheadline)
-                    .foregroundColor(.themePrimary)
+                NavigationLink("See All") { SubjectsView() }.font(.subheadline).foregroundColor(themeManager.selectedTheme.accentColor)
             }
-            
             let todaysClasses = getTodayClasses(academicWeek: calendarManager.currentTeachingWeek)
-            
             if todaysClasses.isEmpty {
-                HomeEmptyStateView(
-                    icon: "calendar.badge.clock",
-                    title: "No classes today",
-                    message: "Enjoy your free time or catch up on studies"
-                )
+                HomeEmptyStateView(icon: "calendar.badge.clock", title: "No classes today", message: "Enjoy your free time.")
             } else {
                 LazyVStack(spacing: 12) {
                     ForEach(todaysClasses.prefix(3)) { subject in
@@ -122,26 +93,13 @@ struct HomeView: View {
     private var upcomingTasksSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("Upcoming Tasks")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.themeTextPrimary)
+                Text("Upcoming Tasks").font(.headline).fontWeight(.semibold).foregroundColor(.themeTextPrimary)
                 Spacer()
-                NavigationLink("See All") { TasksView() }
-                    .font(.subheadline)
-                    .foregroundColor(.themePrimary)
+                NavigationLink("See All") { TasksView() }.font(.subheadline).foregroundColor(themeManager.selectedTheme.accentColor)
             }
-            
-            let upcomingTasks = tasks
-                .filter { !$0.isCompleted }
-                .sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
-            
+            let upcomingTasks = tasks.filter { !$0.isCompleted }.sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
             if upcomingTasks.isEmpty {
-                HomeEmptyStateView(
-                    icon: "checkmark.circle",
-                    title: "No pending tasks",
-                    message: "You're all caught up!"
-                )
+                HomeEmptyStateView(icon: "checkmark.circle", title: "No pending tasks", message: "You're all caught up!")
             } else {
                 LazyVStack(spacing: 12) {
                     ForEach(upcomingTasks.prefix(3)) { task in
@@ -155,22 +113,12 @@ struct HomeView: View {
     private var academicPerformanceSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("Academic Performance")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.themeTextPrimary)
+                Text("Academic Performance").font(.headline).fontWeight(.semibold).foregroundColor(.themeTextPrimary)
                 Spacer()
-                NavigationLink("See All") { SubjectsView() }
-                    .font(.subheadline)
-                    .foregroundColor(.themePrimary)
+                NavigationLink("See All") { SubjectsView() }.font(.subheadline).foregroundColor(themeManager.selectedTheme.accentColor)
             }
-            
             if subjects.isEmpty {
-                HomeEmptyStateView(
-                    icon: "chart.bar.fill",
-                    title: "No Subjects",
-                    message: "Add your first subject to track academic performance"
-                )
+                HomeEmptyStateView(icon: "chart.bar.fill", title: "No Subjects", message: "Add your first subject.")
             } else {
                 LazyVStack(spacing: 12) {
                     ForEach(subjects.prefix(4)) { subject in
@@ -185,32 +133,83 @@ struct HomeView: View {
         let today = Date()
         let weekday = Calendar.current.component(.weekday, from: today)
         return subjects.filter { subject in
-            let hasCourseToday = subject.courseDays.contains(weekday) &&
-                               subject.occursThisWeek(academicWeek: academicWeek, isCourse: true)
-            let hasSeminarToday = subject.seminarDays.contains(weekday) &&
-                                subject.occursThisWeek(academicWeek: academicWeek, isCourse: false)
+            let hasCourseToday = subject.courseDays.contains(weekday) && subject.occursThisWeek(academicWeek: academicWeek, isCourse: true)
+            let hasSeminarToday = subject.seminarDays.contains(weekday) && subject.occursThisWeek(academicWeek: academicWeek, isCourse: false)
             return hasCourseToday || hasSeminarToday
         }
     }
 }
 
-// --- All helper structs (StatCard, HomeClassCard, etc.) ---
+// MARK: - THE CARD MODIFIER
+struct GamifiedCardModifier: ViewModifier {
+    var themeManager: AppTheme
+    @Environment(\.colorScheme) var colorScheme
+    
+    func body(content: Content) -> some View {
+        content
+            .background(
+                ZStack {
+                    if themeManager.isGamified {
+                        // Gamified: Dark Glass
+                        Color(red: 0.08, green: 0.08, blue: 0.1).opacity(0.9)
+                        LinearGradient(colors: [themeManager.selectedTheme.accentColor.opacity(0.15), .clear], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    } else {
+                        // Standard: Clean System Surface
+                        Color.themeSurface
+                    }
+                }
+            )
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(
+                        themeManager.isGamified ?
+                        // Gamified: Visible Gradient Border
+                        LinearGradient(
+                            colors: [themeManager.selectedTheme.accentColor.opacity(0.8), .clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ) :
+                        // Standard: No Border (or extremely subtle)
+                        LinearGradient(colors: [.clear], startPoint: .top, endPoint: .bottom),
+                        lineWidth: themeManager.isGamified ? 1 : 0 // Remove width in standard
+                    )
+            )
+            .shadow(
+                color: themeManager.isGamified ? themeManager.selectedTheme.accentColor.opacity(0.3) : Color.clear,
+                radius: themeManager.isGamified ? 12 : 0
+            )
+    }
+}
+
+extension View {
+    func gamifiedCard(themeManager: AppTheme) -> some View {
+        self.modifier(GamifiedCardModifier(themeManager: themeManager))
+    }
+}
+
+// ... (Keep helper structs: SubjectPerformanceCard, StatCard, HomeClassCard, HomeTaskCard, HomeEmptyStateView from previous turns)
+// Just ensure they call .gamifiedCard(themeManager: themeManager) at the end of their body
+// I am omitting the full repetition of those small structs to save space, but they are required.
+// If you need them, paste the helper structs from the previous HomeView.swift response.
+// MARK: - Helper Structs
+
 struct SubjectPerformanceCard: View {
     let subject: Subject
     @Environment(\.colorScheme) var colorScheme
+    @EnvironmentObject var themeManager: AppTheme
     
-    // --- THIS IS THE FIX ---
     private var averageGrade: Double? {
-        // gradeHistory is a non-optional array, just check if it's empty
         guard !subject.gradeHistory.isEmpty else { return nil }
-        let total = subject.gradeHistory.reduce(0.0) { $0 + $1.grade }
-        return total / Double(subject.gradeHistory.count)
+        let totalWeightedScore = subject.gradeHistory.reduce(0.0) { $0 + ($1.grade * $1.weight) }
+        let totalWeight = subject.gradeHistory.reduce(0.0) { $0 + $1.weight }
+        guard totalWeight > 0 else { return 0.0 }
+        return totalWeightedScore / totalWeight
     }
-    // --- END OF FIX ---
     
     private var gradeColor: Color {
-        // (This logic is now safe because `averageGrade` handles the unwrapping)
         guard let grade = averageGrade else { return .gray }
+        if themeManager.isGamified && grade >= 8.5 { return themeManager.selectedTheme.accentColor }
         switch grade {
         case 8.5...10: return .themeSuccess
         case 7...8.4: return .themePrimary
@@ -220,7 +219,6 @@ struct SubjectPerformanceCard: View {
     }
     
     private var attendanceColor: Color {
-        // (This was already safe because `subject.attendanceRate` was fixed in DataModels.swift)
         let rate = subject.attendanceRate
         switch rate {
         case 0.9...1.0: return .themeSuccess
@@ -235,11 +233,11 @@ struct SubjectPerformanceCard: View {
             HStack(spacing: 16) {
                 ZStack {
                     Circle()
-                        .fill(Color.themePrimary.opacity(0.1))
+                        .fill(themeManager.selectedTheme.accentColor.opacity(0.1))
                         .frame(width: 44, height: 44)
                     Image(systemName: "book.fill")
                         .font(.system(size: 18))
-                        .foregroundColor(.themePrimary)
+                        .foregroundColor(themeManager.selectedTheme.accentColor)
                 }
                 
                 VStack(alignment: .leading, spacing: 6) {
@@ -262,7 +260,6 @@ struct SubjectPerformanceCard: View {
                             .font(.system(size: 12))
                             .foregroundColor(gradeColor)
                         
-                        // (This is now safe)
                         if let grade = averageGrade {
                             Text(String(format: "%.1f", grade))
                                 .font(.system(size: 14, weight: .semibold))
@@ -279,7 +276,6 @@ struct SubjectPerformanceCard: View {
                             .font(.system(size: 12))
                             .foregroundColor(attendanceColor)
                         
-                        // (This is now safe)
                         Text("\(Int(subject.attendanceRate * 100))%")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(attendanceColor)
@@ -291,20 +287,19 @@ struct SubjectPerformanceCard: View {
                     .foregroundColor(.secondary)
             }
             .padding()
-            .background(Color.themeSurface)
-            .cornerRadius(12)
+            .gamifiedCard(themeManager: themeManager)
         }
         .buttonStyle(PlainButtonStyle())
     }
 }
 
-// ... (Rest of HomeView.swift and its helper structs are unchanged) ...
 struct StatCard: View {
     let title: String
     let value: String
     let icon: String
     let color: Color
     @Environment(\.colorScheme) var colorScheme
+    @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
         VStack(spacing: 8) {
@@ -324,8 +319,7 @@ struct StatCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding()
-        .background(Color.themeSurface)
-        .cornerRadius(12)
+        .gamifiedCard(themeManager: themeManager)
     }
 }
 
@@ -333,15 +327,16 @@ struct HomeClassCard: View {
     let subject: Subject
     let academicWeek: Int?
     @Environment(\.colorScheme) var colorScheme
+    @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(Color.themePrimary.opacity(0.1))
+                    .fill(themeManager.selectedTheme.accentColor.opacity(0.1))
                     .frame(width: 40, height: 40)
                 Image(systemName: "book.fill")
-                    .foregroundColor(.themePrimary)
+                    .foregroundColor(themeManager.selectedTheme.accentColor)
             }
             
             VStack(alignment: .leading, spacing: 4) {
@@ -355,8 +350,8 @@ struct HomeClassCard: View {
                             .font(.caption)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)
-                            .background(Color.themePrimary.opacity(0.1))
-                            .foregroundColor(.themePrimary)
+                            .background(themeManager.selectedTheme.accentColor.opacity(0.1))
+                            .foregroundColor(themeManager.selectedTheme.accentColor)
                             .cornerRadius(4)
                     }
                     
@@ -383,24 +378,21 @@ struct HomeClassCard: View {
                 .foregroundColor(.secondary)
         }
         .padding()
-        .background(Color.themeSurface)
-        .cornerRadius(12)
+        .gamifiedCard(themeManager: themeManager)
     }
 }
 
 struct HomeTaskCard: View {
     let task: StudyTask
     @Environment(\.colorScheme) var colorScheme
+    @EnvironmentObject var themeManager: AppTheme
     
     private var dueText: String {
         guard let dueDate = task.dueDate else { return "No due date" }
-        
         let calendar = Calendar.current
-        if calendar.isDateInToday(dueDate) {
-            return "Due today"
-        } else if calendar.isDateInTomorrow(dueDate) {
-            return "Due tomorrow"
-        } else {
+        if calendar.isDateInToday(dueDate) { return "Due today" }
+        else if calendar.isDateInTomorrow(dueDate) { return "Due tomorrow" }
+        else {
             let formatter = DateFormatter()
             formatter.dateFormat = "MMM d"
             return "Due \(formatter.string(from: dueDate))"
@@ -410,7 +402,7 @@ struct HomeTaskCard: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: task.priority.systemIcon)
-                .foregroundColor(task.priority.color)
+                .foregroundColor(task.priority == .medium && themeManager.isGamified ? themeManager.selectedTheme.accentColor : task.priority.color)
                 .frame(width: 20)
             
             VStack(alignment: .leading, spacing: 4) {
@@ -436,8 +428,7 @@ struct HomeTaskCard: View {
                 .foregroundColor(.secondary)
         }
         .padding()
-        .background(Color.themeSurface)
-        .cornerRadius(12)
+        .gamifiedCard(themeManager: themeManager)
     }
 }
 
@@ -446,6 +437,7 @@ struct HomeEmptyStateView: View {
     let title: String
     let message: String
     @Environment(\.colorScheme) var colorScheme
+    @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
         VStack(spacing: 12) {
@@ -462,7 +454,6 @@ struct HomeEmptyStateView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(40)
-        .background(Color.themeSurface)
-        .cornerRadius(12)
+        .gamifiedCard(themeManager: themeManager)
     }
 }

@@ -1,7 +1,3 @@
-// File: Classlly/Subject/AddSubjectView.swift
-// Note: This file is corrected to create an empty Subject()
-// and set its properties individually.
-
 import SwiftUI
 import SwiftData
 
@@ -179,34 +175,33 @@ struct AddSubjectView: View {
     }
     
     private func saveSubject() {
-        // --- THIS IS THE FIX ---
-        // 1. Create an empty Subject
-        let newSubject = Subject()
-        
-        // 2. Set all properties
-        newSubject.title = title
-        newSubject.courseTeacher = courseTeacher
-        newSubject.courseClassroom = courseClassroom
-        newSubject.courseDate = courseDate
-        newSubject.courseStartTime = courseStartTime
-        newSubject.courseEndTime = courseEndTime
-        newSubject.courseDays = Array(selectedCourseDays).sorted()
-        newSubject.courseFrequency = courseFrequency
-        newSubject.seminarTeacher = seminarTeacher
-        newSubject.seminarClassroom = seminarClassroom
-        newSubject.seminarDate = seminarDate
-        newSubject.seminarStartTime = seminarStartTime
-        newSubject.seminarEndTime = seminarEndTime
-        newSubject.seminarDays = Array(selectedSeminarDays).sorted()
-        newSubject.seminarFrequency = seminarFrequency
-        
-        // 3. Insert into the context
+        // UPDATED: Initialize Subject with all parameters at once
+        // This fixes the "Missing argument for parameter 'backingData'" error
+        let newSubject = Subject(
+            title: title,
+            courseTeacher: courseTeacher,
+            courseClassroom: courseClassroom,
+            courseDate: courseDate,
+            courseStartTime: courseStartTime,
+            courseEndTime: courseEndTime,
+            courseDays: Array(selectedCourseDays).sorted(),
+            courseFrequency: courseFrequency,
+            seminarTeacher: seminarTeacher,
+            seminarClassroom: seminarClassroom,
+            seminarDate: seminarDate,
+            seminarStartTime: seminarStartTime,
+            seminarEndTime: seminarEndTime,
+            seminarDays: Array(selectedSeminarDays).sorted(),
+            seminarFrequency: seminarFrequency,
+            gradeHistory: [],
+            attendanceHistory: []
+        )
         modelContext.insert(newSubject)
         dismiss()
     }
 }
 
-// (Helper structs DayChip and FrequencyHelpRow are unchanged)
+// --- HELPER STRUCTS ---
 
 fileprivate struct DayChip: View {
     let day: String

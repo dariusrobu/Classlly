@@ -1,31 +1,21 @@
-// File: Classlly/Auth/AcademicCalendarManager.swift
-// Note: This manager handles the academic calendar logic.
-// The calendar data (AcademicCalendarData) is stored in UserDefaults
-// as it represents global app settings rather than user-generated content
-// that belongs in SwiftData/CloudKit.
-
 import SwiftUI
 import Foundation
 import Combine
 
-// --- NEW STRUCT ---
+// MARK: - Calendar Template
 struct CalendarTemplate: Identifiable, Hashable {
     let id = UUID()
     var universityName: String
     var academicYear: String
     
-    // Dates are strings to store them easily
     var sem1StartStr: String
     var sem1EndStr: String
     var sem2StartStr: String
     var sem2EndStr: String
 }
-// --- END NEW STRUCT ---
-
 
 // MARK: - Event Type
 enum EventType: String, CaseIterable, Codable {
-    // ... (This enum is unchanged)
     case teaching = "teaching"
     case breakType = "break"
     case exam = "exam"
@@ -63,7 +53,6 @@ enum EventType: String, CaseIterable, Codable {
     }
 }
 
-// ... (AcademicEventData, SemesterData, AcademicCalendarData are unchanged) ...
 // MARK: - Academic Event Data
 struct AcademicEventData: Identifiable, Codable, Equatable {
     let id: UUID
@@ -121,7 +110,6 @@ struct AcademicCalendarData: Codable, Equatable {
     }
 }
 
-
 // MARK: - Academic Calendar Manager
 class AcademicCalendarManager: ObservableObject {
     @Published var currentAcademicYear: AcademicCalendarData?
@@ -129,8 +117,6 @@ class AcademicCalendarManager: ObservableObject {
     @Published var currentTeachingWeek: Int?
     @Published var currentSemester: SemesterType = .semester1
     
-    // --- NEW: CALENDAR TEMPLATES ---
-    // You can add as many as you want here
     let availableTemplates: [CalendarTemplate] = [
         CalendarTemplate(
             universityName: "University of Example",
@@ -140,9 +126,6 @@ class AcademicCalendarManager: ObservableObject {
             sem2StartStr: "2026-01-11",
             sem2EndStr: "2026-04-18"
         )
-        // Add more universities here...
-        // CalendarTemplate(universityName: "Harvard", ...),
-        // CalendarTemplate(universityName: "MIT", ...),
     ]
     
     private let dateFormatter: DateFormatter = {
@@ -150,10 +133,8 @@ class AcademicCalendarManager: ObservableObject {
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter
     }()
-    // --- END NEW ---
     
     enum SemesterType {
-        // ... (This enum is unchanged)
         case semester1
         case semester2
         
@@ -177,7 +158,6 @@ class AcademicCalendarManager: ObservableObject {
     // MARK: - Public Methods
     
     func getSemesterEvents(_ semester: SemesterType) -> [AcademicEventData] {
-        // ... (This function is unchanged)
         guard let calendar = currentAcademicYear else { return [] }
         
         switch semester {
@@ -189,7 +169,6 @@ class AcademicCalendarManager: ObservableObject {
     }
     
     func getCurrentEvent(for date: Date) -> AcademicEventData? {
-        // ... (This function is unchanged)
         guard let calendar = currentAcademicYear else { return nil }
         
         let dateString = formatDate(date)
@@ -201,7 +180,6 @@ class AcademicCalendarManager: ObservableObject {
     }
     
     func setCurrentCalendar(_ calendar: AcademicCalendarData) {
-        // ... (This function is unchanged)
         currentAcademicYear = calendar
         updateCurrentWeekAndSemester()
         saveCalendars()
@@ -212,7 +190,6 @@ class AcademicCalendarManager: ObservableObject {
     }
     
     func addCustomCalendar(_ calendar: AcademicCalendarData) {
-        // ... (This function is unchanged)
         if !availableCalendars.contains(where: { $0.academicYear == calendar.academicYear }) {
             availableCalendars.append(calendar)
         }
@@ -221,7 +198,6 @@ class AcademicCalendarManager: ObservableObject {
     }
     
     func updateCalendar(_ calendar: AcademicCalendarData) {
-        // ... (This function is unchanged)
         if let index = availableCalendars.firstIndex(where: { $0.academicYear == calendar.academicYear }) {
             availableCalendars[index] = calendar
         }
@@ -235,7 +211,6 @@ class AcademicCalendarManager: ObservableObject {
     }
     
     func deleteCalendar(_ calendar: AcademicCalendarData) {
-        // ... (This function is unchanged)
         availableCalendars.removeAll { $0.academicYear == calendar.academicYear }
         
         if currentAcademicYear?.academicYear == calendar.academicYear {
@@ -246,7 +221,6 @@ class AcademicCalendarManager: ObservableObject {
     }
     
     func createNewCalendar(year: String, universityName: String, customName: String) -> AcademicCalendarData {
-        // ... (This function is unchanged)
         return AcademicCalendarData(
             academicYear: year,
             semester1: SemesterData(),
@@ -256,7 +230,6 @@ class AcademicCalendarManager: ObservableObject {
         )
     }
 
-    // --- NEW: GENERATE CALENDAR FROM TEMPLATE ---
     func generateAndSaveCalendar(from template: CalendarTemplate) {
         guard let sem1Start = dateFormatter.date(from: template.sem1StartStr),
               let sem1End = dateFormatter.date(from: template.sem1EndStr),
@@ -267,7 +240,6 @@ class AcademicCalendarManager: ObservableObject {
             return
         }
         
-        // Call the manual function with the template's dates
         generateAndSaveCustomCalendar(
             year: template.academicYear,
             universityName: template.universityName,
@@ -278,7 +250,6 @@ class AcademicCalendarManager: ObservableObject {
         )
     }
 
-    // --- RENAMED: This was your old `generateAndSaveCalendar` ---
     func generateAndSaveCustomCalendar(year: String, universityName: String, sem1Start: Date, sem1End: Date, sem2Start: Date, sem2End: Date) {
         
         let s1StartDate = formatDate(sem1Start)
@@ -286,14 +257,12 @@ class AcademicCalendarManager: ObservableObject {
         let s2StartDate = formatDate(sem2Start)
         let s2EndDate = formatDate(sem2End)
         
-        // Calculate break start/end dates
         let winterBreakStart = Calendar.current.date(byAdding: .day, value: 1, to: sem1End)!
         let winterBreakEnd = Calendar.current.date(byAdding: .day, value: -1, to: sem2Start)!
         
         let s1TeachingWeeks = (Calendar.current.dateComponents([.weekOfYear], from: sem1Start, to: sem1End).weekOfYear ?? 0) + 1
         let s2TeachingWeeks = (Calendar.current.dateComponents([.weekOfYear], from: sem2Start, to: sem2End).weekOfYear ?? 0) + 1
         
-        // Create the 4 main events
         let sem1Teaching = AcademicEventData(
             start: s1StartDate,
             end: s1EndDate,
@@ -322,7 +291,6 @@ class AcademicCalendarManager: ObservableObject {
             customName: "Semester 2"
         )
 
-        // Create the new calendar
         let newCalendar = AcademicCalendarData(
             academicYear: year,
             semester1: SemesterData(events: [sem1Teaching, winterBreak]),
@@ -331,22 +299,17 @@ class AcademicCalendarManager: ObservableObject {
             customName: "\(universityName) \(year)"
         )
         
-        // Replace the default sample calendar
         if let index = availableCalendars.firstIndex(where: { $0.customName == "Default Academic Calendar" }) {
             availableCalendars[index] = newCalendar
         } else {
             availableCalendars.append(newCalendar)
         }
         
-        // Set it as current and save
         setCurrentCalendar(newCalendar)
         saveCalendars()
     }
     
-    // MARK: - Private Methods
-    
     private func loadCalendars() {
-        // ... (This function is unchanged)
         if let data = UserDefaults.standard.data(forKey: userDefaultsKey),
            let decoded = try? JSONDecoder().decode([AcademicCalendarData].self, from: data) {
             availableCalendars = decoded
@@ -361,14 +324,12 @@ class AcademicCalendarManager: ObservableObject {
     }
     
     private func saveCalendars() {
-        // ... (This function is unchanged)
         if let encoded = try? JSONEncoder().encode(availableCalendars) {
             UserDefaults.standard.set(encoded, forKey: userDefaultsKey)
         }
     }
     
     private func setupDefaultCalendarIfNeeded() {
-        // ... (This function is unchanged)
         if availableCalendars.isEmpty {
             let defaultCalendar = createSampleCalendar()
             availableCalendars = [defaultCalendar]
@@ -378,7 +339,6 @@ class AcademicCalendarManager: ObservableObject {
     }
     
     private func createSampleCalendar() -> AcademicCalendarData {
-        // ... (This function is unchanged)
         let semester1Events = [
             AcademicEventData(
                 start: "2025-09-15",
@@ -427,7 +387,6 @@ class AcademicCalendarManager: ObservableObject {
     }
     
     private func updateCurrentWeekAndSemester() {
-        // ... (This function is unchanged)
         let today = Date()
         let dateString = formatDate(today)
         
@@ -473,12 +432,10 @@ class AcademicCalendarManager: ObservableObject {
     }
     
     private func formatDate(_ date: Date) -> String {
-        // ... (This function is unchanged)
         return dateFormatter.string(from: date)
     }
     
     private func dateFromString(_ dateString: String) -> Date? {
-        // ... (This function is unchanged)
         return dateFormatter.date(from: dateString)
     }
 }

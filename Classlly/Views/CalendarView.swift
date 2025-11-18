@@ -1,16 +1,3 @@
-//
-//  CalendarEvent.swift
-//  Classlly
-//
-//  Created by Robu Darius on 14.11.2025.
-//
-
-
-// File: Classlly/Views/CalendarView.swift
-// Note: This view displays tasks and classes in a weekly calendar format.
-// It uses @Query to fetch all subjects and tasks and then filters
-// them based on the selected date.
-
 import SwiftUI
 import Combine
 import SwiftData
@@ -22,8 +9,7 @@ enum CalendarEvent: Identifiable {
     
     var id: String {
         switch self {
-        case .task(let task):
-            return "task-\(task.id.uuidString)"
+        case .task(let task): return "task-\(task.id.uuidString)"
         case .class(let subject, let isCourse, let date):
             let type = isCourse ? "course" : "seminar"
             return "class-\(subject.id.uuidString)-\(type)-\(date.timeIntervalSince1970)"
@@ -32,35 +18,28 @@ enum CalendarEvent: Identifiable {
     
     var icon: String {
         switch self {
-        case .task:
-            return "checkmark.circle"
-        case .class(_, let isCourse, _):
-            return isCourse ? "book.fill" : "person.2.fill"
+        case .task: return "checkmark.circle"
+        case .class(_, let isCourse, _): return isCourse ? "book.fill" : "person.2.fill"
         }
     }
     
     var startTime: Date {
         switch self {
-        case .task(let task):
-            return task.dueDate ?? Date()
-        case .class(let subject, let isCourse, _):
-            return isCourse ? subject.courseStartTime : subject.seminarStartTime
+        case .task(let task): return task.dueDate ?? Date()
+        case .class(let subject, let isCourse, _): return isCourse ? subject.courseStartTime : subject.seminarStartTime
         }
     }
     
     var endTime: Date {
         switch self {
-        case .task:
-            return startTime
-        case .class(let subject, let isCourse, _):
-            return isCourse ? subject.courseEndTime : subject.seminarEndTime
+        case .task: return startTime
+        case .class(let subject, let isCourse, _): return isCourse ? subject.courseEndTime : subject.seminarEndTime
         }
     }
     
     var title: String {
         switch self {
-        case .task(let task):
-            return task.title
+        case .task(let task): return task.title
         case .class(let subject, let isCourse, _):
             let type = isCourse ? "Course" : "Seminar"
             return "\(subject.title) (\(type))"
@@ -69,8 +48,7 @@ enum CalendarEvent: Identifiable {
     
     var subtitle: String {
         switch self {
-        case .task(let task):
-            return task.subject?.title ?? "No Subject"
+        case .task(let task): return task.subject?.title ?? "No Subject"
         case .class(let subject, let isCourse, _):
             let teacher = isCourse ? subject.courseTeacher : subject.seminarTeacher
             let room = isCourse ? subject.courseClassroom : subject.seminarClassroom
@@ -80,23 +58,18 @@ enum CalendarEvent: Identifiable {
     
     var color: Color {
         switch self {
-        case .task:
-            return .themeWarning
-        case .class(_, let isCourse, _):
-            return isCourse ? .themePrimary : .themeSuccess
+        case .task: return .themeWarning
+        case .class(_, let isCourse, _): return isCourse ? .themePrimary : .themeSuccess
         }
     }
     
     var frequencyInfo: String? {
         switch self {
-        case .task:
-            return nil
-        case .class(let subject, let isCourse, _):
-            return isCourse ? subject.courseFrequencyString : subject.seminarFrequencyString
+        case .task: return nil
+        case .class(let subject, let isCourse, _): return isCourse ? subject.courseFrequencyString : subject.seminarFrequencyString
         }
     }
 }
-
 
 struct CalendarView: View {
     @State private var currentDate = Date()
@@ -115,8 +88,7 @@ struct CalendarView: View {
     
     public init() {}
     
-    // ... (eventsForSelectedDate, tasksDueOnDate, getAcademicWeek - unchanged) ...
-     private var eventsForSelectedDate: [CalendarEvent] {
+    private var eventsForSelectedDate: [CalendarEvent] {
         let tasksOnDate = tasks.filter { task in
             guard let dueDate = task.dueDate else { return false }
             return Calendar.current.isDate(dueDate, inSameDayAs: selectedDate)
@@ -282,8 +254,8 @@ struct CalendarView: View {
                 Spacer()
             }
             .navigationTitle("Calendar")
-            // --- THIS IS THE FIX ---
             .navigationBarTitleDisplayMode(.inline)
+            // Note: Background transparency is handled by ContentView in Gamified Mode
             .sheet(isPresented: $showingTaskDetail) {
                 if let task = selectedTask {
                     EditTaskView(task: task)
@@ -300,7 +272,6 @@ struct CalendarView: View {
         }
     }
     
-    // ... (rest of file is unchanged) ...
     private func handleEventTap(_ event: CalendarEvent) {
         switch event {
         case .task(let task):
@@ -313,7 +284,10 @@ struct CalendarView: View {
     }
     
     private var weekRangeString: String {
-        let calendar = Calendar.current
+        // UPDATED: Force Sunday start for week range string calculation too
+        var calendar = Calendar.current
+        calendar.firstWeekday = 1 // Sunday
+        
         guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: currentDate) else {
             return "This Week"
         }
@@ -394,7 +368,12 @@ struct WeeklyCalendarGrid: View {
     }
     
     private func getDaysInWeek() -> [Date] {
-        let calendar = Calendar.current
+        var calendar = Calendar.current
+        // UPDATED: Explicitly force Sunday (1) as the start of the week
+        // This ensures the dates generated match the ["Sun", "Mon"...] header
+        // regardless of the user's region settings (e.g. Europe starts Monday).
+        calendar.firstWeekday = 1
+        
         guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: currentDate) else {
             return []
         }
@@ -524,8 +503,7 @@ struct EventRow: View {
     private var eventTypeText: String {
         switch event {
         case .task: return "Task"
-        case .class(_, let isCourse, _):
-            return isCourse ? "Course" : "Seminar"
+        case .class(_, let isCourse, _): return isCourse ? "Course" : "Seminar"
         }
     }
     

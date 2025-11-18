@@ -1,54 +1,67 @@
-// File: Classlly/Settings/AppTheme.swift
-// Note: Manages the user-selectable app theme (accent color).
-// This is stored in @AppStorage (UserDefaults).
-
 import SwiftUI
 import Combine
 
-// 1. Define the Theme options
+// 1. Define the Theme options with "Fancy" names
 enum Theme: String, CaseIterable, Identifiable {
-    case blue = "Default Blue"
-    case green = "Forest Green"
-    case purple = "Deep Purple"
-    case orange = "Sunset Orange"
+    case cyberBlue = "Cyber Blue"
+    case toxicGreen = "Toxic Green"
+    case neonPurple = "Neon Purple"
+    case solarOrange = "Solar Orange"
+    case hotPink = "Hot Pink"
+    case electricTeal = "Electric Teal"
     
     var id: String { self.rawValue }
     
-    // 2. Define the primary accent color for each theme
+    // 2. Define vibrant, neon accent colors
     var accentColor: Color {
         switch self {
-        case .blue:
-            return .blue
-        case .green:
-            return .green
-        case .purple:
-            return .purple
-        case .orange:
-            return .orange
+        case .cyberBlue:
+            return Color(red: 0.0, green: 0.75, blue: 1.0) // Bright Cyan-Blue
+        case .toxicGreen:
+            return Color(red: 0.2, green: 0.9, blue: 0.4) // Vibrant Lime
+        case .neonPurple:
+            return Color(red: 0.7, green: 0.2, blue: 1.0) // Deep Violet
+        case .solarOrange:
+            return Color(red: 1.0, green: 0.5, blue: 0.0) // Bright Amber
+        case .hotPink:
+            return Color(red: 1.0, green: 0.2, blue: 0.6) // Magenta
+        case .electricTeal:
+            return Color(red: 0.0, green: 0.9, blue: 0.8) // Cyan-Teal
+        }
+    }
+    
+    // Secondary color for gradients (slightly darker/shifted)
+    var secondaryColor: Color {
+        switch self {
+        case .cyberBlue: return Color(red: 0.0, green: 0.3, blue: 0.8)
+        case .toxicGreen: return Color(red: 0.0, green: 0.6, blue: 0.2)
+        case .neonPurple: return Color(red: 0.5, green: 0.0, blue: 0.8)
+        case .solarOrange: return Color(red: 0.8, green: 0.2, blue: 0.0)
+        case .hotPink: return Color(red: 0.8, green: 0.0, blue: 0.4)
+        case .electricTeal: return Color(red: 0.0, green: 0.5, blue: 0.6)
         }
     }
 }
 
-// 3. Create an ObservableObject to manage the theme
 class AppTheme: ObservableObject {
-    // 4. @AppStorage works perfectly fine here
-    @AppStorage("selectedTheme") private var selectedThemeRawValue: String = Theme.blue.rawValue
+    private let keyTheme = "selectedTheme"
+    private let keyGamified = "isGamified"
     
-    // 5. Publish the selected theme
-    @Published var selectedTheme: Theme {
+    @Published var selectedTheme: Theme = .cyberBlue {
         didSet {
-            selectedThemeRawValue = selectedTheme.rawValue
+            UserDefaults.standard.set(selectedTheme.rawValue, forKey: keyTheme)
         }
     }
     
-    // --- THIS IS THE FIX ---
-    init() {
-        // Manually read the value from UserDefaults to avoid the "self" error
-        let storedValue = UserDefaults.standard.string(forKey: "selectedTheme") ?? Theme.blue.rawValue
-        let themeFromStorage = Theme(rawValue: storedValue) ?? .blue
-        
-        // Initialize the @Published property's wrapped value
-        _selectedTheme = Published(initialValue: themeFromStorage)
+    @Published var isGamified: Bool = false {
+        didSet {
+            UserDefaults.standard.set(isGamified, forKey: keyGamified)
+        }
     }
-    // --- END OF FIX ---
+    
+    init() {
+        let themeVal = UserDefaults.standard.string(forKey: keyTheme) ?? Theme.cyberBlue.rawValue
+        self.selectedTheme = Theme(rawValue: themeVal) ?? .cyberBlue
+        self.isGamified = UserDefaults.standard.bool(forKey: keyGamified)
+    }
 }

@@ -1,15 +1,3 @@
-//
-//  SettingsDashboardView.swift
-//  Classlly
-//
-//  Created by Robu Darius on 14.11.2025.
-//
-
-
-// File: Classlly/Views/SettingsDashboardView.swift
-// Note: This is the root view for the "More" tab.
-// It links to Profile, Academic Calendar, and Settings.
-
 import SwiftUI
 
 struct SettingsDashboardView: View {
@@ -23,7 +11,10 @@ struct SettingsDashboardView: View {
             List {
                 // MARK: - Profile Section
                 if let user = authManager.currentUser {
-                    NavigationLink(destination: ProfileView()) {
+                    // Explicit NavigationLink syntax
+                    NavigationLink {
+                        ProfileView()
+                    } label: {
                         HStack(spacing: 16) {
                             ZStack {
                                 Circle()
@@ -56,11 +47,16 @@ struct SettingsDashboardView: View {
                 
                 // MARK: - Main Links
                 Section {
-                    NavigationLink(destination: AcademicCalendarView()) {
+                    // Explicit syntax fixes "Ambiguous use of init"
+                    NavigationLink {
+                        AcademicCalendarView()
+                    } label: {
                         Label("Academic Calendar", systemImage: "calendar.circle.fill")
                     }
                     
-                    NavigationLink(destination: SettingsView()) {
+                    NavigationLink {
+                        SettingsView()
+                    } label: {
                         Label("Settings", systemImage: "gearshape.fill")
                     }
                 }
@@ -68,7 +64,9 @@ struct SettingsDashboardView: View {
                 
                 // MARK: - Legal Links
                 Section {
-                    NavigationLink(destination: PrivacyPolicyView()) {
+                    NavigationLink {
+                        PrivacyPolicyView()
+                    } label: {
                         Label("Terms & Privacy Policy", systemImage: "lock.shield.fill")
                     }
                 }
@@ -78,7 +76,6 @@ struct SettingsDashboardView: View {
             .listStyle(InsetGroupedListStyle())
             .scrollContentBackground(.hidden)
             .navigationTitle("More")
-            // --- THIS IS THE FIX ---
             .navigationBarTitleDisplayMode(.inline)
         }
     }

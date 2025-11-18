@@ -1,23 +1,11 @@
-//
-//  SignInView.swift
-//  Classlly
-//
-//  Created by Robu Darius on 14.11.2025.
-//
-
-
-// File: Classlly/Auth/SignInView.swift
-// Note: This is the entry view for unauthenticated users.
-// It uses the AuthenticationManager to handle sign-in logic.
-
 import SwiftUI
 import AuthenticationServices
+import SwiftData // UPDATED: Import SwiftData
 
 struct SignInView: View {
     @EnvironmentObject var authManager: AuthenticationManager
+    @Environment(\.modelContext) var modelContext // UPDATED: Get ModelContext
     @State private var showingProfileSetup = false
-    
-    // In SignInView.swift
     
     var body: some View {
         NavigationView {
@@ -80,12 +68,13 @@ struct SignInView: View {
                         } onCompletion: { result in
                             authManager.handleSignInWithApple(result: result)
                         }
-                        .signInWithAppleButtonStyle(.white) // Use .white for dark mode, .black for light
+                        .signInWithAppleButtonStyle(.white)
                         .frame(height: 55)
                         .cornerRadius(10)
                         
                         Button(action: {
-                            authManager.signInAsDemoUser()
+                            // UPDATED: Pass modelContext here
+                            authManager.signInAsDemoUser(modelContext: modelContext)
                         }) {
                             Text("Continue as Demo User")
                                 .font(.headline)
@@ -104,7 +93,7 @@ struct SignInView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
                     .padding(.bottom, 40)
-                    .background(.regularMaterial) // <-- MODERN APPLE STYLE
+                    .background(.regularMaterial)
                 }
             }
             .navigationBarHidden(true)
@@ -162,14 +151,13 @@ struct SignInView: View {
                 VStack(spacing: 16) {
                     ProgressView()
                         .scaleEffect(1.5)
-                        .tint(.white) // Use .tint for ProgressView color
+                        .tint(.white)
                     
                     Text("Signing you in...")
                         .font(.headline)
                         .foregroundColor(.white)
                 }
                 .padding(30)
-                // Use system materials for a more modern look
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
                 .shadow(radius: 10)
             }

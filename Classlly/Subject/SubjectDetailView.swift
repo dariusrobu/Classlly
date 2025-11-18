@@ -3,9 +3,10 @@ import Combine
 import SwiftData
 
 struct SubjectDetailView: View {
-    @Bindable var subject: Subject // Use @Bindable
+    @Bindable var subject: Subject
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var themeManager: AppTheme
     
     @State private var showingAddGrade = false
     @State private var showingMarkAttendance = false
@@ -17,29 +18,30 @@ struct SubjectDetailView: View {
     @State private var selectedTab = 0
     @Environment(\.colorScheme) private var colorScheme
     
-    // 1. Use @Query to fetch related tasks
     @Query private var tasks: [StudyTask]
     
     private var subjectTasks: [StudyTask] {
-        // 2. Filter the tasks that were fetched
         tasks.filter { $0.subject == subject }
     }
     
-    // 3. Update init to filter the @Query
     init(subject: Subject) {
         self.subject = subject
         let subjectID = subject.id
         _tasks = Query(filter: #Predicate { $0.subject?.id == subjectID })
     }
     
-    // --- FIX 1: SAFELY UNWRAP `gradeHistory` ---
+    // MARK: - Weighted Average Calculation
     private var averageGrade: Double? {
         guard !subject.gradeHistory.isEmpty else { return nil }
-        let total = subject.gradeHistory.reduce(0.0) { $0 + $1.grade }
-        return total / Double(subject.gradeHistory.count)
+        
+        let totalWeightedScore = subject.gradeHistory.reduce(0.0) { $0 + ($1.grade * $1.weight) }
+        let totalWeight = subject.gradeHistory.reduce(0.0) { $0 + $1.weight }
+        
+        guard totalWeight > 0 else { return 0.0 }
+        
+        return totalWeightedScore / totalWeight
     }
     
-    // --- FIX 2: SAFELY UNWRAP `gradeHistory` ---
     private var gradeTrend: (icon: String, color: Color, description: String) {
         guard subject.gradeHistory.count >= 2 else {
             return ("minus.circle", .gray, "No trend data")
@@ -56,11 +58,11 @@ struct SubjectDetailView: View {
         let difference = firstGrade - secondGrade
         
         if difference > 0.3 {
-            return ("arrow.up.circle.fill", Color.themeSuccess, "Improving") // FIXED
+            return ("arrow.up.circle.fill", Color.themeSuccess, "Improving")
         } else if difference < -0.3 {
-            return ("arrow.down.circle.fill", Color.themeError, "Declining") // FIXED
+            return ("arrow.down.circle.fill", Color.themeError, "Declining")
         } else {
-            return ("minus.circle", Color.themeTextSecondary, "Stable") // FIXED
+            return ("minus.circle", Color.themeTextSecondary, "Stable")
         }
     }
     
@@ -74,7 +76,6 @@ struct SubjectDetailView: View {
                 tabContentSection
             }
         }
-        .background(Color.themeBackground) // FIXED
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -89,17 +90,15 @@ struct SubjectDetailView: View {
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .font(.system(size: 20))
-                        .foregroundColor(Color.themeTextPrimary) // FIXED
+                        .foregroundColor(Color.themeTextPrimary)
                 }
             }
         }
         .sheet(isPresented: $showingAddGrade) {
-            AddGradeSheet(isPresented: $showingAddGrade) { date, grade, description in
-                let newGrade = GradeEntry(date: date, grade: grade, description: description)
+            AddGradeSheet(isPresented: $showingAddGrade) { date, grade, weight, description in
+                let newGrade = GradeEntry(date: date, grade: grade, weight: weight, description: description)
                 newGrade.subject = subject
                 modelContext.insert(newGrade)
-                // --- FIX 3: Append to the array ---
-                subject.gradeHistory.append(newGrade)
             }
         }
         .sheet(isPresented: $showingMarkAttendance) {
@@ -107,8 +106,6 @@ struct SubjectDetailView: View {
                 let newAttendance = AttendanceEntry(date: date, attended: attended, notes: notes)
                 newAttendance.subject = subject
                 modelContext.insert(newAttendance)
-                // --- FIX 4: Append to the array ---
-                subject.attendanceHistory.append(newAttendance)
             }
         }
         .sheet(isPresented: $showingAddTask) {
@@ -119,17 +116,16 @@ struct SubjectDetailView: View {
         }
         .sheet(item: $editingGrade) { grade in
             EditGradeSheet(gradeEntry: grade) { updatedGrade in
-                // --- FIX 5: Safely find and update in array ---
                 if let index = subject.gradeHistory.firstIndex(where: { $0.id == updatedGrade.id }) {
                     subject.gradeHistory[index].date = updatedGrade.date
                     subject.gradeHistory[index].grade = updatedGrade.grade
+                    subject.gradeHistory[index].weight = updatedGrade.weight
                     subject.gradeHistory[index].descriptionText = updatedGrade.descriptionText
                 }
             }
         }
         .sheet(item: $editingAttendance) { attendance in
             EditAttendanceSheet(attendanceEntry: attendance) { updatedAttendance in
-                // --- FIX 6: Safely find and update in array ---
                 if let index = subject.attendanceHistory.firstIndex(where: { $0.id == updatedAttendance.id }) {
                     subject.attendanceHistory[index].date = updatedAttendance.date
                     subject.attendanceHistory[index].attended = updatedAttendance.attended
@@ -148,24 +144,21 @@ struct SubjectDetailView: View {
         }
     }
     
-    // MARK: - Enhanced Header Section
+    // MARK: - Header Section
     private var headerSection: some View {
         VStack(spacing: 20) {
             VStack(spacing: 16) {
                 ZStack {
                     Circle()
                         .fill(LinearGradient(
-                            gradient: Gradient(colors: [Color.themePrimary, Color.themeSecondary]), // FIXED
+                            gradient: Gradient(colors: [
+                                themeManager.selectedTheme.accentColor,
+                                themeManager.selectedTheme.accentColor.opacity(0.7)
+                            ]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ))
                         .frame(width: 100, height: 100)
-                        .shadow(
-                            color: Color.themePrimary.opacity(0.3), // FIXED
-                            radius: 8,
-                            x: 0,
-                            y: 4
-                        )
                     
                     Image(systemName: "book.fill")
                         .font(.system(size: 40, weight: .medium))
@@ -176,31 +169,31 @@ struct SubjectDetailView: View {
                     Text(subject.title)
                         .font(.title2)
                         .fontWeight(.bold)
-                        .foregroundColor(Color.themeTextPrimary) // FIXED
+                        .foregroundColor(Color.themeTextPrimary)
                         .multilineTextAlignment(.center)
                     
                     Text("Course: \(subject.courseTeacher)")
                         .font(.subheadline)
-                        .foregroundColor(Color.themeTextSecondary) // FIXED
+                        .foregroundColor(Color.themeTextSecondary)
                         .multilineTextAlignment(.center)
                     
                     if !subject.courseDaysString.isEmpty {
                         HStack(spacing: 8) {
                             Image(systemName: "calendar")
                                 .font(.caption2)
-                                .foregroundColor(Color.themePrimary) // FIXED
+                                .foregroundColor(themeManager.selectedTheme.accentColor)
                             
                             Text(subject.courseDaysString)
                                 .font(.caption)
-                                .foregroundColor(Color.themeTextSecondary) // FIXED
+                                .foregroundColor(Color.themeTextSecondary)
                             
                             Image(systemName: "clock")
                                 .font(.caption2)
-                                .foregroundColor(Color.themePrimary) // FIXED
+                                .foregroundColor(themeManager.selectedTheme.accentColor)
                             
                             Text(subject.courseTimeString)
                                 .font(.caption)
-                                .foregroundColor(Color.themeTextSecondary) // FIXED
+                                .foregroundColor(Color.themeTextSecondary)
                         }
                     }
                 }
@@ -209,29 +202,29 @@ struct SubjectDetailView: View {
         .padding(.vertical, 24)
         .padding(.horizontal, 20)
         .frame(maxWidth: .infinity)
-        .background(Color.themeSurface) // FIXED
-        .cornerRadius(20)
+        .background {
+            if themeManager.isGamified {
+                Rectangle().fill(.ultraThinMaterial)
+            } else {
+                Rectangle().fill(Color.themeSurface)
+            }
+        }
+        .cornerRadius(12)
         .overlay(
-            RoundedRectangle(cornerRadius: 20)
+            RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.adaptiveBorder.opacity(0.3), lineWidth: 1)
-        )
-        .shadow(
-            color: colorScheme == .dark ? .black.opacity(0.3) : .gray.opacity(0.1),
-            radius: 10,
-            x: 0,
-            y: 5
         )
         .padding(.horizontal, 16)
         .padding(.top, 8)
     }
     
-    // MARK: - Complete Subject Information Section
+    // MARK: - Subject Information Section
     private var subjectInfoSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Subject Information")
                 .font(.headline)
                 .fontWeight(.semibold)
-                .foregroundColor(Color.themeTextPrimary) // FIXED
+                .foregroundColor(Color.themeTextPrimary)
                 .padding(.horizontal)
             
             VStack(spacing: 0) {
@@ -284,7 +277,6 @@ struct SubjectDetailView: View {
                     .padding(.top, 16)
                 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    // --- FIX 7: SAFELY UNWRAP COUNTS ---
                     DetailInfoCard(icon: "star.circle.fill", title: "Total Grades", value: "\(subject.gradeHistory.count)")
                     DetailInfoCard(icon: "checkmark.circle.fill", title: "Classes Attended", value: "\(subject.attendedClasses)/\(subject.totalClasses)")
                     DetailInfoCard(icon: "chart.line.uptrend.xyaxis.circle.fill", title: "Attendance Rate", value: "\(Int(subject.attendanceRate * 100))%")
@@ -297,11 +289,17 @@ struct SubjectDetailView: View {
                 .padding(.horizontal)
                 .padding(.vertical, 12)
             }
-            .background(Color.themeSurface) // FIXED
-            .cornerRadius(16)
+            .background {
+                if themeManager.isGamified {
+                    Rectangle().fill(.ultraThinMaterial)
+                } else {
+                    Rectangle().fill(Color.themeSurface)
+                }
+            }
+            .cornerRadius(12)
             .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.adaptiveTertiaryBackground, lineWidth: 1) // FIXED
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.adaptiveTertiaryBackground, lineWidth: 1)
             )
             .padding(.horizontal)
         }
@@ -314,7 +312,7 @@ struct SubjectDetailView: View {
             Text("Quick Actions")
                 .font(.headline)
                 .fontWeight(.semibold)
-                .foregroundColor(Color.themeTextPrimary) // FIXED
+                .foregroundColor(Color.themeTextPrimary)
                 .padding(.horizontal)
             
             ScrollView(.horizontal, showsIndicators: false) {
@@ -323,7 +321,7 @@ struct SubjectDetailView: View {
                         icon: "plus.circle.fill",
                         title: "Add Grade",
                         subtitle: "Record score",
-                        color: Color.themePrimary, // FIXED
+                        color: themeManager.selectedTheme.accentColor,
                         action: { showingAddGrade = true }
                     )
                     
@@ -331,7 +329,7 @@ struct SubjectDetailView: View {
                         icon: "checkmark.circle.fill",
                         title: "Mark Attendance",
                         subtitle: "Present/Absent",
-                        color: Color.themeSuccess, // FIXED
+                        color: Color.themeSuccess,
                         action: { showingMarkAttendance = true }
                     )
                     
@@ -339,7 +337,7 @@ struct SubjectDetailView: View {
                         icon: "plus.circle.fill",
                         title: "Add Task",
                         subtitle: "New assignment",
-                        color: Color.themeWarning, // FIXED
+                        color: Color.themeWarning,
                         action: { showingAddTask = true }
                     )
                     
@@ -347,7 +345,7 @@ struct SubjectDetailView: View {
                         icon: "pencil",
                         title: "Edit Subject",
                         subtitle: "Update details",
-                        color: Color.themeSecondary, // FIXED
+                        color: Color.themeSecondary,
                         action: { showingEditSubject = true }
                     )
                 }
@@ -355,7 +353,6 @@ struct SubjectDetailView: View {
             }
         }
         .padding(.vertical, 24)
-        .background(Color.themeSurface) // FIXED
     }
     
     // MARK: - Performance Overview
@@ -364,16 +361,15 @@ struct SubjectDetailView: View {
             Text("Performance Overview")
                 .font(.headline)
                 .fontWeight(.semibold)
-                .foregroundColor(Color.themeTextPrimary) // FIXED
+                .foregroundColor(Color.themeTextPrimary)
                 .padding(.horizontal)
             
             HStack(spacing: 12) {
                 PerformanceCard(
                     title: "Average Grade",
                     value: averageGrade != nil ? String(format: "%.1f", averageGrade!) : "N/A",
-                    // --- FIX 8: SAFELY UNWRAP COUNT ---
-                    subtitle: averageGrade != nil ? "/10 • \(subject.gradeHistory.count) grades" : "No grades yet",
-                    color: Color.themePrimary, // FIXED
+                    subtitle: averageGrade != nil ? "/10 • Weighted Avg" : "No grades yet",
+                    color: themeManager.selectedTheme.accentColor,
                     icon: "star.fill",
                     progress: (averageGrade ?? 0) / 10,
                     trendIcon: gradeTrend.icon,
@@ -384,7 +380,7 @@ struct SubjectDetailView: View {
                     title: "Attendance Rate",
                     value: "\(Int(subject.attendanceRate * 100))%",
                     subtitle: "\(subject.attendedClasses)/\(subject.totalClasses) classes",
-                    color: Color.themeSuccess, // FIXED
+                    color: Color.themeSuccess,
                     icon: "person.2.fill",
                     progress: subject.attendanceRate
                 )
@@ -392,7 +388,6 @@ struct SubjectDetailView: View {
             .padding(.horizontal)
         }
         .padding(.vertical, 24)
-        .background(Color.themeSurface) // FIXED
     }
     
     // MARK: - Tab Content
@@ -405,19 +400,27 @@ struct SubjectDetailView: View {
                             Text(tabTitles[index])
                                 .font(.subheadline)
                                 .fontWeight(selectedTab == index ? .semibold : .medium)
-                                .foregroundColor(selectedTab == index ? Color.themePrimary : Color.themeTextSecondary) // FIXED
+                                .foregroundColor(selectedTab == index ? themeManager.selectedTheme.accentColor : Color.themeTextSecondary)
                             
                             Rectangle()
-                                .fill(selectedTab == index ? Color.themePrimary : Color.clear) // FIXED
+                                .fill(selectedTab == index ? themeManager.selectedTheme.accentColor : Color.clear)
                                 .frame(height: 2)
                         }
                         .frame(maxWidth: .infinity)
                     }
                 }
             }
+            .padding(.vertical, 16)
+            .background {
+                if themeManager.isGamified {
+                    Rectangle().fill(.ultraThinMaterial)
+                } else {
+                    Rectangle().fill(Color.themeSurface)
+                }
+            }
+            .cornerRadius(12)
             .padding(.horizontal)
             .padding(.top, 24)
-            .background(Color.themeSurface) // FIXED
             
             Group {
                 switch selectedTab {
@@ -442,19 +445,17 @@ struct SubjectDetailView: View {
                     .font(.headline)
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
-                    // --- FIX 9: SAFELY UNWRAP COUNT ---
                     Text("\(subject.gradeHistory.count) entries")
                         .font(.caption)
                     if let average = averageGrade {
-                        Text("Average: \(String(format: "%.1f", average))/10")
+                        Text("Avg: \(String(format: "%.1f", average))")
                             .font(.caption2)
                     }
                 }
-                .foregroundColor(Color.themeTextSecondary) // FIXED
+                .foregroundColor(Color.themeTextSecondary)
             }
             .padding(.horizontal)
             
-            // --- FIX 10: SAFELY CHECK IF EMPTY ---
             if subject.gradeHistory.isEmpty {
                 EmptyStateView(
                     icon: "chart.line.uptrend.xyaxis",
@@ -464,12 +465,19 @@ struct SubjectDetailView: View {
                 .padding(.horizontal)
             } else {
                 LazyVStack(spacing: 1) {
-                    // --- FIX 11: SAFELY ITERATE ---
                     ForEach(subject.gradeHistory.sorted(by: { $0.date > $1.date })) { grade in
                         GradeHistoryRow(grade: grade, averageGrade: averageGrade)
                             .padding(.horizontal)
                             .padding(.vertical, 12)
-                            .background(Color.themeSurface) // FIXED
+                            .background {
+                                if themeManager.isGamified {
+                                    Rectangle().fill(.ultraThinMaterial)
+                                } else {
+                                    Rectangle().fill(Color.themeSurface)
+                                }
+                            }
+                            .cornerRadius(12)
+                            .padding(.horizontal)
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 editingGrade = grade
@@ -477,8 +485,6 @@ struct SubjectDetailView: View {
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
                                     modelContext.delete(grade)
-                                    // --- FIX 12: SAFELY REMOVE ---
-                                    subject.gradeHistory.removeAll(where: { $0.id == grade.id })
                                 } label: {
                                     Label("Delete", systemImage: "trash.fill")
                                 }
@@ -488,15 +494,13 @@ struct SubjectDetailView: View {
                                 } label: {
                                     Label("Edit", systemImage: "pencil")
                                 }
-                                .tint(Color.themePrimary) // FIXED
+                                .tint(themeManager.selectedTheme.accentColor)
                             }
                     }
                 }
-                .background(Color.themeSurface) // FIXED
             }
         }
         .padding(.vertical, 24)
-        .background(Color.themeBackground) // FIXED
     }
     
     // MARK: - Attendance History (Tab 1)
@@ -507,16 +511,14 @@ struct SubjectDetailView: View {
                     .font(.headline)
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
-                    // (These properties are already safe from DataModels.swift fix)
-                    Text("\(subject.totalClasses) classes")
+                    Text("\(subject.attendanceHistory.count) classes")
                     Text("\(Int(subject.attendanceRate * 100))% overall")
                 }
                 .font(.caption)
-                .foregroundColor(Color.themeTextSecondary) // FIXED
+                .foregroundColor(Color.themeTextSecondary)
             }
             .padding(.horizontal)
             
-            // --- FIX 13: SAFELY CHECK IF EMPTY ---
             if subject.attendanceHistory.isEmpty {
                 EmptyStateView(
                     icon: "calendar",
@@ -526,12 +528,19 @@ struct SubjectDetailView: View {
                 .padding(.horizontal)
             } else {
                 LazyVStack(spacing: 1) {
-                    // --- FIX 14: SAFELY ITERATE ---
                     ForEach(subject.attendanceHistory.sorted(by: { $0.date > $1.date })) { attendance in
                         AttendanceHistoryRow(attendance: attendance)
                             .padding(.horizontal)
                             .padding(.vertical, 12)
-                            .background(Color.themeSurface) // FIXED
+                            .background {
+                                if themeManager.isGamified {
+                                    Rectangle().fill(.ultraThinMaterial)
+                                } else {
+                                    Rectangle().fill(Color.themeSurface)
+                                }
+                            }
+                            .cornerRadius(12)
+                            .padding(.horizontal)
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 editingAttendance = attendance
@@ -539,8 +548,6 @@ struct SubjectDetailView: View {
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
                                     modelContext.delete(attendance)
-                                    // --- FIX 15: SAFELY REMOVE ---
-                                    subject.attendanceHistory.removeAll(where: { $0.id == attendance.id })
                                 } label: {
                                     Label("Delete", systemImage: "trash.fill")
                                 }
@@ -550,15 +557,13 @@ struct SubjectDetailView: View {
                                 } label: {
                                     Label("Edit", systemImage: "pencil")
                                 }
-                                .tint(Color.themePrimary) // FIXED
+                                .tint(themeManager.selectedTheme.accentColor)
                             }
                     }
                 }
-                .background(Color.themeSurface) // FIXED
             }
         }
         .padding(.vertical, 24)
-        .background(Color.themeBackground) // FIXED
     }
     
     // MARK: - Tasks Section (Tab 2)
@@ -568,10 +573,9 @@ struct SubjectDetailView: View {
                 Text("Related Tasks")
                     .font(.headline)
                 Spacer()
-                // (This is safe, `subjectTasks` is non-optional)
                 Text("\(subjectTasks.count) tasks")
                     .font(.caption)
-                    .foregroundColor(Color.themeTextSecondary) // FIXED
+                    .foregroundColor(Color.themeTextSecondary)
             }
             .padding(.horizontal)
             
@@ -594,16 +598,22 @@ struct SubjectDetailView: View {
                             )
                             .padding(.horizontal)
                             .padding(.vertical, 12)
-                            .background(Color.themeSurface) // FIXED
+                            .background {
+                                if themeManager.isGamified {
+                                    Rectangle().fill(.ultraThinMaterial)
+                                } else {
+                                    Rectangle().fill(Color.themeSurface)
+                                }
+                            }
+                            .cornerRadius(12)
+                            .padding(.horizontal)
                         }
                         .buttonStyle(PlainButtonStyle())
                     }
                 }
-                .background(Color.themeSurface) // FIXED
             }
         }
         .padding(.vertical, 24)
-        .background(Color.themeBackground) // FIXED
     }
     
     // MARK: - Helper Properties
@@ -626,32 +636,39 @@ struct DetailInfoCard: View {
     let title: String
     let value: String
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.caption)
-                    .foregroundColor(Color.themePrimary) // FIXED
+                    .foregroundColor(themeManager.selectedTheme.accentColor)
                     .frame(width: 16)
                 
                 Text(title)
                     .font(.caption)
                     .fontWeight(.medium)
-                    .foregroundColor(Color.themeTextSecondary) // FIXED
+                    .foregroundColor(Color.themeTextSecondary)
             }
             
             Text(value)
                 .font(.subheadline)
                 .fontWeight(.medium)
-                .foregroundColor(Color.themeTextPrimary) // FIXED
+                .foregroundColor(Color.themeTextPrimary)
                 .multilineTextAlignment(.leading)
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(Color.adaptiveTertiaryBackground) // FIXED
+        .background {
+            if themeManager.isGamified {
+                Rectangle().fill(.thinMaterial)
+            } else {
+                Rectangle().fill(Color.adaptiveTertiaryBackground)
+            }
+        }
         .cornerRadius(10)
     }
 }
@@ -659,17 +676,18 @@ struct DetailInfoCard: View {
 struct SectionHeader: View {
     let title: String
     let icon: String
+    @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .medium))
-                .foregroundColor(Color.themePrimary) // FIXED
+                .foregroundColor(themeManager.selectedTheme.accentColor)
             
             Text(title)
                 .font(.headline)
                 .fontWeight(.semibold)
-                .foregroundColor(Color.themeTextPrimary) // FIXED
+                .foregroundColor(Color.themeTextPrimary)
             
             Spacer()
         }
@@ -683,6 +701,7 @@ struct ActionButton: View {
     let color: Color
     let action: () -> Void
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
         Button(action: action) {
@@ -694,12 +713,12 @@ struct ActionButton: View {
                 Text(title)
                     .font(.caption)
                     .fontWeight(.medium)
-                    .foregroundColor(Color.themeTextPrimary) // FIXED
+                    .foregroundColor(Color.themeTextPrimary)
                     .multilineTextAlignment(.center)
                 
                 Text(subtitle)
                     .font(.caption2)
-                    .foregroundColor(Color.themeTextSecondary) // FIXED
+                    .foregroundColor(Color.themeTextSecondary)
                     .multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity)
@@ -725,6 +744,7 @@ struct PerformanceCard: View {
     var trendIcon: String?
     var trendColor: Color?
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -736,7 +756,7 @@ struct PerformanceCard: View {
                 Text(title)
                     .font(.subheadline)
                     .fontWeight(.medium)
-                    .foregroundColor(Color.themeTextSecondary) // FIXED
+                    .foregroundColor(Color.themeTextSecondary)
                 
                 Spacer()
                 
@@ -750,16 +770,16 @@ struct PerformanceCard: View {
             Text(value)
                 .font(.title2)
                 .fontWeight(.bold)
-                .foregroundColor(Color.themeTextPrimary) // FIXED
+                .foregroundColor(Color.themeTextPrimary)
             
             Text(subtitle)
                 .font(.caption)
-                .foregroundColor(Color.themeTextSecondary) // FIXED
+                .foregroundColor(Color.themeTextSecondary)
             
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     Rectangle()
-                        .fill(Color.adaptiveTertiaryBackground) // FIXED
+                        .fill(Color.adaptiveTertiaryBackground)
                         .frame(height: 4)
                     
                     Rectangle()
@@ -770,11 +790,17 @@ struct PerformanceCard: View {
             .frame(height: 4)
         }
         .padding()
-        .background(Color.themeSurface) // FIXED
+        .background {
+            if themeManager.isGamified {
+                Rectangle().fill(.ultraThinMaterial)
+            } else {
+                Rectangle().fill(Color.themeSurface)
+            }
+        }
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.adaptiveTertiaryBackground, lineWidth: 1) // FIXED
+                .stroke(Color.adaptiveTertiaryBackground, lineWidth: 1)
         )
     }
 }
@@ -783,6 +809,7 @@ struct GradeHistoryRow: View {
     let grade: GradeEntry
     let averageGrade: Double?
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
         HStack(spacing: 16) {
@@ -799,11 +826,16 @@ struct GradeHistoryRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(grade.descriptionText.isEmpty ? "Grade" : grade.descriptionText)
                     .font(.body)
-                    .foregroundColor(Color.themeTextPrimary) // FIXED
+                    .foregroundColor(Color.themeTextPrimary)
                 
-                Text(formatDate(grade.date))
-                    .font(.caption)
-                    .foregroundColor(Color.themeTextSecondary) // FIXED
+                HStack {
+                    Text(formatDate(grade.date))
+                    Text("•")
+                    Text("Weight: \(Int(grade.weight))%")
+                        .foregroundColor(themeManager.selectedTheme.accentColor)
+                }
+                .font(.caption)
+                .foregroundColor(Color.themeTextSecondary)
             }
             
             Spacer()
@@ -813,11 +845,11 @@ struct GradeHistoryRow: View {
                 VStack(alignment: .trailing, spacing: 4) {
                     Image(systemName: difference >= 0 ? "arrow.up" : "arrow.down")
                         .font(.caption)
-                        .foregroundColor(difference >= 0 ? Color.themeSuccess : Color.themeError) // FIXED
+                        .foregroundColor(difference >= 0 ? Color.themeSuccess : Color.themeError)
                     
                     Text(String(format: "%+.1f", difference))
                         .font(.caption)
-                        .foregroundColor(difference >= 0 ? Color.themeSuccess : Color.themeError) // FIXED
+                        .foregroundColor(difference >= 0 ? Color.themeSuccess : Color.themeError)
                 }
             }
         }
@@ -825,10 +857,10 @@ struct GradeHistoryRow: View {
     
     private var gradeColor: Color {
         switch grade.grade {
-        case 8.5...10: return Color.themeSuccess // FIXED
-        case 7...8.4: return Color.themePrimary // FIXED
-        case 5.5...6.9: return Color.themeWarning // FIXED
-        default: return Color.themeError // FIXED
+        case 8.5...10: return Color.themeSuccess
+        case 7...8.4: return Color.themePrimary
+        case 5.5...6.9: return Color.themeWarning
+        default: return Color.themeError
         }
     }
     
@@ -848,7 +880,7 @@ struct AttendanceHistoryRow: View {
         HStack(spacing: 16) {
             ZStack {
                 Circle()
-                    .fill(attendance.attended ? Color.themeSuccess : Color.themeError) // FIXED
+                    .fill(attendance.attended ? Color.themeSuccess : Color.themeError)
                     .frame(width: 44, height: 44)
                 
                 Image(systemName: attendance.attended ? "checkmark" : "xmark")
@@ -859,16 +891,16 @@ struct AttendanceHistoryRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(attendance.attended ? "Present" : "Absent")
                     .font(.body)
-                    .foregroundColor(Color.themeTextPrimary) // FIXED
+                    .foregroundColor(Color.themeTextPrimary)
                 
                 Text(formatDate(attendance.date))
                     .font(.caption)
-                    .foregroundColor(Color.themeTextSecondary) // FIXED
+                    .foregroundColor(Color.themeTextSecondary)
                 
                 if !attendance.notes.isEmpty {
                     Text(attendance.notes)
                         .font(.caption2)
-                        .foregroundColor(Color.themeTextSecondary) // FIXED
+                        .foregroundColor(Color.themeTextSecondary)
                         .lineLimit(1)
                 }
             }
@@ -877,7 +909,7 @@ struct AttendanceHistoryRow: View {
             
             Image(systemName: "chevron.right")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundColor(Color.themeTextSecondary) // FIXED
+                .foregroundColor(Color.themeTextSecondary)
         }
     }
     
@@ -894,29 +926,36 @@ struct EmptyStateView: View {
     let title: String
     let message: String
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 48))
-                .foregroundColor(Color.themeTextSecondary) // FIXED
+                .foregroundColor(Color.themeTextSecondary)
             
             Text(title)
                 .font(.headline)
-                .foregroundColor(Color.themeTextPrimary) // FIXED
+                .foregroundColor(Color.themeTextPrimary)
             
             Text(message)
                 .font(.subheadline)
-                .foregroundColor(Color.themeTextSecondary) // FIXED
+                .foregroundColor(Color.themeTextSecondary)
                 .multilineTextAlignment(.center)
         }
         .padding()
         .frame(maxWidth: .infinity)
-        .background(Color.themeSurface) // FIXED
+        .background {
+            if themeManager.isGamified {
+                Rectangle().fill(.ultraThinMaterial)
+            } else {
+                Rectangle().fill(Color.themeSurface)
+            }
+        }
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.adaptiveTertiaryBackground, lineWidth: 1) // FIXED
+                .stroke(Color.adaptiveTertiaryBackground, lineWidth: 1)
         )
     }
 }
@@ -927,31 +966,32 @@ struct TaskRowPreview: View {
     let dueDate: String
     let isCompleted: Bool
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
         HStack(spacing: 12) {
             Circle()
-                .fill(isCompleted ? Color.themeSuccess : Color.adaptiveTertiary) // FIXED
+                .fill(isCompleted ? Color.themeSuccess : Color.adaptiveTertiary)
                 .frame(width: 12, height: 12)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.body)
-                    .foregroundColor(isCompleted ? Color.themeTextSecondary : Color.themeTextPrimary) // FIXED
+                    .foregroundColor(isCompleted ? Color.themeTextSecondary : Color.themeTextPrimary)
                     .strikethrough(isCompleted)
                 
                 HStack(spacing: 8) {
                     Text(subject)
                         .font(.caption)
-                        .foregroundColor(Color.themeTextSecondary) // FIXED
+                        .foregroundColor(Color.themeTextSecondary)
                     
                     Text("•")
                         .font(.caption)
-                        .foregroundColor(Color.themeTextSecondary) // FIXED
+                        .foregroundColor(Color.themeTextSecondary)
                     
                     Text(dueDate)
                         .font(.caption)
-                        .foregroundColor(Color.themeTextSecondary) // FIXED
+                        .foregroundColor(Color.themeTextSecondary)
                 }
             }
             
@@ -959,7 +999,7 @@ struct TaskRowPreview: View {
             
             Image(systemName: "chevron.right")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundColor(Color.themeTextSecondary) // FIXED
+                .foregroundColor(Color.themeTextSecondary)
         }
     }
 }
@@ -968,17 +1008,18 @@ struct TaskRowPreview: View {
 
 struct AddGradeSheet: View {
     @Binding var isPresented: Bool
-    let onSave: (Date, Double, String) -> Void
+    let onSave: (Date, Double, Double, String) -> Void
     @Environment(\.colorScheme) private var colorScheme
     
     @State private var grade = ""
+    @State private var weight = "100"
     @State private var description = ""
     @State private var date = Date()
     
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Grade Details").foregroundColor(Color.themeTextPrimary)) { // FIXED
+                Section(header: Text("Grade Details").foregroundColor(Color.themeTextPrimary)) {
                     DatePicker("Date", selection: $date, displayedComponents: .date)
                     HStack {
                         Text("Grade")
@@ -986,28 +1027,35 @@ struct AddGradeSheet: View {
                             .keyboardType(.decimalPad)
                         Text("/10")
                     }
+                    HStack {
+                        Text("Weight")
+                        TextField("0-100", text: $weight)
+                            .keyboardType(.numberPad)
+                        Text("%")
+                    }
                     TextField("Description (optional)", text: $description)
                 }
-                .listRowBackground(Color.themeSurface) // FIXED
+                .listRowBackground(Color.themeSurface)
             }
             .scrollContentBackground(.hidden)
-            .background(Color.themeBackground) // FIXED
+            .background(Color.themeBackground)
             .navigationTitle("Add Grade")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { isPresented = false }
-                        .foregroundColor(Color.themePrimary) // FIXED
+                        .foregroundColor(Color.themePrimary)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
-                        if let gradeValue = Double(grade), gradeValue >= 1 && gradeValue <= 10 {
-                            onSave(date, gradeValue, description)
+                        if let gradeValue = Double(grade), gradeValue >= 1 && gradeValue <= 10,
+                           let weightValue = Double(weight), weightValue >= 0 {
+                            onSave(date, gradeValue, weightValue, description)
                             isPresented = false
                         }
                     }
                     .disabled(grade.isEmpty || Double(grade) == nil || Double(grade)! < 1 || Double(grade)! > 10)
-                    .foregroundColor(Color.themePrimary) // FIXED
+                    .foregroundColor(Color.themePrimary)
                 }
             }
         }
@@ -1027,28 +1075,28 @@ struct MarkAttendanceSheet: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Attendance").foregroundColor(Color.themeTextPrimary)) { // FIXED
+                Section(header: Text("Attendance").foregroundColor(Color.themeTextPrimary)) {
                     DatePicker("Date", selection: $date, displayedComponents: .date)
                     Toggle("Attended Class", isOn: $status)
                     TextField("Notes (optional)", text: $notes)
                 }
-                .listRowBackground(Color.themeSurface) // FIXED
+                .listRowBackground(Color.themeSurface)
             }
             .scrollContentBackground(.hidden)
-            .background(Color.themeBackground) // FIXED
+            .background(Color.themeBackground)
             .navigationTitle("Mark Attendance")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { isPresented = false }
-                        .foregroundColor(Color.themePrimary) // FIXED
+                        .foregroundColor(Color.themePrimary)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         onSave(date, status, notes)
                         isPresented = false
                     }
-                    .foregroundColor(Color.themePrimary) // FIXED
+                    .foregroundColor(Color.themePrimary)
                 }
             }
         }
@@ -1063,6 +1111,7 @@ struct EditGradeSheet: View {
     @Environment(\.colorScheme) private var colorScheme
     
     @State private var grade: String
+    @State private var weight: String
     @State private var description: String
     @State private var date: Date
     
@@ -1070,6 +1119,7 @@ struct EditGradeSheet: View {
         self.gradeEntry = gradeEntry
         self.onSave = onSave
         _grade = State(initialValue: String(format: "%.1f", gradeEntry.grade))
+        _weight = State(initialValue: String(format: "%.0f", gradeEntry.weight))
         _description = State(initialValue: gradeEntry.descriptionText)
         _date = State(initialValue: gradeEntry.date)
     }
@@ -1077,7 +1127,7 @@ struct EditGradeSheet: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Grade Details").foregroundColor(Color.themeTextPrimary)) { // FIXED
+                Section(header: Text("Grade Details").foregroundColor(Color.themeTextPrimary)) {
                     DatePicker("Date", selection: $date, displayedComponents: .date)
                     HStack {
                         Text("Grade")
@@ -1085,26 +1135,34 @@ struct EditGradeSheet: View {
                             .keyboardType(.decimalPad)
                         Text("/10")
                     }
+                    HStack {
+                        Text("Weight")
+                        TextField("0-100", text: $weight)
+                            .keyboardType(.numberPad)
+                        Text("%")
+                    }
                     TextField("Description", text: $description)
                 }
-                .listRowBackground(Color.themeSurface) // FIXED
+                .listRowBackground(Color.themeSurface)
             }
             .scrollContentBackground(.hidden)
-            .background(Color.themeBackground) // FIXED
+            .background(Color.themeBackground)
             .navigationTitle("Edit Grade")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
-                        .foregroundColor(Color.themePrimary) // FIXED
+                        .foregroundColor(Color.themePrimary)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
-                        if let gradeValue = Double(grade), gradeValue >= 1 && gradeValue <= 10 {
+                        if let gradeValue = Double(grade), gradeValue >= 1 && gradeValue <= 10,
+                           let weightValue = Double(weight), weightValue >= 0 {
                             let updatedGrade = GradeEntry(
                                 id: gradeEntry.id,
                                 date: date,
                                 grade: gradeValue,
+                                weight: weightValue,
                                 description: description
                             )
                             onSave(updatedGrade)
@@ -1112,7 +1170,7 @@ struct EditGradeSheet: View {
                         }
                     }
                     .disabled(grade.isEmpty || Double(grade) == nil || Double(grade)! < 1 || Double(grade)! > 10)
-                    .foregroundColor(Color.themePrimary) // FIXED
+                    .foregroundColor(Color.themePrimary)
                 }
             }
         }
@@ -1141,21 +1199,21 @@ struct EditAttendanceSheet: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Attendance").foregroundColor(Color.themeTextPrimary)) { // FIXED
+                Section(header: Text("Attendance").foregroundColor(Color.themeTextPrimary)) {
                     DatePicker("Date", selection: $date, displayedComponents: .date)
                     Toggle("Attended Class", isOn: $status)
                     TextField("Notes", text: $notes)
                 }
-                .listRowBackground(Color.themeSurface) // FIXED
+                .listRowBackground(Color.themeSurface)
             }
             .scrollContentBackground(.hidden)
-            .background(Color.themeBackground) // FIXED
+            .background(Color.themeBackground)
             .navigationTitle("Edit Attendance")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
-                        .foregroundColor(Color.themePrimary) // FIXED
+                        .foregroundColor(Color.themePrimary)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
@@ -1168,7 +1226,7 @@ struct EditAttendanceSheet: View {
                         onSave(updatedAttendance)
                         dismiss()
                     }
-                    .foregroundColor(Color.themePrimary) // FIXED
+                    .foregroundColor(Color.themePrimary)
                 }
             }
         }

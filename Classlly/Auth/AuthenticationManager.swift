@@ -1,13 +1,8 @@
-// File: Classlly/Auth/AuthenticationManager.swift
-// Note: This file manages user authentication and profile data.
-// It will be responsible for loading the user's profile.
-// UserProfile is a Codable struct, not a SwiftData model,
-// as it's managed by AppStorage/UserDefaults for the currently logged-in user.
-
 import SwiftUI
 import AuthenticationServices
 import CryptoKit
 import Combine
+import SwiftData
 
 class AuthenticationManager: NSObject, ObservableObject {
     @Published var isAuthenticated = false
@@ -16,7 +11,6 @@ class AuthenticationManager: NSObject, ObservableObject {
     @Published var errorMessage: String?
     @Published var requiresOnboarding: Bool = false
     
-    // --- NEW: This will pass the school name to the onboarding view ---
     @Published var universityNameForOnboarding: String = ""
 
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
@@ -40,7 +34,6 @@ class AuthenticationManager: NSObject, ObservableObject {
         checkExistingAuthentication()
         
         if self.isAuthenticated && !self.hasCompletedOnboarding && self.currentUser?.id != AuthenticationManager.demoUser.id {
-            // Get school name for a returning user who hasn't onboarded
             self.universityNameForOnboarding = self.currentUser?.schoolName ?? ""
             self.requiresOnboarding = true
         }
@@ -55,7 +48,6 @@ class AuthenticationManager: NSObject, ObservableObject {
     }
     
     func handleSignInWithApple(result: Result<ASAuthorization, Error>) {
-        // ... (This function is unchanged)
         isLoading = true
         errorMessage = nil
         
@@ -71,7 +63,6 @@ class AuthenticationManager: NSObject, ObservableObject {
     }
     
     private func processAppleIDCredential(_ credential: ASAuthorizationAppleIDCredential) {
-        // ... (This function is unchanged)
         let userIdentifier = credential.user
         let firstName = credential.fullName?.givenName ?? ""
         let lastName = credential.fullName?.familyName ?? ""
@@ -95,9 +86,6 @@ class AuthenticationManager: NSObject, ObservableObject {
     func completeProfileSetup(profile: UserProfile) {
         self.currentUser = profile
         self.isAuthenticated = true
-        
-        // --- UPDATED ---
-        // Save the school name to pass to the onboarding view
         self.universityNameForOnboarding = profile.schoolName
         
         if !self.hasCompletedOnboarding {
@@ -109,8 +97,7 @@ class AuthenticationManager: NSObject, ObservableObject {
         }
     }
     
-    func signInAsDemoUser() {
-        // ... (This function is unchanged)
+    func signInAsDemoUser(modelContext: ModelContext? = nil) {
         self.currentUser = AuthenticationManager.demoUser
         self.isAuthenticated = true
         
@@ -120,20 +107,102 @@ class AuthenticationManager: NSObject, ObservableObject {
         if let userData = try? JSONEncoder().encode(self.currentUser) {
             UserDefaults.standard.set(userData, forKey: "currentUser")
         }
+        
+        if let context = modelContext {
+            generateSampleData(in: context)
+        }
+    }
+    
+    private func generateSampleData(in context: ModelContext) {
+        let descriptor = FetchDescriptor<Subject>()
+        if let count = try? context.fetchCount(descriptor), count > 0 {
+            return
+        }
+        
+        let mathSubject = Subject(
+            title: "Mathematics 101",
+            courseTeacher: "Dr. Alan Smith",
+            courseClassroom: "Room 304",
+            courseStartTime: Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date())!,
+            courseEndTime: Calendar.current.date(bySettingHour: 11, minute: 30, second: 0, of: Date())!,
+            courseDays: [2, 4],
+            courseFrequency: .weekly,
+            seminarTeacher: "Mr. T. Assistant",
+            seminarClassroom: "Lab 2",
+            seminarStartTime: Calendar.current.date(bySettingHour: 14, minute: 0, second: 0, of: Date())!,
+            seminarEndTime: Calendar.current.date(bySettingHour: 15, minute: 0, second: 0, of: Date())!,
+            seminarDays: [5],
+            seminarFrequency: .weekly
+        )
+        
+        let historySubject = Subject(
+            title: "World History",
+            courseTeacher: "Prof. Sarah Jones",
+            courseClassroom: "Lecture Hall A",
+            courseStartTime: Calendar.current.date(bySettingHour: 13, minute: 0, second: 0, of: Date())!,
+            courseEndTime: Calendar.current.date(bySettingHour: 14, minute: 30, second: 0, of: Date())!,
+            courseDays: [3, 5],
+            courseFrequency: .weekly,
+            seminarTeacher: "",
+            seminarClassroom: "",
+            seminarDays: [],
+            seminarFrequency: .weekly
+        )
+        
+        context.insert(mathSubject)
+        context.insert(historySubject)
+        
+        let task1 = StudyTask(
+            title: "Complete Calculus Problem Set",
+            dueDate: Calendar.current.date(byAdding: .day, value: 1, to: Date()),
+            priority: .high,
+            subject: mathSubject,
+            isFlagged: true,
+            notes: "Complete problems 1-10 in Chapter 3. Focus on derivatives." // NEW
+        )
+        
+        let task2 = StudyTask(
+            title: "Read Chapter 4: The Industrial Revolution",
+            dueDate: Calendar.current.date(byAdding: .day, value: 3, to: Date()),
+            priority: .medium,
+            subject: historySubject,
+            isFlagged: false,
+            notes: "Take notes on key figures and economic impacts." // NEW
+        )
+        
+        let task3 = StudyTask(
+            title: "Buy new graphing calculator batteries",
+            dueDate: Date(),
+            priority: .low,
+            subject: nil,
+            isFlagged: false,
+            notes: "Model AAA, get a 4-pack." // NEW
+        )
+        
+        context.insert(task1)
+        context.insert(task2)
+        context.insert(task3)
+        
+        let grade1 = GradeEntry(
+            date: Calendar.current.date(byAdding: .day, value: -5, to: Date())!,
+            grade: 9.0,
+            weight: 30.0,
+            description: "Midterm Exam"
+        )
+        grade1.subject = mathSubject
+        context.insert(grade1)
     }
     
     func signOut() {
-        // ... (This function is unchanged)
         isAuthenticated = false
         currentUser = nil
         
         self.hasCompletedOnboarding = false
-        self.universityNameForOnboarding = "" // Clear the name
+        self.universityNameForOnboarding = ""
         
         UserDefaults.standard.removeObject(forKey: "currentUser")
     }
     
-    // ... (Rest of the helper functions are unchanged) ...
     func randomNonceString(length: Int = 32) -> String {
         precondition(length > 0)
         let charset: [Character] =
@@ -177,9 +246,6 @@ class AuthenticationManager: NSObject, ObservableObject {
     }
 }
 
-// ... (UserProfile struct is unchanged) ...
-// This struct is NOT a SwiftData @Model. It's stored in UserDefaults
-// to represent the currently logged-in user's profile.
 struct UserProfile: Codable, Equatable {
     let id: String
     var firstName: String

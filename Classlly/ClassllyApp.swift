@@ -1,34 +1,16 @@
 import SwiftUI
+import UIKit
 import SwiftData
-import Combine
 
 @main
 struct ClassllyApp: App {
-    
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     @StateObject private var authManager = AuthenticationManager()
     @StateObject private var calendarManager = AcademicCalendarManager()
     @StateObject private var themeManager = AppTheme()
-    @StateObject private var dataController = DataController()
-    
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-                .environmentObject(authManager)
-                .environmentObject(calendarManager)
-                .environmentObject(themeManager)
-                .modelContainer(dataController.container)
-        }
-    }
-}
 
-@MainActor
-class DataController: ObservableObject {
-    @Published var container: ModelContainer
-    
-    init() {
-        // Always launch with an in-memory container first for immediate UI startup
+    var modelContainer: ModelContainer = {
         let schema = Schema([
             Subject.self,
             StudyTask.self,
@@ -36,41 +18,39 @@ class DataController: ObservableObject {
             AttendanceEntry.self,
             StudyCalendarEvent.self
         ])
-        self.container = try! ModelContainer(for: schema, configurations: [
-            ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-        ])
-        print("✅ Immediate in-memory ModelContainer created and used for UI launch!")
-        Task {
-            await setupContainer()
+        
+        let modelConfiguration = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: false,
+            cloudKitDatabase: .none
+        )
+
+        do {
+            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+        } catch {
+            fatalError("Could not create ModelContainer: \(error)")
         }
+    }()
+    
+    init() {
+        // --- STANDARD MODE DEFAULT ---
+        // We do NOT force transparent backgrounds here anymore.
+        // This ensures "Normal" mode looks like a standard iOS app.
+        
+        // We only keep TableView clear so that if we ARE in gamified mode,
+        // the background image can show through the lists.
+        // In standard mode, ContentView provides the system background, so this is safe.
+        UITableView.appearance().backgroundColor = .clear
+        UITableViewCell.appearance().backgroundColor = .clear
     }
     
-    private func setupContainer() async {
-        do {
-            let schema = Schema([
-                Subject.self,
-                StudyTask.self,
-                GradeEntry.self,
-                AttendanceEntry.self,
-                StudyCalendarEvent.self
-            ])
-            
-            let configuration = ModelConfiguration(
-                schema: schema,
-                isStoredInMemoryOnly: false,
-                allowsSave: true,
-                groupContainer: .none,
-                cloudKitDatabase: .private("iCloud.com.robudarius.classlly")
-            )
-            
-            let iCloudContainer = try ModelContainer(for: schema, configurations: [configuration])
-            await MainActor.run {
-                self.container = iCloudContainer
-            }
-            print("✅ iCloud ModelContainer created!")
-            
-        } catch {
-            print("❌ iCloud failed, continuing with existing container: \(error)")
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+                .environmentObject(authManager)
+                .environmentObject(calendarManager)
+                .environmentObject(themeManager)
         }
+        .modelContainer(modelContainer)
     }
 }

@@ -3,6 +3,7 @@ import SwiftData
 
 struct SubjectsView: View {
     @Query(sort: \Subject.title) var subjects: [Subject]
+    @EnvironmentObject var themeManager: AppTheme
     
     @State private var showingAddSubject = false
     @Environment(\.colorScheme) var colorScheme
@@ -10,43 +11,44 @@ struct SubjectsView: View {
     public init() {}
 
     var body: some View {
-        NavigationView {
-            ScrollView {
-                LazyVStack(spacing: 16) {
-                    ForEach(subjects) { subject in
-                        NavigationLink(destination: SubjectDetailView(subject: subject)) {
-                            SubjectCard(subject: subject)
-                        }
-                        .buttonStyle(PlainButtonStyle())
+        ScrollView {
+            LazyVStack(spacing: 16) {
+                ForEach(subjects) { subject in
+                    NavigationLink(destination: SubjectDetailView(subject: subject)) {
+                        SubjectCard(subject: subject)
                     }
-                }
-                .padding()
-            }
-            .navigationTitle("Subjects")
-            // --- THIS IS THE FIX ---
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        showingAddSubject = true
-                    }) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(.themePrimary)
-                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
-            .sheet(isPresented: $showingAddSubject) {
-                AddSubjectView()
+            .padding()
+        }
+        .navigationTitle("Subjects")
+        .navigationBarTitleDisplayMode(.inline)
+        // Ensure background is transparent so ContentView's background shows through
+        // (Standard Grey in Normal Mode, Black/Neon in Gamified Mode)
+        .background(Color.clear)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    showingAddSubject = true
+                }) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 20, weight: .medium))
+                        // Only use accent color in Gamified Mode, otherwise standard Blue
+                        .foregroundColor(themeManager.isGamified ? themeManager.selectedTheme.accentColor : .themePrimary)
+                }
             }
+        }
+        .sheet(isPresented: $showingAddSubject) {
+            AddSubjectView()
         }
     }
 }
 
-// ... (Rest of file is unchanged) ...
 struct SubjectCard: View {
     let subject: Subject
     @Environment(\.colorScheme) var colorScheme
+    @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -61,7 +63,6 @@ struct SubjectCard: View {
                         .foregroundColor(.themeTextSecondary)
                 }
                 Spacer()
-                // (This is safe, `currentGrade` is already fixed in DataModels.swift)
                 if let grade = subject.currentGrade {
                     GradeBadge(grade: grade)
                 }
@@ -75,56 +76,44 @@ struct SubjectCard: View {
             HStack(spacing: 16) {
                 ProgressIndicator(
                     title: "Attendance",
-                    // (This is safe, `attendanceRate` is fixed in DataModels.swift)
                     value: subject.attendanceRate,
                     color: .themeSuccess
                 )
                 
-                // (This is safe, `currentGrade` is fixed in DataModels.swift)
                 if let grade = subject.currentGrade {
                     ProgressIndicator(
                         title: "Grade",
                         value: grade / 10.0,
-                        color: .themePrimary
+                        // UPDATED: Only use Neon Accent in Gamified Mode, else Standard Blue
+                        color: themeManager.isGamified ? themeManager.selectedTheme.accentColor : .themePrimary
                     )
                 }
                 
                 ProgressIndicator(
                     title: "Classes",
-                    // (This is safe, `totalClasses` is fixed in DataModels.swift)
                     value: Double(subject.totalClasses) / 20.0,
                     color: .themeWarning
                 )
             }
             
             HStack(spacing: 12) {
-                // (This is safe, `attendedClasses` is fixed in DataModels.swift)
                 StatPill(icon: "checkmark.circle", value: "\(subject.attendedClasses)", label: "Present")
-                // (This is safe, `totalClasses` and `attendedClasses` are fixed)
                 StatPill(icon: "xmark.circle", value: "\(subject.totalClasses - subject.attendedClasses)", label: "Absent")
-                
-                // --- THIS IS THE FIX ---
-                // Safely unwrap `gradeHistory.count`
                 StatPill(icon: "star", value: "\(subject.gradeHistory.count)", label: "Grades")
-                // --- END OF FIX ---
             }
         }
         .padding()
-        .background(Color.themeSurface)
-        .cornerRadius(12)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.adaptiveBorder.opacity(0.3), lineWidth: 1)
-        )
+        // Apply the smart modifier (Glass in Gamified, Solid in Standard)
+        .gamifiedCard(themeManager: themeManager)
     }
 }
 
-// ... (Rest of SubjectsView.swift and its helper structs are unchanged) ...
 struct StatPill: View {
     let icon: String
     let value: String
     let label: String
     @Environment(\.colorScheme) var colorScheme
+    @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
         VStack(spacing: 4) {
@@ -143,7 +132,14 @@ struct StatPill: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
-        .background(Color.adaptiveTertiaryBackground)
+        // UPDATED: Conditional Background
+        .background {
+            if themeManager.isGamified {
+                Rectangle().fill(.thinMaterial)
+            } else {
+                Rectangle().fill(Color.adaptiveTertiaryBackground)
+            }
+        }
         .cornerRadius(8)
     }
 }
@@ -151,8 +147,14 @@ struct StatPill: View {
 struct GradeBadge: View {
     let grade: Double
     @Environment(\.colorScheme) var colorScheme
+    @EnvironmentObject var themeManager: AppTheme
     
     private var gradeColor: Color {
+        // Only use neon accent for high grades IF gamified mode is on
+        if themeManager.isGamified && grade >= 8.5 {
+            return themeManager.selectedTheme.accentColor
+        }
+        
         switch grade {
         case 9...10: return .themeSuccess
         case 7..<9: return .themePrimary

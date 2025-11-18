@@ -1,8 +1,3 @@
-// File: Classlly/Task/AddTaskView.swift
-// Note: This file is corrected to create an empty StudyTask()
-// and set its properties. The 'fileprivate' keyword is
-// removed from PriorityPicker to fix the redeclaration error.
-
 import SwiftUI
 import SwiftData
 
@@ -19,6 +14,7 @@ struct AddTaskView: View {
     @State private var hasDueDate = false
     @State private var reminderTime: TaskReminderTime = .hourBefore1
     @State private var isFlagged: Bool = false
+    @State private var notes: String = "" // NEW
 
     init(preSelectedSubject: Subject? = nil) {
         _selectedSubject = State(initialValue: preSelectedSubject)
@@ -45,6 +41,12 @@ struct AddTaskView: View {
                             Text("Flag task")
                         }
                     }
+                }
+                
+                // NEW: Notes Section
+                Section(header: Text("Description")) {
+                    TextField("Add notes...", text: $notes, axis: .vertical)
+                        .lineLimit(3...6)
                 }
                 
                 Section(header: Text("Priority")) {
@@ -74,19 +76,17 @@ struct AddTaskView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Add") {
-                        // --- THIS IS THE FIX ---
-                        // 1. Create an empty task
-                        let newTask = StudyTask()
-                        
-                        // 2. Set all properties
-                        newTask.title = title
-                        newTask.dueDate = hasDueDate ? dueDate : nil
-                        newTask.priority = priority
-                        newTask.reminderTime = hasDueDate ? reminderTime : .none
-                        newTask.isFlagged = isFlagged
-                        newTask.subject = selectedSubject
-                        
-                        // 3. Insert into the context
+                        // UPDATED: Include notes
+                        let newTask = StudyTask(
+                            title: title,
+                            isCompleted: false,
+                            dueDate: hasDueDate ? dueDate : nil,
+                            priority: priority,
+                            subject: selectedSubject,
+                            reminderTime: hasDueDate ? reminderTime : .none,
+                            isFlagged: isFlagged,
+                            notes: notes
+                        )
                         modelContext.insert(newTask)
                         dismiss()
                     }
@@ -99,9 +99,9 @@ struct AddTaskView: View {
     }
 }
 
-// --- HELPER STRUCT (with updated theme colors) ---
-// --- FIX: Removed 'fileprivate' to fix redeclaration error ---
-struct PriorityPicker: View {
+// --- HELPER STRUCT ---
+
+fileprivate struct PriorityPicker: View {
     @Binding var selectedPriority: TaskPriority
     
     var body: some View {
