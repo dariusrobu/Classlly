@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftData
 
-// MARK: - Enums (Codable for CloudKit)
+// MARK: - Enums
 
 enum ClassFrequency: String, CaseIterable, Codable {
     case weekly = "Weekly"
@@ -75,18 +75,18 @@ enum TaskPriority: String, CaseIterable, Codable {
     }
 }
 
-// MARK: - Models
+// MARK: - Models (Children First)
 
-// 1. GradeEntry
 @Model
 final class GradeEntry {
-    @Attribute(.unique) var id: UUID
-    var date: Date
-    var grade: Double
-    var weight: Double
-    var descriptionText: String
+    var id: UUID = UUID()
+    var date: Date = Date()
+    var grade: Double = 0.0
+    var weight: Double = 100.0
+    var descriptionText: String = ""
     
-    @Relationship(inverse: \Subject.gradeHistory)
+    // FIX: Removed @Relationship macro to break circular reference.
+    // SwiftData infers the inverse from the Subject definition.
     var subject: Subject?
     
     init(id: UUID = UUID(), date: Date = Date(), grade: Double, weight: Double = 100.0, description: String = "") {
@@ -98,15 +98,14 @@ final class GradeEntry {
     }
 }
 
-// 2. AttendanceEntry
 @Model
 final class AttendanceEntry {
-    @Attribute(.unique) var id: UUID
-    var date: Date
-    var attended: Bool
-    var notes: String
+    var id: UUID = UUID()
+    var date: Date = Date()
+    var attended: Bool = false
+    var notes: String = ""
     
-    @Relationship(inverse: \Subject.attendanceHistory)
+    // FIX: Removed @Relationship macro.
     var subject: Subject?
     
     init(id: UUID = UUID(), date: Date = Date(), attended: Bool, notes: String = "") {
@@ -117,35 +116,72 @@ final class AttendanceEntry {
     }
 }
 
-// 3. Subject
+@Model
+final class StudyTask {
+    var id: UUID = UUID()
+    var title: String = ""
+    var isCompleted: Bool = false
+    var dueDate: Date? = nil
+    var priority: TaskPriority = TaskPriority.medium
+    var reminderTime: TaskReminderTime = TaskReminderTime.hourBefore1
+    var isFlagged: Bool = false
+    var notes: String = ""
+    
+    // FIX: Removed @Relationship macro.
+    var subject: Subject?
+
+    init(id: UUID = UUID(),
+         title: String,
+         isCompleted: Bool = false,
+         dueDate: Date? = nil,
+         priority: TaskPriority = .medium,
+         subject: Subject? = nil,
+         reminderTime: TaskReminderTime = .hourBefore1,
+         isFlagged: Bool = false,
+         notes: String = ""
+    ) {
+        self.id = id
+        self.title = title
+        self.isCompleted = isCompleted
+        self.dueDate = dueDate
+        self.priority = priority
+        self.subject = subject
+        self.reminderTime = reminderTime
+        self.isFlagged = isFlagged
+        self.notes = notes
+    }
+}
+
+// MARK: - Parent Model
+
 @Model
 final class Subject {
-    @Attribute(.unique) var id: UUID
-    var title: String
-    var courseTeacher: String
-    var courseClassroom: String
-    var courseDate: Date
-    var courseStartTime: Date
-    var courseEndTime: Date
-    var courseDays: [Int]
-    var courseFrequency: ClassFrequency
+    var id: UUID = UUID()
+    var title: String = ""
+    var courseTeacher: String = ""
+    var courseClassroom: String = ""
+    var courseDate: Date = Date()
+    var courseStartTime: Date = Date()
+    var courseEndTime: Date = Date()
+    var courseDays: [Int] = []
+    var courseFrequency: ClassFrequency = ClassFrequency.weekly
     
-    var seminarTeacher: String
-    var seminarClassroom: String
-    var seminarDate: Date
-    var seminarStartTime: Date
-    var seminarEndTime: Date
-    var seminarDays: [Int]
-    var seminarFrequency: ClassFrequency
+    var seminarTeacher: String = ""
+    var seminarClassroom: String = ""
+    var seminarDate: Date = Date()
+    var seminarStartTime: Date = Date()
+    var seminarEndTime: Date = Date()
+    var seminarDays: [Int] = []
+    var seminarFrequency: ClassFrequency = ClassFrequency.weekly
     
-    // Relationships must be optional or have default values for CloudKit
-    @Relationship(deleteRule: .cascade)
+    // FIX: Defined relationship and inverse HERE only.
+    @Relationship(deleteRule: .cascade, inverse: \GradeEntry.subject)
     var gradeHistory: [GradeEntry]? = []
     
-    @Relationship(deleteRule: .cascade)
+    @Relationship(deleteRule: .cascade, inverse: \AttendanceEntry.subject)
     var attendanceHistory: [AttendanceEntry]? = []
 
-    @Relationship(deleteRule: .cascade)
+    @Relationship(deleteRule: .cascade, inverse: \StudyTask.subject)
     var tasks: [StudyTask]? = []
     
     init(id: UUID = UUID(),
@@ -163,7 +199,9 @@ final class Subject {
          seminarStartTime: Date = Date(),
          seminarEndTime: Date = Date(),
          seminarDays: [Int] = [],
-         seminarFrequency: ClassFrequency = .weekly) {
+         seminarFrequency: ClassFrequency = .weekly,
+         gradeHistory: [GradeEntry] = [],
+         attendanceHistory: [AttendanceEntry] = []) {
         self.id = id
         self.title = title
         self.courseTeacher = courseTeacher
@@ -180,9 +218,10 @@ final class Subject {
         self.seminarEndTime = seminarEndTime
         self.seminarDays = seminarDays
         self.seminarFrequency = seminarFrequency
+        self.gradeHistory = gradeHistory
+        self.attendanceHistory = attendanceHistory
     }
     
-    // Computed properties
     var courseTimeString: String {
         let timeFormatter = DateFormatter()
         timeFormatter.dateFormat = "HH:mm"
@@ -191,12 +230,17 @@ final class Subject {
     
     var courseDaysString: String {
         let daySymbols = Calendar.current.shortWeekdaySymbols
-        // Sort Mon (2) -> Sun (1)
-        let sortedDays = courseDays.sorted { ($0 == 1 ? 8 : $0) < ($1 == 1 ? 8 : $1) }
+        let sortedDays = courseDays.sorted { day1, day2 in
+            let d1 = day1 == 1 ? 8 : day1
+            let d2 = day2 == 1 ? 8 : day2
+            return d1 < d2
+        }
         return sortedDays.map { daySymbols[$0 - 1] }.joined(separator: ", ")
     }
     
-    var courseFrequencyString: String { courseFrequency.rawValue }
+    var courseFrequencyString: String {
+        return courseFrequency.rawValue
+    }
     
     var seminarTimeString: String {
         let timeFormatter = DateFormatter()
@@ -206,13 +250,21 @@ final class Subject {
     
     var seminarDaysString: String {
         let daySymbols = Calendar.current.shortWeekdaySymbols
-        let sortedDays = seminarDays.sorted { ($0 == 1 ? 8 : $0) < ($1 == 1 ? 8 : $1) }
+        let sortedDays = seminarDays.sorted { day1, day2 in
+            let d1 = day1 == 1 ? 8 : day1
+            let d2 = day2 == 1 ? 8 : day2
+            return d1 < d2
+        }
         return sortedDays.map { daySymbols[$0 - 1] }.joined(separator: ", ")
     }
     
-    var seminarFrequencyString: String { seminarFrequency.rawValue }
+    var seminarFrequencyString: String {
+        return seminarFrequency.rawValue
+    }
     
-    var currentGrade: Double? { gradeHistory?.last?.grade }
+    var currentGrade: Double? {
+        gradeHistory?.last?.grade
+    }
     
     var attendanceRate: Double {
         guard let history = attendanceHistory, !history.isEmpty else { return 1.0 }
@@ -220,65 +272,41 @@ final class Subject {
         return Double(attendedCount) / Double(history.count)
     }
     
-    var totalClasses: Int { attendanceHistory?.count ?? 0 }
-    var attendedClasses: Int { attendanceHistory?.filter { $0.attended }.count ?? 0 }
+    var totalClasses: Int {
+        attendanceHistory?.count ?? 0
+    }
+    
+    var attendedClasses: Int {
+        attendanceHistory?.filter { $0.attended }.count ?? 0
+    }
     
     func occursThisWeek(academicWeek: Int?, isCourse: Bool = true) -> Bool {
-        guard let academicWeek = academicWeek else { return false }
+        guard let academicWeek = academicWeek else {
+            return false
+        }
         let frequency = isCourse ? courseFrequency : seminarFrequency
         switch frequency {
-        case .weekly: return true
-        case .biweeklyOdd: return academicWeek % 2 == 1
-        case .biweeklyEven: return academicWeek % 2 == 0
+        case .weekly:
+            return true
+        case .biweeklyOdd:
+            return academicWeek % 2 == 1
+        case .biweeklyEven:
+            return academicWeek % 2 == 0
         }
     }
 }
 
-// 4. StudyTask
-@Model
-final class StudyTask {
-    @Attribute(.unique) var id: UUID
-    var title: String
-    var isCompleted: Bool
-    var dueDate: Date?
-    var priority: TaskPriority
-    var reminderTime: TaskReminderTime
-    var isFlagged: Bool
-    var notes: String
-    
-    @Relationship(inverse: \Subject.tasks)
-    var subject: Subject?
+// MARK: - Standalone Models
 
-    init(id: UUID = UUID(),
-         title: String,
-         isCompleted: Bool = false,
-         dueDate: Date? = nil,
-         priority: TaskPriority = .medium,
-         subject: Subject? = nil,
-         reminderTime: TaskReminderTime = .hourBefore1,
-         isFlagged: Bool = false,
-         notes: String = "") {
-        self.id = id
-        self.title = title
-        self.isCompleted = isCompleted
-        self.dueDate = dueDate
-        self.priority = priority
-        self.subject = subject
-        self.reminderTime = reminderTime
-        self.isFlagged = isFlagged
-        self.notes = notes
-    }
-}
-
-// 5. StudyCalendarEvent
 @Model
 final class StudyCalendarEvent {
-    @Attribute(.unique) var id: UUID
-    var title: String
-    var time: String
-    var location: String
-    var colorName: String
-    var eventType: EventType
+    var id: UUID = UUID()
+    var title: String = ""
+    var time: String = ""
+    var location: String = ""
+    var colorName: String = "blue"
+    var eventType: EventType = EventType.custom
+    
     var taskId: UUID?
     var subjectId: UUID?
     
@@ -315,18 +343,17 @@ final class StudyCalendarEvent {
     }
 }
 
-// 6. UserProfile (Now a @Model for Cloud Sync)
 @Model
 final class UserProfile {
-    @Attribute(.unique) var id: String
-    var firstName: String
-    var lastName: String
-    var email: String?
-    var schoolName: String
-    var gradeLevel: String
-    var major: String?
-    var academicYear: String
-    var profileImageData: Data?
+    var id: String = ""
+    var firstName: String = ""
+    var lastName: String = ""
+    var email: String? = nil
+    var schoolName: String = ""
+    var gradeLevel: String = ""
+    var major: String? = nil
+    var academicYear: String = ""
+    var profileImageData: Data? = nil
     
     init(id: String, firstName: String, lastName: String, email: String?, schoolName: String, gradeLevel: String, major: String?, academicYear: String, profileImageData: Data?) {
         self.id = id
@@ -340,5 +367,7 @@ final class UserProfile {
         self.profileImageData = profileImageData
     }
     
-    var fullName: String { "\(firstName) \(lastName)" }
+    var fullName: String {
+        "\(firstName) \(lastName)"
+    }
 }
