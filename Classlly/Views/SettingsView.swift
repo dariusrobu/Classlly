@@ -2,10 +2,11 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.colorScheme) var colorScheme
-    @EnvironmentObject var themeManager: AppTheme
+    @EnvironmentObject var themeManager: AppTheme // Access the Theme Manager
     
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
+    @AppStorage("autoSyncEnabled") private var autoSyncEnabled = true
     
     public init() {}
     
@@ -13,48 +14,24 @@ struct SettingsView: View {
         Form {
             Section(header: Text("Appearance")) {
                 Toggle("Dark Mode", isOn: $darkModeEnabled)
-            }
-            .listRowBackground(Color.themeSurface)
-            
-            Section(header: Text("Gamification & Theme")) {
-                Toggle(isOn: $themeManager.isGamified) {
-                    HStack {
-                        Image(systemName: "gamecontroller.fill")
-                            .foregroundColor(themeManager.selectedTheme.accentColor)
-                        Text("Gamified Mode")
-                        Spacer()
-                        if themeManager.isGamified {
-                            Text("ON")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(themeManager.selectedTheme.accentColor)
-                        }
+                
+                // --- Theme Picker ---
+                Picker("Theme Color", selection: $themeManager.selectedTheme) {
+                    ForEach(Theme.allCases) { theme in
+                        Text(theme.rawValue).tag(theme)
                     }
                 }
                 
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Accent Color")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 40))], spacing: 12) {
-                        ForEach(Theme.allCases) { theme in
-                            Circle()
-                                .fill(theme.accentColor)
-                                .frame(width: 40, height: 40)
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.primary, lineWidth: themeManager.selectedTheme == theme ? 3 : 0)
-                                )
-                                .onTapGesture {
-                                    withAnimation {
-                                        themeManager.selectedTheme = theme
-                                    }
-                                }
-                        }
+                // --- Gamified Toggle ---
+                Toggle(isOn: $themeManager.isGamifiedMode) {
+                    VStack(alignment: .leading) {
+                        Text("Gamified Dashboard")
+                        Text("Enable colorful, high-energy cards")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
-                    .padding(.bottom, 8)
                 }
+                .tint(themeManager.selectedTheme.accentColor)
             }
             .listRowBackground(Color.themeSurface)
             
@@ -65,9 +42,14 @@ struct SettingsView: View {
                 }
             }
             .listRowBackground(Color.themeSurface)
+
+            Section(header: Text("Data")) {
+                Toggle("Auto Sync", isOn: $autoSyncEnabled)
+            }
+            .listRowBackground(Color.themeSurface)
         }
-        .scrollContentBackground(.hidden) // UPDATED: Allows background to show
-        .background(Color.clear) // UPDATED: Ensure container is clear
+        .scrollContentBackground(.hidden)
+        .background(Color.themeBackground)
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
     }

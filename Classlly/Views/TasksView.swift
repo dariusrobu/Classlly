@@ -3,7 +3,7 @@ import SwiftData
 
 struct TasksView: View {
     @Environment(\.modelContext) private var modelContext
-    @EnvironmentObject var themeManager: AppTheme // NEW
+    @EnvironmentObject var themeManager: AppTheme // <--- INJECT THEME
     
     @State private var showingAddTask = false
     @State private var editingTask: StudyTask?
@@ -25,7 +25,7 @@ struct TasksView: View {
             }
         }
         
-        // We will handle color dynamically in the View now
+        // We'll handle color dynamically in the view
     }
     
     @Query private var tasks: [StudyTask]
@@ -56,100 +56,106 @@ struct TasksView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(TaskFilter.allCases, id: \.self) { filter in
-                        FilterButton(
-                            title: filter.rawValue,
-                            iconName: filter.iconName,
-                            // UPDATED: Use accent color for selection
-                            color: getFilterColor(filter),
-                            isSelected: taskFilter == filter,
-                            action: {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                    taskFilter = filter
-                                }
-                            }
-                        )
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 12)
-            }
-            
+        NavigationView {
             VStack(spacing: 0) {
-                if filteredTasks.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "checkmark.circle")
-                            .font(.system(size: 40))
-                            .foregroundColor(.themeTextSecondary)
-                        Text(emptyStateTitle)
-                            .font(.headline)
-                            .foregroundColor(.themeTextPrimary)
-                        Text(emptyStateMessage)
-                            .font(.subheadline)
-                            .foregroundColor(.themeTextSecondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding()
-                    Spacer()
-                    
-                } else {
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            ForEach(filteredTasks) { task in
-                                TaskCard(task: task)
-                                    .onTapGesture { editingTask = task }
-                                    .contextMenu {
-                                        Button { editingTask = task } label: { Label("Edit", systemImage: "pencil") }
-                                        if !task.isCompleted {
-                                            Button { withAnimation { task.isCompleted = true } } label: { Label("Mark Complete", systemImage: "checkmark") }
-                                        }
-                                        Button(role: .destructive) { withAnimation { modelContext.delete(task) } } label: { Label("Delete", systemImage: "trash") }
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(TaskFilter.allCases, id: \.self) { filter in
+                            FilterButton(
+                                title: filter.rawValue,
+                                iconName: filter.iconName,
+                                color: getFilterColor(for: filter),
+                                isSelected: taskFilter == filter,
+                                action: {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                        taskFilter = filter
                                     }
-                                
-                                if task != filteredTasks.last {
-                                    Divider()
-                                        .padding(.leading, 56)
+                                }
+                            )
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 12)
+                }
+                
+                VStack(spacing: 0) {
+                    if filteredTasks.isEmpty {
+                        VStack(spacing: 12) {
+                            Image(systemName: "checkmark.circle")
+                                .font(.system(size: 40))
+                                .foregroundColor(.themeTextSecondary)
+                            Text(emptyStateTitle)
+                                .font(.headline)
+                                .foregroundColor(.themeTextPrimary)
+                            Text(emptyStateMessage)
+                                .font(.subheadline)
+                                .foregroundColor(.themeTextSecondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding()
+                        Spacer()
+                        
+                    } else {
+                        ScrollView {
+                            LazyVStack(spacing: 0) {
+                                ForEach(filteredTasks) { task in
+                                    TaskCard(task: task)
+                                        .onTapGesture { editingTask = task }
+                                        .contextMenu {
+                                            Button { editingTask = task } label: { Label("Edit", systemImage: "pencil") }
+                                            if !task.isCompleted {
+                                                Button { withAnimation { task.isCompleted = true } } label: { Label("Mark Complete", systemImage: "checkmark") }
+                                            }
+                                            Button(role: .destructive) { withAnimation { modelContext.delete(task) } } label: { Label("Delete", systemImage: "trash") }
+                                        }
+                                    
+                                    if task != filteredTasks.last {
+                                        Divider()
+                                            .padding(.leading, 56)
+                                    }
                                 }
                             }
+                            .padding(.vertical, 20)
                         }
-                        .padding(.vertical, 20)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.themeSurface)
+                .cornerRadius(16)
+                .padding(.horizontal)
+                .padding(.bottom)
+            }
+            .navigationTitle("Tasks")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showingAddTask = true }) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 22, weight: .medium))
+                            .foregroundColor(themeManager.selectedTheme.accentColor) // Theme Color
                     }
                 }
             }
-            // UPDATED: Glassmorphism container
-            .background(themeManager.isGamified ? .ultraThinMaterial : .regularMaterial)
-            .cornerRadius(16)
-            .padding(.horizontal)
-            .padding(.bottom)
-        }
-        .navigationTitle("Tasks")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: { showingAddTask = true }) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 22, weight: .medium))
-                        .foregroundColor(themeManager.selectedTheme.accentColor)
-                }
+            .sheet(isPresented: $showingAddTask) {
+                AddTaskView()
             }
-        }
-        .sheet(isPresented: $showingAddTask) {
-            AddTaskView()
-        }
-        .sheet(item: $editingTask) { task in
-            EditTaskView(task: task)
+            .sheet(item: $editingTask) { task in
+                EditTaskView(task: task)
+            }
         }
     }
     
-    private func getFilterColor(_ filter: TaskFilter) -> Color {
+    private func getFilterColor(for filter: TaskFilter) -> Color {
         switch filter {
-        case .today, .all: return themeManager.selectedTheme.accentColor
-        case .flagged: return .themeError
-        case .completed: return .themeSuccess
+        case .today:
+            return themeManager.selectedTheme.accentColor
+        case .flagged:
+            return .themeError
+        case .all:
+            return themeManager.selectedTheme.accentColor
+        case .completed:
+            return .themeSuccess
         }
     }
     
@@ -172,19 +178,19 @@ struct TasksView: View {
     }
 }
 
-// --- Helper Structs ---
+// --- FilterButton (Unchanged) ---
 struct FilterButton: View {
     let title: String
     let iconName: String
     let color: Color
     let isSelected: Bool
     let action: () -> Void
-    @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
-                Image(systemName: iconName).font(.caption)
+                Image(systemName: iconName)
+                    .font(.caption)
                 Text(title)
             }
             .font(.subheadline)
@@ -195,7 +201,7 @@ struct FilterButton: View {
             .padding(.horizontal, 12)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(color.opacity(isSelected ? (themeManager.isGamified ? 0.2 : 0.1) : 0.0))
+                    .fill(color.opacity(isSelected ? 0.1 : 0.0))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
@@ -206,10 +212,11 @@ struct FilterButton: View {
     }
 }
 
+
+// --- TaskCard (Unchanged) ---
 struct TaskCard: View {
     @Bindable var task: StudyTask
     @Environment(\.colorScheme) var colorScheme
-    @EnvironmentObject var themeManager: AppTheme // NEW
     
     var body: some View {
         HStack(spacing: 16) {
@@ -220,12 +227,12 @@ struct TaskCard: View {
             }) {
                 ZStack {
                     Circle()
-                        .stroke(task.priority == .medium && themeManager.isGamified ? themeManager.selectedTheme.accentColor : task.priority.color, lineWidth: 2)
+                        .stroke(task.priority.color, lineWidth: 2)
                         .frame(width: 24, height: 24)
                     
                     if task.isCompleted {
                         Circle()
-                            .fill(task.priority == .medium && themeManager.isGamified ? themeManager.selectedTheme.accentColor : task.priority.color)
+                            .fill(task.priority.color)
                             .frame(width: 24, height: 24)
                         Image(systemName: "checkmark")
                             .font(.system(size: 12, weight: .bold))
@@ -295,10 +302,13 @@ struct TaskCard: View {
     
     private func formatDueDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        if Calendar.current.isDateInToday(date) { return "Today" }
-        else if Calendar.current.isDateInTomorrow(date) { return "Tomorrow" }
-        else if Calendar.current.isDateInYesterday(date) { return "Yesterday" }
-        else {
+        if Calendar.current.isDateInToday(date) {
+            return "Today"
+        } else if Calendar.current.isDateInTomorrow(date) {
+            return "Tomorrow"
+        } else if Calendar.current.isDateInYesterday(date) {
+            return "Yesterday"
+        } else {
             formatter.dateFormat = "MMM d"
             return formatter.string(from: date)
         }

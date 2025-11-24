@@ -5,6 +5,7 @@ import SwiftData
 struct ProfileView: View {
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
     @EnvironmentObject var authManager: AuthenticationManager
+    @EnvironmentObject var themeManager: AppTheme
     @StateObject private var notificationManager = NotificationManager.shared
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.modelContext) private var modelContext
@@ -23,7 +24,10 @@ struct ProfileView: View {
                         ZStack {
                             Circle()
                                 .fill(LinearGradient(
-                                    gradient: Gradient(colors: [.themeBlue, .themePurple]),
+                                    gradient: Gradient(colors: [
+                                        themeManager.selectedTheme.accentColor,
+                                        themeManager.selectedTheme.accentColor.opacity(0.6)
+                                    ]),
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ))
@@ -70,9 +74,9 @@ struct ProfileView: View {
                         .padding(.bottom, 16)
                     
                     HStack(spacing: 12) {
-                        StatBox(title: "Subjects", value: "\(subjects.count)")
-                        StatBox(title: "Tasks", value: "\(tasks.count)")
-                        StatBox(title: "Events", value: "\(events.count)")
+                        StatBox(title: "Subjects", value: "\(subjects.count)", color: themeManager.selectedTheme.accentColor)
+                        StatBox(title: "Tasks", value: "\(tasks.count)", color: themeManager.selectedTheme.accentColor)
+                        StatBox(title: "Events", value: "\(events.count)", color: themeManager.selectedTheme.accentColor)
                     }
                     .padding(.horizontal)
                 }
@@ -90,7 +94,7 @@ struct ProfileView: View {
                             NavigationLink(destination: EditProfileView(user: user)) {
                                 SettingsRow(
                                     icon: "person.crop.circle",
-                                    iconColor: .themeBlue,
+                                    iconColor: themeManager.selectedTheme.accentColor,
                                     title: "Edit Profile",
                                     value: nil
                                 )
@@ -106,7 +110,7 @@ struct ProfileView: View {
                         }) {
                             SettingsRow(
                                 icon: "square.and.arrow.up",
-                                iconColor: .themeBlue,
+                                iconColor: themeManager.selectedTheme.accentColor,
                                 title: "Export Data",
                                 value: nil
                             )
@@ -133,7 +137,8 @@ struct ProfileView: View {
                 }
                 
                 Button(action: {
-                    authManager.signOut()
+                    // FIX: Pass modelContext to signOut
+                    authManager.signOut(context: modelContext)
                 }) {
                     Text("Sign Out")
                         .font(.body)
@@ -152,13 +157,12 @@ struct ProfileView: View {
             }
             .padding(.vertical)
         }
-        // UPDATED: Removed .background(Color.themeBackground) to allow Gamified gradient
+        .background(Color.themeBackground)
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.inline)
         .preferredColorScheme(darkModeEnabled ? .dark : .light)
     }
     
-    // ... (Helper methods exportData, clearAllData, getInitials remain unchanged) ...
     private func getInitials(from name: String) -> String {
         let names = name.split(separator: " ")
         let initials = names.prefix(2).map { String($0.first ?? Character("")) }
@@ -179,75 +183,72 @@ struct ProfileView: View {
     }
     
     private func clearAllData() {
-        // Implementation unchanged
+        let alert = UIAlertController(
+            title: "Clear All Data",
+            message: "Are you sure you want to clear all your data? This will remove all subjects, tasks, and events. This action cannot be undone.",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Clear All", style: .destructive) { _ in
+            notificationManager.removeAllNotifications()
+            
+            do {
+                try modelContext.delete(model: Subject.self)
+                try modelContext.delete(model: StudyTask.self)
+                try modelContext.delete(model: StudyCalendarEvent.self)
+                try modelContext.delete(model: GradeEntry.self)
+                try modelContext.delete(model: AttendanceEntry.self)
+            } catch {
+                print("Failed to clear all data: \(error)")
+            }
+            
+            let successAlert = UIAlertController(
+                title: "Data Cleared",
+                message: "All your data has been cleared successfully.",
+                preferredStyle: .alert
+            )
+            successAlert.addAction(UIAlertAction(title: "OK", style: .default))
+            
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let rootViewController = windowScene.windows.first?.rootViewController {
+                rootViewController.present(successAlert, animated: true)
+            }
+        })
+        
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootViewController = windowScene.windows.first?.rootViewController {
+            rootViewController.present(alert, animated: true)
+        }
     }
 }
 
-// ... (NotificationSettingsView, EditProfileView, StatBox, etc. remain unchanged) ...
-struct NotificationSettingsView: View {
-    @StateObject private var notificationManager = NotificationManager.shared
-    @State private var pendingNotifications: [UNNotificationRequest] = []
-    
-    var body: some View {
-        List {
-            Section(header: Text("Notification Status")) {
-                HStack {
-                    Text("Permission Status")
-                    Spacer()
-                    Text(notificationManager.permissionGranted ? "Granted" : "Denied")
-                }
-            }
-            if !pendingNotifications.isEmpty {
-                Section(header: Text("Pending")) {
-                    ForEach(pendingNotifications, id: \.identifier) { notif in
-                        Text(notif.content.title)
-                    }
-                }
-            }
-        }
-        .onAppear {
-            notificationManager.getPendingNotifications { self.pendingNotifications = $0 }
-        }
-    }
-}
-
-struct EditProfileView: View {
-    @Environment(\.dismiss) var dismiss
-    @EnvironmentObject var authManager: AuthenticationManager
-    let user: UserProfile
-    @State private var firstName: String
-    
-    init(user: UserProfile) {
-        self.user = user
-        _firstName = State(initialValue: user.firstName)
-    }
-    
-    var body: some View {
-        Form {
-            TextField("First Name", text: $firstName)
-            Button("Save") {
-                var updated = user
-                updated.firstName = firstName
-                authManager.completeProfileSetup(profile: updated)
-                dismiss()
-            }
-        }
-    }
-}
+// MARK: - Helper Views
 
 struct StatBox: View {
     let title: String
     let value: String
+    let color: Color
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
-        VStack {
-            Text(value).font(.title2).bold()
-            Text(title).font(.caption).foregroundColor(.secondary)
+        VStack(spacing: 8) {
+            Text(value)
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(color)
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.adaptiveSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding()
         .background(Color.themeSurface)
         .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.adaptiveBorder.opacity(0.3), lineWidth: 1)
+        )
     }
 }
 
@@ -256,16 +257,126 @@ struct SettingsRow: View {
     let iconColor: Color
     let title: String
     let value: String?
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
-        HStack {
-            Image(systemName: icon).foregroundColor(iconColor)
+        HStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(iconColor)
+                .frame(width: 24)
             Text(title)
+                .font(.body)
+                .foregroundColor(.adaptivePrimary)
             Spacer()
-            if let v = value { Text(v).foregroundColor(.secondary) }
-            Image(systemName: "chevron.right").foregroundColor(.secondary)
+            if let value = value {
+                Text(value)
+                    .font(.subheadline)
+                    .foregroundColor(.adaptiveSecondary)
+            }
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.secondary)
         }
         .padding()
         .background(Color.themeSurface)
+        .contentShape(Rectangle())
+    }
+}
+
+struct EditProfileView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.modelContext) var modelContext // FIX: Added Environment Context
+    @EnvironmentObject var authManager: AuthenticationManager
+    @EnvironmentObject var themeManager: AppTheme
+    let user: UserProfile
+    @Environment(\.colorScheme) var colorScheme
+    
+    @State private var firstName: String
+    @State private var lastName: String
+    @State private var schoolName: String
+    @State private var gradeLevel: String
+    @State private var major: String
+    @State private var academicYear: String
+    
+    private let gradeLevels = ["Freshman", "Sophomore", "Junior", "Senior", "Graduate", "PhD", "Other"]
+    private let academicYears = ["2023-2024", "2024-2025", "2025-2026", "2026-2027", "2027-2028"]
+    private let popularMajors = [
+        "Computer Science", "Engineering", "Business", "Medicine", "Law",
+        "Psychology", "Biology", "Chemistry", "Physics", "Mathematics",
+        "Economics", "Political Science", "History", "English", "Art",
+        "Music", "Architecture", "Education", "Nursing", "Other"
+    ]
+    
+    init(user: UserProfile) {
+        self.user = user
+        _firstName = State(initialValue: user.firstName)
+        _lastName = State(initialValue: user.lastName)
+        _schoolName = State(initialValue: user.schoolName)
+        _gradeLevel = State(initialValue: user.gradeLevel)
+        _major = State(initialValue: user.major ?? "")
+        _academicYear = State(initialValue: user.academicYear)
+    }
+    
+    var body: some View {
+        Form {
+            Section(header: Text("Personal Information").foregroundColor(.adaptiveSecondary)) {
+                TextField("First Name", text: $firstName)
+                TextField("Last Name", text: $lastName)
+            }
+            .listRowBackground(Color.themeSurface)
+            
+            Section(header: Text("Academic Information").foregroundColor(.adaptiveSecondary)) {
+                TextField("School/University", text: $schoolName)
+                Picker("Grade Level", selection: $gradeLevel) {
+                    ForEach(gradeLevels, id: \.self) { Text($0) }
+                }
+                Picker("Major", selection: $major) {
+                    ForEach(popularMajors, id: \.self) { Text($0) }
+                }
+                Picker("Academic Year", selection: $academicYear) {
+                    ForEach(academicYears, id: \.self) { Text($0) }
+                }
+            }
+            .listRowBackground(Color.themeSurface)
+        }
+        .scrollContentBackground(.hidden)
+        .background(Color.themeBackground)
+        .navigationTitle("Edit Profile")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Cancel") { dismiss() }
+                    .foregroundColor(themeManager.selectedTheme.accentColor)
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Save") { saveProfile() }
+                    .disabled(!isFormValid)
+                    .fontWeight(.semibold)
+                    .foregroundColor(isFormValid ? themeManager.selectedTheme.accentColor : .adaptiveSecondary)
+            }
+        }
+    }
+    
+    private var isFormValid: Bool {
+        !firstName.isEmpty && !lastName.isEmpty && !schoolName.isEmpty
+    }
+    
+    private func saveProfile() {
+        let updatedProfile = UserProfile(
+            id: user.id,
+            firstName: firstName,
+            lastName: lastName,
+            email: user.email,
+            schoolName: schoolName,
+            gradeLevel: gradeLevel,
+            major: major.isEmpty ? nil : major,
+            academicYear: academicYear,
+            profileImageData: user.profileImageData
+        )
+        // FIX: Pass modelContext to completeProfileSetup
+        authManager.completeProfileSetup(profile: updatedProfile, context: modelContext)
+        dismiss()
     }
 }

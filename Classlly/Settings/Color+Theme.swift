@@ -30,7 +30,7 @@ extension Color {
     static let themeError = Color.red
     static let themeWarning = Color.orange
 
-    // --- OLD ADAPTIVE COLORS ---
+    // --- ADAPTIVE UTILITIES ---
     static let adaptiveBackground = Color(.systemGroupedBackground)
     static let adaptiveSecondaryBackground = Color(.secondarySystemGroupedBackground)
     static let adaptiveTertiaryBackground = Color(.tertiarySystemGroupedBackground)
@@ -39,7 +39,7 @@ extension Color {
     static let adaptivePrimary = Color.primary
     static let adaptiveSecondary = Color.secondary
     
-    // --- OLD THEME COLORS ---
+    // --- LEGACY ---
     static let themeBlue = Color.blue
     static let themeGreen = Color.green
     static let themeOrange = Color.orange
@@ -54,13 +54,18 @@ struct AdaptiveCard: ViewModifier {
     
     func body(content: Content) -> some View {
         content
-            .background(Color.adaptiveSecondaryBackground)
+            .background(Color.themeSurface)
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Color.adaptiveBorder.opacity(0.3), lineWidth: 1)
             )
-            // Note: Shadow removed as requested
+            .shadow(
+                color: colorScheme == .dark ? .black.opacity(0.4) : .black.opacity(0.08),
+                radius: colorScheme == .dark ? 6 : 3,
+                x: 0,
+                y: colorScheme == .dark ? 3 : 1
+            )
     }
 }
 
@@ -69,7 +74,7 @@ struct AdaptiveListRow: ViewModifier {
     
     func body(content: Content) -> some View {
         content
-            .listRowBackground(Color.adaptiveSecondaryBackground)
+            .listRowBackground(Color.themeSurface)
     }
 }
 

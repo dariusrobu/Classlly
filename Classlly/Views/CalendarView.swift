@@ -2,14 +2,15 @@ import SwiftUI
 import Combine
 import SwiftData
 
-// ... (CalendarEvent enum - unchanged) ...
+// ... (CalendarEvent enum remains the same)
 enum CalendarEvent: Identifiable {
     case task(StudyTask)
     case `class`(subject: Subject, isCourse: Bool, date: Date)
     
     var id: String {
         switch self {
-        case .task(let task): return "task-\(task.id.uuidString)"
+        case .task(let task):
+            return "task-\(task.id.uuidString)"
         case .class(let subject, let isCourse, let date):
             let type = isCourse ? "course" : "seminar"
             return "class-\(subject.id.uuidString)-\(type)-\(date.timeIntervalSince1970)"
@@ -18,28 +19,35 @@ enum CalendarEvent: Identifiable {
     
     var icon: String {
         switch self {
-        case .task: return "checkmark.circle"
-        case .class(_, let isCourse, _): return isCourse ? "book.fill" : "person.2.fill"
+        case .task:
+            return "checkmark.circle"
+        case .class(_, let isCourse, _):
+            return isCourse ? "book.fill" : "person.2.fill"
         }
     }
     
     var startTime: Date {
         switch self {
-        case .task(let task): return task.dueDate ?? Date()
-        case .class(let subject, let isCourse, _): return isCourse ? subject.courseStartTime : subject.seminarStartTime
+        case .task(let task):
+            return task.dueDate ?? Date()
+        case .class(let subject, let isCourse, _):
+            return isCourse ? subject.courseStartTime : subject.seminarStartTime
         }
     }
     
     var endTime: Date {
         switch self {
-        case .task: return startTime
-        case .class(let subject, let isCourse, _): return isCourse ? subject.courseEndTime : subject.seminarEndTime
+        case .task:
+            return startTime
+        case .class(let subject, let isCourse, _):
+            return isCourse ? subject.courseEndTime : subject.seminarEndTime
         }
     }
     
     var title: String {
         switch self {
-        case .task(let task): return task.title
+        case .task(let task):
+            return task.title
         case .class(let subject, let isCourse, _):
             let type = isCourse ? "Course" : "Seminar"
             return "\(subject.title) (\(type))"
@@ -48,7 +56,8 @@ enum CalendarEvent: Identifiable {
     
     var subtitle: String {
         switch self {
-        case .task(let task): return task.subject?.title ?? "No Subject"
+        case .task(let task):
+            return task.subject?.title ?? "No Subject"
         case .class(let subject, let isCourse, _):
             let teacher = isCourse ? subject.courseTeacher : subject.seminarTeacher
             let room = isCourse ? subject.courseClassroom : subject.seminarClassroom
@@ -58,15 +67,19 @@ enum CalendarEvent: Identifiable {
     
     var color: Color {
         switch self {
-        case .task: return .themeWarning
-        case .class(_, let isCourse, _): return isCourse ? .themePrimary : .themeSuccess
+        case .task:
+            return .themeWarning
+        case .class(_, let isCourse, _):
+            return isCourse ? .themePrimary : .themeSuccess
         }
     }
     
     var frequencyInfo: String? {
         switch self {
-        case .task: return nil
-        case .class(let subject, let isCourse, _): return isCourse ? subject.courseFrequencyString : subject.seminarFrequencyString
+        case .task:
+            return nil
+        case .class(let subject, let isCourse, _):
+            return isCourse ? subject.courseFrequencyString : subject.seminarFrequencyString
         }
     }
 }
@@ -76,6 +89,7 @@ struct CalendarView: View {
     @State private var selectedDate = Date()
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject var calendarManager: AcademicCalendarManager
+    @EnvironmentObject var themeManager: AppTheme
     
     @Query var subjects: [Subject]
     @Query var tasks: [StudyTask]
@@ -88,6 +102,13 @@ struct CalendarView: View {
     
     public init() {}
     
+    // --- 1. Force Monday Start Calendar ---
+    private var calendar: Calendar {
+        var cal = Calendar.current
+        cal.firstWeekday = 2 // 2 = Monday
+        return cal
+    }
+    
     private var eventsForSelectedDate: [CalendarEvent] {
         let tasksOnDate = tasks.filter { task in
             guard let dueDate = task.dueDate else { return false }
@@ -95,6 +116,7 @@ struct CalendarView: View {
         }
         
         var classEvents: [CalendarEvent] = []
+        // Note: We use Calendar.current here for generic component extraction (weekday is 1-7 standard)
         let weekday = Calendar.current.component(.weekday, from: selectedDate)
         let academicWeek = getAcademicWeek(for: selectedDate)
         
@@ -113,13 +135,6 @@ struct CalendarView: View {
         let taskEvents = tasksOnDate.map { CalendarEvent.task($0) }
         
         return (taskEvents + classEvents).sorted { $0.startTime < $1.startTime }
-    }
-    
-    private func tasksDueOnDate(_ date: Date) -> [StudyTask] {
-        return tasks.filter { task in
-            guard let dueDate = task.dueDate else { return false }
-            return Calendar.current.isDate(dueDate, inSameDayAs: date)
-        }
     }
     
     private func getAcademicWeek(for date: Date) -> Int? {
@@ -143,11 +158,11 @@ struct CalendarView: View {
                     if let currentWeek = calendarManager.currentTeachingWeek {
                         HStack {
                             Image(systemName: "clock.badge.checkmark")
-                                .foregroundColor(currentWeek % 2 == 1 ? .themeWarning : .themePrimary)
+                                .foregroundColor(currentWeek % 2 == 1 ? .themeWarning : themeManager.selectedTheme.accentColor)
                             Text("Week \(currentWeek) • \(currentWeek % 2 == 1 ? "ODD WEEK" : "EVEN WEEK")")
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
-                                .foregroundColor(currentWeek % 2 == 1 ? .themeWarning : .themePrimary)
+                                .foregroundColor(currentWeek % 2 == 1 ? .themeWarning : themeManager.selectedTheme.accentColor)
                             Text("•")
                                 .foregroundColor(.secondary)
                             Text(calendarManager.currentSemester.displayName)
@@ -165,9 +180,9 @@ struct CalendarView: View {
                         Button(action: previousWeek) {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.themePrimary)
+                                .foregroundColor(themeManager.selectedTheme.accentColor)
                                 .frame(width: 30, height: 30)
-                                .background(Color.themePrimary.opacity(0.1))
+                                .background(themeManager.selectedTheme.accentColor.opacity(0.1))
                                 .clipShape(Circle())
                         }
                         
@@ -190,9 +205,9 @@ struct CalendarView: View {
                         Button(action: nextWeek) {
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.themePrimary)
+                                .foregroundColor(themeManager.selectedTheme.accentColor)
                                 .frame(width: 30, height: 30)
-                                .background(Color.themePrimary.opacity(0.1))
+                                .background(themeManager.selectedTheme.accentColor.opacity(0.1))
                                 .clipShape(Circle())
                         }
                     }
@@ -203,9 +218,11 @@ struct CalendarView: View {
                 
                 WeeklyCalendarGrid(
                     currentDate: $currentDate,
-                    selectedDate: $selectedDate
+                    selectedDate: $selectedDate,
+                    calendar: calendar // Pass custom calendar
                 )
                 .padding(.horizontal)
+                .environmentObject(themeManager)
                 
                 VStack(alignment: .leading, spacing: 16) {
                     HStack {
@@ -223,7 +240,7 @@ struct CalendarView: View {
                         Button(action: { showingAddTask = true }) {
                             Image(systemName: "plus.circle.fill")
                                 .font(.system(size: 20, weight: .medium))
-                                .foregroundColor(.themePrimary)
+                                .foregroundColor(themeManager.selectedTheme.accentColor)
                         }
                     }
                     .padding(.horizontal)
@@ -243,6 +260,7 @@ struct CalendarView: View {
                                         .onTapGesture {
                                             handleEventTap(event)
                                         }
+                                        .environmentObject(themeManager)
                                 }
                             }
                             .padding(.horizontal)
@@ -255,7 +273,6 @@ struct CalendarView: View {
             }
             .navigationTitle("Calendar")
             .navigationBarTitleDisplayMode(.inline)
-            // Note: Background transparency is handled by ContentView in Gamified Mode
             .sheet(isPresented: $showingTaskDetail) {
                 if let task = selectedTask {
                     EditTaskView(task: task)
@@ -284,10 +301,7 @@ struct CalendarView: View {
     }
     
     private var weekRangeString: String {
-        // UPDATED: Force Sunday start for week range string calculation too
-        var calendar = Calendar.current
-        calendar.firstWeekday = 1 // Sunday
-        
+        // Use the Monday-start calendar
         guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: currentDate) else {
             return "This Week"
         }
@@ -312,13 +326,15 @@ struct CalendarView: View {
     }
     
     private func previousWeek() {
-        if let newDate = Calendar.current.date(byAdding: .weekOfYear, value: -1, to: currentDate) {
+        // Use the Monday-start calendar
+        if let newDate = calendar.date(byAdding: .weekOfYear, value: -1, to: currentDate) {
             currentDate = newDate
         }
     }
     
     private func nextWeek() {
-        if let newDate = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: currentDate) {
+        // Use the Monday-start calendar
+        if let newDate = calendar.date(byAdding: .weekOfYear, value: 1, to: currentDate) {
             currentDate = newDate
         }
     }
@@ -327,9 +343,12 @@ struct CalendarView: View {
 struct WeeklyCalendarGrid: View {
     @Binding var currentDate: Date
     @Binding var selectedDate: Date
+    var calendar: Calendar // Passed from parent
     @Environment(\.colorScheme) var colorScheme
+    @EnvironmentObject var themeManager: AppTheme
     
-    private let daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    // --- 2. Header Updated to start with Mon ---
+    private let daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     private let columns = Array(repeating: GridItem(.flexible()), count: 7)
     
     private var daysInWeek: [Date] {
@@ -353,7 +372,8 @@ struct WeeklyCalendarGrid: View {
                     WeeklyDayCell(
                         date: date,
                         isSelected: isSameDay(date, selectedDate),
-                        isToday: Calendar.current.isDateInToday(date)
+                        isToday: Calendar.current.isDateInToday(date),
+                        accentColor: themeManager.selectedTheme.accentColor
                     )
                     .onTapGesture {
                         selectedDate = date
@@ -368,12 +388,7 @@ struct WeeklyCalendarGrid: View {
     }
     
     private func getDaysInWeek() -> [Date] {
-        var calendar = Calendar.current
-        // UPDATED: Explicitly force Sunday (1) as the start of the week
-        // This ensures the dates generated match the ["Sun", "Mon"...] header
-        // regardless of the user's region settings (e.g. Europe starts Monday).
-        calendar.firstWeekday = 1
-        
+        // Use the Monday-start calendar
         guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: currentDate) else {
             return []
         }
@@ -396,20 +411,21 @@ struct WeeklyDayCell: View {
     let date: Date
     let isSelected: Bool
     let isToday: Bool
+    let accentColor: Color
     
     var body: some View {
         VStack(spacing: 4) {
             Text("\(Calendar.current.component(.day, from: date))")
                 .font(.system(size: 16, weight: .medium))
-                .foregroundColor(isSelected ? .white : (isToday ? .themePrimary : .themeTextPrimary))
+                .foregroundColor(isSelected ? .white : (isToday ? accentColor : .themeTextPrimary))
                 .frame(height: 40)
                 .frame(maxWidth: .infinity)
                 .background(
                     ZStack {
                         if isSelected {
-                            Circle().fill(Color.themePrimary)
+                            Circle().fill(accentColor)
                         } else if isToday {
-                            Circle().stroke(Color.themePrimary, lineWidth: 2)
+                            Circle().stroke(accentColor, lineWidth: 2)
                         }
                     }
                 )
@@ -431,15 +447,25 @@ struct WeeklyDayCell: View {
 struct EventRow: View {
     let event: CalendarEvent
     @Environment(\.colorScheme) var colorScheme
+    @EnvironmentObject var themeManager: AppTheme
+    
+    private var eventColor: Color {
+        switch event {
+        case .task:
+            return .themeWarning
+        case .class(_, let isCourse, _):
+            return isCourse ? themeManager.selectedTheme.accentColor : .themeSuccess
+        }
+    }
     
     var body: some View {
         HStack(spacing: 16) {
             VStack(spacing: 4) {
                 Circle()
-                    .fill(event.color)
+                    .fill(eventColor)
                     .frame(width: 12, height: 12)
                 Rectangle()
-                    .fill(event.color)
+                    .fill(eventColor)
                     .frame(width: 2)
                     .frame(maxHeight: .infinity)
             }
@@ -449,7 +475,7 @@ struct EventRow: View {
                     Text(event.startTime, formatter: timeFormatter)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundColor(event.color)
+                        .foregroundColor(eventColor)
                     Spacer()
                     HStack(spacing: 4) {
                         Text(eventTypeText)
@@ -457,8 +483,8 @@ struct EventRow: View {
                             .fontWeight(.medium)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(event.color.opacity(0.2))
-                            .foregroundColor(event.color)
+                            .background(eventColor.opacity(0.2))
+                            .foregroundColor(eventColor)
                             .cornerRadius(4)
                         
                         if let frequencyInfo = event.frequencyInfo {
@@ -503,7 +529,8 @@ struct EventRow: View {
     private var eventTypeText: String {
         switch event {
         case .task: return "Task"
-        case .class(_, let isCourse, _): return isCourse ? "Course" : "Seminar"
+        case .class(_, let isCourse, _):
+            return isCourse ? "Course" : "Seminar"
         }
     }
     

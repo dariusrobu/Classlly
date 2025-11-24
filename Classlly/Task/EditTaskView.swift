@@ -4,6 +4,7 @@ import SwiftData
 struct EditTaskView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject var themeManager: AppTheme // <--- INJECT THEME
     @Bindable var task: StudyTask
     
     @Query(sort: \Subject.title) var subjects: [Subject]
@@ -15,7 +16,6 @@ struct EditTaskView: View {
     @State private var hasDueDate: Bool
     @State private var reminderTime: TaskReminderTime
     @State private var isFlagged: Bool
-    @State private var notes: String // NEW
     @State private var showingDeleteAlert = false
     
     init(task: StudyTask) {
@@ -27,7 +27,6 @@ struct EditTaskView: View {
         _hasDueDate = State(initialValue: task.dueDate != nil)
         _reminderTime = State(initialValue: task.reminderTime)
         _isFlagged = State(initialValue: task.isFlagged)
-        _notes = State(initialValue: task.notes) // NEW
     }
     
     var body: some View {
@@ -52,22 +51,18 @@ struct EditTaskView: View {
                     }
                 }
                 
-                // NEW: Notes Section
-                Section(header: Text("Description")) {
-                    TextField("Add notes...", text: $notes, axis: .vertical)
-                        .lineLimit(3...6)
-                }
-                
                 Section(header: Text("Priority")) {
-                    PriorityPicker(selectedPriority: $priority)
+                    PriorityPicker(selectedPriority: $priority, accentColor: themeManager.selectedTheme.accentColor)
                 }
                 
                 Section(header: Text("Due Date")) {
                     Toggle("Add Due Date", isOn: $hasDueDate)
+                        .tint(themeManager.selectedTheme.accentColor)
                     
                     if hasDueDate {
                         DatePicker("Due Date", selection: $dueDate, in: Date()..., displayedComponents: [.date, .hourAndMinute])
                             .datePickerStyle(.graphical)
+                            .tint(themeManager.selectedTheme.accentColor)
                             
                         Picker("Reminder", selection: $reminderTime) {
                             ForEach(TaskReminderTime.allCases, id: \.self) { time in
@@ -108,22 +103,20 @@ struct EditTaskView: View {
                         task.dueDate = hasDueDate ? dueDate : nil
                         task.reminderTime = hasDueDate ? reminderTime : .none
                         task.isFlagged = isFlagged
-                        task.notes = notes // Save notes
                         dismiss()
                     }
                     .disabled(title.isEmpty)
                     .fontWeight(.semibold)
-                    .foregroundColor(.themePrimary)
+                    .foregroundColor(themeManager.selectedTheme.accentColor)
                 }
             }
         }
     }
 }
 
-// --- HELPER STRUCT ---
-
 fileprivate struct PriorityPicker: View {
     @Binding var selectedPriority: TaskPriority
+    let accentColor: Color
     
     var body: some View {
         VStack(spacing: 0) {
@@ -157,7 +150,7 @@ fileprivate struct PriorityPicker: View {
                         if selectedPriority == priority {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.themePrimary)
+                                .foregroundColor(accentColor)
                         }
                     }
                     .padding(.vertical, 12)

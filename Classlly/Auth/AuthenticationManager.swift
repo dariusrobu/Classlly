@@ -10,7 +10,6 @@ class AuthenticationManager: NSObject, ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var requiresOnboarding: Bool = false
-    
     @Published var universityNameForOnboarding: String = ""
 
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
@@ -31,21 +30,28 @@ class AuthenticationManager: NSObject, ObservableObject {
     
     override init() {
         super.init()
-        checkExistingAuthentication()
-        
-        if self.isAuthenticated && !self.hasCompletedOnboarding && self.currentUser?.id != AuthenticationManager.demoUser.id {
-            self.universityNameForOnboarding = self.currentUser?.schoolName ?? ""
-            self.requiresOnboarding = true
+        // Auth check logic relies on checkAuthentication(in:) called from views
+    }
+    
+    // MARK: - SwiftData Auth Check
+    @MainActor
+    func checkAuthentication(in context: ModelContext) {
+        let descriptor = FetchDescriptor<UserProfile>()
+        do {
+            if let user = try context.fetch(descriptor).first {
+                self.currentUser = user
+                self.isAuthenticated = true
+                if user.id == AuthenticationManager.demoUser.id {
+                    self.hasCompletedOnboarding = true
+                    self.requiresOnboarding = false
+                }
+            }
+        } catch {
+            print("Auth check failed: \(error)")
         }
     }
     
-    private func checkExistingAuthentication() {
-        if let userData = UserDefaults.standard.data(forKey: "currentUser"),
-           let user = try? JSONDecoder().decode(UserProfile.self, from: userData) {
-            self.currentUser = user
-            self.isAuthenticated = true
-        }
-    }
+    // MARK: - Sign In Methods
     
     func handleSignInWithApple(result: Result<ASAuthorization, Error>) {
         isLoading = true
@@ -68,6 +74,7 @@ class AuthenticationManager: NSObject, ObservableObject {
         let lastName = credential.fullName?.familyName ?? ""
         let email = credential.email ?? ""
         
+        // FIX: Added profileImageData: nil
         let tempUser = UserProfile(
             id: userIdentifier,
             firstName: firstName.isEmpty ? "Student" : firstName,
@@ -76,132 +83,50 @@ class AuthenticationManager: NSObject, ObservableObject {
             schoolName: "",
             gradeLevel: "",
             major: nil,
-            academicYear: ""
+            academicYear: "",
+            profileImageData: nil
         )
         
         self.currentUser = tempUser
         self.isLoading = false
     }
     
-    func completeProfileSetup(profile: UserProfile) {
-        self.currentUser = profile
+    @MainActor
+    func signInAsDemoUser(modelContext: ModelContext) {
+        try? modelContext.delete(model: UserProfile.self)
+        
+        let demo = AuthenticationManager.demoUser
+        modelContext.insert(demo)
+        
+        self.currentUser = demo
         self.isAuthenticated = true
-        self.universityNameForOnboarding = profile.schoolName
-        
-        if !self.hasCompletedOnboarding {
-            self.requiresOnboarding = true
-        }
-        
-        if let userData = try? JSONEncoder().encode(profile) {
-            UserDefaults.standard.set(userData, forKey: "currentUser")
-        }
-    }
-    
-    func signInAsDemoUser(modelContext: ModelContext? = nil) {
-        self.currentUser = AuthenticationManager.demoUser
-        self.isAuthenticated = true
-        
         self.hasCompletedOnboarding = true
         self.requiresOnboarding = false
         
-        if let userData = try? JSONEncoder().encode(self.currentUser) {
-            UserDefaults.standard.set(userData, forKey: "currentUser")
-        }
-        
-        if let context = modelContext {
-            generateSampleData(in: context)
-        }
+        generateSampleData(in: modelContext)
     }
     
-    private func generateSampleData(in context: ModelContext) {
-        let descriptor = FetchDescriptor<Subject>()
-        if let count = try? context.fetchCount(descriptor), count > 0 {
-            return
-        }
-        
-        let mathSubject = Subject(
-            title: "Mathematics 101",
-            courseTeacher: "Dr. Alan Smith",
-            courseClassroom: "Room 304",
-            courseStartTime: Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date())!,
-            courseEndTime: Calendar.current.date(bySettingHour: 11, minute: 30, second: 0, of: Date())!,
-            courseDays: [2, 4],
-            courseFrequency: .weekly,
-            seminarTeacher: "Mr. T. Assistant",
-            seminarClassroom: "Lab 2",
-            seminarStartTime: Calendar.current.date(bySettingHour: 14, minute: 0, second: 0, of: Date())!,
-            seminarEndTime: Calendar.current.date(bySettingHour: 15, minute: 0, second: 0, of: Date())!,
-            seminarDays: [5],
-            seminarFrequency: .weekly
-        )
-        
-        let historySubject = Subject(
-            title: "World History",
-            courseTeacher: "Prof. Sarah Jones",
-            courseClassroom: "Lecture Hall A",
-            courseStartTime: Calendar.current.date(bySettingHour: 13, minute: 0, second: 0, of: Date())!,
-            courseEndTime: Calendar.current.date(bySettingHour: 14, minute: 30, second: 0, of: Date())!,
-            courseDays: [3, 5],
-            courseFrequency: .weekly,
-            seminarTeacher: "",
-            seminarClassroom: "",
-            seminarDays: [],
-            seminarFrequency: .weekly
-        )
-        
-        context.insert(mathSubject)
-        context.insert(historySubject)
-        
-        let task1 = StudyTask(
-            title: "Complete Calculus Problem Set",
-            dueDate: Calendar.current.date(byAdding: .day, value: 1, to: Date()),
-            priority: .high,
-            subject: mathSubject,
-            isFlagged: true,
-            notes: "Complete problems 1-10 in Chapter 3. Focus on derivatives." // NEW
-        )
-        
-        let task2 = StudyTask(
-            title: "Read Chapter 4: The Industrial Revolution",
-            dueDate: Calendar.current.date(byAdding: .day, value: 3, to: Date()),
-            priority: .medium,
-            subject: historySubject,
-            isFlagged: false,
-            notes: "Take notes on key figures and economic impacts." // NEW
-        )
-        
-        let task3 = StudyTask(
-            title: "Buy new graphing calculator batteries",
-            dueDate: Date(),
-            priority: .low,
-            subject: nil,
-            isFlagged: false,
-            notes: "Model AAA, get a 4-pack." // NEW
-        )
-        
-        context.insert(task1)
-        context.insert(task2)
-        context.insert(task3)
-        
-        let grade1 = GradeEntry(
-            date: Calendar.current.date(byAdding: .day, value: -5, to: Date())!,
-            grade: 9.0,
-            weight: 30.0,
-            description: "Midterm Exam"
-        )
-        grade1.subject = mathSubject
-        context.insert(grade1)
+    @MainActor
+    func completeProfileSetup(profile: UserProfile, context: ModelContext) {
+        context.insert(profile)
+        self.currentUser = profile
+        self.isAuthenticated = true
+        self.universityNameForOnboarding = profile.schoolName
+        try? context.save()
     }
     
-    func signOut() {
-        isAuthenticated = false
-        currentUser = nil
-        
+    @MainActor
+    func signOut(context: ModelContext) {
+        self.isAuthenticated = false
+        self.currentUser = nil
         self.hasCompletedOnboarding = false
         self.universityNameForOnboarding = ""
         
-        UserDefaults.standard.removeObject(forKey: "currentUser")
+        try? context.delete(model: UserProfile.self)
+        try? context.save()
     }
+    
+    // MARK: - Helpers
     
     func randomNonceString(length: Int = 32) -> String {
         precondition(length > 0)
@@ -244,24 +169,69 @@ class AuthenticationManager: NSObject, ObservableObject {
         
         return hashString
     }
-}
+    
+    // MARK: - Sample Data
+    func generateSampleData(in context: ModelContext) {
+        let descriptor = FetchDescriptor<Subject>()
+        if let count = try? context.fetchCount(descriptor), count > 0 {
+            return
+        }
 
-struct UserProfile: Codable, Equatable {
-    let id: String
-    var firstName: String
-    var lastName: String
-    var email: String?
-    var schoolName: String
-    var gradeLevel: String
-    var major: String?
-    var academicYear: String
-    var profileImageData: Data?
-    
-    var fullName: String {
-        "\(firstName) \(lastName)"
-    }
-    
-    static func == (lhs: UserProfile, rhs: UserProfile) -> Bool {
-        return lhs.id == rhs.id
+        let mathSubject = Subject(
+            title: "Calculus II",
+            courseTeacher: "Dr. Smith",
+            courseClassroom: "Room 101",
+            courseDays: [2, 4],
+            courseFrequency: .weekly,
+            seminarTeacher: "TA Johnson",
+            seminarClassroom: "Lab A",
+            seminarDays: [5],
+            seminarFrequency: .weekly
+        )
+        
+        let historySubject = Subject(
+            title: "Modern History",
+            courseTeacher: "Prof. Brown",
+            courseClassroom: "Auditorium B",
+            courseDays: [3],
+            courseFrequency: .weekly,
+            seminarTeacher: "Ms. Davis",
+            seminarClassroom: "Room 204",
+            seminarDays: [5],
+            seminarFrequency: .biweeklyOdd
+        )
+        
+        context.insert(mathSubject)
+        context.insert(historySubject)
+        
+        let task1 = StudyTask(
+            title: "Complete Calculus Problem Set",
+            dueDate: Calendar.current.date(byAdding: .day, value: 1, to: Date()),
+            priority: .high,
+            subject: mathSubject,
+            isFlagged: true,
+            notes: "Complete problems 1-10 in Chapter 3."
+        )
+        
+        let task2 = StudyTask(
+            title: "Read Chapter 4",
+            dueDate: Calendar.current.date(byAdding: .day, value: 3, to: Date()),
+            priority: .medium,
+            subject: historySubject,
+            isFlagged: false,
+            notes: "Take notes on key figures."
+        )
+        
+        context.insert(task1)
+        context.insert(task2)
+        
+        let grade1 = GradeEntry(
+            date: Calendar.current.date(byAdding: .day, value: -5, to: Date())!,
+            grade: 9.0,
+            weight: 30.0,
+            description: "Midterm Exam"
+        )
+        grade1.subject = mathSubject
+        context.insert(grade1)
     }
 }

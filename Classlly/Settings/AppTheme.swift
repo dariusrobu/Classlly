@@ -1,67 +1,63 @@
 import SwiftUI
 import Combine
 
-// 1. Define the Theme options with "Fancy" names
+// 1. Define the Theme options
 enum Theme: String, CaseIterable, Identifiable {
-    case cyberBlue = "Cyber Blue"
-    case toxicGreen = "Toxic Green"
-    case neonPurple = "Neon Purple"
-    case solarOrange = "Solar Orange"
-    case hotPink = "Hot Pink"
-    case electricTeal = "Electric Teal"
+    case blue = "Default Blue"
+    case green = "Forest Green"
+    case purple = "Deep Purple"
+    case orange = "Sunset Orange"
     
     var id: String { self.rawValue }
     
-    // 2. Define vibrant, neon accent colors
+    // Primary accent for Buttons/Tabs (Single Color)
     var accentColor: Color {
         switch self {
-        case .cyberBlue:
-            return Color(red: 0.0, green: 0.75, blue: 1.0) // Bright Cyan-Blue
-        case .toxicGreen:
-            return Color(red: 0.2, green: 0.9, blue: 0.4) // Vibrant Lime
-        case .neonPurple:
-            return Color(red: 0.7, green: 0.2, blue: 1.0) // Deep Violet
-        case .solarOrange:
-            return Color(red: 1.0, green: 0.5, blue: 0.0) // Bright Amber
-        case .hotPink:
-            return Color(red: 1.0, green: 0.2, blue: 0.6) // Magenta
-        case .electricTeal:
-            return Color(red: 0.0, green: 0.9, blue: 0.8) // Cyan-Teal
+        case .blue: return .blue
+        case .green: return .green
+        case .purple: return .purple
+        case .orange: return .orange
         }
     }
     
-    // Secondary color for gradients (slightly darker/shifted)
-    var secondaryColor: Color {
+    // --- NEW: Curated Gradients for Gamified Mode ---
+    // These are softer and more pleasing to the eye
+    var gamifiedGradient: [Color] {
         switch self {
-        case .cyberBlue: return Color(red: 0.0, green: 0.3, blue: 0.8)
-        case .toxicGreen: return Color(red: 0.0, green: 0.6, blue: 0.2)
-        case .neonPurple: return Color(red: 0.5, green: 0.0, blue: 0.8)
-        case .solarOrange: return Color(red: 0.8, green: 0.2, blue: 0.0)
-        case .hotPink: return Color(red: 0.8, green: 0.0, blue: 0.4)
-        case .electricTeal: return Color(red: 0.0, green: 0.5, blue: 0.6)
+        case .blue:
+            return [Color.blue, Color.cyan] // Ocean Breeze
+        case .green:
+            return [Color.green, Color.mint] // Fresh Mint
+        case .purple:
+            return [Color.purple, Color.pink] // Neon Vapor
+        case .orange:
+            return [Color.orange, Color.yellow] // Sunset Glow
         }
     }
 }
 
+// 3. Create an ObservableObject to manage the theme
 class AppTheme: ObservableObject {
-    private let keyTheme = "selectedTheme"
-    private let keyGamified = "isGamified"
+    @AppStorage("selectedTheme") private var selectedThemeRawValue: String = Theme.blue.rawValue
     
-    @Published var selectedTheme: Theme = .cyberBlue {
+    @Published var isGamifiedMode: Bool {
         didSet {
-            UserDefaults.standard.set(selectedTheme.rawValue, forKey: keyTheme)
+            UserDefaults.standard.set(isGamifiedMode, forKey: "isGamifiedMode")
         }
     }
     
-    @Published var isGamified: Bool = false {
+    @Published var selectedTheme: Theme {
         didSet {
-            UserDefaults.standard.set(isGamified, forKey: keyGamified)
+            selectedThemeRawValue = selectedTheme.rawValue
         }
     }
     
     init() {
-        let themeVal = UserDefaults.standard.string(forKey: keyTheme) ?? Theme.cyberBlue.rawValue
-        self.selectedTheme = Theme(rawValue: themeVal) ?? .cyberBlue
-        self.isGamified = UserDefaults.standard.bool(forKey: keyGamified)
+        let storedValue = UserDefaults.standard.string(forKey: "selectedTheme") ?? Theme.blue.rawValue
+        let themeFromStorage = Theme(rawValue: storedValue) ?? .blue
+        let storedGamified = UserDefaults.standard.bool(forKey: "isGamifiedMode")
+        
+        self.selectedTheme = themeFromStorage
+        self.isGamifiedMode = storedGamified
     }
 }

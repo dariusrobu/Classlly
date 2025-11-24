@@ -4,6 +4,7 @@ import SwiftData
 struct AddSubjectView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject var themeManager: AppTheme
 
     @State private var title = ""
     @State private var courseTeacher = ""
@@ -22,9 +23,10 @@ struct AddSubjectView: View {
     @State private var selectedSeminarDays: Set<Int> = [5]
     @State private var seminarFrequency: ClassFrequency = .weekly
     
+    // Mon start
     private let daysOfWeek = [
-        (1, "Sun"), (2, "Mon"), (3, "Tue"), (4, "Wed"),
-        (5, "Thu"), (6, "Fri"), (7, "Sat")
+        (2, "Mon"), (3, "Tue"), (4, "Wed"), (5, "Thu"),
+        (6, "Fri"), (7, "Sat"), (1, "Sun")
     ]
     
     var body: some View {
@@ -44,7 +46,7 @@ struct AddSubjectView: View {
                         ForEach(ClassFrequency.allCases, id: \.self) { frequency in
                             HStack {
                                 Image(systemName: frequency.iconName)
-                                    .foregroundColor(.themePrimary)
+                                    .foregroundColor(themeManager.selectedTheme.accentColor)
                                 Text(frequency.rawValue)
                             }
                             .tag(frequency)
@@ -62,6 +64,7 @@ struct AddSubjectView: View {
                                 DayChip(
                                     day: day.1,
                                     isSelected: selectedCourseDays.contains(day.0),
+                                    color: themeManager.selectedTheme.accentColor,
                                     action: {
                                         if selectedCourseDays.contains(day.0) {
                                             selectedCourseDays.remove(day.0)
@@ -106,6 +109,7 @@ struct AddSubjectView: View {
                                 DayChip(
                                     day: day.1,
                                     isSelected: selectedSeminarDays.contains(day.0),
+                                    color: themeManager.selectedTheme.accentColor,
                                     action: {
                                         if selectedSeminarDays.contains(day.0) {
                                             selectedSeminarDays.remove(day.0)
@@ -122,61 +126,29 @@ struct AddSubjectView: View {
                     DatePicker("Start Time", selection: $seminarStartTime, displayedComponents: .hourAndMinute)
                     DatePicker("End Time", selection: $seminarEndTime, displayedComponents: .hourAndMinute)
                 }
-                
-                Section(header: Text("Frequency Help")) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("How frequencies work:")
-                            .font(.headline)
-                        
-                        FrequencyHelpRow(
-                            frequency: .weekly,
-                            description: "Class occurs every week during teaching periods"
-                        )
-                        
-                        FrequencyHelpRow(
-                            frequency: .biweeklyOdd,
-                            description: "Class occurs only in odd academic weeks (Week 1, 3, 5...)"
-                        )
-                        
-                        FrequencyHelpRow(
-                            frequency: .biweeklyEven,
-                            description: "Class occurs only in even academic weeks (Week 2, 4, 6...)"
-                        )
-                    }
-                    .padding(.vertical, 4)
-                }
             }
             .navigationTitle("Add Subject")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundColor(.themeError)
+                    Button("Cancel") { dismiss() }.foregroundColor(.themeError)
                 }
-                
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        saveSubject()
-                    }
-                    .disabled(!isFormValid)
-                    .fontWeight(.semibold)
+                    Button("Save") { saveSubject() }
+                        .disabled(!isFormValid)
+                        .fontWeight(.semibold)
+                        .foregroundColor(themeManager.selectedTheme.accentColor)
                 }
             }
         }
     }
     
     private var isFormValid: Bool {
-        !title.isEmpty &&
-        !courseTeacher.isEmpty &&
-        !courseClassroom.isEmpty &&
-        !selectedCourseDays.isEmpty
+        !title.isEmpty && !courseTeacher.isEmpty && !courseClassroom.isEmpty && !selectedCourseDays.isEmpty
     }
     
     private func saveSubject() {
-        // UPDATED: Initialize Subject with all parameters at once
-        // This fixes the "Missing argument for parameter 'backingData'" error
+        // FIX: Removed 'gradeHistory' and 'attendanceHistory' args (they are now handled by defaults)
         let newSubject = Subject(
             title: title,
             courseTeacher: courseTeacher,
@@ -192,20 +164,17 @@ struct AddSubjectView: View {
             seminarStartTime: seminarStartTime,
             seminarEndTime: seminarEndTime,
             seminarDays: Array(selectedSeminarDays).sorted(),
-            seminarFrequency: seminarFrequency,
-            gradeHistory: [],
-            attendanceHistory: []
+            seminarFrequency: seminarFrequency
         )
         modelContext.insert(newSubject)
         dismiss()
     }
 }
 
-// --- HELPER STRUCTS ---
-
 fileprivate struct DayChip: View {
     let day: String
     let isSelected: Bool
+    let color: Color
     let action: () -> Void
     
     var body: some View {
@@ -216,36 +185,9 @@ fileprivate struct DayChip: View {
                 .foregroundColor(isSelected ? .white : .primary)
                 .frame(height: 32)
                 .frame(maxWidth: .infinity)
-                .background(isSelected ? Color.themePrimary : Color(.systemGray6))
+                .background(isSelected ? color : Color(.systemGray6))
                 .cornerRadius(8)
         }
         .buttonStyle(PlainButtonStyle())
-    }
-}
-
-fileprivate struct FrequencyHelpRow: View {
-    let frequency: ClassFrequency
-    let description: String
-    
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: frequency.iconName)
-                .foregroundColor(.themePrimary)
-                .frame(width: 20)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(frequency.rawValue)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                
-                Text(description)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            
-            Spacer()
-        }
-        .padding(.vertical, 2)
     }
 }

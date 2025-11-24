@@ -4,6 +4,7 @@ import SwiftData
 struct AddTaskView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject var themeManager: AppTheme // <--- INJECT THEME
     
     @Query(sort: \Subject.title) var subjects: [Subject]
 
@@ -14,7 +15,6 @@ struct AddTaskView: View {
     @State private var hasDueDate = false
     @State private var reminderTime: TaskReminderTime = .hourBefore1
     @State private var isFlagged: Bool = false
-    @State private var notes: String = "" // NEW
 
     init(preSelectedSubject: Subject? = nil) {
         _selectedSubject = State(initialValue: preSelectedSubject)
@@ -43,22 +43,18 @@ struct AddTaskView: View {
                     }
                 }
                 
-                // NEW: Notes Section
-                Section(header: Text("Description")) {
-                    TextField("Add notes...", text: $notes, axis: .vertical)
-                        .lineLimit(3...6)
-                }
-                
                 Section(header: Text("Priority")) {
-                    PriorityPicker(selectedPriority: $priority)
+                    PriorityPicker(selectedPriority: $priority, accentColor: themeManager.selectedTheme.accentColor)
                 }
                 
                 Section(header: Text("Due Date")) {
                     Toggle("Add Due Date", isOn: $hasDueDate)
+                        .tint(themeManager.selectedTheme.accentColor)
                     
                     if hasDueDate {
                         DatePicker("Due Date", selection: $dueDate, in: Date()..., displayedComponents: [.date, .hourAndMinute])
                             .datePickerStyle(.graphical)
+                            .tint(themeManager.selectedTheme.accentColor)
                         
                         Picker("Reminder", selection: $reminderTime) {
                             ForEach(TaskReminderTime.allCases, id: \.self) { time in
@@ -76,33 +72,29 @@ struct AddTaskView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Add") {
-                        // UPDATED: Include notes
                         let newTask = StudyTask(
                             title: title,
-                            isCompleted: false,
                             dueDate: hasDueDate ? dueDate : nil,
                             priority: priority,
                             subject: selectedSubject,
                             reminderTime: hasDueDate ? reminderTime : .none,
-                            isFlagged: isFlagged,
-                            notes: notes
+                            isFlagged: isFlagged
                         )
                         modelContext.insert(newTask)
                         dismiss()
                     }
                     .disabled(title.isEmpty)
                     .fontWeight(.semibold)
-                    .foregroundColor(.themePrimary)
+                    .foregroundColor(themeManager.selectedTheme.accentColor)
                 }
             }
         }
     }
 }
 
-// --- HELPER STRUCT ---
-
 fileprivate struct PriorityPicker: View {
     @Binding var selectedPriority: TaskPriority
+    let accentColor: Color
     
     var body: some View {
         VStack(spacing: 0) {
@@ -136,7 +128,7 @@ fileprivate struct PriorityPicker: View {
                         if selectedPriority == priority {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.themePrimary)
+                                .foregroundColor(accentColor)
                         }
                     }
                     .padding(.vertical, 12)

@@ -25,13 +25,10 @@ struct HomeView: View {
             }
             .navigationTitle("Dashboard")
             .navigationBarTitleDisplayMode(.inline)
-            .background(Color.clear)
         }
     }
     
-    // ... (Sections welcomeHeader, quickStatsSection, etc. remain exactly the same)
-    // Just ensure they use .gamifiedCard(themeManager: themeManager)
-    
+    // MARK: - Sections
     private var welcomeHeader: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Welcome back!")
@@ -55,17 +52,42 @@ struct HomeView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-        .gamifiedCard(themeManager: themeManager)
+        .padding()
+        .background(Color.themeSurface)
+        .cornerRadius(12)
     }
     
     private var quickStatsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Quick Stats").font(.headline).fontWeight(.semibold).foregroundColor(.themeTextPrimary)
+            Text("Quick Stats")
+                .font(.headline)
+                .fontWeight(.semibold)
+                .foregroundColor(.themeTextPrimary)
+            
             HStack(spacing: 12) {
-                StatCard(title: "Today's Classes", value: "\(getTodayClasses(academicWeek: calendarManager.currentTeachingWeek).count)", icon: "calendar", color: themeManager.selectedTheme.accentColor)
-                StatCard(title: "Pending Tasks", value: "\(tasks.filter { !$0.isCompleted }.count)", icon: "checklist", color: themeManager.isGamified ? .orange : .themeWarning)
-                StatCard(title: "Subjects", value: "\(subjects.count)", icon: "book", color: themeManager.isGamified ? .green : .themeSuccess)
+                DashboardCard(
+                    title: "Today's Classes",
+                    icon: "calendar",
+                    count: getTodayClasses(academicWeek: calendarManager.currentTeachingWeek).count,
+                    gradientColors: themeManager.selectedTheme.gamifiedGradient,
+                    isGamifiedMode: themeManager.isGamifiedMode
+                )
+                
+                DashboardCard(
+                    title: "Pending Tasks",
+                    icon: "checklist",
+                    count: tasks.filter { !$0.isCompleted }.count,
+                    gradientColors: [.orange, .red.opacity(0.8)],
+                    isGamifiedMode: themeManager.isGamifiedMode
+                )
+                
+                DashboardCard(
+                    title: "Subjects",
+                    icon: "book",
+                    count: subjects.count,
+                    gradientColors: [.green, .teal],
+                    isGamifiedMode: themeManager.isGamifiedMode
+                )
             }
         }
     }
@@ -73,17 +95,33 @@ struct HomeView: View {
     private var todaysClassesSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("Today's Classes").font(.headline).fontWeight(.semibold).foregroundColor(.themeTextPrimary)
+                Text("Today's Classes")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.themeTextPrimary)
                 Spacer()
-                NavigationLink("See All") { SubjectsView() }.font(.subheadline).foregroundColor(themeManager.selectedTheme.accentColor)
+                NavigationLink("See All") { SubjectsView() }
+                    .font(.subheadline)
+                    .foregroundColor(themeManager.selectedTheme.accentColor)
             }
+            
             let todaysClasses = getTodayClasses(academicWeek: calendarManager.currentTeachingWeek)
+            
             if todaysClasses.isEmpty {
-                HomeEmptyStateView(icon: "calendar.badge.clock", title: "No classes today", message: "Enjoy your free time.")
+                HomeEmptyStateView(
+                    icon: "calendar.badge.clock",
+                    title: "No classes today",
+                    message: "Enjoy your free time or catch up on studies"
+                )
             } else {
                 LazyVStack(spacing: 12) {
                     ForEach(todaysClasses.prefix(3)) { subject in
-                        HomeClassCard(subject: subject, academicWeek: calendarManager.currentTeachingWeek)
+                        HomeClassCard(
+                            subject: subject,
+                            academicWeek: calendarManager.currentTeachingWeek,
+                            isGamified: themeManager.isGamifiedMode,
+                            gradientColors: themeManager.selectedTheme.gamifiedGradient
+                        )
                     }
                 }
             }
@@ -93,17 +131,34 @@ struct HomeView: View {
     private var upcomingTasksSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("Upcoming Tasks").font(.headline).fontWeight(.semibold).foregroundColor(.themeTextPrimary)
+                Text("Upcoming Tasks")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.themeTextPrimary)
                 Spacer()
-                NavigationLink("See All") { TasksView() }.font(.subheadline).foregroundColor(themeManager.selectedTheme.accentColor)
+                NavigationLink("See All") { TasksView() }
+                    .font(.subheadline)
+                    .foregroundColor(themeManager.selectedTheme.accentColor)
             }
-            let upcomingTasks = tasks.filter { !$0.isCompleted }.sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
+            
+            let upcomingTasks = tasks
+                .filter { !$0.isCompleted }
+                .sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
+            
             if upcomingTasks.isEmpty {
-                HomeEmptyStateView(icon: "checkmark.circle", title: "No pending tasks", message: "You're all caught up!")
+                HomeEmptyStateView(
+                    icon: "checkmark.circle",
+                    title: "No pending tasks",
+                    message: "You're all caught up!"
+                )
             } else {
                 LazyVStack(spacing: 12) {
                     ForEach(upcomingTasks.prefix(3)) { task in
-                        HomeTaskCard(task: task)
+                        HomeTaskCard(
+                            task: task,
+                            isGamified: themeManager.isGamifiedMode,
+                            gradientColors: themeManager.selectedTheme.gamifiedGradient
+                        )
                     }
                 }
             }
@@ -113,16 +168,30 @@ struct HomeView: View {
     private var academicPerformanceSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("Academic Performance").font(.headline).fontWeight(.semibold).foregroundColor(.themeTextPrimary)
+                Text("Academic Performance")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.themeTextPrimary)
                 Spacer()
-                NavigationLink("See All") { SubjectsView() }.font(.subheadline).foregroundColor(themeManager.selectedTheme.accentColor)
+                NavigationLink("See All") { SubjectsView() }
+                    .font(.subheadline)
+                    .foregroundColor(themeManager.selectedTheme.accentColor)
             }
+            
             if subjects.isEmpty {
-                HomeEmptyStateView(icon: "chart.bar.fill", title: "No Subjects", message: "Add your first subject.")
+                HomeEmptyStateView(
+                    icon: "chart.bar.fill",
+                    title: "No Subjects",
+                    message: "Add your first subject to track academic performance"
+                )
             } else {
                 LazyVStack(spacing: 12) {
                     ForEach(subjects.prefix(4)) { subject in
-                        SubjectPerformanceCard(subject: subject)
+                        SubjectPerformanceCard(
+                            subject: subject,
+                            isGamified: themeManager.isGamifiedMode,
+                            gradientColors: themeManager.selectedTheme.gamifiedGradient
+                        )
                     }
                 }
             }
@@ -133,83 +202,35 @@ struct HomeView: View {
         let today = Date()
         let weekday = Calendar.current.component(.weekday, from: today)
         return subjects.filter { subject in
-            let hasCourseToday = subject.courseDays.contains(weekday) && subject.occursThisWeek(academicWeek: academicWeek, isCourse: true)
-            let hasSeminarToday = subject.seminarDays.contains(weekday) && subject.occursThisWeek(academicWeek: academicWeek, isCourse: false)
+            let hasCourseToday = subject.courseDays.contains(weekday) &&
+                               subject.occursThisWeek(academicWeek: academicWeek, isCourse: true)
+            let hasSeminarToday = subject.seminarDays.contains(weekday) &&
+                                subject.occursThisWeek(academicWeek: academicWeek, isCourse: false)
             return hasCourseToday || hasSeminarToday
         }
     }
 }
 
-// MARK: - THE CARD MODIFIER
-struct GamifiedCardModifier: ViewModifier {
-    var themeManager: AppTheme
-    @Environment(\.colorScheme) var colorScheme
-    
-    func body(content: Content) -> some View {
-        content
-            .background(
-                ZStack {
-                    if themeManager.isGamified {
-                        // Gamified: Dark Glass
-                        Color(red: 0.08, green: 0.08, blue: 0.1).opacity(0.9)
-                        LinearGradient(colors: [themeManager.selectedTheme.accentColor.opacity(0.15), .clear], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    } else {
-                        // Standard: Clean System Surface
-                        Color.themeSurface
-                    }
-                }
-            )
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(
-                        themeManager.isGamified ?
-                        // Gamified: Visible Gradient Border
-                        LinearGradient(
-                            colors: [themeManager.selectedTheme.accentColor.opacity(0.8), .clear],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ) :
-                        // Standard: No Border (or extremely subtle)
-                        LinearGradient(colors: [.clear], startPoint: .top, endPoint: .bottom),
-                        lineWidth: themeManager.isGamified ? 1 : 0 // Remove width in standard
-                    )
-            )
-            .shadow(
-                color: themeManager.isGamified ? themeManager.selectedTheme.accentColor.opacity(0.3) : Color.clear,
-                radius: themeManager.isGamified ? 12 : 0
-            )
-    }
-}
-
-extension View {
-    func gamifiedCard(themeManager: AppTheme) -> some View {
-        self.modifier(GamifiedCardModifier(themeManager: themeManager))
-    }
-}
-
-// ... (Keep helper structs: SubjectPerformanceCard, StatCard, HomeClassCard, HomeTaskCard, HomeEmptyStateView from previous turns)
-// Just ensure they call .gamifiedCard(themeManager: themeManager) at the end of their body
-// I am omitting the full repetition of those small structs to save space, but they are required.
-// If you need them, paste the helper structs from the previous HomeView.swift response.
-// MARK: - Helper Structs
+// MARK: - Helper Views
 
 struct SubjectPerformanceCard: View {
     let subject: Subject
+    let isGamified: Bool
+    let gradientColors: [Color]
     @Environment(\.colorScheme) var colorScheme
-    @EnvironmentObject var themeManager: AppTheme
     
+    // FIX: Use optional coalescing for gradeHistory
     private var averageGrade: Double? {
-        guard !subject.gradeHistory.isEmpty else { return nil }
-        let totalWeightedScore = subject.gradeHistory.reduce(0.0) { $0 + ($1.grade * $1.weight) }
-        let totalWeight = subject.gradeHistory.reduce(0.0) { $0 + $1.weight }
-        guard totalWeight > 0 else { return 0.0 }
-        return totalWeightedScore / totalWeight
+        guard let history = subject.gradeHistory, !history.isEmpty else { return nil }
+        let total = history.reduce(0.0) { $0 + $1.grade }
+        return total / Double(history.count)
     }
     
+    private var primaryColor: Color { gradientColors.first ?? .blue }
+    
     private var gradeColor: Color {
+        if isGamified { return .white }
         guard let grade = averageGrade else { return .gray }
-        if themeManager.isGamified && grade >= 8.5 { return themeManager.selectedTheme.accentColor }
         switch grade {
         case 8.5...10: return .themeSuccess
         case 7...8.4: return .themePrimary
@@ -219,6 +240,7 @@ struct SubjectPerformanceCard: View {
     }
     
     private var attendanceColor: Color {
+        if isGamified { return .white }
         let rate = subject.attendanceRate
         switch rate {
         case 0.9...1.0: return .themeSuccess
@@ -233,22 +255,22 @@ struct SubjectPerformanceCard: View {
             HStack(spacing: 16) {
                 ZStack {
                     Circle()
-                        .fill(themeManager.selectedTheme.accentColor.opacity(0.1))
+                        .fill(isGamified ? .white.opacity(0.2) : primaryColor.opacity(0.1))
                         .frame(width: 44, height: 44)
                     Image(systemName: "book.fill")
                         .font(.system(size: 18))
-                        .foregroundColor(themeManager.selectedTheme.accentColor)
+                        .foregroundColor(isGamified ? .white : primaryColor)
                 }
                 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(subject.title)
                         .font(.headline)
                         .fontWeight(.semibold)
-                        .foregroundColor(.themeTextPrimary)
+                        .foregroundColor(isGamified ? .white : .themeTextPrimary)
                         .lineLimit(1)
                     Text(subject.courseTeacher)
                         .font(.caption)
-                        .foregroundColor(.themeTextSecondary)
+                        .foregroundColor(isGamified ? .white.opacity(0.8) : .themeTextSecondary)
                         .lineLimit(1)
                 }
                 
@@ -267,7 +289,7 @@ struct SubjectPerformanceCard: View {
                         } else {
                             Text("N/A")
                                 .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.gray)
+                                .foregroundColor(isGamified ? .white.opacity(0.7) : .gray)
                         }
                     }
                     
@@ -284,65 +306,57 @@ struct SubjectPerformanceCard: View {
                 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(isGamified ? .white.opacity(0.5) : .secondary)
             }
             .padding()
-            .gamifiedCard(themeManager: themeManager)
+            .background(backgroundView)
+            .cornerRadius(isGamified ? 20 : 12)
+            .shadow(
+                color: isGamified ? primaryColor.opacity(0.3) : Color.black.opacity(0.05),
+                radius: isGamified ? 8 : 2,
+                x: 0,
+                y: isGamified ? 4 : 1
+            )
         }
         .buttonStyle(PlainButtonStyle())
     }
-}
-
-struct StatCard: View {
-    let title: String
-    let value: String
-    let icon: String
-    let color: Color
-    @Environment(\.colorScheme) var colorScheme
-    @EnvironmentObject var themeManager: AppTheme
     
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(color)
-            Text(value)
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.themeTextPrimary)
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.themeTextSecondary)
-                .multilineTextAlignment(.center)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+    @ViewBuilder
+    private var backgroundView: some View {
+        if isGamified {
+            LinearGradient(gradient: Gradient(colors: gradientColors), startPoint: .topLeading, endPoint: .bottomTrailing)
+        } else {
+            Color.themeSurface
         }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .gamifiedCard(themeManager: themeManager)
     }
 }
+
+// Helper structs remain the same as before (HomeClassCard, HomeTaskCard, HomeEmptyStateView)
+// I'm including them below to ensure the file is complete.
 
 struct HomeClassCard: View {
     let subject: Subject
     let academicWeek: Int?
+    let isGamified: Bool
+    let gradientColors: [Color]
     @Environment(\.colorScheme) var colorScheme
-    @EnvironmentObject var themeManager: AppTheme
+    
+    private var primaryColor: Color { gradientColors.first ?? .blue }
     
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(themeManager.selectedTheme.accentColor.opacity(0.1))
+                    .fill(isGamified ? .white.opacity(0.2) : primaryColor.opacity(0.1))
                     .frame(width: 40, height: 40)
                 Image(systemName: "book.fill")
-                    .foregroundColor(themeManager.selectedTheme.accentColor)
+                    .foregroundColor(isGamified ? .white : primaryColor)
             }
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(subject.title)
                     .font(.headline)
-                    .foregroundColor(.themeTextPrimary)
+                    .foregroundColor(isGamified ? .white : .themeTextPrimary)
                 
                 HStack {
                     if subject.occursThisWeek(academicWeek: academicWeek, isCourse: true) {
@@ -350,8 +364,8 @@ struct HomeClassCard: View {
                             .font(.caption)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)
-                            .background(themeManager.selectedTheme.accentColor.opacity(0.1))
-                            .foregroundColor(themeManager.selectedTheme.accentColor)
+                            .background(isGamified ? .white.opacity(0.2) : primaryColor.opacity(0.1))
+                            .foregroundColor(isGamified ? .white : primaryColor)
                             .cornerRadius(4)
                     }
                     
@@ -360,32 +374,46 @@ struct HomeClassCard: View {
                             .font(.caption)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)
-                            .background(Color.themeSuccess.opacity(0.1))
-                            .foregroundColor(.themeSuccess)
+                            .background(isGamified ? .white.opacity(0.2) : Color.themeSuccess.opacity(0.1))
+                            .foregroundColor(isGamified ? .white : .themeSuccess)
                             .cornerRadius(4)
                     }
                 }
                 
                 Text("\(subject.courseTimeString) • \(subject.courseClassroom)")
                     .font(.subheadline)
-                    .foregroundColor(.themeTextSecondary)
+                    .foregroundColor(isGamified ? .white.opacity(0.8) : .themeTextSecondary)
             }
             
             Spacer()
             
             Image(systemName: "chevron.right")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.secondary)
+                .foregroundColor(isGamified ? .white.opacity(0.5) : .secondary)
         }
         .padding()
-        .gamifiedCard(themeManager: themeManager)
+        .background(backgroundView)
+        .cornerRadius(isGamified ? 20 : 12)
+        .shadow(color: isGamified ? primaryColor.opacity(0.3) : Color.black.opacity(0.05), radius: isGamified ? 8 : 2, x: 0, y: isGamified ? 4 : 1)
+    }
+    
+    @ViewBuilder
+    private var backgroundView: some View {
+        if isGamified {
+            LinearGradient(gradient: Gradient(colors: gradientColors), startPoint: .topLeading, endPoint: .bottomTrailing)
+        } else {
+            Color.themeSurface
+        }
     }
 }
 
 struct HomeTaskCard: View {
     let task: StudyTask
+    let isGamified: Bool
+    let gradientColors: [Color]
     @Environment(\.colorScheme) var colorScheme
-    @EnvironmentObject var themeManager: AppTheme
+    
+    private var primaryColor: Color { gradientColors.first ?? .blue }
     
     private var dueText: String {
         guard let dueDate = task.dueDate else { return "No due date" }
@@ -402,33 +430,44 @@ struct HomeTaskCard: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: task.priority.systemIcon)
-                .foregroundColor(task.priority == .medium && themeManager.isGamified ? themeManager.selectedTheme.accentColor : task.priority.color)
+                .foregroundColor(isGamified ? .white : task.priority.color)
                 .frame(width: 20)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(task.title)
                     .font(.headline)
-                    .foregroundColor(.themeTextPrimary)
+                    .foregroundColor(isGamified ? .white : .themeTextPrimary)
                 
                 if let subjectTitle = task.subject?.title {
                     Text(subjectTitle)
                         .font(.subheadline)
-                        .foregroundColor(.themeTextSecondary)
+                        .foregroundColor(isGamified ? .white.opacity(0.8) : .themeTextSecondary)
                 }
                 
                 Text(dueText)
                     .font(.caption)
-                    .foregroundColor(.themeTextSecondary)
+                    .foregroundColor(isGamified ? .white.opacity(0.7) : .themeTextSecondary)
             }
             
             Spacer()
             
             Image(systemName: "chevron.right")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.secondary)
+                .foregroundColor(isGamified ? .white.opacity(0.5) : .secondary)
         }
         .padding()
-        .gamifiedCard(themeManager: themeManager)
+        .background(backgroundView)
+        .cornerRadius(isGamified ? 20 : 12)
+        .shadow(color: isGamified ? primaryColor.opacity(0.3) : Color.black.opacity(0.05), radius: isGamified ? 8 : 2, x: 0, y: isGamified ? 4 : 1)
+    }
+    
+    @ViewBuilder
+    private var backgroundView: some View {
+        if isGamified {
+            LinearGradient(gradient: Gradient(colors: gradientColors), startPoint: .topLeading, endPoint: .bottomTrailing)
+        } else {
+            Color.themeSurface
+        }
     }
 }
 
@@ -437,7 +476,6 @@ struct HomeEmptyStateView: View {
     let title: String
     let message: String
     @Environment(\.colorScheme) var colorScheme
-    @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
         VStack(spacing: 12) {
@@ -454,6 +492,7 @@ struct HomeEmptyStateView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(40)
-        .gamifiedCard(themeManager: themeManager)
+        .background(Color.themeSurface)
+        .cornerRadius(12)
     }
 }

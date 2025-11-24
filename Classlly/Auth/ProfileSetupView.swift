@@ -1,19 +1,9 @@
-//
-//  ProfileSetupView.swift
-//  Classlly
-//
-//  Created by Robu Darius on 14.11.2025.
-//
-
-
-// File: Classlly/Auth/ProfileSetupView.swift
-// Note: This view is shown after a new user signs in with Apple
-// to collect necessary academic profile information.
-
 import SwiftUI
+import SwiftData
 
 struct ProfileSetupView: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.modelContext) var modelContext // --- ADDED ---
     @EnvironmentObject var authManager: AuthenticationManager
     let user: UserProfile
     
@@ -24,7 +14,6 @@ struct ProfileSetupView: View {
     @State private var major: String = ""
     @State private var academicYear: String = ""
     
-    // Updated options for education levels
     private let educationLevels = ["High School", "Bachelor's Degree", "Master's Degree", "PhD", "Other"]
     private let academicYears = ["2023-2024", "2024-2025", "2025-2026", "2026-2027", "2027-2028"]
     private let popularMajors = [
@@ -43,7 +32,6 @@ struct ProfileSetupView: View {
     var body: some View {
         NavigationView {
             Form {
-                // Personal Information Section
                 Section(header: Text("Personal Information")) {
                     HStack {
                         TextField("First Name", text: $firstName)
@@ -51,7 +39,6 @@ struct ProfileSetupView: View {
                     }
                 }
                 
-                // Academic Information Section
                 Section(header: Text("Academic Information")) {
                     TextField("School/University Name", text: $schoolName)
                         .textInputAutocapitalization(.words)
@@ -78,14 +65,12 @@ struct ProfileSetupView: View {
                     }
                 }
                 
-                // Additional Information Section (Optional)
-                Section(header: Text("Additional Information (Optional)"), footer: Text("This information helps us personalize your experience and provide relevant features.")) {
+                Section(header: Text("Additional Information (Optional)")) {
                     NavigationLink("Add More Details") {
                         AdditionalDetailsView()
                     }
                 }
                 
-                // Terms Agreement
                 Section(footer: Text("By completing your profile, you agree to our Terms of Service and Privacy Policy")) {
                     EmptyView()
                 }
@@ -95,7 +80,8 @@ struct ProfileSetupView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
-                        authManager.signOut()
+                        // --- FIX: Pass context to signOut ---
+                        authManager.signOut(context: modelContext)
                         dismiss()
                     }
                     .foregroundColor(.themeError)
@@ -127,13 +113,14 @@ struct ProfileSetupView: View {
             lastName: lastName,
             email: user.email,
             schoolName: schoolName,
-            gradeLevel: educationLevel, // Using educationLevel instead of gradeLevel
+            gradeLevel: educationLevel,
             major: major.isEmpty ? nil : major,
             academicYear: academicYear,
             profileImageData: nil
         )
         
-        authManager.completeProfileSetup(profile: completedProfile)
+        // --- FIX: Pass context to completeProfileSetup ---
+        authManager.completeProfileSetup(profile: completedProfile, context: modelContext)
         dismiss()
     }
 }

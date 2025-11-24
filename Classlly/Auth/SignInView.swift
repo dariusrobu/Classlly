@@ -1,10 +1,10 @@
 import SwiftUI
 import AuthenticationServices
-import SwiftData // UPDATED: Import SwiftData
+import SwiftData
 
 struct SignInView: View {
     @EnvironmentObject var authManager: AuthenticationManager
-    @Environment(\.modelContext) var modelContext // UPDATED: Get ModelContext
+    @Environment(\.modelContext) var modelContext
     @State private var showingProfileSetup = false
     
     var body: some View {
@@ -73,7 +73,6 @@ struct SignInView: View {
                         .cornerRadius(10)
                         
                         Button(action: {
-                            // UPDATED: Pass modelContext here
                             authManager.signInAsDemoUser(modelContext: modelContext)
                         }) {
                             Text("Continue as Demo User")
@@ -97,8 +96,9 @@ struct SignInView: View {
                 }
             }
             .navigationBarHidden(true)
-            .onChange(of: authManager.currentUser) { oldValue, newValue in
-                if newValue != nil && newValue?.id != AuthenticationManager.demoUser.id {
+            // --- FIXED ONCHANGE SYNTAX ---
+            .onChange(of: authManager.currentUser) {
+                if let user = authManager.currentUser, user.id != AuthenticationManager.demoUser.id {
                     showingProfileSetup = true
                 }
             }

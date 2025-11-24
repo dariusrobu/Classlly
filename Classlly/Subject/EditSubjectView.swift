@@ -1,13 +1,10 @@
-// File: Classlly/Subject/EditSubjectView.swift
-// Note: This corrected version includes the helper structs
-// DayChip and FrequencyHelpRow at the bottom of the file.
-
 import SwiftUI
 import SwiftData
 
 struct EditSubjectView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject var themeManager: AppTheme
     @Bindable var subject: Subject
 
     @State private var title: String
@@ -25,9 +22,10 @@ struct EditSubjectView: View {
     @State private var selectedSeminarDays: Set<Int>
     @State private var seminarFrequency: ClassFrequency
 
+    // --- Reordered to start on Monday ---
     private let daysOfWeek = [
-        (1, "Sun"), (2, "Mon"), (3, "Tue"), (4, "Wed"),
-        (5, "Thu"), (6, "Fri"), (7, "Sat")
+        (2, "Mon"), (3, "Tue"), (4, "Wed"), (5, "Thu"),
+        (6, "Fri"), (7, "Sat"), (1, "Sun")
     ]
 
     init(subject: Subject) {
@@ -65,7 +63,7 @@ struct EditSubjectView: View {
                         ForEach(ClassFrequency.allCases, id: \.self) { frequency in
                             HStack {
                                 Image(systemName: frequency.iconName)
-                                    .foregroundColor(.themePrimary)
+                                    .foregroundColor(themeManager.selectedTheme.accentColor)
                                 Text(frequency.rawValue)
                             }
                             .tag(frequency)
@@ -83,6 +81,7 @@ struct EditSubjectView: View {
                                 DayChip(
                                     day: day.1,
                                     isSelected: selectedCourseDays.contains(day.0),
+                                    color: themeManager.selectedTheme.accentColor,
                                     action: {
                                         if selectedCourseDays.contains(day.0) {
                                             selectedCourseDays.remove(day.0)
@@ -127,6 +126,7 @@ struct EditSubjectView: View {
                                 DayChip(
                                     day: day.1,
                                     isSelected: selectedSeminarDays.contains(day.0),
+                                    color: themeManager.selectedTheme.accentColor,
                                     action: {
                                         if selectedSeminarDays.contains(day.0) {
                                             selectedSeminarDays.remove(day.0)
@@ -151,17 +151,20 @@ struct EditSubjectView: View {
                         
                         FrequencyHelpRow(
                             frequency: .weekly,
-                            description: "Class occurs every week during teaching periods"
+                            description: "Class occurs every week during teaching periods",
+                            color: themeManager.selectedTheme.accentColor
                         )
                         
                         FrequencyHelpRow(
                             frequency: .biweeklyOdd,
-                            description: "Class occurs only in odd academic weeks (Week 1, 3, 5...)"
+                            description: "Class occurs only in odd academic weeks (Week 1, 3, 5...)",
+                            color: themeManager.selectedTheme.accentColor
                         )
                         
                         FrequencyHelpRow(
                             frequency: .biweeklyEven,
-                            description: "Class occurs only in even academic weeks (Week 2, 4, 6...)"
+                            description: "Class occurs only in even academic weeks (Week 2, 4, 6...)",
+                            color: themeManager.selectedTheme.accentColor
                         )
                     }
                     .padding(.vertical, 4)
@@ -183,6 +186,7 @@ struct EditSubjectView: View {
                     }
                     .disabled(!isFormValid)
                     .fontWeight(.semibold)
+                    .foregroundColor(themeManager.selectedTheme.accentColor)
                 }
             }
         }
@@ -214,12 +218,12 @@ struct EditSubjectView: View {
     }
 }
 
-// --- THIS IS THE FIX ---
-// Helper structs are now included in the file.
+// --- HELPER STRUCTS ---
 
 fileprivate struct DayChip: View {
     let day: String
     let isSelected: Bool
+    let color: Color
     let action: () -> Void
     
     var body: some View {
@@ -230,7 +234,7 @@ fileprivate struct DayChip: View {
                 .foregroundColor(isSelected ? .white : .primary)
                 .frame(height: 32)
                 .frame(maxWidth: .infinity)
-                .background(isSelected ? Color.themePrimary : Color(.systemGray6))
+                .background(isSelected ? color : Color(.systemGray6))
                 .cornerRadius(8)
         }
         .buttonStyle(PlainButtonStyle())
@@ -240,11 +244,12 @@ fileprivate struct DayChip: View {
 fileprivate struct FrequencyHelpRow: View {
     let frequency: ClassFrequency
     let description: String
+    let color: Color
     
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: frequency.iconName)
-                .foregroundColor(.themePrimary)
+                .foregroundColor(color)
                 .frame(width: 20)
             
             VStack(alignment: .leading, spacing: 2) {

@@ -2,12 +2,11 @@ import SwiftUI
 import Foundation
 import Combine
 
-// MARK: - Calendar Template
+// MARK: - Templates
 struct CalendarTemplate: Identifiable, Hashable {
     let id = UUID()
     var universityName: String
     var academicYear: String
-    
     var sem1StartStr: String
     var sem1EndStr: String
     var sem2StartStr: String
@@ -53,7 +52,6 @@ enum EventType: String, CaseIterable, Codable {
     }
 }
 
-// MARK: - Academic Event Data
 struct AcademicEventData: Identifiable, Codable, Equatable {
     let id: UUID
     var start: String
@@ -76,16 +74,13 @@ struct AcademicEventData: Identifiable, Codable, Equatable {
     }
 }
 
-// MARK: - Semester Data
 struct SemesterData: Codable, Equatable {
     var events: [AcademicEventData]
-    
     init(events: [AcademicEventData] = []) {
         self.events = events
     }
 }
 
-// MARK: - Academic Calendar Data
 struct AcademicCalendarData: Codable, Equatable {
     var academicYear: String
     var semester1: SemesterData
@@ -110,7 +105,7 @@ struct AcademicCalendarData: Codable, Equatable {
     }
 }
 
-// MARK: - Academic Calendar Manager
+
 class AcademicCalendarManager: ObservableObject {
     @Published var currentAcademicYear: AcademicCalendarData?
     @Published var availableCalendars: [AcademicCalendarData] = []
@@ -134,6 +129,13 @@ class AcademicCalendarManager: ObservableObject {
         return formatter
     }()
     
+    // --- FIXED: Force Monday Start Calendar ---
+    private var calendar: Calendar {
+        var cal = Calendar.current
+        cal.firstWeekday = 2 // Monday
+        return cal
+    }
+    
     enum SemesterType {
         case semester1
         case semester2
@@ -154,8 +156,6 @@ class AcademicCalendarManager: ObservableObject {
         setupDefaultCalendarIfNeeded()
         updateCurrentWeekAndSemester()
     }
-    
-    // MARK: - Public Methods
     
     func getSemesterEvents(_ semester: SemesterType) -> [AcademicEventData] {
         guard let calendar = currentAcademicYear else { return [] }
@@ -257,11 +257,12 @@ class AcademicCalendarManager: ObservableObject {
         let s2StartDate = formatDate(sem2Start)
         let s2EndDate = formatDate(sem2End)
         
-        let winterBreakStart = Calendar.current.date(byAdding: .day, value: 1, to: sem1End)!
-        let winterBreakEnd = Calendar.current.date(byAdding: .day, value: -1, to: sem2Start)!
+        // Use self.calendar (Monday start) for calculations
+        let winterBreakStart = calendar.date(byAdding: .day, value: 1, to: sem1End)!
+        let winterBreakEnd = calendar.date(byAdding: .day, value: -1, to: sem2Start)!
         
-        let s1TeachingWeeks = (Calendar.current.dateComponents([.weekOfYear], from: sem1Start, to: sem1End).weekOfYear ?? 0) + 1
-        let s2TeachingWeeks = (Calendar.current.dateComponents([.weekOfYear], from: sem2Start, to: sem2End).weekOfYear ?? 0) + 1
+        let s1TeachingWeeks = (calendar.dateComponents([.weekOfYear], from: sem1Start, to: sem1End).weekOfYear ?? 0) + 1
+        let s2TeachingWeeks = (calendar.dateComponents([.weekOfYear], from: sem2Start, to: sem2End).weekOfYear ?? 0) + 1
         
         let sem1Teaching = AcademicEventData(
             start: s1StartDate,
@@ -277,7 +278,7 @@ class AcademicCalendarManager: ObservableObject {
             start: formatDate(winterBreakStart),
             end: formatDate(winterBreakEnd),
             type: .breakType,
-            weeks: (Calendar.current.dateComponents([.weekOfYear], from: winterBreakStart, to: winterBreakEnd).weekOfYear ?? 0) + 1,
+            weeks: (calendar.dateComponents([.weekOfYear], from: winterBreakStart, to: winterBreakEnd).weekOfYear ?? 0) + 1,
             customName: "Winter Break"
         )
         
@@ -339,6 +340,7 @@ class AcademicCalendarManager: ObservableObject {
     }
     
     private func createSampleCalendar() -> AcademicCalendarData {
+        // Sample data remains the same, logic uses it as-is
         let semester1Events = [
             AcademicEventData(
                 start: "2025-09-15",
@@ -396,11 +398,13 @@ class AcademicCalendarManager: ObservableObject {
             return
         }
         
+        // Use self.calendar (Monday start) for calculations
+        
         for event in calendar.semester1.events {
             if event.type == .teaching, dateString >= event.start && dateString <= event.end {
                 if let startWeek = event.teachingWeekIndexStart,
                    let startDate = dateFromString(event.start) {
-                    let weeksDiff = Calendar.current.dateComponents([.weekOfYear], from: startDate, to: today).weekOfYear ?? 0
+                    let weeksDiff = self.calendar.dateComponents([.weekOfYear], from: startDate, to: today).weekOfYear ?? 0
                     currentTeachingWeek = startWeek + weeksDiff
                     currentSemester = .semester1
                     return
@@ -412,7 +416,7 @@ class AcademicCalendarManager: ObservableObject {
             if event.type == .teaching, dateString >= event.start && dateString <= event.end {
                 if let startWeek = event.teachingWeekIndexStart,
                    let startDate = dateFromString(event.start) {
-                    let weeksDiff = Calendar.current.dateComponents([.weekOfYear], from: startDate, to: today).weekOfYear ?? 0
+                    let weeksDiff = self.calendar.dateComponents([.weekOfYear], from: startDate, to: today).weekOfYear ?? 0
                     currentTeachingWeek = startWeek + weeksDiff
                     currentSemester = .semester2
                     return

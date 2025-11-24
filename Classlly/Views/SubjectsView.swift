@@ -11,36 +11,34 @@ struct SubjectsView: View {
     public init() {}
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 16) {
-                ForEach(subjects) { subject in
-                    NavigationLink(destination: SubjectDetailView(subject: subject)) {
-                        SubjectCard(subject: subject)
+        NavigationView {
+            ScrollView {
+                LazyVStack(spacing: 16) {
+                    ForEach(subjects) { subject in
+                        NavigationLink(destination: SubjectDetailView(subject: subject)) {
+                            SubjectCard(subject: subject)
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
-                    .buttonStyle(PlainButtonStyle())
+                }
+                .padding()
+            }
+            .navigationTitle("Subjects")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        showingAddSubject = true
+                    }) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(themeManager.selectedTheme.accentColor)
+                    }
                 }
             }
-            .padding()
-        }
-        .navigationTitle("Subjects")
-        .navigationBarTitleDisplayMode(.inline)
-        // Ensure background is transparent so ContentView's background shows through
-        // (Standard Grey in Normal Mode, Black/Neon in Gamified Mode)
-        .background(Color.clear)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    showingAddSubject = true
-                }) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 20, weight: .medium))
-                        // Only use accent color in Gamified Mode, otherwise standard Blue
-                        .foregroundColor(themeManager.isGamified ? themeManager.selectedTheme.accentColor : .themePrimary)
-                }
+            .sheet(isPresented: $showingAddSubject) {
+                AddSubjectView()
             }
-        }
-        .sheet(isPresented: $showingAddSubject) {
-            AddSubjectView()
         }
     }
 }
@@ -84,8 +82,7 @@ struct SubjectCard: View {
                     ProgressIndicator(
                         title: "Grade",
                         value: grade / 10.0,
-                        // UPDATED: Only use Neon Accent in Gamified Mode, else Standard Blue
-                        color: themeManager.isGamified ? themeManager.selectedTheme.accentColor : .themePrimary
+                        color: themeManager.selectedTheme.accentColor
                     )
                 }
                 
@@ -99,12 +96,17 @@ struct SubjectCard: View {
             HStack(spacing: 12) {
                 StatPill(icon: "checkmark.circle", value: "\(subject.attendedClasses)", label: "Present")
                 StatPill(icon: "xmark.circle", value: "\(subject.totalClasses - subject.attendedClasses)", label: "Absent")
-                StatPill(icon: "star", value: "\(subject.gradeHistory.count)", label: "Grades")
+                // FIX: Safely unwrap optional gradeHistory array
+                StatPill(icon: "star", value: "\(subject.gradeHistory?.count ?? 0)", label: "Grades")
             }
         }
         .padding()
-        // Apply the smart modifier (Glass in Gamified, Solid in Standard)
-        .gamifiedCard(themeManager: themeManager)
+        .background(Color.themeSurface)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.adaptiveBorder.opacity(0.3), lineWidth: 1)
+        )
     }
 }
 
@@ -113,7 +115,6 @@ struct StatPill: View {
     let value: String
     let label: String
     @Environment(\.colorScheme) var colorScheme
-    @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
         VStack(spacing: 4) {
@@ -132,14 +133,7 @@ struct StatPill: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
-        // UPDATED: Conditional Background
-        .background {
-            if themeManager.isGamified {
-                Rectangle().fill(.thinMaterial)
-            } else {
-                Rectangle().fill(Color.adaptiveTertiaryBackground)
-            }
-        }
+        .background(Color.adaptiveTertiaryBackground)
         .cornerRadius(8)
     }
 }
@@ -150,14 +144,9 @@ struct GradeBadge: View {
     @EnvironmentObject var themeManager: AppTheme
     
     private var gradeColor: Color {
-        // Only use neon accent for high grades IF gamified mode is on
-        if themeManager.isGamified && grade >= 8.5 {
-            return themeManager.selectedTheme.accentColor
-        }
-        
         switch grade {
         case 9...10: return .themeSuccess
-        case 7..<9: return .themePrimary
+        case 7..<9: return themeManager.selectedTheme.accentColor
         case 5..<7: return .themeWarning
         default: return .themeError
         }

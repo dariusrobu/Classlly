@@ -11,10 +11,7 @@ struct SettingsDashboardView: View {
             List {
                 // MARK: - Profile Section
                 if let user = authManager.currentUser {
-                    // Explicit NavigationLink syntax
-                    NavigationLink {
-                        ProfileView()
-                    } label: {
+                    NavigationLink(destination: ProfileView()) {
                         HStack(spacing: 16) {
                             ZStack {
                                 Circle()
@@ -47,16 +44,12 @@ struct SettingsDashboardView: View {
                 
                 // MARK: - Main Links
                 Section {
-                    // Explicit syntax fixes "Ambiguous use of init"
-                    NavigationLink {
-                        AcademicCalendarView()
-                    } label: {
+                    NavigationLink(destination: AcademicCalendarView()) {
                         Label("Academic Calendar", systemImage: "calendar.circle.fill")
                     }
                     
-                    NavigationLink {
-                        SettingsView()
-                    } label: {
+                    // Links to your updated SettingsView
+                    NavigationLink(destination: SettingsView()) {
                         Label("Settings", systemImage: "gearshape.fill")
                     }
                 }
@@ -64,9 +57,7 @@ struct SettingsDashboardView: View {
                 
                 // MARK: - Legal Links
                 Section {
-                    NavigationLink {
-                        PrivacyPolicyView()
-                    } label: {
+                    NavigationLink(destination: PrivacyPolicyView()) {
                         Label("Terms & Privacy Policy", systemImage: "lock.shield.fill")
                     }
                 }
