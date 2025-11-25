@@ -4,7 +4,7 @@ import SwiftData
 struct AddSubjectView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
-    @EnvironmentObject var themeManager: AppTheme
+    @EnvironmentObject var themeManager: AppTheme // Inject Theme Manager
 
     @State private var title = ""
     @State private var courseTeacher = ""
@@ -23,10 +23,9 @@ struct AddSubjectView: View {
     @State private var selectedSeminarDays: Set<Int> = [5]
     @State private var seminarFrequency: ClassFrequency = .weekly
     
-    // Mon start
     private let daysOfWeek = [
-        (2, "Mon"), (3, "Tue"), (4, "Wed"), (5, "Thu"),
-        (6, "Fri"), (7, "Sat"), (1, "Sun")
+        (1, "Sun"), (2, "Mon"), (3, "Tue"), (4, "Wed"),
+        (5, "Thu"), (6, "Fri"), (7, "Sat")
     ]
     
     var body: some View {
@@ -36,6 +35,7 @@ struct AddSubjectView: View {
                     TextField("Subject Title", text: $title)
                         .textInputAutocapitalization(.words)
                 }
+                .adaptiveListRow() // Theme Support
                 
                 Section(header: Text("Course Information")) {
                     TextField("Course Teacher", text: $courseTeacher)
@@ -46,7 +46,7 @@ struct AddSubjectView: View {
                         ForEach(ClassFrequency.allCases, id: \.self) { frequency in
                             HStack {
                                 Image(systemName: frequency.iconName)
-                                    .foregroundColor(themeManager.selectedTheme.accentColor)
+                                    .foregroundColor(.themePrimary)
                                 Text(frequency.rawValue)
                             }
                             .tag(frequency)
@@ -64,7 +64,6 @@ struct AddSubjectView: View {
                                 DayChip(
                                     day: day.1,
                                     isSelected: selectedCourseDays.contains(day.0),
-                                    color: themeManager.selectedTheme.accentColor,
                                     action: {
                                         if selectedCourseDays.contains(day.0) {
                                             selectedCourseDays.remove(day.0)
@@ -81,6 +80,7 @@ struct AddSubjectView: View {
                     DatePicker("Start Time", selection: $courseStartTime, displayedComponents: .hourAndMinute)
                     DatePicker("End Time", selection: $courseEndTime, displayedComponents: .hourAndMinute)
                 }
+                .adaptiveListRow() // Theme Support
                 
                 Section(header: Text("Seminar Information")) {
                     TextField("Seminar Teacher", text: $seminarTeacher)
@@ -109,7 +109,6 @@ struct AddSubjectView: View {
                                 DayChip(
                                     day: day.1,
                                     isSelected: selectedSeminarDays.contains(day.0),
-                                    color: themeManager.selectedTheme.accentColor,
                                     action: {
                                         if selectedSeminarDays.contains(day.0) {
                                             selectedSeminarDays.remove(day.0)
@@ -126,29 +125,63 @@ struct AddSubjectView: View {
                     DatePicker("Start Time", selection: $seminarStartTime, displayedComponents: .hourAndMinute)
                     DatePicker("End Time", selection: $seminarEndTime, displayedComponents: .hourAndMinute)
                 }
+                .adaptiveListRow() // Theme Support
+                
+                Section(header: Text("Frequency Help")) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("How frequencies work:")
+                            .font(.headline)
+                        
+                        FrequencyHelpRow(
+                            frequency: .weekly,
+                            description: "Class occurs every week during teaching periods"
+                        )
+                        
+                        FrequencyHelpRow(
+                            frequency: .biweeklyOdd,
+                            description: "Class occurs only in odd academic weeks (Week 1, 3, 5...)"
+                        )
+                        
+                        FrequencyHelpRow(
+                            frequency: .biweeklyEven,
+                            description: "Class occurs only in even academic weeks (Week 2, 4, 6...)"
+                        )
+                    }
+                    .padding(.vertical, 4)
+                }
+                .adaptiveListRow() // Theme Support
             }
+            .scrollContentBackground(.hidden)
+            .background(Color.clear) // Let global background show
             .navigationTitle("Add Subject")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") { dismiss() }.foregroundColor(.themeError)
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundColor(.themeError)
                 }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") { saveSubject() }
-                        .disabled(!isFormValid)
-                        .fontWeight(.semibold)
-                        .foregroundColor(themeManager.selectedTheme.accentColor)
+                    Button("Save") {
+                        saveSubject()
+                    }
+                    .disabled(!isFormValid)
+                    .fontWeight(.semibold)
                 }
             }
         }
     }
     
     private var isFormValid: Bool {
-        !title.isEmpty && !courseTeacher.isEmpty && !courseClassroom.isEmpty && !selectedCourseDays.isEmpty
+        !title.isEmpty &&
+        !courseTeacher.isEmpty &&
+        !courseClassroom.isEmpty &&
+        !selectedCourseDays.isEmpty
     }
     
     private func saveSubject() {
-        // FIX: Removed 'gradeHistory' and 'attendanceHistory' args (they are now handled by defaults)
         let newSubject = Subject(
             title: title,
             courseTeacher: courseTeacher,
@@ -164,30 +197,67 @@ struct AddSubjectView: View {
             seminarStartTime: seminarStartTime,
             seminarEndTime: seminarEndTime,
             seminarDays: Array(selectedSeminarDays).sorted(),
-            seminarFrequency: seminarFrequency
+            seminarFrequency: seminarFrequency,
+            gradeHistory: [],
+            attendanceHistory: []
         )
         modelContext.insert(newSubject)
         dismiss()
     }
 }
 
+// --- HELPER STRUCTS (Updated for Theme) ---
+
 fileprivate struct DayChip: View {
     let day: String
     let isSelected: Bool
-    let color: Color
     let action: () -> Void
+    @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
         Button(action: action) {
             Text(day)
                 .font(.caption)
                 .fontWeight(.medium)
-                .foregroundColor(isSelected ? .white : .primary)
+                // Adaptive Text Color
+                .foregroundColor(isSelected ? .white : (themeManager.isGamified ? .white : .primary))
                 .frame(height: 32)
                 .frame(maxWidth: .infinity)
-                .background(isSelected ? color : Color(.systemGray6))
+                // Adaptive Background
+                .background(
+                    isSelected
+                    ? (themeManager.isGamified ? GameColor.electricBlue : Color.themePrimary)
+                    : (themeManager.isGamified ? Color.white.opacity(0.1) : Color(.systemGray6))
+                )
                 .cornerRadius(8)
         }
         .buttonStyle(PlainButtonStyle())
+    }
+}
+
+fileprivate struct FrequencyHelpRow: View {
+    let frequency: ClassFrequency
+    let description: String
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: frequency.iconName)
+                .foregroundColor(.themePrimary)
+                .frame(width: 20)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(frequency.rawValue)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                
+                Text(description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            
+            Spacer()
+        }
+        .padding(.vertical, 2)
     }
 }

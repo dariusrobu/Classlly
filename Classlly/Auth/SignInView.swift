@@ -1,9 +1,10 @@
 import SwiftUI
 import AuthenticationServices
-import SwiftData
+import SwiftData // Required for ModelContext
 
 struct SignInView: View {
     @EnvironmentObject var authManager: AuthenticationManager
+    // --- Added ModelContext ---
     @Environment(\.modelContext) var modelContext
     @State private var showingProfileSetup = false
     
@@ -58,7 +59,7 @@ struct SignInView: View {
                     Spacer()
                     Spacer()
                     
-                    // Sign in button area with Material background
+                    // Sign in button area
                     VStack(spacing: 16) {
                         SignInWithAppleButton(.signIn) { request in
                             let nonce = authManager.randomNonceString()
@@ -73,6 +74,7 @@ struct SignInView: View {
                         .cornerRadius(10)
                         
                         Button(action: {
+                            // --- FIX: Pass modelContext here ---
                             authManager.signInAsDemoUser(modelContext: modelContext)
                         }) {
                             Text("Continue as Demo User")
@@ -96,9 +98,8 @@ struct SignInView: View {
                 }
             }
             .navigationBarHidden(true)
-            // --- FIXED ONCHANGE SYNTAX ---
-            .onChange(of: authManager.currentUser) {
-                if let user = authManager.currentUser, user.id != AuthenticationManager.demoUser.id {
+            .onChange(of: authManager.currentUser) { oldValue, newValue in
+                if newValue != nil && newValue?.id != AuthenticationManager.demoUser.id {
                     showingProfileSetup = true
                 }
             }

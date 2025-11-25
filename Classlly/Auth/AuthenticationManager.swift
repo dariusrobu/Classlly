@@ -2,11 +2,11 @@ import SwiftUI
 import AuthenticationServices
 import CryptoKit
 import Combine
-import SwiftData
+import SwiftData // Import SwiftData
 
 class AuthenticationManager: NSObject, ObservableObject {
     @Published var isAuthenticated = false
-    @Published var currentUser: UserProfile?
+    @Published var currentUser: AppUser?
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var requiresOnboarding: Bool = false
@@ -16,7 +16,7 @@ class AuthenticationManager: NSObject, ObservableObject {
     
     var currentNonce: String?
     
-    static let demoUser = UserProfile(
+    static let demoUser = AppUser(
         id: "demo-user-001",
         firstName: "Demo",
         lastName: "Student",
@@ -30,28 +30,21 @@ class AuthenticationManager: NSObject, ObservableObject {
     
     override init() {
         super.init()
-        // Auth check logic relies on checkAuthentication(in:) called from views
-    }
-    
-    // MARK: - SwiftData Auth Check
-    @MainActor
-    func checkAuthentication(in context: ModelContext) {
-        let descriptor = FetchDescriptor<UserProfile>()
-        do {
-            if let user = try context.fetch(descriptor).first {
-                self.currentUser = user
-                self.isAuthenticated = true
-                if user.id == AuthenticationManager.demoUser.id {
-                    self.hasCompletedOnboarding = true
-                    self.requiresOnboarding = false
-                }
-            }
-        } catch {
-            print("Auth check failed: \(error)")
+        checkExistingAuthentication()
+        
+        if self.isAuthenticated && !self.hasCompletedOnboarding && self.currentUser?.id != AuthenticationManager.demoUser.id {
+            self.universityNameForOnboarding = self.currentUser?.schoolName ?? ""
+            self.requiresOnboarding = true
         }
     }
     
-    // MARK: - Sign In Methods
+    private func checkExistingAuthentication() {
+        if let userData = UserDefaults.standard.data(forKey: "currentUser"),
+           let user = try? JSONDecoder().decode(AppUser.self, from: userData) {
+            self.currentUser = user
+            self.isAuthenticated = true
+        }
+    }
     
     func handleSignInWithApple(result: Result<ASAuthorization, Error>) {
         isLoading = true
@@ -74,8 +67,7 @@ class AuthenticationManager: NSObject, ObservableObject {
         let lastName = credential.fullName?.familyName ?? ""
         let email = credential.email ?? ""
         
-        // FIX: Added profileImageData: nil
-        let tempUser = UserProfile(
+        let tempUser = AppUser(
             id: userIdentifier,
             firstName: firstName.isEmpty ? "Student" : firstName,
             lastName: lastName.isEmpty ? "Name" : lastName,
@@ -83,155 +75,182 @@ class AuthenticationManager: NSObject, ObservableObject {
             schoolName: "",
             gradeLevel: "",
             major: nil,
-            academicYear: "",
-            profileImageData: nil
+            academicYear: ""
         )
         
         self.currentUser = tempUser
         self.isLoading = false
     }
     
+    func completeProfileSetup(profile: AppUser) {
+        self.currentUser = profile
+        self.isAuthenticated = true
+        self.universityNameForOnboarding = profile.schoolName
+        
+        if !self.hasCompletedOnboarding {
+            self.requiresOnboarding = true
+        }
+        
+        if let userData = try? JSONEncoder().encode(profile) {
+            UserDefaults.standard.set(userData, forKey: "currentUser")
+        }
+    }
+    
+    // --- UPDATED: Accepts ModelContext to generate 3 Tasks & 3 Subjects ---
     @MainActor
-    func signInAsDemoUser(modelContext: ModelContext) {
-        try? modelContext.delete(model: UserProfile.self)
-        
-        let demo = AuthenticationManager.demoUser
-        modelContext.insert(demo)
-        
-        self.currentUser = demo
+    func signInAsDemoUser(modelContext: ModelContext? = nil) {
+        self.currentUser = AuthenticationManager.demoUser
         self.isAuthenticated = true
         self.hasCompletedOnboarding = true
         self.requiresOnboarding = false
         
-        generateSampleData(in: modelContext)
+        if let userData = try? JSONEncoder().encode(self.currentUser) {
+            UserDefaults.standard.set(userData, forKey: "currentUser")
+        }
+        
+        // Generate Sample Data if context is provided
+        if let context = modelContext {
+            generateDemoData(context: context)
+        }
     }
     
     @MainActor
-    func completeProfileSetup(profile: UserProfile, context: ModelContext) {
-        context.insert(profile)
-        self.currentUser = profile
-        self.isAuthenticated = true
-        self.universityNameForOnboarding = profile.schoolName
+    private func generateDemoData(context: ModelContext) {
+        // Check if data already exists to avoid duplicates
+        let descriptor = FetchDescriptor<Subject>()
+        if let count = try? context.fetchCount(descriptor), count > 0 {
+            return
+        }
+
+        // 1. Create 3 Subjects
+        let mathSubject = Subject(
+            title: "Advanced Calculus",
+            courseTeacher: "Dr. Sarah Smith",
+            courseClassroom: "Science Hall 101",
+            courseDays: [2, 4], // Mon, Wed
+            courseFrequency: .weekly,
+            seminarTeacher: "John Doe",
+            seminarClassroom: "Room 204",
+            seminarDays: [5], // Thu
+            seminarFrequency: .weekly
+        )
+        
+        let csSubject = Subject(
+            title: "Algorithms & Data",
+            courseTeacher: "Prof. Alan Turing",
+            courseClassroom: "Tech Center Lab 3",
+            courseDays: [3, 5], // Tue, Thu
+            courseFrequency: .weekly,
+            seminarTeacher: "Grace Hopper",
+            seminarClassroom: "Tech Center 101",
+            seminarDays: [3], // Tue
+            seminarFrequency: .biweeklyOdd
+        )
+        
+        let physicsSubject = Subject(
+            title: "Quantum Mechanics",
+            courseTeacher: "Dr. Richard Feynman",
+            courseClassroom: "Physics Wing 3B",
+            courseDays: [1, 4], // Sun, Wed
+            courseFrequency: .weekly,
+            seminarTeacher: "Marie Curie",
+            seminarClassroom: "Lab 4",
+            seminarDays: [2], // Mon
+            seminarFrequency: .biweeklyEven
+        )
+        
+        context.insert(mathSubject)
+        context.insert(csSubject)
+        context.insert(physicsSubject)
+        
+        // 2. Create 3 Tasks linked to those subjects
+        let task1 = StudyTask(
+            title: "Complete Calculus Problem Set 4",
+            dueDate: Calendar.current.date(byAdding: .day, value: 2, to: Date()), // Due in 2 days
+            priority: .high,
+            subject: mathSubject,
+            reminderTime: .dayBefore1,
+            isFlagged: true
+        )
+        
+        let task2 = StudyTask(
+            title: "Implement Binary Search Tree",
+            dueDate: Calendar.current.date(byAdding: .day, value: 5, to: Date()), // Due in 5 days
+            priority: .medium,
+            subject: csSubject,
+            reminderTime: .hourBefore1,
+            isFlagged: false
+        )
+        
+        let task3 = StudyTask(
+            title: "Read 'QED' Chapter 1",
+            dueDate: Calendar.current.date(byAdding: .day, value: 1, to: Date()), // Due tomorrow
+            priority: .low,
+            subject: physicsSubject,
+            reminderTime: .none,
+            isFlagged: false
+        )
+        
+        context.insert(task1)
+        context.insert(task2)
+        context.insert(task3)
+        
+        // Save context
         try? context.save()
     }
     
-    @MainActor
-    func signOut(context: ModelContext) {
-        self.isAuthenticated = false
-        self.currentUser = nil
+    func signOut() {
+        isAuthenticated = false
+        currentUser = nil
         self.hasCompletedOnboarding = false
         self.universityNameForOnboarding = ""
-        
-        try? context.delete(model: UserProfile.self)
-        try? context.save()
+        UserDefaults.standard.removeObject(forKey: "currentUser")
     }
     
-    // MARK: - Helpers
-    
+    // MARK: - Crypto Helpers
     func randomNonceString(length: Int = 32) -> String {
         precondition(length > 0)
         let charset: [Character] =
             Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
         var result = ""
         var remainingLength = length
-        
         while remainingLength > 0 {
             let randoms: [UInt8] = (0 ..< 16).map { _ in
                 var random: UInt8 = 0
                 let errorCode = SecRandomCopyBytes(kSecRandomDefault, 1, &random)
-                if errorCode != errSecSuccess {
-                    fatalError("Unable to generate nonce. SecRandomCopyBytes failed with OSStatus \(errorCode)")
-                }
+                if errorCode != errSecSuccess { fatalError() }
                 return random
             }
-            
             randoms.forEach { random in
-                if remainingLength == 0 {
-                    return
-                }
-                
+                if remainingLength == 0 { return }
                 if random < charset.count {
                     result.append(charset[Int(random)])
                     remainingLength -= 1
                 }
             }
         }
-        
         return result
     }
     
     func sha256(_ input: String) -> String {
         let inputData = Data(input.utf8)
         let hashedData = SHA256.hash(data: inputData)
-        let hashString = hashedData.compactMap {
-            String(format: "%02x", $0)
-        }.joined()
-        
-        return hashString
+        return hashedData.compactMap { String(format: "%02x", $0) }.joined()
     }
-    
-    // MARK: - Sample Data
-    func generateSampleData(in context: ModelContext) {
-        let descriptor = FetchDescriptor<Subject>()
-        if let count = try? context.fetchCount(descriptor), count > 0 {
-            return
-        }
+}
 
-        let mathSubject = Subject(
-            title: "Calculus II",
-            courseTeacher: "Dr. Smith",
-            courseClassroom: "Room 101",
-            courseDays: [2, 4],
-            courseFrequency: .weekly,
-            seminarTeacher: "TA Johnson",
-            seminarClassroom: "Lab A",
-            seminarDays: [5],
-            seminarFrequency: .weekly
-        )
-        
-        let historySubject = Subject(
-            title: "Modern History",
-            courseTeacher: "Prof. Brown",
-            courseClassroom: "Auditorium B",
-            courseDays: [3],
-            courseFrequency: .weekly,
-            seminarTeacher: "Ms. Davis",
-            seminarClassroom: "Room 204",
-            seminarDays: [5],
-            seminarFrequency: .biweeklyOdd
-        )
-        
-        context.insert(mathSubject)
-        context.insert(historySubject)
-        
-        let task1 = StudyTask(
-            title: "Complete Calculus Problem Set",
-            dueDate: Calendar.current.date(byAdding: .day, value: 1, to: Date()),
-            priority: .high,
-            subject: mathSubject,
-            isFlagged: true,
-            notes: "Complete problems 1-10 in Chapter 3."
-        )
-        
-        let task2 = StudyTask(
-            title: "Read Chapter 4",
-            dueDate: Calendar.current.date(byAdding: .day, value: 3, to: Date()),
-            priority: .medium,
-            subject: historySubject,
-            isFlagged: false,
-            notes: "Take notes on key figures."
-        )
-        
-        context.insert(task1)
-        context.insert(task2)
-        
-        let grade1 = GradeEntry(
-            date: Calendar.current.date(byAdding: .day, value: -5, to: Date())!,
-            grade: 9.0,
-            weight: 30.0,
-            description: "Midterm Exam"
-        )
-        grade1.subject = mathSubject
-        context.insert(grade1)
-    }
+// AppUser Struct
+struct AppUser: Codable, Equatable {
+    let id: String
+    var firstName: String
+    var lastName: String
+    var email: String?
+    var schoolName: String
+    var gradeLevel: String
+    var major: String?
+    var academicYear: String
+    var profileImageData: Data?
+    
+    var fullName: String { "\(firstName) \(lastName)" }
+    static func == (lhs: AppUser, rhs: AppUser) -> Bool { return lhs.id == rhs.id }
 }

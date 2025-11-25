@@ -34,6 +34,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				Views/NotificationSettingsView.swift,
 			);
 			target = BC53B6A92EC7B59800CFB6B1 /* Classlly */;
 		};

@@ -1,11 +1,11 @@
 import SwiftUI
-import SwiftData
 
 struct ProfileSetupView: View {
     @Environment(\.dismiss) var dismiss
-    @Environment(\.modelContext) var modelContext // --- ADDED ---
     @EnvironmentObject var authManager: AuthenticationManager
-    let user: UserProfile
+    
+    // FIX: Changed to AppUser
+    let user: AppUser
     
     @State private var firstName: String
     @State private var lastName: String
@@ -23,7 +23,8 @@ struct ProfileSetupView: View {
         "Music", "Architecture", "Education", "Nursing", "Other"
     ]
     
-    init(user: UserProfile) {
+    // FIX: Init with AppUser
+    init(user: AppUser) {
         self.user = user
         _firstName = State(initialValue: user.firstName)
         _lastName = State(initialValue: user.lastName)
@@ -38,7 +39,6 @@ struct ProfileSetupView: View {
                         TextField("Last Name", text: $lastName)
                     }
                 }
-                
                 Section(header: Text("Academic Information")) {
                     TextField("School/University Name", text: $schoolName)
                         .textInputAutocapitalization(.words)
@@ -64,14 +64,7 @@ struct ProfileSetupView: View {
                         }
                     }
                 }
-                
-                Section(header: Text("Additional Information (Optional)")) {
-                    NavigationLink("Add More Details") {
-                        AdditionalDetailsView()
-                    }
-                }
-                
-                Section(footer: Text("By completing your profile, you agree to our Terms of Service and Privacy Policy")) {
+                Section(footer: Text("By completing your profile, you agree to our Terms of Service")) {
                     EmptyView()
                 }
             }
@@ -80,98 +73,39 @@ struct ProfileSetupView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
-                        // --- FIX: Pass context to signOut ---
-                        authManager.signOut(context: modelContext)
+                        authManager.signOut()
                         dismiss()
                     }
                     .foregroundColor(.themeError)
                 }
-                
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Continue") {
-                        completeProfile()
-                    }
-                    .disabled(!isFormValid)
-                    .fontWeight(.semibold)
+                    Button("Continue") { completeProfile() }
+                        .disabled(!isFormValid)
+                        .fontWeight(.semibold)
                 }
             }
         }
     }
     
     private var isFormValid: Bool {
-        !firstName.isEmpty &&
-        !lastName.isEmpty &&
-        !schoolName.isEmpty &&
-        !educationLevel.isEmpty &&
-        !academicYear.isEmpty
+        !firstName.isEmpty && !lastName.isEmpty && !schoolName.isEmpty && !educationLevel.isEmpty && !academicYear.isEmpty
     }
     
     private func completeProfile() {
-        let completedProfile = UserProfile(
+        // FIX: Create AppUser
+        let completedProfile = AppUser(
             id: user.id,
             firstName: firstName,
             lastName: lastName,
             email: user.email,
             schoolName: schoolName,
-            gradeLevel: educationLevel,
+            gradeLevel: educationLevel, // educationLevel maps to gradeLevel
             major: major.isEmpty ? nil : major,
             academicYear: academicYear,
             profileImageData: nil
         )
         
-        // --- FIX: Pass context to completeProfileSetup ---
-        authManager.completeProfileSetup(profile: completedProfile, context: modelContext)
+        authManager.completeProfileSetup(profile: completedProfile)
         dismiss()
-    }
-}
-
-struct AdditionalDetailsView: View {
-    @State private var studentID = ""
-    @State private var expectedGraduation = ""
-    @State private var gpa = ""
-    @State private var campusLocation = ""
-    @State private var learningStyle = ""
-    @State private var studyPreferences = ""
-    
-    private let learningStyles = ["Visual", "Auditory", "Kinesthetic", "Reading/Writing", "Mixed"]
-    private let studyPreferencesList = ["Morning", "Afternoon", "Evening", "Night", "Flexible"]
-    
-    var body: some View {
-        Form {
-            Section(header: Text("Student Details")) {
-                TextField("Student ID (Optional)", text: $studentID)
-                    .keyboardType(.numbersAndPunctuation)
-                
-                TextField("Expected Graduation Year", text: $expectedGraduation)
-                    .keyboardType(.numberPad)
-                
-                TextField("Current GPA (Optional)", text: $gpa)
-                    .keyboardType(.decimalPad)
-                
-                TextField("Campus Location", text: $campusLocation)
-            }
-            
-            Section(header: Text("Learning Preferences")) {
-                Picker("Learning Style", selection: $learningStyle) {
-                    Text("Select Learning Style").tag("")
-                    ForEach(learningStyles, id: \.self) { style in
-                        Text(style).tag(style)
-                    }
-                }
-                
-                Picker("Preferred Study Time", selection: $studyPreferences) {
-                    Text("Select Study Time").tag("")
-                    ForEach(studyPreferencesList, id: \.self) { preference in
-                        Text(preference).tag(preference)
-                    }
-                }
-            }
-            
-            Section(footer: Text("These details help us customize your study recommendations and schedule optimizations.")) {
-                EmptyView()
-            }
-        }
-        .navigationTitle("Additional Details")
-        .navigationBarTitleDisplayMode(.inline)
     }
 }
