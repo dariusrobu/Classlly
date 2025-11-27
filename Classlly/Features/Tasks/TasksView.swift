@@ -5,6 +5,10 @@ struct TasksView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject var themeManager: AppTheme
+    
+    // Detect iPad
+    @Environment(\.horizontalSizeClass) var sizeClass
+    
     @AppStorage("isGamifiedMode") private var isGamifiedMode = false
     
     @State private var showingAddTask = false
@@ -56,10 +60,16 @@ struct TasksView: View {
         }
     }
     
+    // iPad Layout Constraint
+    private var contentMaxWidth: CGFloat {
+        sizeClass == .regular ? 600 : .infinity
+    }
+    
     var body: some View {
-        // NavigationStack/View is handled by ContentView, so we use a simple container
+        // NavigationStack is handled by ContentView
         VStack(spacing: 0) {
-            // Filter Bar
+            
+            // 1. Filter Bar (Fixed Layout)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(TaskFilter.allCases, id: \.self) { filter in
@@ -79,11 +89,17 @@ struct TasksView: View {
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 12)
+                // Center the filter list on iPad
+                .frame(minWidth: sizeClass == .regular ? 0 : UIScreen.main.bounds.width, alignment: .center)
             }
+            .frame(maxWidth: contentMaxWidth) // Constrain width on iPad
+            .background(Color.themeBackground) // ✅ Applied directly to ScrollView
             
-            // Content
+            // 2. Content (Centered)
             if filteredTasks.isEmpty {
                 TasksEmptyStateView(filter: taskFilter, isGamified: isGamifiedMode)
+                    .frame(maxWidth: contentMaxWidth)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     LazyVStack(spacing: isGamifiedMode ? 12 : 0) {
@@ -105,9 +121,12 @@ struct TasksView: View {
                         }
                     }
                     .padding(.vertical, 20)
+                    .frame(maxWidth: contentMaxWidth) // iPad width constraint
                 }
+                .frame(maxWidth: .infinity) // Center ScrollView
             }
         }
+        // ✅ Removed top padding to close the gap
         .background(Color.themeBackground)
         .navigationTitle("Tasks")
         .navigationBarTitleDisplayMode(.inline)

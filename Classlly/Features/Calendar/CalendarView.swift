@@ -1,6 +1,6 @@
 import SwiftUI
-import Combine
 import SwiftData
+import Combine
 
 // MARK: - Calendar Event Wrapper
 enum CalendarEvent: Identifiable {
@@ -150,30 +150,11 @@ struct CalendarView: View {
     }
 
     var body: some View {
-        // Navigation is handled by ContentView, so no NavigationView here
-        Group {
-            if sizeClass == .regular {
-                // iPad Layout (Side-by-Side)
-                HStack(alignment: .top, spacing: 24) {
-                    VStack(spacing: 20) {
-                        calendarContent
-                    }
-                    .frame(maxWidth: 400)
-                    
-                    ScrollView {
-                        eventsContent
-                            .padding(.top)
-                    }
-                }
-                .padding()
-            } else {
-                // iPhone Layout (Vertical Stack)
-                ScrollView {
-                    VStack(spacing: 0) {
-                        calendarContent
-                        eventsContent
-                    }
-                }
+        // ✅ Unified Vertical Layout (iPad & iPhone)
+        ScrollView {
+            VStack(spacing: 0) {
+                calendarContent
+                eventsContent
             }
         }
         .background(Color.themeBackground)
@@ -298,7 +279,8 @@ struct CalendarView: View {
                 )
                 .padding(.horizontal)
             } else {
-                LazyVStack(spacing: isGamifiedMode ? 12 : 12) {
+                // Responsive Grid for Events on iPad
+                LazyVGrid(columns: sizeClass == .regular ? [GridItem(.flexible()), GridItem(.flexible())] : [GridItem(.flexible())], spacing: 12) {
                     ForEach(eventsForSelectedDate) { event in
                         if isGamifiedMode {
                             GamifiedEventCard(
@@ -438,7 +420,7 @@ struct WeeklyDayCell: View {
         VStack(spacing: 4) {
             Text("\(Calendar.current.component(.day, from: date))")
                 .font(.system(size: 16, weight: .medium))
-                .foregroundColor(isSelected ? .white : (isToday ? themeColor : .primary))
+                .foregroundColor(isSelected ? .white : (isToday ? themeColor : .themeTextPrimary))
                 .frame(height: 40)
                 .frame(maxWidth: .infinity)
                 .background(
@@ -500,7 +482,7 @@ struct EventRow: View {
                 
                 Text(event.title)
                     .font(.headline)
-                    .foregroundColor(.primary)
+                    .foregroundColor(.themeTextPrimary)
                 
                 HStack {
                     Image(systemName: event.icon)
@@ -508,13 +490,13 @@ struct EventRow: View {
                     Text(event.subtitle)
                         .font(.subheadline)
                 }
-                .foregroundColor(.secondary)
+                .foregroundColor(.themeTextSecondary)
             }
             
             Spacer()
             
             Image(systemName: "chevron.right")
-                .foregroundColor(.secondary)
+                .foregroundColor(.themeTextSecondary)
         }
         .padding()
         .background(Color.themeSurface)
@@ -583,10 +565,10 @@ struct CalendarEmptyStateView: View {
             VStack(spacing: 8) {
                 Text(title)
                     .font(.headline)
-                    .foregroundColor(.primary)
+                    .foregroundColor(.themeTextPrimary)
                 Text(message)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.themeTextSecondary)
                     .multilineTextAlignment(.center)
             }
         }

@@ -1,14 +1,3 @@
-//
-//  PrivacyPolicyView.swift
-//  Classlly
-//
-//  Created by Robu Darius on 14.11.2025.
-//
-
-
-// File: Classlly/Views/PrivacyPolicyView.swift
-// Note: This view displays the app's privacy policy.
-
 import SwiftUI
 
 struct PrivacyPolicyView: View {
@@ -18,140 +7,142 @@ struct PrivacyPolicyView: View {
     public init() {}
     
     var body: some View {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Header
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Privacy Policy")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                        
-                        Text("Last updated: \(Date().formatted(date: .abbreviated, time: .omitted))")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.bottom, 10)
-                    .background(Color.themeBackground) // <-- ADD THIS LINE
-                    .navigationTitle("Privacy Policy")
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                // Header
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Privacy Policy")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
                     
-                    // Introduction
-                    PolicySection(title: "Introduction") {
-                        Text("Classlly (\"we,\" \"our,\" or \"us\") is committed to protecting your privacy. This Privacy Policy explains how your personal information is collected, used, and disclosed by Classlly.")
-                    }
-                    
-                    // Information We Collect
-                    PolicySection(title: "Information We Collect") {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("We collect information you provide directly to us:")
-                                .fontWeight(.medium)
-                            
-                            BulletPoint("Account Information: Your name, email address, and academic information when you create an account")
-                            BulletPoint("Academic Data: Your subjects, tasks, grades, and schedule information")
-                            BulletPoint("Usage Data: How you interact with our app to improve user experience")
-                            BulletPoint("Device Information: Basic device information for app functionality")
-                        }
-                    }
-                    
-                    // How We Use Your Information
-                    PolicySection(title: "How We Use Your Information") {
-                        VStack(alignment: .leading, spacing: 12) {
-                            BulletPoint("To provide and maintain the Classlly service")
-                            BulletPoint("To personalize your academic experience")
-                            BulletPoint("To send you important updates and notifications")
-                            BulletPoint("To improve our app and develop new features")
-                            BulletPoint("To analyze usage patterns and optimize performance")
-                        }
-                    }
-                    
-                    // Data Storage and Security
-                    PolicySection(title: "Data Storage and Security") {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Your data is stored securely on your device and in iCloud (if enabled). We implement appropriate technical and organizational measures to protect your personal information.")
-                            
-                            BulletPoint("Local Storage: Your data is primarily stored on your device")
-                            BulletPoint("iCloud Sync: Optional iCloud synchronization for backup across devices")
-                            BulletPoint("Encryption: Data is encrypted in transit and at rest")
-                            BulletPoint("No Third-Party Sharing: We don't sell your data to third parties")
-                        }
-                    }
-                    
-                    // Your Rights
-                    PolicySection(title: "Your Rights") {
-                        VStack(alignment: .leading, spacing: 12) {
-                            BulletPoint("Access: You can access your personal data at any time")
-                            BulletPoint("Correction: You can update or correct your information")
-                            BulletPoint("Deletion: You can delete your account and all associated data")
-                            BulletPoint("Export: You can export your data from the app")
-                            BulletPoint("Opt-out: You can disable notifications and data collection")
-                        }
-                    }
-                    
-                    // Children's Privacy
-                    PolicySection(title: "Children's Privacy") {
-                        Text("Classlly is designed for students of all ages. We comply with applicable children's privacy regulations. For users under 13, we require parental consent for data collection.")
-                    }
-                    
-                    // Changes to This Policy
-                    PolicySection(title: "Changes to This Policy") {
-                        Text("We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the \"Last updated\" date.")
-                    }
-                    
-                    // Contact Us
-                    PolicySection(title: "Contact Us") {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("If you have any questions about this Privacy Policy, please contact us:")
-                            
-                            Button(action: {
-                                if let url = URL(string: "mailto:privacy@classlly.app") {
-                                    UIApplication.shared.open(url)
-                                }
-                            }) {
-                                HStack {
-                                    Image(systemName: "envelope")
-                                    Text("privacy@classlly.app")
-                                }
-                                .foregroundColor(.themePrimary)
-                            }
-                            
-                            Button(action: {
-                                if let url = URL(string: "https://classlly.app/support") {
-                                    UIApplication.shared.open(url)
-                                }
-                            }) {
-                                HStack {
-                                    Image(systemName: "globe")
-                                    Text("Visit our website")
-                                }
-                                .foregroundColor(.themePrimary)
-                            }
-                        }
-                    }
-                    
-                    // Agreement
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("By using Classlly, you agree to the collection and use of information in accordance with this policy.")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        
-                        Text("This policy is effective as of the date above.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.top, 10)
+                    Text("Last updated: \(Date().formatted(date: .abbreviated, time: .omitted))")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
-                .padding()
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
+                .padding(.bottom, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                // Introduction
+                PolicySection(title: "Introduction") {
+                    Text("Classlly (\"we,\" \"our,\" or \"us\") is committed to protecting your privacy. This Privacy Policy explains how your personal information is collected, used, and disclosed by Classlly.")
+                }
+                
+                // Information We Collect
+                PolicySection(title: "Information We Collect") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("We collect information you provide directly to us:")
+                            .fontWeight(.medium)
+                        
+                        BulletPoint("Account Information: Your name, email address, and academic information when you create an account")
+                        BulletPoint("Academic Data: Your subjects, tasks, grades, and schedule information")
+                        BulletPoint("Usage Data: How you interact with our app to improve user experience")
+                        BulletPoint("Device Information: Basic device information for app functionality")
                     }
+                }
+                
+                // How We Use Your Information
+                PolicySection(title: "How We Use Your Information") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        BulletPoint("To provide and maintain the Classlly service")
+                        BulletPoint("To personalize your academic experience")
+                        BulletPoint("To send you important updates and notifications")
+                        BulletPoint("To improve our app and develop new features")
+                        BulletPoint("To analyze usage patterns and optimize performance")
+                    }
+                }
+                
+                // Data Storage and Security
+                PolicySection(title: "Data Storage and Security") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Your data is stored securely on your device and in iCloud (if enabled). We implement appropriate technical and organizational measures to protect your personal information.")
+                        
+                        BulletPoint("Local Storage: Your data is primarily stored on your device")
+                        BulletPoint("iCloud Sync: Optional iCloud synchronization for backup across devices")
+                        BulletPoint("Encryption: Data is encrypted in transit and at rest")
+                        BulletPoint("No Third-Party Sharing: We don't sell your data to third parties")
+                    }
+                }
+                
+                // Your Rights
+                PolicySection(title: "Your Rights") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        BulletPoint("Access: You can access your personal data at any time")
+                        BulletPoint("Correction: You can update or correct your information")
+                        BulletPoint("Deletion: You can delete your account and all associated data")
+                        BulletPoint("Export: You can export your data from the app")
+                        BulletPoint("Opt-out: You can disable notifications and data collection")
+                    }
+                }
+                
+                // Children's Privacy
+                PolicySection(title: "Children's Privacy") {
+                    Text("Classlly is designed for students of all ages. We comply with applicable children's privacy regulations. For users under 13, we require parental consent for data collection.")
+                }
+                
+                // Changes to This Policy
+                PolicySection(title: "Changes to This Policy") {
+                    Text("We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the \"Last updated\" date.")
+                }
+                
+                // Contact Us
+                PolicySection(title: "Contact Us") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("If you have any questions about this Privacy Policy, please contact us:")
+                        
+                        // Updated Email
+                        Button(action: {
+                            if let url = URL(string: "mailto:simply.team@gmail.com") {
+                                UIApplication.shared.open(url)
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "envelope")
+                                Text("simply.team@gmail.com")
+                            }
+                            .foregroundColor(.themePrimary)
+                        }
+                        
+                        // Updated Feedback Link
+                        Button(action: {
+                            if let url = URL(string: "https://docs.google.com/forms/d/e/1FAIpQLSfzjE5gniTURrhjKUaOxNtnDsVFK_W2MZo_IwVEq3GTRv9DKg/viewform?usp=dialog") {
+                                UIApplication.shared.open(url)
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "bubble.left.and.bubble.right.fill") // Changed icon to represent feedback
+                                Text("Give us your opinion here")
+                            }
+                            .foregroundColor(.themePrimary)
+                        }
+                    }
+                }
+                
+                // Agreement
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("By using Classlly, you agree to the collection and use of information in accordance with this policy.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Text("This policy is effective as of the date above.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.top, 10)
+            }
+            .padding()
+        }
+        .background(Color.themeBackground)
+        .navigationTitle("Privacy Policy")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Done") {
+                    dismiss()
                 }
             }
         }
     }
-
+}
 
 struct PolicySection<Content: View>: View {
     let title: String

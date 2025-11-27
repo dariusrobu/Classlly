@@ -1,30 +1,26 @@
-//
-//  DemoDataSeeder.swift
-//  Classlly
-//
-//  Created by Robu Darius on 25.11.2025.
-//
-
-
 import SwiftUI
 import SwiftData
 
 @MainActor
 class DemoDataSeeder {
-    static func seed(context: ModelContext) {
-        // 1. Check if data already exists to prevent duplicates
-        // We fetch subjects to see if the DB is empty
-        let descriptor = FetchDescriptor<Subject>()
-        if let existingCount = try? context.fetchCount(descriptor), existingCount > 0 {
-            print("Data already exists. Skipping seed.")
+    static func seed(context: ModelContext, force: Bool = false) {
+        // 1. Check if data exists
+        let subjectDescriptor = FetchDescriptor<Subject>()
+        let taskDescriptor = FetchDescriptor<StudyTask>()
+        
+        let subjectCount = (try? context.fetchCount(subjectDescriptor)) ?? 0
+        let taskCount = (try? context.fetchCount(taskDescriptor)) ?? 0
+        
+        // If we have data and aren't forcing a seed, skip
+        if !force && (subjectCount > 0 || taskCount > 0) {
+            print("✅ Data already exists. Skipping seed.")
             return
         }
         
-        print("Seeding demo data...")
+        print("🌱 Seeding demo data...")
         
         // --- 2. Create Subjects ---
         
-        // Subject 1: Mathematics (Weekly)
         let math = Subject(
             title: "Mathematics",
             courseTeacher: "Dr. Alan Turing",
@@ -36,13 +32,13 @@ class DemoDataSeeder {
             courseFrequency: .weekly,
             seminarTeacher: "Mrs. Lovelace",
             seminarClassroom: "Lab A",
+            seminarDate: Date(),
             seminarStartTime: date(hour: 11, minute: 0),
             seminarEndTime: date(hour: 12, minute: 0),
             seminarDays: [5], // Thu
             seminarFrequency: .weekly
         )
         
-        // Subject 2: Computer Science (Bi-weekly)
         let cs = Subject(
             title: "Computer Science",
             courseTeacher: "Prof. Grace Hopper",
@@ -54,11 +50,13 @@ class DemoDataSeeder {
             courseFrequency: .biweeklyOdd,
             seminarTeacher: "",
             seminarClassroom: "",
+            seminarDate: Date(),
+            seminarStartTime: date(hour: 0, minute: 0),
+            seminarEndTime: date(hour: 0, minute: 0),
             seminarDays: [],
             seminarFrequency: .weekly
         )
         
-        // Subject 3: History (Weekly)
         let history = Subject(
             title: "World History",
             courseTeacher: "Mr. Herodotus",
@@ -70,6 +68,7 @@ class DemoDataSeeder {
             courseFrequency: .weekly,
             seminarTeacher: "Ms. Clio",
             seminarClassroom: "Room 202",
+            seminarDate: Date(),
             seminarStartTime: date(hour: 13, minute: 0),
             seminarEndTime: date(hour: 14, minute: 0),
             seminarDays: [3], // Tue
@@ -83,13 +82,12 @@ class DemoDataSeeder {
         // --- 3. Add Grades ---
         
         let grades = [
-            GradeEntry(date: daysAgo(10), grade: 9.5, description: "Calculus Midterm"), // Math
-            GradeEntry(date: daysAgo(5), grade: 8.0, description: "Algebra Quiz"),      // Math
-            GradeEntry(date: daysAgo(15), grade: 10.0, description: "Algorithm Project"), // CS
-            GradeEntry(date: daysAgo(2), grade: 7.5, description: "Ancient Rome Essay")   // History
+            GradeEntry(date: daysAgo(10), grade: 9.5, description: "Calculus Midterm"),
+            GradeEntry(date: daysAgo(5), grade: 8.0, description: "Algebra Quiz"),
+            GradeEntry(date: daysAgo(15), grade: 10.0, description: "Algorithm Project"),
+            GradeEntry(date: daysAgo(2), grade: 7.5, description: "Ancient Rome Essay")
         ]
         
-        // Associate grades
         grades[0].subject = math
         grades[1].subject = math
         grades[2].subject = cs
@@ -119,13 +117,19 @@ class DemoDataSeeder {
             StudyTask(title: "Complete Math Problem Set", isCompleted: false, dueDate: daysFromNow(1), priority: .high, subject: math),
             StudyTask(title: "Read CS Chapter 4", isCompleted: false, dueDate: daysFromNow(3), priority: .medium, subject: cs),
             StudyTask(title: "History Essay Outline", isCompleted: true, dueDate: daysAgo(1), priority: .low, subject: history),
-            StudyTask(title: "Register for Exams", isCompleted: false, dueDate: daysFromNow(7), priority: .high, subject: nil), // General task
+            StudyTask(title: "Register for Exams", isCompleted: false, dueDate: daysFromNow(7), priority: .high, subject: nil),
             StudyTask(title: "Buy Textbooks", isCompleted: false, dueDate: nil, priority: .medium, subject: nil)
         ]
         
         tasks.forEach { context.insert($0) }
         
-        print("✅ Demo data seeded successfully!")
+        // Save immediately
+        do {
+            try context.save()
+            print("✅ Demo data seeded and saved!")
+        } catch {
+            print("❌ Failed to save demo data: \(error)")
+        }
     }
     
     // Helpers
