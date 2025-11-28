@@ -64,6 +64,31 @@ struct SubjectDetailView: View {
         return gradeXP + attendanceXP
     }
     
+    private var gradeTrend: (icon: String, color: Color, description: String) {
+        let history = subject.gradeHistory ?? []
+        guard history.count >= 2 else {
+            return ("minus.circle", .gray, "No trend data")
+        }
+        
+        let sortedGrades = history.sorted { $0.date > $1.date }
+        
+        guard sortedGrades.count >= 2,
+              let first = sortedGrades.first?.grade,
+              let second = sortedGrades.dropFirst().first?.grade else {
+            return ("minus.circle", .gray, "No trend data")
+        }
+        
+        let diff = first - second
+        
+        if diff > 0.3 {
+            return ("arrow.up.circle.fill", .themeSuccess, "Improving")
+        } else if diff < -0.3 {
+            return ("arrow.down.circle.fill", .themeError, "Declining")
+        } else {
+            return ("minus.circle", .themeTextSecondary, "Stable")
+        }
+    }
+    
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
@@ -442,17 +467,7 @@ struct GamifiedHeader: View {
             }
             .font(.subheadline).foregroundColor(.white.opacity(0.9))
         }
-        .padding(30)
-        .frame(maxWidth: .infinity)
-        .background(
-            LinearGradient(
-                gradient: Gradient(colors: [themeColor, themeColor.opacity(0.7)]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 0))
-        .shadow(radius: 5)
+        .padding(30).frame(maxWidth: .infinity).background(LinearGradient(gradient: Gradient(colors: [themeColor, themeColor.opacity(0.7)]), startPoint: .topLeading, endPoint: .bottomTrailing)).clipShape(RoundedRectangle(cornerRadius: 0)).shadow(radius: 5)
     }
 }
 
@@ -476,14 +491,9 @@ struct GamifiedActionButton: View {
     var body: some View {
         Button(action: action) {
             VStack(spacing: 6) {
-                ZStack {
-                    Circle().fill(color.opacity(0.15)).frame(width: 56, height: 56)
-                    Image(systemName: icon).font(.system(size: 22, weight: .bold)).foregroundColor(color)
-                }
+                ZStack { Circle().fill(color.opacity(0.15)).frame(width: 56, height: 56); Image(systemName: icon).font(.system(size: 22, weight: .bold)).foregroundColor(color) }
                 Text(label).font(.caption).fontWeight(.bold).foregroundColor(.primary)
-                if !badge.isEmpty {
-                    Text(badge).font(.caption2).fontWeight(.heavy).foregroundColor(color)
-                }
+                if !badge.isEmpty { Text(badge).font(.caption2).fontWeight(.heavy).foregroundColor(color) }
             }
         }
     }
@@ -491,17 +501,7 @@ struct GamifiedActionButton: View {
 
 struct GamifiedSectionTitle: View {
     let title: String; let themeColor: Color
-    var body: some View {
-        HStack {
-            Text(title.uppercased())
-                .font(.caption)
-                .fontWeight(.black)
-                .foregroundColor(.secondary)
-                .padding(.horizontal)
-            Spacer()
-        }
-        .padding(.top, 10)
-    }
+    var body: some View { HStack { Text(title.uppercased()).font(.caption).fontWeight(.black).foregroundColor(.secondary).padding(.horizontal); Spacer() }.padding(.top, 10) }
 }
 
 // ✅ NEW: Gamified Academic Summary Grid (Stats Inventory)
@@ -509,54 +509,32 @@ struct GamifiedAcademicSummaryGrid: View {
     let subject: Subject
     let averageGrade: Double?
     let themeColor: Color
-    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-            GamifiedStatBox(title: "Total Grades", value: "\((subject.gradeHistory ?? []).count)", icon: "star.fill", color: .yellow, themeColor: themeColor)
-            GamifiedStatBox(title: "Attended", value: "\(subject.attendedClasses)/\(subject.totalClasses)", icon: "checkmark.seal.fill", color: .green, themeColor: themeColor)
-            GamifiedStatBox(title: "Attendance", value: "\(Int(subject.attendanceRate * 100))%", icon: "percent", color: .cyan, themeColor: themeColor)
-            GamifiedStatBox(title: "Avg Grade", value: averageGrade != nil ? String(format: "%.1f", averageGrade!) : "-", icon: "graduationcap.fill", color: themeColor, themeColor: themeColor)
+            GamifiedStatBox(title: "Total Grades", value: "\((subject.gradeHistory ?? []).count)", icon: "star.fill", color: .yellow)
+            GamifiedStatBox(title: "Attended", value: "\(subject.attendedClasses)/\(subject.totalClasses)", icon: "checkmark.seal.fill", color: .green)
+            GamifiedStatBox(title: "Attendance", value: "\(Int(subject.attendanceRate * 100))%", icon: "percent", color: .cyan)
+            GamifiedStatBox(title: "Avg Grade", value: averageGrade != nil ? String(format: "%.1f", averageGrade!) : "-", icon: "graduationcap.fill", color: themeColor)
         }
         .padding(.horizontal)
     }
 }
 
 struct GamifiedStatBox: View {
-    let title: String; let value: String; let icon: String; let color: Color; let themeColor: Color
-    @Environment(\.colorScheme) var colorScheme
-    
+    let title: String; let value: String; let icon: String; let color: Color
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Image(systemName: icon).foregroundColor(color).font(.title3)
-                Spacer()
-            }
+            HStack { Image(systemName: icon).foregroundColor(color).font(.title3); Spacer() }
             Text(value).font(.title2).fontWeight(.black).foregroundColor(.primary)
             Text(title.uppercased()).font(.caption2).fontWeight(.bold).foregroundColor(.secondary)
-        }
-        .padding()
-        .background(
-            // TINTED BACKGROUND for Light Mode / Standard Background for Dark Mode
-            ZStack {
-                Color.themeSurface
-                color.opacity(colorScheme == .dark ? 0.1 : 0.05) // Subtle color tint
-            }
-        )
-        .cornerRadius(20)
-        .shadow(color: color.opacity(0.2), radius: 8, x: 0, y: 4)
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(color.opacity(0.3), lineWidth: 2)
-        )
+        }.padding().background(Color.themeSurface).cornerRadius(20).shadow(color: color.opacity(0.15), radius: 8, x: 0, y: 4).overlay(RoundedRectangle(cornerRadius: 20).stroke(color.opacity(0.3), lineWidth: 2))
     }
 }
 
-// ✅ NEW: Gamified Subject Details (Mission Cards)
+// ✅ NEW: Gamified Subject Details Section (Mission Cards)
 struct GamifiedSubjectDetailsSection: View {
     let subject: Subject; let themeColor: Color
-    @Environment(\.colorScheme) var colorScheme
-    
     var body: some View {
         VStack(spacing: 16) {
             // Course Mission Card
@@ -567,13 +545,13 @@ struct GamifiedSubjectDetailsSection: View {
                         Spacer()
                         GamifiedInfoRow(label: "Room", value: subject.courseClassroom, icon: "mappin.circle.fill")
                     }
-                    Divider().background(Color.primary.opacity(0.2))
+                    Divider().background(Color.white.opacity(0.2))
                     HStack {
                         GamifiedInfoRow(label: "Days", value: subject.courseDaysString, icon: "calendar")
                         Spacer()
                         GamifiedInfoRow(label: "Time", value: subject.courseTimeString, icon: "clock.fill")
                     }
-                }
+                }.foregroundColor(.white)
             }
             
             // Seminar Mission Card
@@ -585,30 +563,29 @@ struct GamifiedSubjectDetailsSection: View {
                             Spacer()
                             GamifiedInfoRow(label: "Room", value: subject.seminarClassroom, icon: "mappin.circle.fill")
                         }
-                        Divider().background(Color.primary.opacity(0.2))
+                        Divider().background(Color.white.opacity(0.2))
                         HStack {
                             GamifiedInfoRow(label: "Days", value: subject.seminarDaysString, icon: "calendar")
                             Spacer()
                             GamifiedInfoRow(label: "Time", value: subject.seminarTimeString, icon: "clock.fill")
                         }
-                    }
+                    }.foregroundColor(.white)
                 }
             }
         }.padding(.horizontal)
     }
 }
 
+// Helper for Gamified Subject Details
 struct GamifiedInfoRow: View {
     let label: String; let value: String; let icon: String
-    @Environment(\.colorScheme) var colorScheme
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 4) {
-                Image(systemName: icon).font(.caption).foregroundColor(.secondary)
-                Text(label.uppercased()).font(.caption2).fontWeight(.bold).foregroundColor(.secondary)
+                Image(systemName: icon).font(.caption).foregroundColor(.white.opacity(0.8))
+                Text(label.uppercased()).font(.caption2).fontWeight(.bold).foregroundColor(.white.opacity(0.6))
             }
-            Text(value).font(.subheadline).fontWeight(.bold).foregroundColor(.primary).fixedSize(horizontal: false, vertical: true)
+            Text(value).font(.subheadline).fontWeight(.bold).foregroundColor(.white).fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -616,33 +593,12 @@ struct GamifiedInfoRow: View {
 
 struct GamifiedMissionCard<Content: View>: View {
     let title: String; let subtitle: String; let icon: String; let color: Color; let content: Content
-    @Environment(\.colorScheme) var colorScheme
-    
     init(title: String, subtitle: String, icon: String, color: Color, @ViewBuilder content: () -> Content) { self.title = title; self.subtitle = subtitle; self.icon = icon; self.color = color; self.content = content() }
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                VStack(alignment: .leading) {
-                    Text(subtitle.uppercased()).font(.caption2).fontWeight(.black).opacity(0.7).foregroundColor(color)
-                    Text(title).font(.title3).fontWeight(.heavy).foregroundColor(.primary)
-                }
-                Spacer()
-                Image(systemName: icon).font(.largeTitle).opacity(0.3).foregroundColor(color)
-            }
-            
+            HStack { VStack(alignment: .leading) { Text(subtitle.uppercased()).font(.caption2).fontWeight(.black).opacity(0.7); Text(title).font(.title3).fontWeight(.heavy) }; Spacer(); Image(systemName: icon).font(.largeTitle).opacity(0.3) }.foregroundColor(.white)
             content
-        }
-        .padding(20)
-        .background(
-            ZStack {
-                Color.themeSurface
-                color.opacity(colorScheme == .dark ? 0.1 : 0.05)
-            }
-        )
-        .cornerRadius(24)
-        .shadow(color: color.opacity(0.2), radius: 8, x: 0, y: 4)
-        .overlay(RoundedRectangle(cornerRadius: 24).stroke(color.opacity(0.3), lineWidth: 2))
+        }.padding(20).background(LinearGradient(gradient: Gradient(colors: [color, color.opacity(0.7)]), startPoint: .topLeading, endPoint: .bottomTrailing)).cornerRadius(24).shadow(color: color.opacity(0.4), radius: 8, x: 0, y: 4)
     }
 }
 
@@ -661,8 +617,6 @@ struct StandardTabSelector: View {
 
 struct GamifiedGradeRow: View {
     let grade: GradeEntry; let themeColor: Color
-    @Environment(\.colorScheme) var colorScheme
-    
     var body: some View {
         HStack(spacing: 16) {
             ZStack { Image(systemName: "shield.fill").resizable().frame(width: 48, height: 54).foregroundColor(rankColor); VStack(spacing: 0) { Text(rankLetter).font(.title2).fontWeight(.black).foregroundColor(.white) } }.shadow(color: rankColor.opacity(0.5), radius: 4)
@@ -670,15 +624,7 @@ struct GamifiedGradeRow: View {
             Spacer()
             Text(String(format: "%.1f", grade.grade)).font(.title3).fontWeight(.bold).foregroundColor(rankColor)
         }
-        .padding()
-        .background(
-             ZStack {
-                 Color.themeSurface
-                 rankColor.opacity(colorScheme == .dark ? 0.1 : 0.05)
-             }
-         )
-        .cornerRadius(16)
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(rankColor.opacity(0.3), lineWidth: 1.5))
+        .padding().background(Color.themeSurface).cornerRadius(16).overlay(RoundedRectangle(cornerRadius: 16).stroke(rankColor.opacity(0.3), lineWidth: 1.5))
     }
     var rankLetter: String { if grade.grade >= 9.5 { return "S" } else if grade.grade >= 8.5 { return "A" } else if grade.grade >= 7.0 { return "B" } else if grade.grade >= 5.0 { return "C" } else { return "F" } }
     var rankColor: Color { if grade.grade >= 9.5 { return .purple } else if grade.grade >= 8.5 { return .green } else if grade.grade >= 7.0 { return .blue } else if grade.grade >= 5.0 { return .gray } else { return .red } }
@@ -687,8 +633,6 @@ struct GamifiedGradeRow: View {
 
 struct GamifiedAttendanceRow: View {
     let attendance: AttendanceEntry; let themeColor: Color
-    @Environment(\.colorScheme) var colorScheme
-    
     var body: some View {
         HStack {
             ZStack { Circle().fill(attendance.attended ? Color.green.opacity(0.2) : Color.red.opacity(0.2)).frame(width: 44, height: 44); Image(systemName: attendance.attended ? "checkmark.shield.fill" : "exclamationmark.shield.fill").font(.title3).foregroundColor(attendance.attended ? .green : .red) }
@@ -696,23 +640,13 @@ struct GamifiedAttendanceRow: View {
             Spacer()
             Text(attendance.attended ? "+50 XP" : "0 XP").font(.caption).fontWeight(.bold).padding(6).background(attendance.attended ? Color.green : Color.red).foregroundColor(.white).cornerRadius(8)
         }
-        .padding()
-        .background(
-            ZStack {
-                Color.themeSurface
-                (attendance.attended ? Color.green : Color.red).opacity(colorScheme == .dark ? 0.1 : 0.05)
-            }
-        )
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 2)
+        .padding().background(Color.themeSurface).cornerRadius(16).shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 2)
     }
     private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateStyle = .medium; return f.string(from: date) }
 }
 
 struct GamifiedTaskRowPreview: View {
     let task: StudyTask; let themeColor: Color
-    @Environment(\.colorScheme) var colorScheme
-    
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: task.isCompleted ? "scroll.fill" : "scroll").font(.largeTitle).foregroundColor(task.isCompleted ? .yellow : .secondary)
@@ -720,15 +654,7 @@ struct GamifiedTaskRowPreview: View {
             Spacer()
             if let date = task.dueDate { Text(formatDate(date)).font(.caption).padding(6).background(Color.gray.opacity(0.1)).cornerRadius(8) }
         }
-        .padding()
-        .background(
-            ZStack {
-                Color.themeSurface
-                (task.isCompleted ? Color.yellow : themeColor).opacity(colorScheme == .dark ? 0.1 : 0.05)
-            }
-        )
-        .cornerRadius(16)
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(task.isCompleted ? Color.yellow.opacity(0.5) : Color.gray.opacity(0.2), lineWidth: 1.5))
+        .padding().background(Color.themeSurface).cornerRadius(16).overlay(RoundedRectangle(cornerRadius: 16).stroke(task.isCompleted ? Color.yellow.opacity(0.5) : Color.gray.opacity(0.2), lineWidth: 1.5))
     }
     private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateFormat = "MMM d"; return f.string(from: date) }
 }

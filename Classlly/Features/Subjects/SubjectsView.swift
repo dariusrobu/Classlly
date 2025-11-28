@@ -2,323 +2,183 @@ import SwiftUI
 import SwiftData
 
 struct SubjectsView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.colorScheme) var colorScheme
-    @EnvironmentObject var themeManager: AppTheme
-    @AppStorage("isGamifiedMode") private var isGamifiedMode = false
     @Query(sort: \Subject.title) var subjects: [Subject]
     @State private var showingAddSubject = false
+    @AppStorage("isGamified") private var isGamified = false
+    @Environment(\.colorScheme) var colorScheme
     
     public init() {}
 
     var body: some View {
-        // Navigation is handled by ContentView/Sidebar
-        ScrollView {
-            if subjects.isEmpty {
-                EmptySubjectState(isGamified: isGamifiedMode)
-                    .padding(.top, 50)
-            } else {
-                LazyVStack(spacing: isGamifiedMode ? 20 : 16) {
+        NavigationStack {
+            ScrollView {
+                LazyVStack(spacing: 16) {
                     ForEach(subjects) { subject in
-                        NavigationLink(destination: SubjectDetailView(subject: subject)) {
-                            if isGamifiedMode {
-                                GamifiedSubjectCard(subject: subject, themeColor: themeManager.selectedTheme.accentColor)
+                        NavigationLink(value: subject) {
+                            if isGamified {
+                                GamifiedSubjectCard(subject: subject)
                             } else {
-                                SubjectCard(subject: subject)
+                                MinimalSubjectCard(subject: subject)
                             }
-                        }.buttonStyle(PlainButtonStyle())
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
-                }.padding()
+                }
+                .padding()
             }
-        }
-        .background(Color.themeBackground)
-        .navigationTitle("Subjects")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: { showingAddSubject = true }) {
-                    Image(systemName: "plus.circle.fill").font(.system(size: 22, weight: .medium)).foregroundColor(isGamifiedMode ? themeManager.selectedTheme.accentColor : .themePrimary)
+            .navigationTitle("Subjects")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showingAddSubject = true }) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 22))
+                            .foregroundColor(isGamified ? .themePrimary : .primary)
+                    }
                 }
             }
+            .navigationDestination(for: Subject.self) { subject in
+                SubjectDetailView(subject: subject)
+            }
+            .sheet(isPresented: $showingAddSubject) {
+                AddSubjectView()
+            }
         }
-        .sheet(isPresented: $showingAddSubject) { AddSubjectView() }
     }
 }
 
-// MARK: - 1. Gamified Subject Card
-struct GamifiedSubjectCard: View {
+// MARK: - Modern Minimalist Card (Gamified OFF)
+struct MinimalSubjectCard: View {
     let subject: Subject
-    let themeColor: Color
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Header
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(subject.title)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                    
-                    HStack(spacing: 6) {
-                        Image(systemName: "person.fill")
-                            .font(.caption)
-                        Text(subject.courseTeacher)
-                            .font(.subheadline)
-                    }
-                    .foregroundColor(.white.opacity(0.8))
-                }
+        HStack(spacing: 16) {
+            // 1. Color Strip Identifier
+            RoundedRectangle(cornerRadius: 2)
+                .fill(Color.themePrimary)
+                .frame(width: 4, height: 50)
+            
+            // 2. Main Info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(subject.title)
+                    .font(.headline)
+                    .foregroundColor(.primary)
                 
-                Spacer()
-                
-                if let grade = subject.currentGrade {
-                    Text(String(format: "%.1f", grade))
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(themeColor)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.white)
-                        .cornerRadius(12)
+                HStack(spacing: 6) {
+                    Image(systemName: "clock")
+                        .font(.caption2)
+                    Text(subject.courseDaysString.prefix(3)) // Short day (Mon)
+                    Text("•")
+                    Text(subject.courseTimeString)
                 }
+                .font(.caption)
+                .foregroundColor(.secondary)
             }
             
-            Divider()
-                .background(Color.white.opacity(0.3))
+            Spacer()
             
-            // Info Grid
-            HStack(spacing: 20) {
-                Label {
-                    Text("\(Int(subject.attendanceRate * 100))%")
-                        .fontWeight(.semibold)
-                } icon: {
-                    Image(systemName: "chart.bar.fill")
-                }
-                
-                Label {
-                    Text(subject.courseClassroom)
-                        .fontWeight(.semibold)
-                } icon: {
-                    Image(systemName: "mappin.circle.fill")
-                }
-                
-                Spacer()
-                
-                Text(subject.courseFrequencyString)
-                    .font(.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.black.opacity(0.2))
-                    .cornerRadius(8)
-            }
-            .foregroundColor(.white)
-            .font(.callout)
-        }
-        .padding(20)
-        .background(
-            LinearGradient(
-                gradient: Gradient(colors: [themeColor, themeColor.opacity(0.7)]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .cornerRadius(24)
-        .shadow(color: themeColor.opacity(0.3), radius: 8, x: 0, y: 4)
-    }
-}
-
-// MARK: - 2. Standard Subject Card
-struct SubjectCard: View {
-    let subject: Subject
-    @Environment(\.colorScheme) var colorScheme
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(subject.title)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.themeTextPrimary)
-                    Text(subject.courseTeacher)
-                        .font(.subheadline)
-                        .foregroundColor(.themeTextSecondary)
-                }
-                Spacer()
-                if let grade = subject.currentGrade {
-                    GradeBadge(grade: grade)
-                }
-            }
-            
-            VStack(alignment: .leading, spacing: 8) {
-                InfoRow(icon: "clock", text: "\(subject.courseDaysString) \(subject.courseTimeString)")
-                InfoRow(icon: "mappin.circle", text: subject.courseClassroom)
-            }
-            
-            HStack(spacing: 16) {
-                ProgressIndicator(
-                    title: "Attendance",
-                    value: subject.attendanceRate,
-                    color: .themeSuccess
-                )
-                
-                if let grade = subject.currentGrade {
-                    ProgressIndicator(
-                        title: "Grade",
-                        value: grade / 10.0,
-                        color: .themePrimary
-                    )
-                }
-                
-                ProgressIndicator(
-                    title: "Classes",
-                    value: Double(subject.totalClasses) / 20.0,
-                    color: .themeWarning
-                )
-            }
-            
+            // 3. Functional Stats (Grade & Attendance)
             HStack(spacing: 12) {
-                StatPill(icon: "checkmark.circle", value: "\(subject.attendedClasses)", label: "Present")
-                StatPill(icon: "xmark.circle", value: "\(subject.totalClasses - subject.attendedClasses)", label: "Absent")
-                // Handle optional array safely
-                StatPill(icon: "star", value: "\((subject.gradeHistory ?? []).count)", label: "Grades")
+                if let grade = subject.currentGrade {
+                    VStack(alignment: .trailing, spacing: 0) {
+                        Text(String(format: "%.1f", grade))
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(grade >= 5 ? .primary : .themeError)
+                        Text("Grade")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+                    }
+                }
+                
+                // Attendance Ring
+                ZStack {
+                    Circle()
+                        .stroke(Color.secondary.opacity(0.1), lineWidth: 3)
+                        .frame(width: 36, height: 36)
+                    
+                    Circle()
+                        .trim(from: 0, to: subject.attendanceRate)
+                        .stroke(Color.themeSuccess, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .frame(width: 36, height: 36)
+                    
+                    Text("\(Int(subject.attendanceRate * 100))%")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.primary)
+                }
             }
         }
         .padding()
         .background(Color.themeSurface)
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 2)
+    }
+}
+
+// MARK: - Gamified Card (Gamified ON)
+struct GamifiedSubjectCard: View {
+    let subject: Subject
+    
+    var level: Int {
+        let xp = (subject.attendedClasses * 50) + Int((subject.currentGrade ?? 0) * 100)
+        return (xp / 500) + 1
+    }
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Level Hexagon
+            ZStack {
+                Image(systemName: "hexagon.fill")
+                    .font(.system(size: 44))
+                    .foregroundColor(.themeSecondary)
+                    .shadow(color: .themeSecondary.opacity(0.5), radius: 4)
+                
+                VStack(spacing: 0) {
+                    Text("LVL")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundColor(.white.opacity(0.8))
+                    Text("\(level)")
+                        .font(.system(size: 16, weight: .black))
+                        .foregroundColor(.white)
+                }
+            }
+            
+            // Info & XP Bar
+            VStack(alignment: .leading, spacing: 4) {
+                Text(subject.title)
+                    .font(.headline)
+                    .bold()
+                    .foregroundColor(.themeTextPrimary)
+                
+                HStack(spacing: 4) {
+                    // XP Bar
+                    Capsule()
+                        .fill(Color.themeSurface)
+                        .frame(height: 6)
+                        .overlay(alignment: .leading) {
+                            Capsule()
+                                .fill(LinearGradient(colors: [.themeSuccess, .themeAccent], startPoint: .leading, endPoint: .trailing))
+                                .frame(width: 100 * subject.attendanceRate)
+                        }
+                    
+                    Text("\(Int(subject.attendanceRate * 100))%")
+                        .font(.caption2)
+                        .foregroundColor(.themeTextSecondary)
+                }
+            }
+            
+            Spacer()
+            
+            Image(systemName: "chevron.right")
+                .foregroundColor(.secondary)
+        }
+        .padding()
+        .background(Color.themeBackground.opacity(0.5))
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.adaptiveBorder.opacity(0.3), lineWidth: 1)
+                .stroke(LinearGradient(colors: [.themePrimary.opacity(0.5), .clear], startPoint: .leading, endPoint: .trailing), lineWidth: 1)
         )
-    }
-}
-
-// MARK: - 3. Helpers
-
-struct EmptySubjectState: View {
-    let isGamified: Bool
-    
-    var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "book.closed")
-                .font(.system(size: 50))
-                .foregroundColor(isGamified ? .gray : .themeTextSecondary)
-            
-            Text("No Subjects Yet")
-                .font(.title3)
-                .fontWeight(.bold)
-                .foregroundColor(.themeTextPrimary)
-            
-            Text("Add your first subject to start tracking grades and attendance.")
-                .font(.subheadline)
-                .foregroundColor(.themeTextSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-        }
-    }
-}
-
-struct StatPill: View {
-    let icon: String
-    let value: String
-    let label: String
-    
-    var body: some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.caption2)
-                    .foregroundColor(.themeTextSecondary)
-                Text(value)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.themeTextPrimary)
-            }
-            Text(label)
-                .font(.caption2)
-                .foregroundColor(.themeTextSecondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .background(Color.adaptiveTertiaryBackground)
-        .cornerRadius(8)
-    }
-}
-
-struct GradeBadge: View {
-    let grade: Double
-    
-    private var gradeColor: Color {
-        switch grade {
-        case 9...10: return .themeSuccess
-        case 7..<9: return .themePrimary
-        case 5..<7: return .themeWarning
-        default: return .themeError
-        }
-    }
-    
-    var body: some View {
-        VStack(spacing: 2) {
-            Text(String(format: "%.1f", grade))
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(.white)
-            Text("/10")
-                .font(.system(size: 10, weight: .medium))
-                .foregroundColor(.white.opacity(0.9))
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(gradeColor)
-        .cornerRadius(8)
-    }
-}
-
-struct ProgressIndicator: View {
-    let title: String
-    let value: Double
-    let color: Color
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.themeTextSecondary)
-            
-            ZStack(alignment: .leading) {
-                Rectangle()
-                    .fill(color.opacity(0.2))
-                    .frame(height: 6)
-                    .cornerRadius(3)
-                
-                Rectangle()
-                    .fill(color)
-                    .frame(width: CGFloat(max(0, min(value, 1.0))) * 60, height: 6)
-                    .cornerRadius(3)
-            }
-            .frame(width: 60)
-            
-            Text("\(Int(value * 100))%")
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundColor(color)
-        }
-    }
-}
-
-struct InfoRow: View {
-    let icon: String
-    let text: String
-    
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.caption)
-                .foregroundColor(.themeTextSecondary)
-                .frame(width: 16)
-            Text(text)
-                .font(.subheadline)
-                .foregroundColor(.themeTextPrimary)
-            Spacer()
-        }
     }
 }

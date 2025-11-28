@@ -2,12 +2,12 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.colorScheme) var colorScheme
-    @EnvironmentObject var themeManager: AppTheme // ✅ Access the Theme Manager
-    
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
     @AppStorage("autoSyncEnabled") private var autoSyncEnabled = true
-    @AppStorage("isGamifiedMode") private var isGamifiedMode = false
+    
+    // --- NEW: Gamification Toggle ---
+    @AppStorage("isGamified") private var isGamified = false
     
     public init() {}
     
@@ -16,28 +16,16 @@ struct SettingsView: View {
             Section(header: Text("Appearance")) {
                 Toggle("Dark Mode", isOn: $darkModeEnabled)
                 
-                // Gamified Mode Toggle
-                Toggle(isOn: $isGamifiedMode) {
+                // --- NEW TOGGLE ---
+                Toggle(isOn: $isGamified) {
                     HStack {
-                        Image(systemName: "gamecontroller.fill")
-                            .foregroundColor(themeManager.selectedTheme.accentColor)
-                        Text("Gamified Dashboard")
-                    }
-                }
-                
-                // ✅ Theme Color Picker
-                Picker("App Theme", selection: $themeManager.selectedTheme) {
-                    ForEach(Theme.allCases) { theme in
-                        HStack {
-                            Circle()
-                                .fill(theme.accentColor)
-                                .frame(width: 16, height: 16)
-                            Text(theme.rawValue)
+                        Text("Gamified Mode")
+                        if isGamified {
+                            Image(systemName: "gamecontroller.fill")
+                                .foregroundColor(.themeSecondary)
                         }
-                        .tag(theme)
                     }
                 }
-                .pickerStyle(.navigationLink)
             }
             .listRowBackground(Color.themeSurface)
             

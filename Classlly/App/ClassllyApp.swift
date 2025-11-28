@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 import SwiftData
 
 @main
@@ -10,28 +9,11 @@ struct ClassllyApp: App {
     @StateObject private var calendarManager = AcademicCalendarManager()
     @StateObject private var themeManager = AppTheme()
 
-    var modelContainer: ModelContainer = {
-        let schema = Schema([
-            UserProfile.self, // ✅ MAKE SURE THIS IS HERE
-            Subject.self,
-            StudyTask.self,
-            GradeEntry.self,
-            AttendanceEntry.self
-        ])
-        
-        let modelConfiguration = ModelConfiguration(
-            "Default",
-            isStoredInMemoryOnly: false
-        )
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    // FIX: Use the shared factory method
+    var modelContainer: ModelContainer = SharedModelContainer.create()
     
     init() {
+        // --- This is the "off-black" theme for nav bars and lists ---
         let dynamicListBackground = UIColor.systemGroupedBackground
         let dynamicCellBackground = UIColor.secondarySystemGroupedBackground
 
@@ -40,6 +22,7 @@ struct ClassllyApp: App {
         
         let navBarAppearance = UINavigationBarAppearance()
         navBarAppearance.configureWithOpaqueBackground()
+        
         navBarAppearance.backgroundColor = dynamicListBackground
         navBarAppearance.titleTextAttributes = [.foregroundColor: UIColor.label]
         navBarAppearance.largeTitleTextAttributes = [.foregroundColor: UIColor.label]
@@ -47,6 +30,7 @@ struct ClassllyApp: App {
         UINavigationBar.appearance().standardAppearance = navBarAppearance
         UINavigationBar.appearance().scrollEdgeAppearance = navBarAppearance
         
+        // --- This reverts your tab bar to the original style ---
         let tabBarAppearance = UITabBarAppearance()
         tabBarAppearance.configureWithDefaultBackground()
         UITabBar.appearance().standardAppearance = tabBarAppearance

@@ -74,11 +74,150 @@ enum TaskPriority: String, CaseIterable, Codable {
     }
 }
 
-// MARK: - Models
+// MARK: - Calendar Data Structures (Moved here for Widget Access)
+
+struct CalendarTemplate: Identifiable, Hashable {
+    let id = UUID()
+    var universityName: String
+    var academicYear: String
+    var sem1StartStr: String
+    var sem1EndStr: String
+    var sem2StartStr: String
+    var sem2EndStr: String
+}
+
+enum EventType: String, CaseIterable, Codable {
+    case teaching = "teaching"
+    case breakType = "break"
+    case exam = "exam"
+    case holiday = "holiday"
+    case retake = "retake"
+    case practice = "practice"
+    case licensure = "licensure"
+    case other = "other"
+    
+    var displayName: String {
+        switch self {
+        case .teaching: return "Teaching"
+        case .breakType: return "Break"
+        case .exam: return "Exam Session"
+        case .holiday: return "Holiday"
+        case .retake: return "Retake Session"
+        case .practice: return "Practical Training"
+        case .licensure: return "Licensure Exam"
+        case .other: return "Other"
+        }
+    }
+    
+    var iconName: String {
+        switch self {
+        case .teaching: return "book.fill"
+        case .breakType: return "beach.umbrella.fill"
+        case .exam: return "pencil.and.outline"
+        case .holiday: return "gift.fill"
+        case .retake: return "arrow.triangle.2.circlepath"
+        case .practice: return "hammer.fill"
+        case .licensure: return "graduationcap.fill"
+        case .other: return "star.fill"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .teaching: return .themePrimary
+        case .breakType: return .themeSuccess
+        case .exam: return .themeError
+        case .holiday: return .themeAccent
+        case .retake: return .orange
+        case .practice: return .purple
+        case .licensure: return .yellow
+        case .other: return .themeSecondary
+        }
+    }
+}
+
+struct AcademicEventData: Identifiable, Codable, Equatable {
+    let id: UUID
+    var start: String
+    var end: String
+    var type: EventType
+    var weeks: Int
+    var teachingWeekIndexStart: Int?
+    var teachingWeekIndexEnd: Int?
+    var customName: String?
+    
+    init(id: UUID = UUID(), start: String, end: String, type: EventType, weeks: Int, teachingWeekIndexStart: Int? = nil, teachingWeekIndexEnd: Int? = nil, customName: String? = nil) {
+        self.id = id
+        self.start = start
+        self.end = end
+        self.type = type
+        self.weeks = weeks
+        self.teachingWeekIndexStart = teachingWeekIndexStart
+        self.teachingWeekIndexEnd = teachingWeekIndexEnd
+        self.customName = customName
+    }
+}
+
+struct SemesterData: Codable, Equatable {
+    var events: [AcademicEventData]
+    init(events: [AcademicEventData] = []) { self.events = events }
+}
+
+struct AcademicCalendarData: Identifiable, Codable, Equatable {
+    var id: UUID = UUID()
+    var academicYear: String
+    var semester1: SemesterData
+    var semester2: SemesterData
+    var universityName: String?
+    var customName: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case academicYear = "academic_year"
+        case semester1 = "semester_1"
+        case semester2 = "semester_2"
+        case universityName = "university_name"
+        case customName = "custom_name"
+    }
+    
+    init(id: UUID = UUID(), academicYear: String, semester1: SemesterData = SemesterData(), semester2: SemesterData = SemesterData(), universityName: String? = nil, customName: String? = nil) {
+        self.id = id
+        self.academicYear = academicYear
+        self.semester1 = semester1
+        self.semester2 = semester2
+        self.universityName = universityName
+        self.customName = customName
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let decodedId = try container.decodeIfPresent(UUID.self, forKey: .id) {
+            self.id = decodedId
+        } else {
+            self.id = UUID()
+        }
+        self.academicYear = try container.decode(String.self, forKey: .academicYear)
+        self.semester1 = try container.decode(SemesterData.self, forKey: .semester1)
+        self.semester2 = try container.decode(SemesterData.self, forKey: .semester2)
+        self.universityName = try container.decodeIfPresent(String.self, forKey: .universityName)
+        self.customName = try container.decodeIfPresent(String.self, forKey: .customName)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(academicYear, forKey: .academicYear)
+        try container.encode(semester1, forKey: .semester1)
+        try container.encode(semester2, forKey: .semester2)
+        try container.encode(universityName, forKey: .universityName)
+        try container.encode(customName, forKey: .customName)
+    }
+}
+
+// MARK: - SwiftData Models
 
 @Model
 final class GradeEntry {
-    // ✅ REMOVED @Attribute(.unique) for CloudKit compatibility
     var id: UUID = UUID()
     var date: Date = Date()
     var grade: Double = 0.0
@@ -95,7 +234,6 @@ final class GradeEntry {
 
 @Model
 final class AttendanceEntry {
-    // ✅ REMOVED @Attribute(.unique)
     var id: UUID = UUID()
     var date: Date = Date()
     var attended: Bool = false
@@ -112,7 +250,6 @@ final class AttendanceEntry {
 
 @Model
 final class Subject {
-    // ✅ REMOVED @Attribute(.unique)
     var id: UUID = UUID()
     var title: String = ""
     var courseTeacher: String = ""
@@ -131,7 +268,6 @@ final class Subject {
     var seminarDays: [Int] = []
     var seminarFrequency: ClassFrequency = ClassFrequency.weekly
     
-    // ✅ FIXED: Made relationships optional for CloudKit
     @Relationship(deleteRule: .cascade, inverse: \GradeEntry.subject)
     var gradeHistory: [GradeEntry]? = []
     
@@ -202,7 +338,6 @@ final class Subject {
     
     var seminarFrequencyString: String { seminarFrequency.rawValue }
     
-    // Safe unwrapping for optional array
     var currentGrade: Double? {
         (gradeHistory ?? []).last?.grade
     }
@@ -235,7 +370,6 @@ final class Subject {
 
 @Model
 final class StudyTask {
-    // ✅ REMOVED @Attribute(.unique)
     var id: UUID = UUID()
     var title: String = ""
     var isCompleted: Bool = false
@@ -266,7 +400,6 @@ final class StudyTask {
 
 @Model
 final class StudyCalendarEvent {
-    // ✅ REMOVED @Attribute(.unique)
     var id: UUID = UUID()
     var title: String = ""
     var time: String = ""

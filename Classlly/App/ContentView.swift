@@ -6,10 +6,12 @@ struct ContentView: View {
     @EnvironmentObject var calendarManager: AcademicCalendarManager
     @EnvironmentObject var themeManager: AppTheme
     @Environment(\.modelContext) var modelContext
+    @Environment(\.horizontalSizeClass) var sizeClass
 
     @AppStorage("isFirstLaunch") private var isFirstLaunch: Bool = true
     @AppStorage("darkModeEnabled") private var darkModeEnabled: Bool = false
     
+    // Tab Selection
     @State private var selectedTab: TabIdentifier? = .home
     
     public init() {}
@@ -20,15 +22,15 @@ struct ContentView: View {
             
             Group {
                 if authManager.isAuthenticated {
-                    // Unified Tab Bar for BOTH iPhone and iPad
-                    MainTabView(selectedTab: $selectedTab)
-                        .environmentObject(authManager)
-                        .environmentObject(calendarManager) // ✅ ENSURE INJECTION
-                        .environmentObject(themeManager)    // ✅ ENSURE INJECTION
+                    if sizeClass == .regular {
+                        NavigationStack { HomeView() }
+                            .environmentObject(authManager)
+                    } else {
+                        MainTabView(selectedTab: $selectedTab)
+                            .environmentObject(authManager)
+                    }
                 } else {
-                    SignInView()
-                        .environmentObject(authManager)
-                        .environmentObject(calendarManager) // Pass to SignInView too if needed
+                    SignInView().environmentObject(authManager)
                 }
             }
         }
@@ -43,9 +45,30 @@ struct ContentView: View {
             if isFirstLaunch { isFirstLaunch = false }
             authManager.loadUser(context: modelContext)
         }
+        // ✅ HANDLE WIDGET DEEP LINKS
+        .onOpenURL { url in
+            handleDeepLink(url)
+        }
+    }
+    
+    private func handleDeepLink(_ url: URL) {
+        print("Deep Link: \(url.absoluteString)")
+        
+        switch url.host {
+        case "home": selectedTab = .home
+        case "calendar": selectedTab = .calendar
+        case "tasks": selectedTab = .tasks
+        case "subjects": selectedTab = .subjects
+        case "subject":
+            selectedTab = .subjects
+            // Note: Deep linking to specific detail view requires more complex navigation state
+            // For now, we just go to the Subjects list.
+        default: break
+        }
     }
 }
 
+// (Keep the existing Enum and MainTabView structs here...)
 enum TabIdentifier: String, CaseIterable {
     case home = "Home"
     case calendar = "Calendar"
@@ -60,25 +83,11 @@ struct MainTabView: View {
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            NavigationStack { HomeView() }
-                .tag(TabIdentifier.home as TabIdentifier?)
-                .tabItem { Label("Home", systemImage: "house.fill") }
-            
-            NavigationStack { CalendarView() }
-                .tag(TabIdentifier.calendar as TabIdentifier?)
-                .tabItem { Label("Calendar", systemImage: "calendar") }
-            
-            NavigationStack { TasksView() }
-                .tag(TabIdentifier.tasks as TabIdentifier?)
-                .tabItem { Label("Tasks", systemImage: "checklist") }
-            
-            NavigationStack { SubjectsView() }
-                .tag(TabIdentifier.subjects as TabIdentifier?)
-                .tabItem { Label("Subjects", systemImage: "book.fill") }
-            
-            NavigationStack { SettingsDashboardView() }
-                .tag(TabIdentifier.settings as TabIdentifier?)
-                .tabItem { Label("More", systemImage: "ellipsis") }
+            NavigationStack { HomeView() }.tag(TabIdentifier.home as TabIdentifier?).tabItem { Label("Home", systemImage: "house.fill") }
+            NavigationStack { CalendarView() }.tag(TabIdentifier.calendar as TabIdentifier?).tabItem { Label("Calendar", systemImage: "calendar") }
+            NavigationStack { TasksView() }.tag(TabIdentifier.tasks as TabIdentifier?).tabItem { Label("Tasks", systemImage: "checklist") }
+            NavigationStack { SubjectsView() }.tag(TabIdentifier.subjects as TabIdentifier?).tabItem { Label("Subjects", systemImage: "book.fill") }
+            NavigationStack { SettingsDashboardView() }.tag(TabIdentifier.settings as TabIdentifier?).tabItem { Label("More", systemImage: "ellipsis") }
         }
         .tint(themeManager.selectedTheme.accentColor)
     }

@@ -2,144 +2,6 @@ import SwiftUI
 import Foundation
 import Combine
 
-struct CalendarTemplate: Identifiable, Hashable {
-    let id = UUID()
-    var universityName: String
-    var academicYear: String
-    var sem1StartStr: String
-    var sem1EndStr: String
-    var sem2StartStr: String
-    var sem2EndStr: String
-}
-
-enum EventType: String, CaseIterable, Codable {
-    case teaching = "teaching"
-    case breakType = "break"
-    case exam = "exam"
-    case holiday = "holiday"
-    case retake = "retake"
-    case practice = "practice"
-    case licensure = "licensure"
-    case other = "other"
-    
-    var displayName: String {
-        switch self {
-        case .teaching: return "Teaching"
-        case .breakType: return "Break"
-        case .exam: return "Exam Session"
-        case .holiday: return "Holiday"
-        case .retake: return "Retake Session"
-        case .practice: return "Practical Training"
-        case .licensure: return "Licensure Exam"
-        case .other: return "Other"
-        }
-    }
-    
-    var iconName: String {
-        switch self {
-        case .teaching: return "book.fill"
-        case .breakType: return "beach.umbrella.fill"
-        case .exam: return "pencil.and.outline"
-        case .holiday: return "gift.fill"
-        case .retake: return "arrow.triangle.2.circlepath"
-        case .practice: return "hammer.fill"
-        case .licensure: return "graduationcap.fill"
-        case .other: return "star.fill"
-        }
-    }
-    
-    var color: Color {
-        switch self {
-        case .teaching: return .themePrimary
-        case .breakType: return .themeSuccess
-        case .exam: return .themeError
-        case .holiday: return .themeAccent
-        case .retake: return .orange
-        case .practice: return .purple
-        case .licensure: return .yellow
-        case .other: return .themeSecondary
-        }
-    }
-}
-
-struct AcademicEventData: Identifiable, Codable, Equatable {
-    let id: UUID
-    var start: String
-    var end: String
-    var type: EventType
-    var weeks: Int
-    var teachingWeekIndexStart: Int?
-    var teachingWeekIndexEnd: Int?
-    var customName: String?
-    
-    init(id: UUID = UUID(), start: String, end: String, type: EventType, weeks: Int, teachingWeekIndexStart: Int? = nil, teachingWeekIndexEnd: Int? = nil, customName: String? = nil) {
-        self.id = id
-        self.start = start
-        self.end = end
-        self.type = type
-        self.weeks = weeks
-        self.teachingWeekIndexStart = teachingWeekIndexStart
-        self.teachingWeekIndexEnd = teachingWeekIndexEnd
-        self.customName = customName
-    }
-}
-
-struct SemesterData: Codable, Equatable {
-    var events: [AcademicEventData]
-    init(events: [AcademicEventData] = []) { self.events = events }
-}
-
-struct AcademicCalendarData: Identifiable, Codable, Equatable {
-    var id: UUID = UUID()
-    var academicYear: String
-    var semester1: SemesterData
-    var semester2: SemesterData
-    var universityName: String?
-    var customName: String?
-    
-    enum CodingKeys: String, CodingKey {
-        case id
-        case academicYear = "academic_year"
-        case semester1 = "semester_1"
-        case semester2 = "semester_2"
-        case universityName = "university_name"
-        case customName = "custom_name"
-    }
-    
-    init(id: UUID = UUID(), academicYear: String, semester1: SemesterData = SemesterData(), semester2: SemesterData = SemesterData(), universityName: String? = nil, customName: String? = nil) {
-        self.id = id
-        self.academicYear = academicYear
-        self.semester1 = semester1
-        self.semester2 = semester2
-        self.universityName = universityName
-        self.customName = customName
-    }
-    
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        if let decodedId = try container.decodeIfPresent(UUID.self, forKey: .id) {
-            self.id = decodedId
-        } else {
-            self.id = UUID()
-        }
-        self.academicYear = try container.decode(String.self, forKey: .academicYear)
-        self.semester1 = try container.decode(SemesterData.self, forKey: .semester1)
-        self.semester2 = try container.decode(SemesterData.self, forKey: .semester2)
-        self.universityName = try container.decodeIfPresent(String.self, forKey: .universityName)
-        self.customName = try container.decodeIfPresent(String.self, forKey: .customName)
-    }
-    
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
-        try container.encode(academicYear, forKey: .academicYear)
-        try container.encode(semester1, forKey: .semester1)
-        try container.encode(semester2, forKey: .semester2)
-        try container.encode(universityName, forKey: .universityName)
-        try container.encode(customName, forKey: .customName)
-    }
-}
-
 class AcademicCalendarManager: ObservableObject {
     @Published var currentAcademicYear: AcademicCalendarData?
     @Published var availableCalendars: [AcademicCalendarData] = []
@@ -148,7 +10,7 @@ class AcademicCalendarManager: ObservableObject {
     
     private let iCloudStore = NSUbiquitousKeyValueStore.default
     
-    // ✅ STABLE IDs
+    // Stable IDs for official UBB schedules
     private let ubbStandardID = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
     private let ubbFinalID = UUID(uuidString: "22222222-2222-2222-2222-222222222222")!
     
@@ -183,7 +45,6 @@ class AcademicCalendarManager: ObservableObject {
     private let currentCalendarKey = "currentAcademicCalendar"
     
     init() {
-        // ✅ NEW: Call setup method that handles all loading/cleaning/initializing
         initializeCalendars()
         
         NotificationCenter.default.addObserver(
@@ -201,7 +62,6 @@ class AcademicCalendarManager: ObservableObject {
         }
     }
     
-    // MARK: - Core Initialization Function
     private func initializeCalendars() {
         loadCalendars()
         removeLegacyUBBCalendars()
@@ -210,7 +70,6 @@ class AcademicCalendarManager: ObservableObject {
         updateCurrentWeekAndSemester()
     }
     
-    // MARK: - Strict Deduplication
     private func removeLegacyUBBCalendars() {
         var keptCalendars: [AcademicCalendarData] = []
         var didChange = false
@@ -223,7 +82,6 @@ class AcademicCalendarManager: ObservableObject {
                 didChange = true
                 continue
             }
-            
             keptCalendars.append(calendar)
         }
         
@@ -238,7 +96,6 @@ class AcademicCalendarManager: ObservableObject {
         let isSelectionValid = currentAcademicYear != nil && availableCalendars.contains(where: { $0.id == currentAcademicYear!.id })
         
         if !isSelectionValid {
-            // Reset to Standard UBB as default
             if let standard = availableCalendars.first(where: { $0.id == ubbStandardID }) {
                 setCurrentCalendar(standard)
             } else if let first = availableCalendars.first {
@@ -249,7 +106,6 @@ class AcademicCalendarManager: ObservableObject {
         }
     }
     
-    // MARK: - UBB Logic
     private func setupUBBCalendarsIfNeeded() {
         var didAdd = false
         
@@ -321,7 +177,22 @@ class AcademicCalendarManager: ObservableObject {
         )
     }
     
-    // MARK: - Core Persistence
+    // MARK: - Public Methods
+    
+    func getSemesterEvents(_ semester: SemesterType) -> [AcademicEventData] {
+        guard let calendar = currentAcademicYear else { return [] }
+        switch semester {
+        case .semester1: return calendar.semester1.events
+        case .semester2: return calendar.semester2.events
+        }
+    }
+    
+    func getCurrentEvent(for date: Date) -> AcademicEventData? {
+        guard let calendar = currentAcademicYear else { return nil }
+        let dateString = formatDate(date)
+        let allEvents = calendar.semester1.events + calendar.semester2.events
+        return allEvents.first { dateString >= $0.start && dateString <= $0.end }
+    }
     
     func setCurrentCalendar(_ calendar: AcademicCalendarData) {
         currentAcademicYear = calendar
@@ -359,84 +230,6 @@ class AcademicCalendarManager: ObservableObject {
             currentAcademicYear = availableCalendars.first
         }
         saveCalendars()
-    }
-    
-    private func loadCalendars() {
-        if let data = iCloudStore.data(forKey: calendarsKey),
-           let decoded = try? JSONDecoder().decode([AcademicCalendarData].self, from: data) {
-            availableCalendars = decoded
-        }
-        
-        if let data = iCloudStore.data(forKey: currentCalendarKey),
-           let decoded = try? JSONDecoder().decode(AcademicCalendarData.self, from: data) {
-            currentAcademicYear = decoded
-        } else {
-            currentAcademicYear = availableCalendars.first
-        }
-    }
-    
-    private func saveCalendars() {
-        if let encoded = try? JSONEncoder().encode(availableCalendars) {
-            iCloudStore.set(encoded, forKey: calendarsKey)
-            iCloudStore.synchronize()
-        }
-    }
-    
-    // MARK: - Utility Methods
-    
-    private func updateCurrentWeekAndSemester() {
-        let today = Date()
-        let dateString = formatDate(today)
-        
-        guard let calendar = currentAcademicYear else {
-            currentTeachingWeek = nil
-            currentSemester = .semester1
-            return
-        }
-        
-        for event in calendar.semester1.events {
-            if event.type == .teaching, dateString >= event.start && dateString <= event.end {
-                if let startWeek = event.teachingWeekIndexStart, let startDate = dateFromString(event.start) {
-                    currentTeachingWeek = startWeek + (Calendar.current.dateComponents([.weekOfYear], from: startDate, to: today).weekOfYear ?? 0)
-                    currentSemester = .semester1
-                    return
-                }
-            }
-        }
-        for event in calendar.semester2.events {
-            if event.type == .teaching, dateString >= event.start && dateString <= event.end {
-                if let startWeek = event.teachingWeekIndexStart, let startDate = dateFromString(event.start) {
-                    currentTeachingWeek = startWeek + (Calendar.current.dateComponents([.weekOfYear], from: startDate, to: today).weekOfYear ?? 0)
-                    currentSemester = .semester2
-                    return
-                }
-            }
-        }
-        
-        currentTeachingWeek = nil
-        if let semester1Start = calendar.semester1.events.first?.start, let semester1Date = dateFromString(semester1Start), today >= semester1Date {
-            currentSemester = .semester1
-        } else {
-            currentSemester = .semester2
-        }
-    }
-    
-    private func formatDate(_ date: Date) -> String { return dateFormatter.string(from: date) }
-    private func dateFromString(_ dateString: String) -> Date? { return dateFormatter.date(from: dateString) }
-    
-    func getSemesterEvents(_ semester: SemesterType) -> [AcademicEventData] {
-        guard let calendar = currentAcademicYear else { return [] }
-        switch semester {
-        case .semester1: return calendar.semester1.events
-        case .semester2: return calendar.semester2.events
-        }
-    }
-    
-    func getCurrentEvent(for date: Date) -> AcademicEventData? {
-        guard let calendar = currentAcademicYear else { return nil }
-        let dateString = formatDate(date)
-        let allEvents = calendar.semester1.events + calendar.semester2.events
-        return allEvents.first { dateString >= $0.start && dateString <= $0.end }
     }
     
     func createNewCalendar(year: String, universityName: String, customName: String) -> AcademicCalendarData {
@@ -492,4 +285,66 @@ class AcademicCalendarManager: ObservableObject {
         
         addCustomCalendar(newCalendar)
     }
+    
+    private func loadCalendars() {
+        if let data = iCloudStore.data(forKey: calendarsKey),
+           let decoded = try? JSONDecoder().decode([AcademicCalendarData].self, from: data) {
+            availableCalendars = decoded
+        }
+        
+        if let data = iCloudStore.data(forKey: currentCalendarKey),
+           let decoded = try? JSONDecoder().decode(AcademicCalendarData.self, from: data) {
+            currentAcademicYear = decoded
+        } else {
+            currentAcademicYear = availableCalendars.first
+        }
+    }
+    
+    private func saveCalendars() {
+        if let encoded = try? JSONEncoder().encode(availableCalendars) {
+            iCloudStore.set(encoded, forKey: calendarsKey)
+            iCloudStore.synchronize()
+        }
+    }
+    
+    private func updateCurrentWeekAndSemester() {
+        let today = Date()
+        let dateString = formatDate(today)
+        
+        guard let calendar = currentAcademicYear else {
+            currentTeachingWeek = nil
+            currentSemester = .semester1
+            return
+        }
+        
+        for event in calendar.semester1.events {
+            if event.type == .teaching, dateString >= event.start && dateString <= event.end {
+                if let startWeek = event.teachingWeekIndexStart, let startDate = dateFromString(event.start) {
+                    currentTeachingWeek = startWeek + (Calendar.current.dateComponents([.weekOfYear], from: startDate, to: today).weekOfYear ?? 0)
+                    currentSemester = .semester1
+                    return
+                }
+            }
+        }
+        for event in calendar.semester2.events {
+            if event.type == .teaching, dateString >= event.start && dateString <= event.end {
+                if let startWeek = event.teachingWeekIndexStart, let startDate = dateFromString(event.start) {
+                    currentTeachingWeek = startWeek + (Calendar.current.dateComponents([.weekOfYear], from: startDate, to: today).weekOfYear ?? 0)
+                    currentSemester = .semester2
+                    return
+                }
+            }
+        }
+        
+        currentTeachingWeek = nil
+        if let semester1Start = calendar.semester1.events.first?.start, let semester1Date = dateFromString(semester1Start), today >= semester1Date {
+            currentSemester = .semester1
+        } else {
+            currentSemester = .semester2
+        }
+    }
+    
+    private func formatDate(_ date: Date) -> String { return dateFormatter.string(from: date) }
+    private func dateFromString(_ dateString: String) -> Date? { return dateFormatter.date(from: dateString) }
 }
+ 

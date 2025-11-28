@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		BCC7B3322ED8B79C001564BD /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BCC7B3312ED8B79C001564BD /* WidgetKit.framework */; };
+		BCC7B3342ED8B79C001564BD /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BCC7B3332ED8B79C001564BD /* SwiftUI.framework */; };
+		BCC7B3412ED8B79E001564BD /* ClassllyWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BCC7B32F2ED8B79C001564BD /* ClassllyWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		BC53B6BC2EC7B59900CFB6B1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,12 +27,37 @@
 			remoteGlobalIDString = BC53B6A92EC7B59800CFB6B1;
 			remoteInfo = Classlly;
 		};
+		BCC7B33F2ED8B79E001564BD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BC53B6A22EC7B59800CFB6B1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BCC7B32E2ED8B79C001564BD;
+			remoteInfo = ClassllyWidgetsExtension;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		BCC7B3422ED8B79E001564BD /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				BCC7B3412ED8B79E001564BD /* ClassllyWidgetsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		BC53B6AA2EC7B59800CFB6B1 /* Classlly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Classlly.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BC53B6BB2EC7B59900CFB6B1 /* ClassllyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClassllyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BC53B6C52EC7B59900CFB6B1 /* ClassllyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClassllyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BCC7B32F2ED8B79C001564BD /* ClassllyWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ClassllyWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		BCC7B3312ED8B79C001564BD /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		BCC7B3332ED8B79C001564BD /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		BCC7B3512ED8C8BD001564BD /* ClassllyWidgetsExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ClassllyWidgetsExtension.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -37,6 +68,25 @@
 			);
 			target = BC53B6A92EC7B59800CFB6B1 /* Classlly */;
 		};
+		BCC7B3462ED8B79E001564BD /* Exceptions for "ClassllyWidgets" folder in "ClassllyWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = BCC7B32E2ED8B79C001564BD /* ClassllyWidgetsExtension */;
+		};
+		BCC7B3482ED8B7F2001564BD /* Exceptions for "Classlly" folder in "ClassllyWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Core/Data/DataModels.swift,
+				Core/Data/SharedModelContainer.swift,
+				Core/Data/SharedPersistence.swift,
+				Core/Data/UserProfile.swift,
+				Core/Theme/AppTheme.swift,
+				"Core/Theme/Color+Theme.swift",
+			);
+			target = BCC7B32E2ED8B79C001564BD /* ClassllyWidgetsExtension */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -44,6 +94,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				BC53B6CD2EC7B59900CFB6B1 /* Exceptions for "Classlly" folder in "Classlly" target */,
+				BCC7B3482ED8B7F2001564BD /* Exceptions for "Classlly" folder in "ClassllyWidgetsExtension" target */,
 			);
 			path = Classlly;
 			sourceTree = "<group>";
@@ -56,6 +107,14 @@
 		BC53B6C82EC7B59900CFB6B1 /* ClassllyUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = ClassllyUITests;
+			sourceTree = "<group>";
+		};
+		BCC7B3352ED8B79C001564BD /* ClassllyWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				BCC7B3462ED8B79E001564BD /* Exceptions for "ClassllyWidgets" folder in "ClassllyWidgetsExtension" target */,
+			);
+			path = ClassllyWidgets;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -82,15 +141,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BCC7B32C2ED8B79C001564BD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BCC7B3342ED8B79C001564BD /* SwiftUI.framework in Frameworks */,
+				BCC7B3322ED8B79C001564BD /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		BC53B6A12EC7B59800CFB6B1 = {
 			isa = PBXGroup;
 			children = (
+				BCC7B3512ED8C8BD001564BD /* ClassllyWidgetsExtension.entitlements */,
 				BC53B6AC2EC7B59800CFB6B1 /* Classlly */,
 				BC53B6BE2EC7B59900CFB6B1 /* ClassllyTests */,
 				BC53B6C82EC7B59900CFB6B1 /* ClassllyUITests */,
+				BCC7B3352ED8B79C001564BD /* ClassllyWidgets */,
+				BCC7B3302ED8B79C001564BD /* Frameworks */,
 				BC53B6AB2EC7B59800CFB6B1 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -101,8 +172,18 @@
 				BC53B6AA2EC7B59800CFB6B1 /* Classlly.app */,
 				BC53B6BB2EC7B59900CFB6B1 /* ClassllyTests.xctest */,
 				BC53B6C52EC7B59900CFB6B1 /* ClassllyUITests.xctest */,
+				BCC7B32F2ED8B79C001564BD /* ClassllyWidgetsExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		BCC7B3302ED8B79C001564BD /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				BCC7B3312ED8B79C001564BD /* WidgetKit.framework */,
+				BCC7B3332ED8B79C001564BD /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -115,10 +196,12 @@
 				BC53B6A62EC7B59800CFB6B1 /* Sources */,
 				BC53B6A72EC7B59800CFB6B1 /* Frameworks */,
 				BC53B6A82EC7B59800CFB6B1 /* Resources */,
+				BCC7B3422ED8B79E001564BD /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				BCC7B3402ED8B79E001564BD /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				BC53B6AC2EC7B59800CFB6B1 /* Classlly */,
@@ -176,6 +259,28 @@
 			productReference = BC53B6C52EC7B59900CFB6B1 /* ClassllyUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		BCC7B32E2ED8B79C001564BD /* ClassllyWidgetsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BCC7B3452ED8B79E001564BD /* Build configuration list for PBXNativeTarget "ClassllyWidgetsExtension" */;
+			buildPhases = (
+				BCC7B32B2ED8B79C001564BD /* Sources */,
+				BCC7B32C2ED8B79C001564BD /* Frameworks */,
+				BCC7B32D2ED8B79C001564BD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				BCC7B3352ED8B79C001564BD /* ClassllyWidgets */,
+			);
+			name = ClassllyWidgetsExtension;
+			packageProductDependencies = (
+			);
+			productName = ClassllyWidgetsExtension;
+			productReference = BCC7B32F2ED8B79C001564BD /* ClassllyWidgetsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -197,6 +302,9 @@
 						CreatedOnToolsVersion = 26.1.1;
 						TestTargetID = BC53B6A92EC7B59800CFB6B1;
 					};
+					BCC7B32E2ED8B79C001564BD = {
+						CreatedOnToolsVersion = 26.1.1;
+					};
 				};
 			};
 			buildConfigurationList = BC53B6A52EC7B59800CFB6B1 /* Build configuration list for PBXProject "Classlly" */;
@@ -216,6 +324,7 @@
 				BC53B6A92EC7B59800CFB6B1 /* Classlly */,
 				BC53B6BA2EC7B59900CFB6B1 /* ClassllyTests */,
 				BC53B6C42EC7B59900CFB6B1 /* ClassllyUITests */,
+				BCC7B32E2ED8B79C001564BD /* ClassllyWidgetsExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -236,6 +345,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		BC53B6C32EC7B59900CFB6B1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BCC7B32D2ED8B79C001564BD /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -266,6 +382,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BCC7B32B2ED8B79C001564BD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -279,6 +402,11 @@
 			target = BC53B6A92EC7B59800CFB6B1 /* Classlly */;
 			targetProxy = BC53B6C62EC7B59900CFB6B1 /* PBXContainerItemProxy */;
 		};
+		BCC7B3402ED8B79E001564BD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BCC7B32E2ED8B79C001564BD /* ClassllyWidgetsExtension */;
+			targetProxy = BCC7B33F2ED8B79E001564BD /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -287,6 +415,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				CODE_SIGN_ENTITLEMENTS = Classlly/App/Classlly.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 11;
@@ -324,6 +453,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				CODE_SIGN_ENTITLEMENTS = Classlly/App/Classlly.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 11;
@@ -561,6 +691,72 @@
 			};
 			name = Release;
 		};
+		BCC7B3432ED8B79E001564BD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
+				CODE_SIGN_ENTITLEMENTS = ClassllyWidgetsExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 11;
+				DEVELOPMENT_TEAM = 2K7NKASVSD;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ClassllyWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ClassllyWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.robudarius.classlly.ClassllyWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BCC7B3442ED8B79E001564BD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
+				CODE_SIGN_ENTITLEMENTS = ClassllyWidgetsExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 11;
+				DEVELOPMENT_TEAM = 2K7NKASVSD;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ClassllyWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ClassllyWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.robudarius.classlly.ClassllyWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -596,6 +792,15 @@
 			buildConfigurations = (
 				BC53B6D72EC7B59900CFB6B1 /* Debug */,
 				BC53B6D82EC7B59900CFB6B1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BCC7B3452ED8B79E001564BD /* Build configuration list for PBXNativeTarget "ClassllyWidgetsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BCC7B3432ED8B79E001564BD /* Debug */,
+				BCC7B3442ED8B79E001564BD /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

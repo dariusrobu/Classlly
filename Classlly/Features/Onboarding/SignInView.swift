@@ -1,6 +1,7 @@
 import SwiftUI
 import AuthenticationServices
 import SwiftData
+import WidgetKit // ✅ Import WidgetKit
 
 struct SignInView: View {
     @EnvironmentObject var authManager: AuthenticationManager
@@ -41,8 +42,19 @@ struct SignInView: View {
                     }
                     
                     Spacer()
+                    
+                    // Features list
+                    VStack(alignment: .leading, spacing: 24) {
+                        FeatureRow(icon: "calendar", title: "Class Schedule", subtitle: "Organize your courses and timetable")
+                        FeatureRow(icon: "checklist", title: "Task Management", subtitle: "Track assignments and deadlines")
+                        FeatureRow(icon: "chart.bar", title: "Grade Tracking", subtitle: "Monitor your academic performance")
+                    }
+                    .padding(.horizontal, 30)
+                    
+                    Spacer()
                     Spacer()
                     
+                    // Sign in button area
                     VStack(spacing: 16) {
                         SignInWithAppleButton(
                             .signIn,
@@ -53,6 +65,7 @@ struct SignInView: View {
                                 request.nonce = authManager.sha256(nonce)
                             },
                             onCompletion: { result in
+                                // Pass modelContext to check for existing profile
                                 authManager.handleSignInWithApple(result: result, context: modelContext)
                             }
                         )
@@ -61,10 +74,15 @@ struct SignInView: View {
                         .cornerRadius(10)
                         
                         Button(action: {
-                            // ✅ SEED DATA FIRST
+                            // 1. Seed Data
                             DemoDataSeeder.seed(context: modelContext)
-                            // THEN SIGN IN
+                            
+                            // 2. Sign In
                             authManager.signInAsDemoUser()
+                            
+                            // 3. 🚀 FORCE WIDGET UPDATE
+                            // This ensures the widget sees the newly seeded data immediately
+                            WidgetCenter.shared.reloadAllTimelines()
                         }) {
                             Text("Continue as Demo User")
                                 .font(.headline)
@@ -87,13 +105,14 @@ struct SignInView: View {
                 }
             }
             .navigationBarHidden(true)
+            // Trigger Onboarding if Auth Manager requests it
             .onChange(of: authManager.requiresOnboarding) { oldValue, newValue in
                 if newValue {
                     showingProfileSetup = true
                 }
             }
             .sheet(isPresented: $showingProfileSetup) {
-                ProfileSetupView()
+                ProfileSetupView() // No user passed; it uses temp data in AuthManager
             }
             .overlay {
                 if authManager.isLoading {
@@ -124,6 +143,7 @@ struct SignInView: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
+                
                 Spacer()
             }
         }

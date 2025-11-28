@@ -3,21 +3,13 @@ import SwiftData
 
 struct TasksView: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.colorScheme) var colorScheme
-    @EnvironmentObject var themeManager: AppTheme
-    
-    // Detect iPad
-    @Environment(\.horizontalSizeClass) var sizeClass
-    
-    @AppStorage("isGamifiedMode") private var isGamifiedMode = false
+    @AppStorage("isGamified") private var isGamified = false
     
     @State private var showingAddTask = false
     @State private var editingTask: StudyTask?
     @State private var taskFilter: TaskFilter = .today
     
     @Query private var tasks: [StudyTask]
-    
-    public init() {}
     
     enum TaskFilter: String, CaseIterable {
         case today = "Today"
@@ -33,127 +25,123 @@ struct TasksView: View {
             case .completed: return "checkmark.circle.fill"
             }
         }
+        
+        var selectionColor: Color {
+            switch self {
+            case .today: return .themePrimary
+            case .flagged: return .themeError
+            case .all: return .themePrimary
+            case .completed: return .themeSuccess
+            }
+        }
     }
+    
+    public init() {}
     
     var filteredTasks: [StudyTask] {
         let now = Date()
         let calendar = Calendar.current
-        
         switch taskFilter {
         case .today:
             return tasks.filter { task in
                 guard let dueDate = task.dueDate else { return false }
                 return !task.isCompleted && calendar.isDate(dueDate, inSameDayAs: now)
-            }.sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
-            
+            }.sorted { $0.dueDate ?? Date.distantFuture < $1.dueDate ?? Date.distantFuture }
         case .flagged:
-            return tasks.filter { $0.isFlagged && !$0.isCompleted }
-                        .sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
-
+            return tasks.filter { $0.isFlagged && !$0.isCompleted }.sorted { $0.dueDate ?? Date.distantFuture < $1.dueDate ?? Date.distantFuture }
         case .all:
-            return tasks.filter { !$0.isCompleted }
-                        .sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
-            
+            return tasks.filter { !$0.isCompleted }.sorted { $0.dueDate ?? Date.distantFuture < $1.dueDate ?? Date.distantFuture }
         case .completed:
-            return tasks.filter { $0.isCompleted }
-                        .sorted { ($0.dueDate ?? Date.distantFuture) > ($1.dueDate ?? Date.distantFuture) }
+            return tasks.filter { $0.isCompleted }.sorted { $0.dueDate ?? Date.distantFuture < $1.dueDate ?? Date.distantFuture }
         }
-    }
-    
-    // iPad Layout Constraint
-    private var contentMaxWidth: CGFloat {
-        sizeClass == .regular ? 600 : .infinity
     }
     
     var body: some View {
-        // NavigationStack is handled by ContentView
-        VStack(spacing: 0) {
-            
-            // 1. Filter Bar (Fixed Layout)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(TaskFilter.allCases, id: \.self) { filter in
-                        FilterButton(
-                            title: filter.rawValue,
-                            iconName: filter.iconName,
-                            isSelected: taskFilter == filter,
-                            themeColor: themeManager.selectedTheme.accentColor,
-                            isGamified: isGamifiedMode,
-                            action: {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                    taskFilter = filter
+        NavigationStack {
+            VStack(spacing: 0) {
+                // MARK: - Filter Bar
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(TaskFilter.allCases, id: \.self) { filter in
+                            FilterButton(
+                                title: filter.rawValue,
+                                iconName: filter.iconName,
+                                color: filter.selectionColor,
+                                isSelected: taskFilter == filter,
+                                isGamified: isGamified,
+                                action: {
+                                    withAnimation { taskFilter = filter }
                                 }
-                            }
-                        )
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 12)
-                // Center the filter list on iPad
-                .frame(minWidth: sizeClass == .regular ? 0 : UIScreen.main.bounds.width, alignment: .center)
-            }
-            .frame(maxWidth: contentMaxWidth) // Constrain width on iPad
-            .background(Color.themeBackground) // ✅ Applied directly to ScrollView
-            
-            // 2. Content (Centered)
-            if filteredTasks.isEmpty {
-                TasksEmptyStateView(filter: taskFilter, isGamified: isGamifiedMode)
-                    .frame(maxWidth: contentMaxWidth)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: isGamifiedMode ? 12 : 0) {
-                        ForEach(filteredTasks) { task in
-                            if isGamifiedMode {
-                                GamifiedTaskRow(task: task, themeColor: themeManager.selectedTheme.accentColor)
-                                    .onTapGesture { editingTask = task }
-                                    .contextMenu { taskContextMenu(for: task) }
-                                    .padding(.horizontal)
-                            } else {
-                                TaskCard(task: task)
-                                    .onTapGesture { editingTask = task }
-                                    .contextMenu { taskContextMenu(for: task) }
-                                
-                                if task != filteredTasks.last {
-                                    Divider().padding(.leading, 56)
-                                }
-                            }
+                            )
                         }
                     }
-                    .padding(.vertical, 20)
-                    .frame(maxWidth: contentMaxWidth) // iPad width constraint
+                    .padding()
                 }
-                .frame(maxWidth: .infinity) // Center ScrollView
+                
+                // MARK: - Task List
+                if filteredTasks.isEmpty {
+                    EmptyStateView(filter: taskFilter, isGamified: isGamified)
+                        .padding(.top, 40)
+                    Spacer()
+                } else {
+                    List {
+                        ForEach(filteredTasks) { task in
+                            Group {
+                                if isGamified {
+                                    GamifiedTaskRow(task: task)
+                                } else {
+                                    ModernTaskRow(task: task)
+                                }
+                            }
+                            // Swipe Actions work for both
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
+                                    modelContext.delete(task)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                                
+                                Button {
+                                    editingTask = task
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                .tint(.orange)
+                            }
+                            .swipeActions(edge: .leading) {
+                                Button {
+                                    withAnimation { task.isCompleted.toggle() }
+                                } label: {
+                                    Label("Done", systemImage: "checkmark")
+                                }
+                                .tint(.green)
+                            }
+                            // Hide separators for gamified to keep "Card" look
+                            .listRowSeparator(isGamified ? .hidden : .visible)
+                            .listRowInsets(isGamified ? EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16) : nil)
+                        }
+                    }
+                    .listStyle(.plain)
+                }
+            }
+            .navigationTitle("Tasks")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showingAddTask = true }) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 22))
+                            .foregroundColor(isGamified ? .themePrimary : .primary)
+                    }
+                }
+            }
+            .sheet(isPresented: $showingAddTask) {
+                AddTaskView()
+            }
+            .sheet(item: $editingTask) { task in
+                EditTaskView(task: task)
             }
         }
-        // ✅ Removed top padding to close the gap
-        .background(Color.themeBackground)
-        .navigationTitle("Tasks")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: { showingAddTask = true }) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 22, weight: .medium))
-                        .foregroundColor(isGamifiedMode ? themeManager.selectedTheme.accentColor : .themePrimary)
-                }
-            }
-        }
-        .sheet(isPresented: $showingAddTask) {
-            AddTaskView()
-        }
-        .sheet(item: $editingTask) { task in
-            EditTaskView(task: task)
-        }
-    }
-    
-    @ViewBuilder
-    private func taskContextMenu(for task: StudyTask) -> some View {
-        Button { editingTask = task } label: { Label("Edit", systemImage: "pencil") }
-        if !task.isCompleted {
-            Button { withAnimation { task.isCompleted = true } } label: { Label("Mark Complete", systemImage: "checkmark") }
-        }
-        Button(role: .destructive) { withAnimation { modelContext.delete(task) } } label: { Label("Delete", systemImage: "trash") }
     }
 }
 
@@ -161,229 +149,211 @@ struct TasksView: View {
 struct FilterButton: View {
     let title: String
     let iconName: String
+    let color: Color
     let isSelected: Bool
-    let themeColor: Color
     let isGamified: Bool
     let action: () -> Void
     
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
-                Image(systemName: iconName).font(.caption)
+                Image(systemName: iconName)
+                    .font(.caption)
                 Text(title)
             }
             .font(.subheadline)
-            .fontWeight(isSelected ? .bold : .medium)
-            .foregroundColor(textColor)
+            .fontWeight(isSelected ? .semibold : .medium)
             .padding(.vertical, 8)
             .padding(.horizontal, 16)
-            .background(backgroundView)
-            .cornerRadius(20)
+            .background(
+                Group {
+                    if isSelected {
+                        if isGamified {
+                            color.opacity(0.15)
+                        } else {
+                            Color.primary // Solid black/white for minimalist
+                        }
+                    } else {
+                        Color.clear
+                    }
+                }
+            )
+            .foregroundColor(
+                isSelected ? (isGamified ? color : .white) : // Text color
+                (isGamified ? .secondary : .primary)
+            )
+            .clipShape(Capsule())
             .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(borderColor, lineWidth: 1.5)
+                Capsule()
+                    .stroke(isGamified && isSelected ? color : Color.adaptiveBorder, lineWidth: 1)
             )
         }
         .buttonStyle(PlainButtonStyle())
     }
-    
-    private var textColor: Color {
-        if isSelected {
-            return isGamified ? .white : themeColor
-        }
-        return .themeTextSecondary
-    }
-    
-    private var borderColor: Color {
-        if isSelected && !isGamified { return themeColor }
-        return .clear
-    }
-    
-    @ViewBuilder
-    private var backgroundView: some View {
-        if isSelected {
-            if isGamified {
-                LinearGradient(
-                    gradient: Gradient(colors: [themeColor, themeColor.opacity(0.7)]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            } else {
-                themeColor.opacity(0.1)
-            }
-        } else {
-            Color.themeSurface
-        }
-    }
 }
 
-// MARK: - 2. Gamified Task Row
-struct GamifiedTaskRow: View {
-    @Bindable var task: StudyTask
-    let themeColor: Color
+// MARK: - 2. Modern Minimalist Row (Gamified OFF)
+struct ModernTaskRow: View {
+    let task: StudyTask
     
     var body: some View {
-        HStack(spacing: 16) {
-            Button(action: { withAnimation { task.isCompleted.toggle() }}) {
-                ZStack {
-                    Circle().fill(.white).frame(width: 28, height: 28)
-                    if task.isCompleted {
-                        Image(systemName: "checkmark").font(.caption.bold()).foregroundColor(themeColor)
-                    } else {
-                        Circle().stroke(themeColor.opacity(0.3), lineWidth: 2).frame(width: 28, height: 28)
-                    }
-                }
+        HStack(spacing: 12) {
+            // Priority Indicator Strip
+            if !task.isCompleted {
+                Capsule()
+                    .fill(task.priority.color)
+                    .frame(width: 4, height: 36)
             }
-            .buttonStyle(.plain)
             
-            VStack(alignment: .leading, spacing: 4) {
+            // Checkbox Button
+            Button {
+                withAnimation { task.isCompleted.toggle() }
+            } label: {
+                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundColor(task.isCompleted ? .secondary : .primary)
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            // Content
+            VStack(alignment: .leading, spacing: 2) {
                 Text(task.title)
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
+                    .font(.body)
                     .strikethrough(task.isCompleted)
+                    .foregroundColor(task.isCompleted ? .secondary : .primary)
                 
-                HStack(spacing: 8) {
+                HStack(spacing: 4) {
                     if let subject = task.subject {
-                        Label(subject.title, systemImage: "book.fill")
+                        Text(subject.title)
                     }
-                    if let date = task.dueDate {
-                        Label(formatDate(date), systemImage: "calendar")
+                    
+                    if let due = task.dueDate {
+                        if task.subject != nil { Text("•") }
+                        Text(due.formatted(date: .abbreviated, time: .shortened))
+                            .foregroundColor(due < Date() && !task.isCompleted ? .themeError : .secondary)
                     }
                 }
                 .font(.caption)
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundColor(.secondary)
             }
             
             Spacer()
             
-            if !task.isCompleted {
-                Image(systemName: task.priority.iconName)
-                    .foregroundColor(.white)
-                    .padding(6)
-                    .background(.white.opacity(0.2))
-                    .clipShape(Circle())
+            if task.isFlagged && !task.isCompleted {
+                Image(systemName: "flag.fill")
+                    .font(.caption)
+                    .foregroundColor(.themeWarning)
             }
         }
-        .padding()
-        .background(
-            LinearGradient(
-                gradient: Gradient(colors: [themeColor, themeColor.opacity(0.7)]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        )
-        .cornerRadius(24)
-        .shadow(color: themeColor.opacity(0.3), radius: 8, x: 0, y: 4)
-    }
-    
-    private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        if Calendar.current.isDateInToday(date) { return "Today" }
-        formatter.dateFormat = "MMM d"
-        return formatter.string(from: date)
+        .padding(.vertical, 6)
     }
 }
 
-// MARK: - 3. Standard Task Card
-struct TaskCard: View {
-    @Bindable var task: StudyTask
-    @Environment(\.colorScheme) var colorScheme
+// MARK: - 3. Gamified Row (Gamified ON)
+struct GamifiedTaskRow: View {
+    let task: StudyTask
+    
+    var xpReward: Int {
+        switch task.priority {
+        case .high: return 50
+        case .medium: return 30
+        case .low: return 10
+        }
+    }
     
     var body: some View {
-        HStack(spacing: 16) {
-            Button(action: { withAnimation { task.isCompleted.toggle() } }) {
+        HStack(spacing: 12) {
+            // Gamified Checkbox
+            Button {
+                withAnimation { task.isCompleted.toggle() }
+            } label: {
                 ZStack {
-                    Circle().stroke(task.priority.color, lineWidth: 2).frame(width: 24, height: 24)
-                    if task.isCompleted {
-                        Circle().fill(task.priority.color).frame(width: 24, height: 24)
-                        Image(systemName: "checkmark").font(.system(size: 12, weight: .bold)).foregroundColor(.white)
-                    }
+                    Circle()
+                        .fill(task.priority.color.opacity(0.1))
+                        .frame(width: 32, height: 32)
+                    
+                    Image(systemName: task.isCompleted ? "checkmark" : "circle")
+                        .foregroundColor(task.priority.color)
+                        .font(.system(size: 14, weight: .bold))
                 }
             }
             .buttonStyle(PlainButtonStyle())
             
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    Text(task.title)
-                        .font(.body)
-                        .fontWeight(.medium)
-                        .foregroundColor(task.isCompleted ? .themeTextSecondary : .themeTextPrimary)
-                        .strikethrough(task.isCompleted)
-                    
-                    if task.isFlagged && !task.isCompleted {
-                        Image(systemName: "flag.fill").font(.caption).foregroundColor(.themeWarning)
-                    }
-                }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(task.title)
+                    .font(.body)
+                    .fontWeight(.medium)
+                    .strikethrough(task.isCompleted)
+                    .foregroundColor(task.isCompleted ? .secondary : .themeTextPrimary)
                 
-                HStack(spacing: 16) {
-                    if let subjectTitle = task.subject?.title {
-                        HStack(spacing: 6) { Image(systemName: "book.closed.fill").font(.caption2); Text(subjectTitle) }
-                            .font(.caption).foregroundColor(.themeTextSecondary)
-                    }
-                    if let dueDate = task.dueDate {
-                        HStack(spacing: 6) { Image(systemName: "calendar").font(.caption2); Text(formatDueDate(dueDate)) }
-                            .font(.caption).foregroundColor(dueDate < Date() && !task.isCompleted ? .themeError : .themeTextSecondary)
-                    }
+                if !task.isCompleted {
+                    Text("Reward: \(xpReward) XP")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundColor(task.priority.color)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(task.priority.color.opacity(0.1))
+                        .cornerRadius(4)
                 }
             }
+            
             Spacer()
+            
+            if task.isFlagged {
+                Image(systemName: "flag.fill")
+                    .foregroundColor(.themeWarning)
+            }
         }
-        .padding(.vertical, 16)
-        .padding(.horizontal, 20)
+        .padding(12)
         .background(Color.themeSurface)
-    }
-    
-    private func formatDueDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        if Calendar.current.isDateInToday(date) { return "Today" }
-        if Calendar.current.isDateInTomorrow(date) { return "Tomorrow" }
-        formatter.dateFormat = "MMM d"
-        return formatter.string(from: date)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(task.priority.color.opacity(0.3), lineWidth: 1)
+        )
+        .shadow(color: task.priority.color.opacity(0.05), radius: 4, x: 0, y: 2)
     }
 }
 
 // MARK: - 4. Empty State
-struct TasksEmptyStateView: View {
+struct EmptyStateView: View {
     let filter: TasksView.TaskFilter
     let isGamified: Bool
     
     var body: some View {
-        VStack(spacing: 12) {
-            Spacer()
-            Image(systemName: "checkmark.circle")
-                .font(.system(size: 60))
-                .foregroundColor(isGamified ? .white.opacity(0.5) : .themeTextSecondary)
+        VStack(spacing: 16) {
+            Image(systemName: filter == .completed ? "checkmark.circle" : "tray")
+                .font(.system(size: 48))
+                .foregroundColor(isGamified ? .themeSecondary : .secondary)
+                .opacity(0.5)
             
-            Text(title)
-                .font(.title3)
-                .fontWeight(.bold)
-                .foregroundColor(isGamified ? .white : .themeTextPrimary)
-            
-            Text(message)
-                .font(.subheadline)
-                .foregroundColor(isGamified ? .white.opacity(0.7) : .themeTextSecondary)
-                .multilineTextAlignment(.center)
-            Spacer()
+            VStack(spacing: 4) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
         }
-        .padding()
+        .frame(maxWidth: .infinity)
     }
     
-    private var title: String {
+    var title: String {
         switch filter {
-        case .today: return "No Tasks Today"
-        case .flagged: return "No Flagged Tasks"
-        case .all: return "No Active Tasks"
-        case .completed: return "No Completed Tasks"
+        case .today: return "No tasks today"
+        case .flagged: return "No flagged tasks"
+        case .all: return "No tasks"
+        case .completed: return "No completed tasks"
         }
     }
     
-    private var message: String {
-        switch filter {
-        case .today: return "You're free for the day!"
-        case .flagged: return "Flag important tasks to see them here."
-        case .all: return "You've completed everything. Great job!"
-        case .completed: return "Completed tasks will show up here."
+    var message: String {
+        if isGamified {
+            return "Check back later for new quests!"
+        } else {
+            return "Tap + to add a new task."
         }
     }
 }
