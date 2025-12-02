@@ -3,6 +3,8 @@ import SwiftUI
 struct SettingsDashboardView: View {
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject var authManager: AuthenticationManager
+    // FIX: Add themeManager to update the gradient below
+    @EnvironmentObject var themeManager: AppTheme
     
     public init() {}
     
@@ -15,6 +17,7 @@ struct SettingsDashboardView: View {
                         HStack(spacing: 16) {
                             ZStack {
                                 Circle()
+                                    // Use dynamic colors here
                                     .fill(LinearGradient(
                                         gradient: Gradient(colors: [.themePrimary, .themeSecondary]),
                                         startPoint: .topLeading,
@@ -68,7 +71,7 @@ struct SettingsDashboardView: View {
             .navigationTitle("More")
             .navigationBarTitleDisplayMode(.inline)
         }
-        .navigationViewStyle(.stack) // FIX: Force iPhone style on iPad
+        .navigationViewStyle(.stack)
     }
     
     private func getInitials(from name: String) -> String {

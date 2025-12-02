@@ -389,7 +389,7 @@ struct SubjectDetailView: View {
         .background(Color.themeSurface)
     }
     
-    // MARK: - Tab Content (Unchanged)
+    // MARK: - Tab Content
     private var tabContentSection: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
@@ -449,7 +449,8 @@ struct SubjectDetailView: View {
             .padding(.horizontal)
             
             if (subject.gradeHistory ?? []).isEmpty {
-                EmptyStateView(
+                // FIX: Use renamed struct
+                SubjectEmptyStateView(
                     icon: "chart.line.uptrend.xyaxis",
                     title: "No Grades Yet",
                     message: "Add your first grade to track your progress and see your average."
@@ -508,7 +509,8 @@ struct SubjectDetailView: View {
             .padding(.horizontal)
             
             if (subject.attendanceHistory ?? []).isEmpty {
-                EmptyStateView(
+                // FIX: Use renamed struct
+                SubjectEmptyStateView(
                     icon: "calendar",
                     title: "No Attendance Records",
                     message: "Mark your first attendance to track your presence."
@@ -563,7 +565,8 @@ struct SubjectDetailView: View {
             .padding(.horizontal)
             
             if subjectTasks.isEmpty {
-                EmptyStateView(
+                // FIX: Use renamed struct
+                SubjectEmptyStateView(
                     icon: "checklist",
                     title: "No Tasks",
                     message: "Add tasks related to this subject."
@@ -593,7 +596,7 @@ struct SubjectDetailView: View {
         .background(Color.themeBackground)
     }
     
-    // MARK: - Helper Properties & Subviews (Unchanged)
+    // MARK: - Helper Properties & Subviews
     private var tabTitles: [String] {
         ["Grades", "Attendance", "Tasks"]
     }
@@ -605,9 +608,6 @@ struct SubjectDetailView: View {
         return formatter.string(from: date)
     }
 }
-
-// ... (Subviews: DetailInfoCard, SectionHeader, etc. remain unchanged)
-// [Include the rest of the subviews from previous context if needed, they don't change]
 
 // MARK: - Supporting Components
 
@@ -879,7 +879,8 @@ struct AttendanceHistoryRow: View {
     }
 }
 
-struct EmptyStateView: View {
+// FIX: Renamed struct
+struct SubjectEmptyStateView: View {
     let icon: String
     let title: String
     let message: String

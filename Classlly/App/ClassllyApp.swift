@@ -6,14 +6,15 @@ import SwiftData
 struct ClassllyApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
+    // FIX: Use the 'shared' singleton instance so it syncs with Color+Theme.swift
     @StateObject private var authManager = AuthenticationManager()
     @StateObject private var calendarManager = AcademicCalendarManager()
-    @StateObject private var themeManager = AppTheme()
+    @StateObject private var themeManager = AppTheme.shared
 
     // SwiftData Model Container Setup
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            StudentProfile.self, // ADD THIS
+            StudentProfile.self,
             Subject.self,
             StudyTask.self,
             GradeEntry.self,

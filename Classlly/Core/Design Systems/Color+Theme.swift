@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Helper extension (unchanged)
+// Helper extension for Adaptive Colors (Dark/Light mode)
 extension Color {
     init(light: UIColor, dark: UIColor) {
         self.init(uiColor: UIColor { traits in
@@ -9,28 +9,39 @@ extension Color {
     }
 }
 
-// MARK: - App Theme Colors
+// MARK: - Dynamic App Theme Colors
 extension Color {
     
-    // --- BACKGROUNDS (This is the "off-black" theme) ---
+    // --- BACKGROUNDS ---
+    // These remain static as they don't change per "Color Theme", only per Dark/Light mode
     static let themeBackground = Color(light: .systemGroupedBackground, dark: .systemGroupedBackground)
     static let themeSurface = Color(light: .secondarySystemGroupedBackground, dark: .secondarySystemGroupedBackground)
 
-    // --- TEXT (Unchanged) ---
+    // --- TEXT ---
     static let themeTextPrimary = Color(light: .label, dark: .label)
     static let themeTextSecondary = Color(light: .secondaryLabel, dark: .secondaryLabel)
 
-    // --- INTERACTIVE / BRAND (Unchanged) ---
-    static let themePrimary = Color.blue
-    static let themeSecondary = Color.purple
-    static let themeAccent = Color.blue
+    // --- DYNAMIC BRAND COLORS ---
+    // These now read from the Singleton Manager
     
-    // --- SEMANTIC (Unchanged) ---
+    static var themePrimary: Color {
+        return AppTheme.shared.selectedTheme.primaryColor
+    }
+    
+    static var themeSecondary: Color {
+        return AppTheme.shared.selectedTheme.secondaryColor
+    }
+    
+    static var themeAccent: Color {
+        return AppTheme.shared.selectedTheme.primaryColor
+    }
+    
+    // --- SEMANTIC ---
     static let themeSuccess = Color.green
     static let themeError = Color.red
     static let themeWarning = Color.orange
 
-    // --- OLD ADAPTIVE COLORS (Unchanged) ---
+    // --- LEGACY ADAPTIVE SUPPORT ---
     static let adaptiveBackground = Color(.systemGroupedBackground)
     static let adaptiveSecondaryBackground = Color(.secondarySystemGroupedBackground)
     static let adaptiveTertiaryBackground = Color(.tertiarySystemGroupedBackground)
@@ -39,7 +50,7 @@ extension Color {
     static let adaptivePrimary = Color.primary
     static let adaptiveSecondary = Color.secondary
     
-    // --- OLD THEME COLORS (Unchanged) ---
+    // --- OLD THEME COLORS (Deprecated but kept for safety) ---
     static let themeBlue = Color.blue
     static let themeGreen = Color.green
     static let themeOrange = Color.orange
@@ -47,14 +58,13 @@ extension Color {
     static let themeRed = Color.red
 }
 
-// MARK: - View Modifiers (This section is fixed)
-
+// MARK: - View Modifiers
 struct AdaptiveCard: ViewModifier {
     @Environment(\.colorScheme) var colorScheme
     
     func body(content: Content) -> some View {
         content
-            .background(Color.adaptiveSecondaryBackground) // Use the new theme color
+            .background(Color.themeSurface)
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
@@ -70,15 +80,10 @@ struct AdaptiveCard: ViewModifier {
 }
 
 struct AdaptiveListRow: ViewModifier {
-    @Environment(\.colorScheme) var colorScheme
-    
-    // --- THIS IS THE FIX ---
-    // 'some View' must have a capital 'V'
     func body(content: Content) -> some View {
         content
-            .listRowBackground(Color.adaptiveSecondaryBackground) // Use the new theme color
+            .listRowBackground(Color.themeSurface)
     }
-    // --- END OF FIX ---
 }
 
 extension View {
