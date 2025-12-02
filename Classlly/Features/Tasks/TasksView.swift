@@ -3,12 +3,13 @@ import SwiftData
 
 struct TasksView: View {
     @EnvironmentObject var themeManager: AppTheme
+    var embedInNavigationStack: Bool = true // Default true for Tab Bar
     
     var body: some View {
         Group {
             switch themeManager.selectedGameMode {
             case .rainbow:
-                RainbowTasksView()
+                RainbowTasksView(embedInNavigationStack: embedInNavigationStack)
             case .arcade:
                 ArcadeTasksView()
             case .retro:
@@ -19,6 +20,198 @@ struct TasksView: View {
         }
     }
 }
+
+// MARK: - 🌈 RAINBOW TASKS (Custom Header & Dynamic Color)
+struct RainbowTasksView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    @Query private var tasks: [StudyTask]
+    @EnvironmentObject var themeManager: AppTheme
+    
+    @State private var showingAddTask = false
+    @State private var editingTask: StudyTask?
+    @State private var taskFilter: TaskFilter = .today
+    
+    var embedInNavigationStack: Bool = true
+    
+    // Vibrant palette for tasks to cycle through
+    private let cardColors: [Color] = [
+        RainbowColors.blue,
+        RainbowColors.orange,
+        RainbowColors.green,
+        RainbowColors.purple,
+        Color.pink,
+        Color.teal,
+        Color.indigo
+    ]
+    
+    var body: some View {
+        // Dynamic Accent Color
+        let accentColor = themeManager.selectedTheme.primaryColor
+        
+        VStack(spacing: 0) {
+            // CUSTOM HEADER
+            RainbowHeader(
+                title: "Tasks",
+                accentColor: accentColor,
+                showBackButton: !embedInNavigationStack,
+                backAction: { dismiss() },
+                trailingIcon: "plus",
+                trailingAction: { showingAddTask = true }
+            )
+            
+            ZStack {
+                Color.black.ignoresSafeArea()
+                
+                VStack(spacing: 20) {
+                    // 1. Filter Bar
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(TaskFilter.allCases, id: \.self) { filter in
+                                Button(action: { withAnimation { taskFilter = filter } }) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: filter.iconName)
+                                        Text(filter.rawValue)
+                                    }
+                                    .font(.subheadline)
+                                    .fontWeight(taskFilter == filter ? .bold : .medium)
+                                    .padding(.vertical, 10)
+                                    .padding(.horizontal, 16)
+                                    // Active filter uses dynamic accent color
+                                    .background(taskFilter == filter ? accentColor : RainbowColors.darkCard)
+                                    .foregroundColor(taskFilter == filter ? .white : .gray)
+                                    .cornerRadius(20)
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    .padding(.top, 10)
+                    
+                    // 2. Task List
+                    if filteredTasks.isEmpty {
+                        Spacer()
+                        VStack(spacing: 16) {
+                            Image(systemName: "checklist")
+                                .font(.system(size: 60))
+                                .foregroundColor(RainbowColors.darkCard.opacity(2))
+                            Text("No tasks found")
+                                .font(.headline)
+                                .foregroundColor(.gray)
+                        }
+                        .frame(maxWidth: .infinity)
+                        Spacer()
+                    } else {
+                        ScrollView {
+                            LazyVStack(spacing: 16) {
+                                ForEach(Array(filteredTasks.enumerated()), id: \.element.id) { index, task in
+                                    // Cycle through colors for solid cards
+                                    let color = cardColors[index % cardColors.count]
+                                    
+                                    RainbowTaskCard(task: task, color: color)
+                                        .onTapGesture { editingTask = task }
+                                        .contextMenu {
+                                            Button { editingTask = task } label: { Label("Edit", systemImage: "pencil") }
+                                            Button(role: .destructive) { modelContext.delete(task) } label: { Label("Delete", systemImage: "trash") }
+                                        }
+                                }
+                            }
+                            .padding(.horizontal)
+                            .padding(.bottom, 20)
+                        }
+                    }
+                }
+            }
+        }
+        .background(Color.black.ignoresSafeArea())
+        .navigationBarHidden(true) // HIDE SYSTEM NAV BAR
+        .sheet(isPresented: $showingAddTask) { AddTaskView() }
+        .sheet(item: $editingTask) { task in EditTaskView(task: task) }
+    }
+    
+    var filteredTasks: [StudyTask] {
+        let calendar = Calendar.current; let now = Date()
+        switch taskFilter {
+        case .today: return tasks.filter { guard let d = $0.dueDate else { return false }; return !$0.isCompleted && calendar.isDate(d, inSameDayAs: now) }.sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
+        case .flagged: return tasks.filter { $0.isFlagged && !$0.isCompleted }.sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
+        case .all: return tasks.filter { !$0.isCompleted }.sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
+        case .completed: return tasks.filter { $0.isCompleted }.sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
+        }
+    }
+}
+
+// Local Component: Solid Colorful Task Card
+struct RainbowTaskCard: View {
+    @Bindable var task: StudyTask
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // Checkbox (White on colored card looks clean)
+            Button(action: { withAnimation { task.isCompleted.toggle() } }) {
+                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.title2)
+                    .foregroundColor(.white)
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            // Content
+            VStack(alignment: .leading, spacing: 4) {
+                Text(task.title)
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .strikethrough(task.isCompleted)
+                
+                if !task.notes.isEmpty {
+                    Text(task.notes)
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.8))
+                        .lineLimit(1)
+                }
+                
+                HStack(spacing: 12) {
+                    if let subjectTitle = task.subject?.title {
+                        HStack(spacing: 4) {
+                            Image(systemName: "book.fill").font(.caption2)
+                            Text(subjectTitle).font(.caption).fontWeight(.semibold)
+                        }
+                        .foregroundColor(.white.opacity(0.9))
+                    }
+                    
+                    if let dueDate = task.dueDate {
+                        Text(formatDueDate(dueDate))
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.9))
+                    }
+                }
+            }
+            
+            Spacer()
+            
+            // Priority Indicator or Arrow
+            if task.priority == .high && !task.isCompleted {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .foregroundColor(.white)
+                    .font(.caption)
+            } else {
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.white.opacity(0.6))
+            }
+        }
+        .padding(20)
+        .background(task.isCompleted ? Color(white: 0.2) : color) // Turn gray if completed
+        .cornerRadius(20)
+        .shadow(color: (task.isCompleted ? Color.black : color).opacity(0.3), radius: 8, x: 0, y: 4)
+    }
+    
+    private func formatDueDate(_ date: Date) -> String {
+        let f = DateFormatter(); f.dateFormat = "MMM d"; return "Due \(f.string(from: date))"
+    }
+}
+
+// ... (Rest of Standard/Arcade/Retro views unchanged)
+// [Preserving existing code]
 
 struct StandardTasksView: View {
     @Environment(\.modelContext) private var modelContext
@@ -173,41 +366,6 @@ struct RetroTaskRow: View {
     private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateFormat = "MM-dd"; return f.string(from: date) }
 }
 
-struct RainbowTasksView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var tasks: [StudyTask]
-    @EnvironmentObject var themeManager: AppTheme
-    @State private var showingAddTask = false
-    @State private var editingTask: StudyTask?
-    
-    var body: some View {
-        let colors = RainbowThemeFactory.colors(for: themeManager.selectedTheme)
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                ScrollView {
-                    LazyVStack(spacing: 16) {
-                        ForEach(tasks) { task in
-                            HStack(spacing: 16) {
-                                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle").font(.title2).foregroundColor(task.isCompleted ? .green : colors.primary).onTapGesture { withAnimation { task.isCompleted.toggle() } }
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(task.title).font(.headline).strikethrough(task.isCompleted).foregroundColor(.white)
-                                    if !task.notes.isEmpty { Text(task.notes).font(.caption).foregroundColor(.gray).lineLimit(1) }
-                                    HStack { if let sub = task.subject { Text(sub.title).font(.caption).foregroundColor(colors.secondary) }; if let d = task.dueDate { Text(d.formatted(date: .abbreviated, time: .omitted)).font(.caption).foregroundColor(.gray) } }
-                                }
-                                Spacer()
-                            }.modifier(RainbowCardModifier(color: colors.primary)).onTapGesture { editingTask = task }
-                        }
-                    }.padding()
-                }
-            }
-            .navigationTitle("Tasks").toolbar { Button(action: { showingAddTask = true }) { Image(systemName: "plus.circle.fill").foregroundColor(colors.primary).font(.title2) } }
-            .sheet(isPresented: $showingAddTask) { AddTaskView() }.sheet(item: $editingTask) { task in EditTaskView(task: task) }
-        }.preferredColorScheme(.dark)
-    }
-}
-
-// MARK: - SHARED ENUMS & HELPERS
 enum TaskFilter: String, CaseIterable {
     case today = "Today"; case flagged = "Flagged"; case all = "All"; case completed = "Completed"
     var iconName: String { switch self { case .today: return "sun.max.fill"; case .flagged: return "flag.fill"; case .all: return "tray.fill"; case .completed: return "checkmark.circle.fill" } }

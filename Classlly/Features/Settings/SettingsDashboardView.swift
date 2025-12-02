@@ -16,6 +16,151 @@ struct SettingsDashboardView: View {
     }
 }
 
+// MARK: - 🌈 RAINBOW SETTINGS DASHBOARD (Dynamic Color & Dark Cards)
+struct RainbowSettingsDashboardView: View {
+    @EnvironmentObject var themeManager: AppTheme
+    @EnvironmentObject var authManager: AuthenticationManager
+    
+    var body: some View {
+        // Dynamic Accent Color
+        let accentColor = themeManager.selectedTheme.primaryColor
+        
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // 1. Profile Card (Solid Theme Color)
+                        if let user = authManager.currentUser {
+                            NavigationLink(destination: ProfileView()) {
+                                HStack(spacing: 16) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color.white.opacity(0.2))
+                                            .frame(width: 60, height: 60)
+                                        
+                                        Text(String(user.firstName.prefix(1)))
+                                            .font(.title)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.white)
+                                    }
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(user.fullName)
+                                            .font(.title3)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.white)
+                                        
+                                        Text("View Profile & Stats")
+                                            .font(.subheadline)
+                                            .foregroundColor(.white.opacity(0.9))
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .foregroundColor(.white.opacity(0.6))
+                                }
+                                .padding(20)
+                                .background(accentColor) // Dynamic Accent Background
+                                .cornerRadius(20)
+                                .shadow(color: accentColor.opacity(0.3), radius: 10, x: 0, y: 5)
+                            }
+                        }
+                        
+                        // 2. Menu Items (Dark Container with Colorful Icons)
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("General")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 4)
+                            
+                            RainbowContainer {
+                                VStack(spacing: 0) {
+                                    RainbowMenuRow(
+                                        icon: "calendar",
+                                        title: "Academic Calendar",
+                                        color: RainbowColors.purple,
+                                        destination: AnyView(AcademicCalendarView())
+                                    )
+                                    
+                                    Divider()
+                                        .background(Color.gray.opacity(0.3))
+                                        .padding(.leading, 52)
+                                    
+                                    RainbowMenuRow(
+                                        icon: "gearshape.fill",
+                                        title: "Settings",
+                                        color: RainbowColors.orange,
+                                        destination: AnyView(SettingsView())
+                                    )
+                                    
+                                    Divider()
+                                        .background(Color.gray.opacity(0.3))
+                                        .padding(.leading, 52)
+                                    
+                                    RainbowMenuRow(
+                                        icon: "lock.shield.fill",
+                                        title: "Privacy Policy",
+                                        color: RainbowColors.green,
+                                        destination: AnyView(PrivacyPolicyView())
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    .padding()
+                }
+            }
+            .navigationTitle("More")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .preferredColorScheme(.dark)
+    }
+}
+
+// Helper Component for Menu Rows
+struct RainbowMenuRow: View {
+    let icon: String
+    let title: String
+    let color: Color
+    let destination: AnyView
+    
+    var body: some View {
+        NavigationLink(destination: destination) {
+            HStack(spacing: 16) {
+                // Icon Circle
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.15))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: icon)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(color)
+                }
+                
+                Text(title)
+                    .font(.body)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.gray)
+                    .font(.caption)
+            }
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// ... (Rest of Standard/Arcade/Retro views unchanged)
+// [Preserving existing code structure below]
+
 struct StandardSettingsDashboardView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     var body: some View {
@@ -130,33 +275,6 @@ struct RetroMenuLink: View {
             HStack { Text(">").foregroundColor(.green); Text(title).font(.system(.body, design: .monospaced)).foregroundColor(.white); Spacer() }
             .padding(.vertical, 16).border(width: 1, edges: [.bottom], color: Color.green.opacity(0.3))
         }
-    }
-}
-
-struct RainbowSettingsDashboardView: View {
-    @EnvironmentObject var themeManager: AppTheme; @EnvironmentObject var authManager: AuthenticationManager
-    var body: some View {
-        let colors = RainbowThemeFactory.colors(for: themeManager.selectedTheme)
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                List {
-                    if let user = authManager.currentUser {
-                        NavigationLink(destination: ProfileView()) {
-                            HStack {
-                                Circle().fill(colors.primary).frame(width: 50, height: 50).overlay(Text(String(user.firstName.prefix(1))).bold())
-                                VStack(alignment: .leading) { Text(user.fullName).font(.headline); Text("View Profile").font(.caption) }
-                            }
-                        }.listRowBackground(Color(white: 0.1))
-                    }
-                    Section {
-                        NavigationLink(destination: AcademicCalendarView()) { Label("Calendar", systemImage: "calendar") }
-                        NavigationLink(destination: SettingsView()) { Label("Settings", systemImage: "gear") }
-                        NavigationLink(destination: PrivacyPolicyView()) { Label("Privacy", systemImage: "lock") }
-                    }.listRowBackground(Color(white: 0.1))
-                }.scrollContentBackground(.hidden)
-            }.navigationTitle("More")
-        }.preferredColorScheme(.dark)
     }
 }
 

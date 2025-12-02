@@ -11,15 +11,312 @@ struct ProfileView: View {
     var body: some View {
         Group {
             switch themeManager.selectedGameMode {
+            case .rainbow:
+                RainbowProfileView(user: authManager.currentUser, subjects: subjects, tasks: tasks)
             case .arcade:
                 ArcadeProfileView(user: authManager.currentUser, subjects: subjects, tasks: tasks)
             case .retro:
                 RetroProfileView(user: authManager.currentUser, subjects: subjects, tasks: tasks)
-            case .rainbow:
-                StandardProfileView(user: authManager.currentUser, subjects: subjects, tasks: tasks)
             case .none:
                 StandardProfileView(user: authManager.currentUser, subjects: subjects, tasks: tasks)
             }
+        }
+    }
+}
+
+// MARK: - 🌈 RAINBOW PROFILE VIEW (Dynamic Color)
+struct RainbowProfileView: View {
+    let user: UserProfile?
+    let subjects: [Subject]
+    let tasks: [StudyTask]
+    @EnvironmentObject var authManager: AuthenticationManager
+    @EnvironmentObject var themeManager: AppTheme // Added for dynamic color
+    @Environment(\.modelContext) var modelContext
+    @State private var showingEditProfile = false
+    
+    var body: some View {
+        // Get the dynamic accent color
+        let accentColor = themeManager.selectedTheme.primaryColor
+        
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        if let user = user {
+                            // 1. Profile Header Card
+                            VStack(spacing: 16) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.white.opacity(0.2))
+                                        .frame(width: 100, height: 100)
+                                    
+                                    Text(String(user.firstName.prefix(1)))
+                                        .font(.system(size: 40, weight: .bold))
+                                        .foregroundColor(.white)
+                                }
+                                .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
+                                
+                                VStack(spacing: 4) {
+                                    Text(user.fullName)
+                                        .font(.title2)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.white)
+                                    
+                                    Text(user.schoolName)
+                                        .font(.subheadline)
+                                        .foregroundColor(.white.opacity(0.8))
+                                    
+                                    Text(user.gradeLevel)
+                                        .font(.caption)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 4)
+                                        .background(Color.white.opacity(0.2))
+                                        .cornerRadius(8)
+                                        .foregroundColor(.white)
+                                        .padding(.top, 4)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(24)
+                            .background(accentColor) // Dynamic Accent Background
+                            .cornerRadius(24)
+                            .padding(.horizontal)
+                            .shadow(color: accentColor.opacity(0.4), radius: 15, x: 0, y: 5)
+                            
+                            // 2. Stats Grid
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                                RainbowStatBox(
+                                    title: "Subjects",
+                                    value: "\(subjects.count)",
+                                    icon: "book.fill",
+                                    color: RainbowColors.purple
+                                )
+                                
+                                RainbowStatBox(
+                                    title: "Active Tasks",
+                                    value: "\(tasks.filter { !$0.isCompleted }.count)",
+                                    icon: "checklist",
+                                    color: RainbowColors.orange
+                                )
+                            }
+                            .padding(.horizontal)
+                            
+                            // 3. Academic Info
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("Academic Details").font(.headline).foregroundColor(.white).padding(.horizontal)
+                                
+                                RainbowContainer {
+                                    VStack(spacing: 16) {
+                                        ProfileInfoRow(icon: "graduationcap.fill", label: "Major", value: user.major ?? "Undeclared", color: RainbowColors.green)
+                                        Divider().background(Color.gray.opacity(0.3))
+                                        // Year now uses accent color to match header
+                                        ProfileInfoRow(icon: "calendar", label: "Year", value: user.academicYear, color: accentColor)
+                                        Divider().background(Color.gray.opacity(0.3))
+                                        ProfileInfoRow(icon: "envelope.fill", label: "Email", value: user.email ?? "No Email", color: RainbowColors.orange)
+                                    }
+                                }
+                                .padding(.horizontal)
+                            }
+                            
+                            // 4. Sign Out
+                            Button(action: {
+                                authManager.signOut(modelContext: modelContext)
+                            }) {
+                                Text("Sign Out")
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.red)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(RainbowColors.darkCard)
+                                    .cornerRadius(16)
+                            }
+                            .padding(.horizontal)
+                            .padding(.bottom, 20)
+                        }
+                    }
+                    .padding(.top, 20)
+                }
+            }
+            .navigationTitle("Profile")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showingEditProfile = true }) {
+                        Text("Edit")
+                            .fontWeight(.bold)
+                            .foregroundColor(accentColor) // Dynamic Edit Button
+                    }
+                }
+            }
+            .sheet(isPresented: $showingEditProfile) {
+                if let user = authManager.currentUser {
+                    EditProfileView(user: user)
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+}
+
+// Helper Row for Profile
+struct ProfileInfoRow: View {
+    let icon: String
+    let label: String
+    let value: String
+    let color: Color
+    
+    var body: some View {
+        HStack {
+            Image(systemName: icon)
+                .foregroundColor(color)
+                .frame(width: 24)
+            
+            Text(label)
+                .foregroundColor(.gray)
+                .font(.subheadline)
+            
+            Spacer()
+            
+            Text(value)
+                .fontWeight(.medium)
+                .foregroundColor(.white)
+        }
+    }
+}
+
+// MARK: - EDIT PROFILE VIEW
+struct EditProfileView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.modelContext) var modelContext
+    @EnvironmentObject var authManager: AuthenticationManager
+    @EnvironmentObject var themeManager: AppTheme // Added
+    
+    @State private var firstName: String
+    @State private var lastName: String
+    @State private var schoolName: String
+    @State private var major: String
+    @State private var academicYear: String
+    
+    let user: UserProfile
+    
+    init(user: UserProfile) {
+        self.user = user
+        _firstName = State(initialValue: user.firstName)
+        _lastName = State(initialValue: user.lastName)
+        _schoolName = State(initialValue: user.schoolName)
+        _major = State(initialValue: user.major ?? "")
+        _academicYear = State(initialValue: user.academicYear)
+    }
+    
+    var body: some View {
+        let accentColor = themeManager.selectedTheme.primaryColor
+        
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        RainbowContainer {
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("Personal Info").font(.headline).foregroundColor(.gray)
+                                
+                                CustomTextField(placeholder: "First Name", text: $firstName, color: accentColor)
+                                CustomTextField(placeholder: "Last Name", text: $lastName, color: accentColor)
+                            }
+                        }
+                        
+                        RainbowContainer {
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("Academic Info").font(.headline).foregroundColor(.gray)
+                                
+                                CustomTextField(placeholder: "University/School", text: $schoolName, color: accentColor)
+                                CustomTextField(placeholder: "Major", text: $major, color: accentColor)
+                                CustomTextField(placeholder: "Academic Year", text: $academicYear, color: accentColor)
+                            }
+                        }
+                    }
+                    .padding()
+                }
+            }
+            .navigationTitle("Edit Profile")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") { dismiss() }.foregroundColor(.white)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        saveProfile()
+                    }
+                    .fontWeight(.bold)
+                    .foregroundColor(accentColor) // Dynamic Save Button
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+    
+    private func saveProfile() {
+        // Update UserProfile struct
+        let updatedProfile = UserProfile(
+            id: user.id,
+            firstName: firstName,
+            lastName: lastName,
+            email: user.email,
+            schoolName: schoolName,
+            gradeLevel: user.gradeLevel,
+            major: major,
+            academicYear: academicYear,
+            profileImageData: user.profileImageData
+        )
+        
+        // Update SwiftData
+        let id = user.id
+        let descriptor = FetchDescriptor<StudentProfile>(predicate: #Predicate<StudentProfile> { p in
+            p.id == id
+        })
+        
+        do {
+            if let profile = try modelContext.fetch(descriptor).first {
+                profile.firstName = firstName
+                profile.lastName = lastName
+                profile.schoolName = schoolName
+                profile.major = major
+                profile.academicYear = academicYear
+                try modelContext.save()
+                
+                // Update Auth Manager
+                authManager.currentUser = updatedProfile
+            }
+        } catch {
+            print("Failed to update profile: \(error)")
+        }
+        
+        dismiss()
+    }
+}
+
+// Helper TextField for Rainbow Forms
+struct CustomTextField: View {
+    let placeholder: String
+    @Binding var text: String
+    var color: Color
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(placeholder)
+                .font(.caption)
+                .foregroundColor(color) // Dynamic Label Color
+                .fontWeight(.bold)
+            
+            TextField("", text: $text)
+                .padding()
+                .background(Color.black.opacity(0.3))
+                .cornerRadius(10)
+                .foregroundColor(.white)
         }
     }
 }
@@ -276,4 +573,3 @@ struct RetroProfileView: View {
         .navigationTitle("USER_PROFILE")
     }
 }
-

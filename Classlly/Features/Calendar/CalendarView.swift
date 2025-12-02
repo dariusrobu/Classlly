@@ -80,18 +80,326 @@ struct CalendarView: View {
     var body: some View {
         Group {
             switch themeManager.selectedGameMode {
+            case .rainbow:
+                RainbowCalendarView()
             case .arcade:
                 ArcadeCalendarView()
             case .retro:
                 RetroCalendarView()
-            case .rainbow:
-                StandardCalendarView()
-                    .preferredColorScheme(.dark)
             case .none:
                 StandardCalendarView()
             }
         }
     }
+}
+
+// MARK: - 🌈 RAINBOW CALENDAR (REDESIGNED)
+struct RainbowCalendarView: View {
+    @State private var currentDate = Date()
+    @State private var selectedDate = Date()
+    @EnvironmentObject var calendarManager: AcademicCalendarManager
+    @Environment(\.colorScheme) var colorScheme
+    
+    @Query var subjects: [Subject]
+    @Query var tasks: [StudyTask]
+    
+    @State private var selectedTask: StudyTask?
+    @State private var selectedSubject: Subject?
+    @State private var showingTaskDetail = false
+    @State private var showingSubjectDetail = false
+    @State private var showingAddTask = false
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                
+                VStack(spacing: 24) {
+                    // 1. Header & Controls
+                    VStack(spacing: 16) {
+                        // Week Info
+                        if let currentWeek = calendarManager.currentTeachingWeek {
+                            HStack {
+                                Text("Week \(currentWeek)")
+                                    .font(.title2).fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                Text("•")
+                                    .foregroundColor(.gray)
+                                Text(calendarManager.currentSemester.displayName)
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                Spacer()
+                            }
+                            .padding(.horizontal)
+                        }
+                        
+                        // Date Navigation
+                        HStack {
+                            Button(action: previousWeek) {
+                                Image(systemName: "chevron.left")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .frame(width: 44, height: 44)
+                                    .background(RainbowColors.darkCard)
+                                    .clipShape(Circle())
+                            }
+                            
+                            Spacer()
+                            
+                            VStack(spacing: 4) {
+                                Text(weekRangeString)
+                                    .font(.headline)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                Text(currentDate, formatter: monthYearFormatter)
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(RainbowColors.blue)
+                            }
+                            
+                            Spacer()
+                            
+                            Button(action: nextWeek) {
+                                Image(systemName: "chevron.right")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .frame(width: 44, height: 44)
+                                    .background(RainbowColors.darkCard)
+                                    .clipShape(Circle())
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    .padding(.top, 10)
+                    
+                    // 2. Calendar Grid (Dark Card)
+                    RainbowContainer {
+                        RainbowWeeklyCalendarGrid(currentDate: $currentDate, selectedDate: $selectedDate)
+                    }
+                    .padding(.horizontal)
+                    
+                    // 3. Events List
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Text("Events")
+                                .font(.title3).bold()
+                                .foregroundColor(.white)
+                            Text(formattedSelectedDate)
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                            Spacer()
+                            Button(action: { showingAddTask = true }) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(RainbowColors.orange)
+                            }
+                        }
+                        .padding(.horizontal)
+                        
+                        if eventsForSelectedDate.isEmpty {
+                            Spacer()
+                            VStack(spacing: 16) {
+                                Image(systemName: "calendar")
+                                    .font(.system(size: 50))
+                                    .foregroundColor(RainbowColors.darkCard.opacity(2)) // Slightly lighter than black
+                                Text("No events today")
+                                    .font(.headline)
+                                    .foregroundColor(.gray)
+                            }
+                            .frame(maxWidth: .infinity)
+                            Spacer()
+                        } else {
+                            ScrollView {
+                                LazyVStack(spacing: 12) {
+                                    ForEach(eventsForSelectedDate) { event in
+                                        RainbowEventRow(event: event)
+                                            .onTapGesture { handleEventTap(event) }
+                                    }
+                                }
+                                .padding(.horizontal)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Calendar")
+            .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showingTaskDetail) { if let t = selectedTask { EditTaskView(task: t) } }
+            .sheet(isPresented: $showingSubjectDetail) { if let s = selectedSubject { SubjectDetailView(subject: s) } }
+            .sheet(isPresented: $showingAddTask) { AddTaskView() }
+        }
+        .preferredColorScheme(.dark)
+    }
+    
+    // Logic Helpers
+    private var eventsForSelectedDate: [CalendarEvent] {
+        let tasksOnDate = tasks.filter { task in guard let d = task.dueDate else { return false }; return Calendar.current.isDate(d, inSameDayAs: selectedDate) }
+        var classEvents: [CalendarEvent] = []
+        let weekday = Calendar.current.component(.weekday, from: selectedDate)
+        let academicWeek = calendarManager.currentTeachingWeek
+        
+        for subject in subjects {
+            if subject.courseDays.contains(weekday) && subject.occursThisWeek(academicWeek: academicWeek, isCourse: true) {
+                classEvents.append(.class(subject: subject, isCourse: true, date: selectedDate))
+            }
+            if subject.seminarDays.contains(weekday) && subject.occursThisWeek(academicWeek: academicWeek, isCourse: false) {
+                classEvents.append(.class(subject: subject, isCourse: false, date: selectedDate))
+            }
+        }
+        let taskEvents = tasksOnDate.map { CalendarEvent.task($0) }
+        return (taskEvents + classEvents).sorted { $0.startTime < $1.startTime }
+    }
+    
+    private var weekRangeString: String {
+        let calendar = Calendar.current
+        guard let interval = calendar.dateInterval(of: .weekOfYear, for: currentDate) else { return "This Week" }
+        let end = calendar.date(byAdding: .day, value: 6, to: interval.start) ?? interval.start
+        let f = DateFormatter(); f.dateFormat = "MMM d"
+        return "\(f.string(from: interval.start)) - \(f.string(from: end))"
+    }
+    
+    private var formattedSelectedDate: String { let f = DateFormatter(); f.dateStyle = .medium; return f.string(from: selectedDate) }
+    private func previousWeek() { if let d = Calendar.current.date(byAdding: .weekOfYear, value: -1, to: currentDate) { currentDate = d } }
+    private func nextWeek() { if let d = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: currentDate) { currentDate = d } }
+    
+    private func handleEventTap(_ event: CalendarEvent) {
+        switch event {
+        case .task(let t): selectedTask = t; showingTaskDetail = true
+        case .class(let s, _, _): selectedSubject = s; showingSubjectDetail = true
+        }
+    }
+}
+
+// MARK: - RAINBOW CALENDAR COMPONENTS
+
+struct RainbowWeeklyCalendarGrid: View {
+    @Binding var currentDate: Date
+    @Binding var selectedDate: Date
+    private let daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    private let columns = Array(repeating: GridItem(.flexible()), count: 7)
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Day Names
+            LazyVGrid(columns: columns, spacing: 10) {
+                ForEach(daysOfWeek, id: \.self) { day in
+                    Text(day)
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.gray)
+                        .frame(height: 30)
+                }
+            }
+            
+            // Days
+            LazyVGrid(columns: columns, spacing: 8) {
+                ForEach(getDaysInWeek(), id: \.self) { date in
+                    let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
+                    let isToday = Calendar.current.isDateInToday(date)
+                    
+                    VStack {
+                        Text("\(Calendar.current.component(.day, from: date))")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(isSelected ? .white : (isToday ? RainbowColors.blue : .white))
+                            .frame(width: 40, height: 40)
+                            .background(
+                                ZStack {
+                                    if isSelected {
+                                        Circle().fill(RainbowColors.blue)
+                                    } else if isToday {
+                                        Circle().stroke(RainbowColors.blue, lineWidth: 2)
+                                    }
+                                }
+                            )
+                    }
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.3)) {
+                            selectedDate = date
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private func getDaysInWeek() -> [Date] {
+        let c = Calendar.current
+        guard let i = c.dateInterval(of: .weekOfYear, for: currentDate) else { return [] }
+        return (0..<7).compactMap { c.date(byAdding: .day, value: $0, to: i.start) }
+    }
+}
+
+struct RainbowEventRow: View {
+    let event: CalendarEvent
+    
+    var body: some View {
+        RainbowContainer {
+            HStack(spacing: 16) {
+                // Color Bar / Icon
+                ZStack {
+                    Circle()
+                        .fill(iconColor.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: event.icon)
+                        .font(.headline)
+                        .foregroundColor(iconColor)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(event.title)
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                    
+                    Text(event.subtitle)
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                    
+                    HStack(spacing: 6) {
+                        Image(systemName: "clock")
+                            .font(.caption2)
+                            .foregroundColor(iconColor)
+                        Text(event.startTime, formatter: timeFormatter)
+                            .font(.caption)
+                            .foregroundColor(iconColor)
+                            .fontWeight(.medium)
+                        
+                        if let fi = event.frequencyInfo {
+                            Text("•")
+                                .font(.caption2)
+                                .foregroundColor(.gray)
+                            Text(fi)
+                                .font(.caption2)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.white.opacity(0.1))
+                                .cornerRadius(4)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.gray)
+            }
+        }
+    }
+    
+    private var iconColor: Color {
+        switch event {
+        case .task: return RainbowColors.orange
+        case .class(_, let isCourse, _): return isCourse ? RainbowColors.blue : RainbowColors.green
+        }
+    }
+    
+    private let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "h:mm a"
+        return f
+    }()
 }
 
 // MARK: - 👔 STANDARD CALENDAR

@@ -3,12 +3,13 @@ import SwiftData
 
 struct SubjectsView: View {
     @EnvironmentObject var themeManager: AppTheme
+    var embedInNavigationStack: Bool = true
     
     var body: some View {
         Group {
             switch themeManager.selectedGameMode {
             case .rainbow:
-                RainbowSubjectsView()
+                RainbowSubjectsView(embedInNavigationStack: embedInNavigationStack)
             case .arcade:
                 ArcadeSubjectsView()
             case .retro:
@@ -20,6 +21,166 @@ struct SubjectsView: View {
     }
 }
 
+// MARK: - 🌈 RAINBOW SUBJECTS (Dynamic Color & Custom Header)
+struct RainbowSubjectsView: View {
+    @Query(sort: \Subject.title) var subjects: [Subject]
+    @EnvironmentObject var themeManager: AppTheme
+    @Environment(\.dismiss) private var dismiss
+    @State private var showingAddSubject = false
+    
+    var embedInNavigationStack: Bool = true
+    
+    private let cardColors: [Color] = [
+        RainbowColors.green,
+        RainbowColors.blue,
+        RainbowColors.orange,
+        RainbowColors.purple,
+        Color.pink,
+        Color.teal,
+        Color.indigo,
+        Color.red,
+        Color.yellow,
+        Color.cyan,
+        Color.mint
+    ]
+    
+    var body: some View {
+        let accentColor = themeManager.selectedTheme.primaryColor
+        
+        VStack(spacing: 0) {
+            // CUSTOM HEADER
+            RainbowHeader(
+                title: "Subjects",
+                accentColor: accentColor,
+                showBackButton: !embedInNavigationStack,
+                backAction: { dismiss() },
+                trailingIcon: "plus",
+                trailingAction: { showingAddSubject = true }
+            )
+            
+            ZStack {
+                Color.black.ignoresSafeArea()
+                
+                if subjects.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "book.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(RainbowColors.darkCard.opacity(2))
+                        Text("No Subjects Found")
+                            .font(.headline)
+                            .foregroundColor(.gray)
+                    }
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 16) {
+                            ForEach(Array(subjects.enumerated()), id: \.element.id) { index, subject in
+                                let color = cardColors[index % cardColors.count]
+                                
+                                NavigationLink(destination: SubjectDetailView(subject: subject)) {
+                                    RainbowSubjectCard(subject: subject, color: color)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                        }
+                        .padding()
+                        .padding(.bottom, 20)
+                    }
+                }
+            }
+        }
+        .background(Color.black.ignoresSafeArea())
+        .navigationBarHidden(true) // HIDE SYSTEM NAV BAR
+        .sheet(isPresented: $showingAddSubject) {
+            AddSubjectView()
+        }
+    }
+}
+
+// Local Component: Solid Colorful Subject Card
+struct RainbowSubjectCard: View {
+    let subject: Subject
+    let color: Color
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header: Icon + Title
+            HStack(alignment: .top, spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(0.2))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: "book.fill")
+                        .foregroundColor(.white)
+                        .font(.headline)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(subject.title)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    
+                    Text(subject.courseTeacher)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white.opacity(0.9))
+                        .lineLimit(1)
+                }
+                
+                Spacer()
+                
+                // Optional: Grade Badge if exists
+                if let grade = subject.currentGrade {
+                    VStack(spacing: 0) {
+                        Text(String(format: "%.1f", grade))
+                            .font(.headline)
+                            .fontWeight(.black)
+                        Text("AVG")
+                            .font(.system(size: 8, weight: .bold))
+                    }
+                    .foregroundColor(color) // Text matches card color
+                    .padding(8)
+                    .background(Color.white) // White badge pops against color
+                    .cornerRadius(8)
+                }
+            }
+            
+            // Footer: Location + Stats
+            HStack {
+                // Location
+                HStack(spacing: 6) {
+                    Image(systemName: "mappin.and.ellipse")
+                    Text(subject.courseClassroom.isEmpty ? "No Room" : subject.courseClassroom)
+                }
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.8))
+                
+                Spacer()
+                
+                // Attendance Pill
+                HStack(spacing: 4) {
+                    Image(systemName: "person.3.fill")
+                    Text("\(Int(subject.attendanceRate * 100))%")
+                }
+                .font(.caption)
+                .fontWeight(.bold)
+                .padding(.vertical, 4)
+                .padding(.horizontal, 8)
+                .background(Color.black.opacity(0.2))
+                .foregroundColor(.white)
+                .cornerRadius(6)
+            }
+        }
+        .padding(16)
+        .background(color)
+        .cornerRadius(20)
+        .shadow(color: color.opacity(0.3), radius: 8, x: 0, y: 4)
+    }
+}
+
+// ... (Standard, Arcade, Retro views unchanged)
+// [Standard/Arcade/Retro code omitted for brevity]
 struct StandardSubjectsView: View {
     @Query(sort: \Subject.title) var subjects: [Subject]
     @State private var showingAddSubject = false
@@ -99,34 +260,6 @@ struct RetroSubjectRow: View {
             }
             Spacer(); Text("[ OPEN ]").font(.system(size: 10, design: .monospaced)).foregroundColor(.green)
         }.padding(.vertical, 16).overlay(Rectangle().frame(height: 1).foregroundColor(Color.green.opacity(0.3)), alignment: .bottom)
-    }
-}
-
-struct RainbowSubjectsView: View {
-    @Query(sort: \Subject.title) var subjects: [Subject]; @EnvironmentObject var themeManager: AppTheme; @State private var showingAddSubject = false
-    var body: some View {
-        let colors = RainbowThemeFactory.colors(for: themeManager.selectedTheme)
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                ScrollView {
-                    LazyVStack(spacing: 16) {
-                        ForEach(subjects) { subject in
-                            NavigationLink(destination: SubjectDetailView(subject: subject)) {
-                                HStack(spacing: 16) {
-                                    ZStack { Circle().fill(colors.secondary.opacity(0.2)).frame(width: 50, height: 50); Image(systemName: "book.fill").foregroundColor(colors.secondary) }
-                                    VStack(alignment: .leading, spacing: 4) { Text(subject.title).font(.headline).foregroundColor(.white); Text(subject.courseTeacher).font(.caption).foregroundColor(.gray) }
-                                    Spacer(); Image(systemName: "chevron.right").foregroundColor(.gray)
-                                }.modifier(RainbowCardModifier(color: colors.secondary))
-                            }
-                        }
-                    }.padding()
-                }
-            }
-            .navigationTitle("Subjects")
-            .toolbar { Button(action: { showingAddSubject = true }) { Image(systemName: "plus.circle.fill").foregroundColor(colors.primary).font(.title2) } }
-            .sheet(isPresented: $showingAddSubject) { AddSubjectView() }
-        }.preferredColorScheme(.dark)
     }
 }
 

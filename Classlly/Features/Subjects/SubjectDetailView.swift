@@ -23,7 +23,149 @@ struct SubjectDetailView: View {
     }
 }
 
-// MARK: - 👔 STANDARD DETAIL VIEW
+// MARK: - 🌈 RAINBOW DETAIL VIEW
+struct RainbowSubjectDetailView: View {
+    @Bindable var subject: Subject
+    @EnvironmentObject var themeManager: AppTheme
+    @Environment(\.modelContext) private var modelContext
+    
+    @Query private var tasks: [StudyTask]
+    private var subjectTasks: [StudyTask] { tasks.filter { $0.subject == subject } }
+    
+    @State private var showingAddGrade = false
+    @State private var showingMarkAttendance = false
+    @State private var showingAddTask = false
+    @State private var showingEditSubject = false
+    
+    init(subject: Subject) {
+        self.subject = subject
+        let subjectID = subject.id
+        _tasks = Query(filter: #Predicate { $0.subject?.id == subjectID })
+    }
+    
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Header
+                    VStack(spacing: 16) {
+                        Image(systemName: "book.fill")
+                            .font(.system(size: 50))
+                            .foregroundColor(RainbowColors.blue)
+                        
+                        Text(subject.title)
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
+                        
+                        Text(subject.courseTeacher)
+                            .font(.title3)
+                            .foregroundColor(.gray)
+                    }
+                    .padding(.top, 20)
+                    
+                    // Info Grid
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                        RainbowContainer {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Label("Course", systemImage: "clock.fill")
+                                    .font(.headline)
+                                    .foregroundColor(RainbowColors.blue)
+                                Text(subject.courseTimeString).foregroundColor(.white)
+                                Text(subject.courseClassroom).foregroundColor(.gray)
+                            }
+                        }
+                        
+                        RainbowContainer {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Label("Seminar", systemImage: "person.2.fill")
+                                    .font(.headline)
+                                    .foregroundColor(RainbowColors.green)
+                                if subject.seminarTeacher.isEmpty {
+                                    Text("None").foregroundColor(.gray)
+                                } else {
+                                    Text(subject.seminarTimeString).foregroundColor(.white)
+                                    Text(subject.seminarClassroom).foregroundColor(.gray)
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                    
+                    // Stats
+                    RainbowContainer {
+                        HStack(spacing: 30) {
+                            VStack {
+                                Text("\(Int(subject.attendanceRate * 100))%")
+                                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                                    .foregroundColor(.white)
+                                Text("Attendance").font(.caption).foregroundColor(.gray)
+                            }
+                            
+                            Divider().background(Color.gray)
+                            
+                            VStack {
+                                Text(String(format: "%.1f", subject.currentGrade ?? 0))
+                                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                                    .foregroundColor(.white)
+                                Text("Average").font(.caption).foregroundColor(.gray)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .padding(.horizontal)
+                    
+                    // Tasks
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Active Tasks").font(.title3).bold().foregroundColor(.white).padding(.horizontal)
+                        
+                        if subjectTasks.isEmpty {
+                            Text("No tasks for this subject.").foregroundColor(.gray).padding(.horizontal)
+                        } else {
+                            ForEach(subjectTasks) { task in
+                                RainbowContainer {
+                                    HStack {
+                                        Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                                            .foregroundColor(RainbowColors.orange)
+                                        Text(task.title).foregroundColor(.white).strikethrough(task.isCompleted)
+                                        Spacer()
+                                    }
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
+                    }
+                }
+                .padding(.bottom, 40)
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    Button { showingAddGrade = true } label: { Label("Add Grade", systemImage: "graduationcap") }
+                    Button { showingMarkAttendance = true } label: { Label("Mark Attendance", systemImage: "checkmark.circle") }
+                    Button { showingAddTask = true } label: { Label("Add Task", systemImage: "plus.circle") }
+                    Button { showingEditSubject = true } label: { Label("Edit Subject", systemImage: "pencil") }
+                } label: {
+                    Image(systemName: "ellipsis.circle.fill")
+                        .font(.title3)
+                        .foregroundColor(RainbowColors.blue)
+                }
+            }
+        }
+        .sheet(isPresented: $showingAddGrade) { AddGradeSheet(isPresented: $showingAddGrade) { d, g, desc in let new = GradeEntry(date: d, grade: g, description: desc); new.subject = subject; modelContext.insert(new) } }
+        .sheet(isPresented: $showingMarkAttendance) { MarkAttendanceSheet(isPresented: $showingMarkAttendance) { d, a, n in let new = AttendanceEntry(date: d, attended: a, notes: n); new.subject = subject; modelContext.insert(new) } }
+        .sheet(isPresented: $showingAddTask) { AddTaskView(preSelectedSubject: subject) }
+        .sheet(isPresented: $showingEditSubject) { EditSubjectView(subject: subject) }
+    }
+}
+
+// ... (Rest of Standard/Arcade/Retro views unchanged)
+// [Omitting for brevity]
 struct StandardSubjectDetailView: View {
     @Bindable var subject: Subject
     @Environment(\.modelContext) private var modelContext
@@ -272,7 +414,6 @@ struct StandardSubjectDetailView: View {
     private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateStyle = .medium; return f.string(from: date) }
 }
 
-// MARK: - 🕹️ ARCADE DETAIL VIEW
 struct ArcadeSubjectDetailView: View {
     @Bindable var subject: Subject
     @Environment(\.modelContext) private var modelContext
@@ -437,7 +578,6 @@ struct ArcadeSubjectDetailView: View {
     private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateFormat = "MMM d"; return f.string(from: date) }
 }
 
-// MARK: - 👾 RETRO DETAIL VIEW
 struct RetroSubjectDetailView: View {
     @Bindable var subject: Subject
     @Environment(\.modelContext) private var modelContext
@@ -573,21 +713,9 @@ struct RetroSubjectDetailView: View {
     private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateFormat = "MM-dd"; return f.string(from: date) }
 }
 
-// MARK: - 🌈 RAINBOW DETAIL VIEW
-struct RainbowSubjectDetailView: View {
-    @Bindable var subject: Subject
-    
-    var body: some View {
-        StandardSubjectDetailView(subject: subject)
-            .preferredColorScheme(.dark)
-    }
-}
-
-// MARK: - LOCAL COMPONENTS (Subject Specific)
-
 struct GradeHistoryRow: View {
     let grade: GradeEntry; let averageGrade: Double?
-    var body: some View { HStack(spacing: 16) { ZStack { Circle().fill(gradeColor).frame(width: 44, height: 44); Text(String(format: "%.1f", grade.grade)).font(.system(size: 14, weight: .bold)).foregroundColor(.white) }; VStack(alignment: .leading, spacing: 4) { Text(grade.descriptionText.isEmpty ? "Grade" : grade.descriptionText).font(.body).foregroundColor(.themeTextPrimary); Text(formatDate(grade.date)).font(.caption).foregroundColor(.themeTextSecondary) }; Spacer(); if let avg = averageGrade { let diff = grade.grade - avg; VStack(alignment: .trailing, spacing: 4) { Image(systemName: diff >= 0 ? "arrow.up" : "arrow.down").font(.caption).foregroundColor(diff >= 0 ? .themeSuccess : .themeError); Text(String(format: "%+.1f", diff)).font(.caption).foregroundColor(diff >= 0 ? .themeSuccess : .themeError) } } } }
+    var body: some View { HStack(spacing: 16) { ZStack { Circle().fill(gradeColor).frame(width: 44, height: 44); Text(String(format: "%.1f", grade.grade)).font(.system(size: 14, weight: .bold)).foregroundColor(.white) }; VStack(alignment: .leading, spacing: 4) { Text(grade.descriptionText.isEmpty ? "Grade" : grade.descriptionText).font(.body).foregroundColor(.themeTextPrimary); Text(formatDate(grade.date)).font(.caption).foregroundColor(.themeTextSecondary); if let avg = averageGrade { let diff = grade.grade - avg; Text(String(format: "%+.1f", diff)).font(.caption).foregroundColor(diff >= 0 ? .themeSuccess : .themeError) } } } }
     private var gradeColor: Color { switch grade.grade { case 8.5...10: return .themeSuccess; case 7...8.4: return .themePrimary; case 5.5...6.9: return .themeWarning; default: return .themeError } }
     private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateStyle = .medium; return f.string(from: date) }
 }
@@ -607,8 +735,6 @@ struct TaskRowPreview: View {
     let title: String; let subject: String; let dueDate: String; let isCompleted: Bool
     var body: some View { HStack(spacing: 12) { Circle().fill(isCompleted ? Color.themeSuccess : Color.adaptiveTertiary).frame(width: 12, height: 12); VStack(alignment: .leading, spacing: 4) { Text(title).font(.body).foregroundColor(isCompleted ? .themeTextSecondary : .themeTextPrimary).strikethrough(isCompleted); HStack(spacing: 8) { Text(subject).font(.caption).foregroundColor(.themeTextSecondary); Text("•").font(.caption).foregroundColor(.themeTextSecondary); Text(dueDate).font(.caption).foregroundColor(.themeTextSecondary) } }; Spacer(); Image(systemName: "chevron.right").font(.system(size: 14, weight: .medium)).foregroundColor(.themeTextSecondary) } }
 }
-
-// MARK: - SHEET VIEWS
 
 struct AddGradeSheet: View {
     @Binding var isPresented: Bool; let onSave: (Date, Double, String) -> Void; @State private var grade = ""; @State private var description = ""; @State private var date = Date(); @Environment(\.colorScheme) private var colorScheme; var body: some View { NavigationView { Form { Section(header: Text("Grade Details")) { DatePicker("Date", selection: $date, displayedComponents: .date); HStack { Text("Grade"); TextField("1-10", text: $grade).keyboardType(.decimalPad); Text("/10") }; TextField("Description", text: $description) } }.navigationTitle("Add Grade").toolbar { ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { isPresented = false } }; ToolbarItem(placement: .navigationBarTrailing) { Button("Save") { if let g = Double(grade), g >= 1 && g <= 10 { onSave(date, g, description); isPresented = false } }.disabled(grade.isEmpty) } } }.preferredColorScheme(colorScheme) }

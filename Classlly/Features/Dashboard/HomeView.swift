@@ -29,7 +29,6 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .navigationViewStyle(.stack)
-        // Rainbow mode is dark by default to make colors pop
         .preferredColorScheme((themeManager.selectedGameMode == .arcade || themeManager.selectedGameMode == .retro || themeManager.selectedGameMode == .rainbow) ? .dark : nil)
     }
     
@@ -43,7 +42,7 @@ struct HomeView: View {
     }
 }
 
-// MARK: - 🌈 RAINBOW DASHBOARD (NEW)
+// MARK: - 🌈 RAINBOW DASHBOARD (Refined Fix)
 struct RainbowDashboard: View {
     let subjects: [Subject]
     let tasks: [StudyTask]
@@ -57,166 +56,147 @@ struct RainbowDashboard: View {
     ]
     
     var body: some View {
-        let colors = RainbowThemeFactory.colors(for: themeManager.selectedTheme)
+        // Dynamic Accent Color
+        let accentColor = themeManager.selectedTheme.primaryColor
         
         ScrollView {
             VStack(spacing: 24) {
-                // 1. Welcome Header (Matching image dark card)
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Welcome back!")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                    Text("Here's your academic overview for today")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                    
-                    if let currentWeek = calendarManager.currentTeachingWeek {
-                        HStack {
-                            Image(systemName: "calendar").foregroundColor(colors.primary)
-                            Text("Academic Week \(currentWeek) • \(calendarManager.currentSemester.displayName)")
-                                .font(.caption)
-                                .foregroundColor(colors.primary)
+                // 1. Welcome Header
+                RainbowContainer {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Welcome back!")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                        
+                        Text("Here's your academic overview for today")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                        
+                        if let currentWeek = calendarManager.currentTeachingWeek {
+                            HStack {
+                                Image(systemName: "calendar")
+                                    .foregroundColor(accentColor)
+                                Text("Academic Week \(currentWeek) • \(calendarManager.currentSemester.displayName)")
+                                    .font(.caption)
+                                    .foregroundColor(accentColor)
+                            }
+                            .padding(.top, 4)
                         }
-                        .padding(.top, 4)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(20)
-                .background(Color(white: 0.12)) // Dark gray card
-                .cornerRadius(20)
                 
-                // 2. Quick Stats (Rainbow colored squares)
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Quick Stats").font(.headline)
+                // 2. Quick Stats
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Quick Stats").font(.headline).foregroundColor(.white)
+                    
                     LazyVGrid(columns: statsColumns, spacing: 12) {
                         RainbowStatBox(
                             title: "Today's Classes",
                             value: "\(filterTodayClasses(academicWeek: calendarManager.currentTeachingWeek).count)",
                             icon: "calendar",
-                            color: colors.primary
+                            color: accentColor // Dynamic
                         )
                         RainbowStatBox(
                             title: "Pending Tasks",
                             value: "\(tasks.filter { !$0.isCompleted }.count)",
                             icon: "checklist",
-                            color: colors.secondary
+                            color: RainbowColors.orange
                         )
                         RainbowStatBox(
                             title: "Subjects",
                             value: "\(subjects.count)",
                             icon: "book",
-                            color: colors.tertiary
+                            color: RainbowColors.green
                         )
                     }
                 }
                 
-                // 3. Today's Classes (Large Card)
-                VStack(alignment: .leading, spacing: 10) {
+                // 3. Today's Classes
+                VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text("Today's Classes").font(.headline)
+                        Text("Today's Classes").font(.headline).foregroundColor(.white)
                         Spacer()
-                        NavigationLink("See All") { SubjectsView() }.font(.subheadline).foregroundColor(colors.primary)
+                        // FIX: Pass embedInNavigationStack: false
+                        NavigationLink(destination: SubjectsView(embedInNavigationStack: false)) {
+                            Text("See All").font(.subheadline).foregroundColor(accentColor)
+                        }
                     }
                     
                     let todaysClasses = filterTodayClasses(academicWeek: calendarManager.currentTeachingWeek)
                     
                     if todaysClasses.isEmpty {
-                        VStack(spacing: 16) {
-                            Image(systemName: "calendar.badge.clock")
-                                .font(.system(size: 40))
-                                .foregroundColor(.gray)
-                            Text("No classes today")
-                                .font(.headline)
-                            Text("Enjoy your free time or catch up on studies")
-                                .font(.caption).foregroundColor(.gray)
+                        RainbowContainer {
+                            VStack(spacing: 16) {
+                                Image(systemName: "calendar.badge.clock")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.gray)
+                                Text("No classes today")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                Text("Enjoy your free time or catch up on studies")
+                                    .font(.caption).foregroundColor(.gray)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 20)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(40)
-                        .background(Color(white: 0.12))
-                        .cornerRadius(20)
                     } else {
                         LazyVStack(spacing: 12) {
                             ForEach(todaysClasses.prefix(3)) { subject in
-                                HStack {
-                                    Image(systemName: "book.fill").foregroundColor(colors.primary)
-                                    VStack(alignment: .leading) {
-                                        Text(subject.title).font(.headline)
-                                        Text("\(subject.courseTimeString) • \(subject.courseClassroom)").font(.caption).foregroundColor(.gray)
+                                RainbowContainer {
+                                    HStack {
+                                        Image(systemName: "book.fill")
+                                            .foregroundColor(accentColor)
+                                        
+                                        VStack(alignment: .leading) {
+                                            Text(subject.title).font(.headline).foregroundColor(.white)
+                                            Text("\(subject.courseTimeString) • \(subject.courseClassroom)")
+                                                .font(.caption).foregroundColor(.gray)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "chevron.right").foregroundColor(.gray)
                                     }
-                                    Spacer()
-                                    Image(systemName: "chevron.right").foregroundColor(.gray)
                                 }
-                                .padding()
-                                .background(Color(white: 0.12))
-                                .cornerRadius(16)
                             }
                         }
                     }
                 }
                 
-                // 4. Upcoming Tasks (Blue Gradient Card)
-                VStack(alignment: .leading, spacing: 10) {
+                // 4. Upcoming Tasks
+                VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text("Upcoming Tasks").font(.headline)
+                        Text("Upcoming Tasks").font(.headline).foregroundColor(.white)
                         Spacer()
-                        NavigationLink("See All") { TasksView() }.font(.subheadline).foregroundColor(colors.primary)
+                        // FIX: Pass embedInNavigationStack: false
+                        NavigationLink(destination: TasksView(embedInNavigationStack: false)) {
+                            Text("See All").font(.subheadline).foregroundColor(accentColor)
+                        }
                     }
                     
                     let upcoming = tasks.filter { !$0.isCompleted }.sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
                     
                     if let task = upcoming.first {
-                        HStack(spacing: 16) {
-                            Image(systemName: "exclamationmark.circle.fill")
-                                .font(.title)
-                                .foregroundColor(.white)
-                            VStack(alignment: .leading) {
-                                Text(task.title).font(.headline).bold().foregroundColor(.white)
-                                Text(task.dueDate != nil ? "Due \(formatDate(task.dueDate!))" : "No due date")
-                                    .font(.caption).foregroundColor(.white.opacity(0.8))
+                        Button(action: {}) {
+                            HStack(spacing: 16) {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.white)
+                                VStack(alignment: .leading) {
+                                    Text(task.title).font(.headline).bold().foregroundColor(.white)
+                                    Text(task.dueDate != nil ? "Due \(formatDate(task.dueDate!))" : "No due date")
+                                        .font(.caption).foregroundColor(.white.opacity(0.9))
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right").foregroundColor(.white)
                             }
-                            Spacer()
-                            Image(systemName: "chevron.right").foregroundColor(.white)
+                            .padding(20)
+                            .background(accentColor)
+                            .cornerRadius(20)
+                            .shadow(color: accentColor.opacity(0.3), radius: 10, x: 0, y: 5)
                         }
-                        .padding(20)
-                        .background(
-                            LinearGradient(colors: [colors.primary, colors.primary.opacity(0.6)], startPoint: .leading, endPoint: .trailing)
-                        )
-                        .cornerRadius(20)
                     } else {
                         Text("No upcoming tasks").font(.caption).foregroundColor(.gray)
-                    }
-                }
-                
-                // 5. Academic Performance (Blue Gradient Card)
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Text("Academic Performance").font(.headline)
-                        Spacer()
-                        NavigationLink("See All") { SubjectsView() }.font(.subheadline).foregroundColor(colors.primary)
-                    }
-                    
-                    if let subject = subjects.first {
-                        HStack(spacing: 16) {
-                            Image(systemName: "book.closed.fill")
-                                .font(.title)
-                                .foregroundColor(.white)
-                            VStack(alignment: .leading) {
-                                Text(subject.title).font(.headline).bold().foregroundColor(.white)
-                                Text(subject.courseTeacher).font(.caption).foregroundColor(.white.opacity(0.8))
-                            }
-                            Spacer()
-                            VStack(alignment: .trailing) {
-                                Text("N/A").font(.caption).bold().foregroundColor(.white)
-                                Text("\(Int(subject.attendanceRate * 100))%").font(.headline).bold().foregroundColor(.white)
-                            }
-                            Image(systemName: "chevron.right").foregroundColor(.white)
-                        }
-                        .padding(20)
-                        .background(
-                            LinearGradient(colors: [colors.secondary, colors.secondary.opacity(0.6)], startPoint: .leading, endPoint: .trailing)
-                        )
-                        .cornerRadius(20)
                     }
                 }
             }
@@ -245,12 +225,7 @@ struct RainbowDashboard: View {
     }
 }
 
-// ... (Standard, Arcade, Retro dashboards remain unchanged, and local helpers stay here) ...
-// [Include StandardDashboard, RetroDashboard, ArcadeDashboard (old one renamed to avoid conflict if needed, or just update this file to include them all)]
-// Since I provided the FULL file in previous steps, I will assume you keep the other structs.
-// BUT CRUCIAL: You must ensure StandardDashboard, RetroDashboard, etc. are also in this file.
-
-// MARK: - 👔 STANDARD DASHBOARD
+// ... Standard/Arcade/Retro Code is preserved (omitted for brevity)
 struct StandardDashboard: View {
     let subjects: [Subject]
     let tasks: [StudyTask]
@@ -428,10 +403,6 @@ struct StandardDashboard: View {
     }
 }
 
-// ... (The rest of the file, ArcadeDashboard, RetroDashboard, and Local Components, MUST be included here exactly as they were in the previous step)
-// [I am omitting the redundant re-paste of the unchanged sub-views for brevity, but ensure they remain in the file]
-
-// MARK: - 🕹️ ARCADE DASHBOARD
 struct ArcadeDashboard: View {
     let subjects: [Subject]
     let tasks: [StudyTask]

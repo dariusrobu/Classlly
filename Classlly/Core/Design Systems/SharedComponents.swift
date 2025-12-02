@@ -1,24 +1,118 @@
 import SwiftUI
 
-// MARK: - RAINBOW COMPONENTS (NEW)
+// MARK: - RAINBOW THEME UTILS
+struct RainbowColors {
+    static let blue = Color(red: 0.0, green: 0.6, blue: 1.0)       // Vibrant Blue
+    static let orange = Color(red: 1.0, green: 0.5, blue: 0.2)     // Vibrant Orange
+    static let green = Color(red: 0.0, green: 0.8, blue: 0.6)      // Vibrant Mint/Green
+    static let purple = Color(red: 0.6, green: 0.2, blue: 1.0)
+    static let darkCard = Color(red: 0.11, green: 0.11, blue: 0.12) // Dark Gray
+    static let background = Color.black
+}
 
-struct RainbowThemeFactory {
-    static func colors(for theme: Theme) -> (primary: Color, secondary: Color, tertiary: Color) {
-        switch theme {
-        case .classicBlue: return (.blue, .purple, .cyan)
-        case .oceanTeal: return (.teal, .blue, .green)
-        case .navyNight: return (.indigo, .purple, .pink)
-        case .forestGreen: return (.green, .mint, .teal)
-        case .mintLeaf: return (Color(red: 0.4, green: 0.8, blue: 0.6), .green, .cyan)
-        case .sunsetOrange: return (.orange, .red, .yellow)
-        case .coralRed: return (.red, .orange, .pink)
-        case .berryPink: return (.pink, .purple, .red)
-        case .royalPurple: return (.purple, .indigo, .blue)
-        case .lavenderDream: return (Color(red: 0.6, green: 0.4, blue: 0.8), .pink, .blue)
+// MARK: - RAINBOW COMPONENTS
+
+// 1. Rainbow Header (Custom Navigation Bar)
+struct RainbowHeader: View {
+    let title: String
+    let accentColor: Color
+    let showBackButton: Bool
+    let backAction: (() -> Void)?
+    let trailingIcon: String?
+    let trailingAction: (() -> Void)?
+    
+    var body: some View {
+        HStack {
+            // Left: Back Button or Empty Placeholder
+            if showBackButton {
+                Button(action: { backAction?() }) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(accentColor)
+                        .frame(width: 44, height: 44)
+                        .background(Color.white.opacity(0.1))
+                        .clipShape(Circle())
+                }
+            } else {
+                Spacer().frame(width: 44) // Balance spacing
+            }
+            
+            Spacer()
+            
+            // Center: Title
+            Text(title)
+                .font(.headline)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            
+            Spacer()
+            
+            // Right: Action Button or Empty Placeholder
+            if let icon = trailingIcon, let action = trailingAction {
+                Button(action: action) {
+                    Image(systemName: icon)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(accentColor)
+                        .frame(width: 44, height: 44)
+                        .background(Color.white.opacity(0.1))
+                        .clipShape(Circle())
+                }
+            } else {
+                Spacer().frame(width: 44) // Balance spacing
+            }
         }
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+        .background(Color.black) // Seamless background
     }
 }
 
+// 2. Rainbow Gradient Text
+struct RainbowGradientText: View {
+    let text: String
+    let colors: [Color]
+    var font: Font = .title
+    var weight: Font.Weight = .bold
+    
+    var body: some View {
+        Text(text)
+            .font(font)
+            .fontWeight(weight)
+            .overlay(
+                LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing)
+                    .mask(Text(text).font(font).fontWeight(weight))
+            )
+            .foregroundColor(.clear)
+    }
+}
+
+// 3. Rainbow Card (Container with optional Gradient Border)
+struct RainbowCard<Content: View>: View {
+    let colors: [Color]
+    let content: Content
+    
+    init(colors: [Color], @ViewBuilder content: () -> Content) {
+        self.colors = colors
+        self.content = content()
+    }
+    
+    var body: some View {
+        ZStack {
+            Color(white: 0.1) // Dark surface
+            content.padding()
+        }
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(
+                    LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: 1
+                )
+        )
+    }
+}
+
+// 4. Rainbow Stat Box (Solid Colorful Square)
 struct RainbowStatBox: View {
     let title: String
     let value: String
@@ -26,49 +120,45 @@ struct RainbowStatBox: View {
     let color: Color
     
     var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(.white)
-                .padding(10)
-                .background(Color.white.opacity(0.2))
-                .clipShape(Circle())
-            
-            Text(value)
-                .font(.system(size: 32, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.headline)
+                    .padding(8)
+                    .background(Color.white.opacity(0.2))
+                    .clipShape(Circle())
+                
+                Text(value)
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+            }
             
             Text(title)
                 .font(.caption)
-                .fontWeight(.bold)
-                .foregroundColor(.white.opacity(0.9))
+                .fontWeight(.semibold)
                 .multilineTextAlignment(.center)
-                .minimumScaleFactor(0.8)
+                .opacity(0.9)
         }
+        .foregroundColor(.white)
         .frame(maxWidth: .infinity)
-        .frame(height: 140)
-        .background(
-            LinearGradient(colors: [color, color.opacity(0.7)], startPoint: .topLeading, endPoint: .bottomTrailing)
-        )
+        .frame(height: 100)
+        .background(color)
         .cornerRadius(20)
-        .shadow(color: color.opacity(0.3), radius: 10, x: 0, y: 5)
     }
 }
 
-struct RainbowCardModifier: ViewModifier {
-    let color: Color
-    func body(content: Content) -> some View {
+// 5. Rainbow Container (Dark Gray Card for lists/forms)
+struct RainbowContainer<Content: View>: View {
+    let content: Content
+    
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+    
+    var body: some View {
         content
-            .padding()
-            .background(
-                ZStack {
-                    Color(white: 0.1) // Dark base
-                    LinearGradient(colors: [color.opacity(0.15), color.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                }
-            )
+            .padding(20)
+            .background(RainbowColors.darkCard)
             .cornerRadius(20)
-            .overlay(RoundedRectangle(cornerRadius: 20).stroke(color.opacity(0.3), lineWidth: 1))
-            .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
     }
 }
 
@@ -246,5 +336,16 @@ struct RetroStatCard: View {
         }
         .frame(maxWidth: .infinity).frame(height: 80)
         .padding(8).background(Color.black).overlay(RoundedRectangle(cornerRadius: 4).stroke(color, lineWidth: 1))
+    }
+}
+
+// MARK: - RAINBOW THEME FACTORY (Restored for compatibility)
+struct RainbowThemeFactory {
+    static func palette(for theme: Theme) -> [Color] {
+        // Fallback or utility if needed elsewhere
+        switch theme {
+        case .classicBlue: return [.blue, .cyan, .purple]
+        default: return [.blue, .cyan, .purple]
+        }
     }
 }

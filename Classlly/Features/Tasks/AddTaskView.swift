@@ -13,14 +13,12 @@ struct AddTaskView: View {
     var body: some View {
         Group {
             switch themeManager.selectedGameMode {
+            case .rainbow:
+                RainbowAddTaskView(preSelectedSubject: preSelectedSubject)
             case .arcade:
                 ArcadeAddTaskView(preSelectedSubject: preSelectedSubject)
             case .retro:
                 RetroAddTaskView(preSelectedSubject: preSelectedSubject)
-            case .rainbow:
-                // Rainbow mode uses standard layout but forced dark
-                StandardAddTaskView(preSelectedSubject: preSelectedSubject)
-                    .preferredColorScheme(.dark)
             case .none:
                 StandardAddTaskView(preSelectedSubject: preSelectedSubject)
             }
@@ -28,7 +26,158 @@ struct AddTaskView: View {
     }
 }
 
-// MARK: - 👔 STANDARD ADD TASK
+// MARK: - 🌈 RAINBOW ADD TASK (Custom Dark Form)
+struct RainbowAddTaskView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Subject.title) var subjects: [Subject]
+
+    @State private var title = ""
+    @State private var notes = ""
+    @State private var selectedSubject: Subject?
+    @State private var priority: TaskPriority = .medium
+    @State private var dueDate = Date()
+    @State private var hasDueDate = false
+    @State private var reminderTime: TaskReminderTime = .hourBefore1
+    @State private var isFlagged: Bool = false
+    
+    init(preSelectedSubject: Subject? = nil) {
+        _selectedSubject = State(initialValue: preSelectedSubject)
+    }
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // 1. Task Info
+                        RainbowContainer {
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("Task Details").font(.headline).foregroundColor(.white)
+                                
+                                TextField("Enter task title", text: $title)
+                                    .padding()
+                                    .background(Color.black.opacity(0.3))
+                                    .cornerRadius(10)
+                                    .foregroundColor(.white)
+                                
+                                // Subject Picker Replacement
+                                Menu {
+                                    Button("No Subject") { selectedSubject = nil }
+                                    ForEach(subjects) { subject in
+                                        Button(subject.title) { selectedSubject = subject }
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text("Subject")
+                                            .foregroundColor(.gray)
+                                        Spacer()
+                                        Text(selectedSubject?.title ?? "None")
+                                            .foregroundColor(RainbowColors.blue)
+                                    }
+                                    .padding()
+                                    .background(Color.black.opacity(0.3))
+                                    .cornerRadius(10)
+                                }
+                                
+                                Toggle(isOn: $isFlagged) {
+                                    HStack {
+                                        Image(systemName: "flag.fill")
+                                            .foregroundColor(RainbowColors.orange)
+                                        Text("Flag Task").foregroundColor(.white)
+                                    }
+                                }
+                                .tint(RainbowColors.orange)
+                            }
+                        }
+                        
+                        // 2. Notes
+                        RainbowContainer {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Notes").font(.headline).foregroundColor(.white)
+                                TextEditor(text: $notes)
+                                    .frame(minHeight: 100)
+                                    .scrollContentBackground(.hidden)
+                                    .background(Color.black.opacity(0.3))
+                                    .cornerRadius(10)
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        
+                        // 3. Priority
+                        RainbowContainer {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Priority").font(.headline).foregroundColor(.white)
+                                Picker("Priority", selection: $priority) {
+                                    ForEach(TaskPriority.allCases, id: \.self) { p in
+                                        Text(p.rawValue).tag(p)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+                                .colorScheme(.dark) // Keeps picker looking good
+                            }
+                        }
+                        
+                        // 4. Deadlines
+                        RainbowContainer {
+                            VStack(alignment: .leading, spacing: 16) {
+                                Toggle(isOn: $hasDueDate) {
+                                    Text("Set Due Date").font(.headline).foregroundColor(.white)
+                                }
+                                .tint(RainbowColors.blue)
+                                
+                                if hasDueDate {
+                                    DatePicker("Select Date", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
+                                        .colorScheme(.dark)
+                                    
+                                    Picker("Reminder", selection: $reminderTime) {
+                                        ForEach(TaskReminderTime.allCases, id: \.self) { time in
+                                            Text(time.rawValue).tag(time)
+                                        }
+                                    }
+                                    .pickerStyle(.menu)
+                                    .accentColor(RainbowColors.blue)
+                                }
+                            }
+                        }
+                    }
+                    .padding()
+                }
+            }
+            .navigationTitle("New Task")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") { dismiss() }.foregroundColor(.red)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Add") {
+                        let newTask = StudyTask(
+                            title: title,
+                            dueDate: hasDueDate ? dueDate : nil,
+                            priority: priority,
+                            subject: selectedSubject,
+                            reminderTime: hasDueDate ? reminderTime : .none,
+                            isFlagged: isFlagged,
+                            notes: notes
+                        )
+                        modelContext.insert(newTask)
+                        dismiss()
+                    }
+                    .disabled(title.isEmpty)
+                    .fontWeight(.bold)
+                    .foregroundColor(RainbowColors.blue)
+                }
+            }
+        }
+    }
+}
+
+// ... (Rest of Standard/Arcade/Retro views unchanged)
+// [Preserving existing code structure below]
+
 struct StandardAddTaskView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -121,7 +270,6 @@ struct StandardAddTaskView: View {
     }
 }
 
-// MARK: - 🕹️ ARCADE ADD TASK
 struct ArcadeAddTaskView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -298,7 +446,6 @@ struct ArcadeAddTaskView: View {
     }
 }
 
-// MARK: - 👾 RETRO ADD TASK
 struct RetroAddTaskView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -456,7 +603,6 @@ struct RetroAddTaskView: View {
     }
 }
 
-// MARK: - HELPER
 fileprivate struct StandardPriorityPicker: View {
     @Binding var selectedPriority: TaskPriority
     var body: some View {

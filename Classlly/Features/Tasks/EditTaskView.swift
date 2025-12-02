@@ -13,8 +13,7 @@ struct EditTaskView: View {
             case .retro:
                 RetroEditTaskView(task: task)
             case .rainbow:
-                StandardEditTaskView(task: task)
-                    .preferredColorScheme(.dark)
+                RainbowEditTaskView(task: task)
             case .none:
                 StandardEditTaskView(task: task)
             }
@@ -22,7 +21,177 @@ struct EditTaskView: View {
     }
 }
 
-// MARK: - 👔 STANDARD EDIT TASK
+// MARK: - 🌈 RAINBOW EDIT TASK
+struct RainbowEditTaskView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Bindable var task: StudyTask
+    @Query(sort: \Subject.title) var subjects: [Subject]
+
+    @State private var title: String
+    @State private var notes: String
+    @State private var selectedSubject: Subject?
+    @State private var priority: TaskPriority
+    @State private var dueDate: Date
+    @State private var hasDueDate: Bool
+    @State private var reminderTime: TaskReminderTime
+    @State private var isFlagged: Bool
+    @State private var showingDeleteAlert = false
+    
+    init(task: StudyTask) {
+        self.task = task
+        _title = State(initialValue: task.title)
+        _notes = State(initialValue: task.notes)
+        _selectedSubject = State(initialValue: task.subject)
+        _priority = State(initialValue: task.priority)
+        _dueDate = State(initialValue: task.dueDate ?? Date())
+        _hasDueDate = State(initialValue: task.dueDate != nil)
+        _reminderTime = State(initialValue: task.reminderTime)
+        _isFlagged = State(initialValue: task.isFlagged)
+    }
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // 1. Task Info
+                        RainbowContainer {
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("Task Details").font(.headline).foregroundColor(.white)
+                                
+                                TextField("Enter task title", text: $title)
+                                    .padding()
+                                    .background(Color.black.opacity(0.3))
+                                    .cornerRadius(10)
+                                    .foregroundColor(.white)
+                                
+                                Menu {
+                                    Button("No Subject") { selectedSubject = nil }
+                                    ForEach(subjects) { subject in
+                                        Button(subject.title) { selectedSubject = subject }
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text("Subject").foregroundColor(.gray)
+                                        Spacer()
+                                        Text(selectedSubject?.title ?? "None").foregroundColor(RainbowColors.blue)
+                                    }
+                                    .padding()
+                                    .background(Color.black.opacity(0.3))
+                                    .cornerRadius(10)
+                                }
+                                
+                                Toggle(isOn: $isFlagged) {
+                                    HStack {
+                                        Image(systemName: "flag.fill").foregroundColor(RainbowColors.orange)
+                                        Text("Flag Task").foregroundColor(.white)
+                                    }
+                                }
+                                .tint(RainbowColors.orange)
+                            }
+                        }
+                        
+                        // 2. Notes
+                        RainbowContainer {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Notes").font(.headline).foregroundColor(.white)
+                                TextEditor(text: $notes)
+                                    .frame(minHeight: 100)
+                                    .scrollContentBackground(.hidden)
+                                    .background(Color.black.opacity(0.3))
+                                    .cornerRadius(10)
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        
+                        // 3. Priority
+                        RainbowContainer {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Priority").font(.headline).foregroundColor(.white)
+                                Picker("Priority", selection: $priority) {
+                                    ForEach(TaskPriority.allCases, id: \.self) { p in
+                                        Text(p.rawValue).tag(p)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+                                .colorScheme(.dark)
+                            }
+                        }
+                        
+                        // 4. Deadlines
+                        RainbowContainer {
+                            VStack(alignment: .leading, spacing: 16) {
+                                Toggle(isOn: $hasDueDate) {
+                                    Text("Set Due Date").font(.headline).foregroundColor(.white)
+                                }
+                                .tint(RainbowColors.blue)
+                                
+                                if hasDueDate {
+                                    DatePicker("Select Date", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
+                                        .colorScheme(.dark)
+                                    
+                                    Picker("Reminder", selection: $reminderTime) {
+                                        ForEach(TaskReminderTime.allCases, id: \.self) { time in
+                                            Text(time.rawValue).tag(time)
+                                        }
+                                    }
+                                    .pickerStyle(.menu)
+                                    .accentColor(RainbowColors.blue)
+                                }
+                            }
+                        }
+                        
+                        // 5. Delete
+                        Button(action: { showingDeleteAlert = true }) {
+                            Text("Delete Task")
+                                .font(.headline)
+                                .foregroundColor(.red)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(RainbowColors.darkCard)
+                                .cornerRadius(12)
+                        }
+                    }
+                    .padding()
+                }
+            }
+            .navigationTitle("Edit Task")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { dismiss() }.foregroundColor(.gray) }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        task.title = title
+                        task.notes = notes
+                        task.subject = selectedSubject
+                        task.priority = priority
+                        task.dueDate = hasDueDate ? dueDate : nil
+                        task.reminderTime = hasDueDate ? reminderTime : .none
+                        task.isFlagged = isFlagged
+                        dismiss()
+                    }
+                    .disabled(title.isEmpty)
+                    .fontWeight(.bold)
+                    .foregroundColor(RainbowColors.blue)
+                }
+            }
+            .alert("Delete Task", isPresented: $showingDeleteAlert) {
+                Button("Delete", role: .destructive) {
+                    modelContext.delete(task)
+                    dismiss()
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("Are you sure? This cannot be undone.")
+            }
+        }
+    }
+}
+
+// ... (Rest of Standard/Arcade/Retro views unchanged)
 struct StandardEditTaskView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -130,7 +299,6 @@ struct StandardEditTaskView: View {
     }
 }
 
-// MARK: - 🕹️ ARCADE EDIT TASK
 struct ArcadeEditTaskView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -296,7 +464,6 @@ struct ArcadeEditTaskView: View {
     }
 }
 
-// MARK: - 👾 RETRO EDIT TASK
 struct RetroEditTaskView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
