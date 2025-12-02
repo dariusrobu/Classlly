@@ -3,7 +3,7 @@ import SwiftData
 
 struct SubjectsView: View {
     @EnvironmentObject var themeManager: AppTheme
-    var embedInNavigationStack: Bool = true
+    var embedInNavigationStack: Bool = true // Default to true for Tab Bar usage
     
     var body: some View {
         Group {
@@ -21,7 +21,7 @@ struct SubjectsView: View {
     }
 }
 
-// MARK: - 🌈 RAINBOW SUBJECTS (Dynamic Color & Custom Header)
+// MARK: - 🌈 RAINBOW SUBJECTS (Fixed Navigation)
 struct RainbowSubjectsView: View {
     @Query(sort: \Subject.title) var subjects: [Subject]
     @EnvironmentObject var themeManager: AppTheme
@@ -30,6 +30,7 @@ struct RainbowSubjectsView: View {
     
     var embedInNavigationStack: Bool = true
     
+    // Expanded Vibrant Palette for Subject Cards
     private let cardColors: [Color] = [
         RainbowColors.green,
         RainbowColors.blue,
@@ -47,12 +48,27 @@ struct RainbowSubjectsView: View {
     var body: some View {
         let accentColor = themeManager.selectedTheme.primaryColor
         
+        // 1. Conditionally wrap in NavigationStack
+        if embedInNavigationStack {
+            NavigationStack {
+                content(accentColor: accentColor)
+            }
+            .preferredColorScheme(.dark)
+        } else {
+            content(accentColor: accentColor)
+                .preferredColorScheme(.dark)
+        }
+    }
+    
+    // 2. Extracted Content to avoid code duplication
+    @ViewBuilder
+    private func content(accentColor: Color) -> some View {
         VStack(spacing: 0) {
-            // CUSTOM HEADER
+            // CUSTOM HEADER (Inline Title, Back, Add)
             RainbowHeader(
                 title: "Subjects",
                 accentColor: accentColor,
-                showBackButton: !embedInNavigationStack,
+                showBackButton: !embedInNavigationStack, // Show back only if pushed (Home)
                 backAction: { dismiss() },
                 trailingIcon: "plus",
                 trailingAction: { showingAddSubject = true }
@@ -74,6 +90,7 @@ struct RainbowSubjectsView: View {
                     ScrollView {
                         LazyVStack(spacing: 16) {
                             ForEach(Array(subjects.enumerated()), id: \.element.id) { index, subject in
+                                // Cycle through the expanded color list
                                 let color = cardColors[index % cardColors.count]
                                 
                                 NavigationLink(destination: SubjectDetailView(subject: subject)) {
@@ -89,7 +106,7 @@ struct RainbowSubjectsView: View {
             }
         }
         .background(Color.black.ignoresSafeArea())
-        .navigationBarHidden(true) // HIDE SYSTEM NAV BAR
+        .navigationBarHidden(true) // Hide system bar so RainbowHeader takes over
         .sheet(isPresented: $showingAddSubject) {
             AddSubjectView()
         }
@@ -139,16 +156,15 @@ struct RainbowSubjectCard: View {
                         Text("AVG")
                             .font(.system(size: 8, weight: .bold))
                     }
-                    .foregroundColor(color) // Text matches card color
+                    .foregroundColor(color)
                     .padding(8)
-                    .background(Color.white) // White badge pops against color
+                    .background(Color.white)
                     .cornerRadius(8)
                 }
             }
             
             // Footer: Location + Stats
             HStack {
-                // Location
                 HStack(spacing: 6) {
                     Image(systemName: "mappin.and.ellipse")
                     Text(subject.courseClassroom.isEmpty ? "No Room" : subject.courseClassroom)
@@ -158,7 +174,6 @@ struct RainbowSubjectCard: View {
                 
                 Spacer()
                 
-                // Attendance Pill
                 HStack(spacing: 4) {
                     Image(systemName: "person.3.fill")
                     Text("\(Int(subject.attendanceRate * 100))%")
@@ -179,8 +194,9 @@ struct RainbowSubjectCard: View {
     }
 }
 
-// ... (Standard, Arcade, Retro views unchanged)
-// [Standard/Arcade/Retro code omitted for brevity]
+// ... (Rest of the standard/arcade/retro views unchanged)
+// [Preserving existing code below]
+
 struct StandardSubjectsView: View {
     @Query(sort: \Subject.title) var subjects: [Subject]
     @State private var showingAddSubject = false

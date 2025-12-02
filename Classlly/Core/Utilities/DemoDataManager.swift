@@ -11,10 +11,12 @@ class DemoDataManager {
         // 1. Clear existing data first to avoid duplicates
         deleteAllData(modelContext: modelContext)
         
-        // 2. Create Subjects
+        // --- SUBJECTS ---
+        
+        // 1. Mathematics
         let math = Subject(
-            title: "Calculus I",
-            courseTeacher: "Dr. Smith",
+            title: "Calculus II",
+            courseTeacher: "Dr. Alcubierre",
             courseClassroom: "Room 301",
             courseStartTime: date(hour: 10, minute: 0),
             courseEndTime: date(hour: 12, minute: 0),
@@ -28,8 +30,9 @@ class DemoDataManager {
             seminarFrequency: .weekly
         )
         
+        // 2. CS
         let cs = Subject(
-            title: "Computer Science 101",
+            title: "Algorithms & Data Structures",
             courseTeacher: "Prof. Turing",
             courseClassroom: "Auditorium A",
             courseStartTime: date(hour: 9, minute: 0),
@@ -44,44 +47,135 @@ class DemoDataManager {
             seminarFrequency: .biweeklyOdd
         )
         
-        // 3. Add Grades
-        let mathGrade1 = GradeEntry(date: Date().addingTimeInterval(-86400 * 10), grade: 9.5, description: "Midterm Exam")
-        let mathGrade2 = GradeEntry(date: Date().addingTimeInterval(-86400 * 5), grade: 8.0, description: "Quiz 1")
-        mathGrade1.subject = math
-        mathGrade2.subject = math
-        
-        // 4. Add Tasks
-        let task1 = StudyTask(
-            title: "Complete Calculus Problem Set",
-            isCompleted: false,
-            dueDate: Date().addingTimeInterval(86400 * 2), // Due in 2 days
-            priority: .high,
-            subject: math,
-            reminderTime: .dayBefore1,
-            isFlagged: true
+        // 3. Physics
+        let physics = Subject(
+            title: "Quantum Physics",
+            courseTeacher: "Dr. Feynman",
+            courseClassroom: "Hall B",
+            courseStartTime: date(hour: 13, minute: 0),
+            courseEndTime: date(hour: 15, minute: 0),
+            courseDays: [2, 5], // Mon, Thu
+            courseFrequency: .weekly,
+            seminarTeacher: "Dr. Curie",
+            seminarClassroom: "Lab 101",
+            seminarStartTime: date(hour: 16, minute: 0),
+            seminarEndTime: date(hour: 18, minute: 0),
+            seminarDays: [2], // Mon
+            seminarFrequency: .biweeklyEven
         )
         
-        let task2 = StudyTask(
-            title: "Submit CS Lab Report",
-            isCompleted: true,
-            dueDate: Date().addingTimeInterval(-86400), // Due yesterday
-            priority: .medium,
-            subject: cs,
-            reminderTime: .hourBefore1,
-            isFlagged: false
+        // 4. History
+        let history = Subject(
+            title: "World History: 20th Century",
+            courseTeacher: "Prof. Hobsbawm",
+            courseClassroom: "Room 104",
+            courseStartTime: date(hour: 15, minute: 30),
+            courseEndTime: date(hour: 17, minute: 0),
+            courseDays: [3, 5], // Tue, Thu
+            courseFrequency: .weekly,
+            seminarTeacher: "",
+            seminarClassroom: "",
+            seminarDate: Date(),
+            seminarStartTime: Date(),
+            seminarEndTime: Date(),
+            seminarDays: [],
+            seminarFrequency: .weekly
         )
         
-        // 5. Insert and Save
-        modelContext.insert(math)
-        modelContext.insert(cs)
-        modelContext.insert(mathGrade1)
-        modelContext.insert(mathGrade2)
-        modelContext.insert(task1)
-        modelContext.insert(task2)
+        // 5. Literature
+        let lit = Subject(
+            title: "Modern American Literature",
+            courseTeacher: "Dr. Morrison",
+            courseClassroom: "Library 202",
+            courseStartTime: date(hour: 11, minute: 0),
+            courseEndTime: date(hour: 12, minute: 30),
+            courseDays: [1, 4], // Sun, Wed
+            courseFrequency: .weekly,
+            seminarTeacher: "Mr. Poe",
+            seminarClassroom: "Room 205",
+            seminarStartTime: date(hour: 13, minute: 0),
+            seminarEndTime: date(hour: 14, minute: 0),
+            seminarDays: [4], // Wed
+            seminarFrequency: .weekly
+        )
+        
+        // 6. Economics
+        let econ = Subject(
+            title: "Macroeconomics",
+            courseTeacher: "Prof. Keynes",
+            courseClassroom: "Lecture Hall 1",
+            courseStartTime: date(hour: 8, minute: 30),
+            courseEndTime: date(hour: 10, minute: 0),
+            courseDays: [2, 5], // Mon, Thu
+            courseFrequency: .weekly,
+            seminarTeacher: "Ms. Yellen",
+            seminarClassroom: "Room 404",
+            seminarStartTime: date(hour: 10, minute: 0),
+            seminarEndTime: date(hour: 11, minute: 0),
+            seminarDays: [5], // Thu
+            seminarFrequency: .weekly
+        )
+        
+        // --- GRADES ---
+        let g1 = GradeEntry(date: daysFromNow(-10), grade: 9.5, description: "Midterm Exam")
+        let g2 = GradeEntry(date: daysFromNow(-5), grade: 8.0, description: "Quiz 1")
+        g1.subject = math; g2.subject = math
+        
+        let g3 = GradeEntry(date: daysFromNow(-20), grade: 10.0, description: "Binary Trees Project")
+        let g4 = GradeEntry(date: daysFromNow(-2), grade: 9.0, description: "Sorting Algorithms Quiz")
+        g3.subject = cs; g4.subject = cs
+        
+        let g5 = GradeEntry(date: daysFromNow(-15), grade: 7.5, description: "Lab Report 1")
+        g5.subject = physics
+        
+        let g6 = GradeEntry(date: daysFromNow(-8), grade: 9.2, description: "Essay on The Great Gatsby")
+        g6.subject = lit
+        
+        // --- TASKS ---
+        
+        // Math
+        let t1 = StudyTask(title: "Calculus P-Set 4", isCompleted: false, dueDate: daysFromNow(2), priority: .high, subject: math, reminderTime: .dayBefore1, isFlagged: true, notes: "Problems 1-15, skip 8")
+        let t2 = StudyTask(title: "Review Integration Rules", isCompleted: true, dueDate: daysFromNow(-1), priority: .medium, subject: math)
+        
+        // CS
+        let t3 = StudyTask(title: "Implement Dijkstra's Algo", isCompleted: false, dueDate: daysFromNow(5), priority: .high, subject: cs, reminderTime: .hoursBefore2, isFlagged: true, notes: "Handle edge cases for unconnected graphs")
+        let t4 = StudyTask(title: "Debug Binary Search Tree", isCompleted: false, dueDate: daysFromNow(1), priority: .medium, subject: cs)
+        let t5 = StudyTask(title: "Read Chapter 5: Hashing", isCompleted: true, dueDate: daysFromNow(-3), priority: .low, subject: cs)
+        
+        // Physics
+        let t6 = StudyTask(title: "Physics Lab Report: Pendulum", isCompleted: false, dueDate: daysFromNow(3), priority: .high, subject: physics, isFlagged: true)
+        let t7 = StudyTask(title: "Quantum Mechanics Video Essay", isCompleted: false, dueDate: daysFromNow(10), priority: .medium, subject: physics)
+        
+        // History
+        let t8 = StudyTask(title: "Read 'The Cold War' Ch. 1-3", isCompleted: false, dueDate: daysFromNow(1), priority: .medium, subject: history)
+        let t9 = StudyTask(title: "Research Paper Topic Selection", isCompleted: true, dueDate: daysFromNow(-5), priority: .low, subject: history)
+        
+        // Literature
+        let t10 = StudyTask(title: "Read 'Beloved' by T. Morrison", isCompleted: false, dueDate: daysFromNow(7), priority: .medium, subject: lit, notes: "Pages 1-100")
+        let t11 = StudyTask(title: "Submit Poetry Analysis", isCompleted: false, dueDate: daysFromNow(0), priority: .high, subject: lit, reminderTime: .hourBefore1, isFlagged: true)
+        
+        // Econ
+        let t12 = StudyTask(title: "Macroeconomics Problem Set", isCompleted: false, dueDate: daysFromNow(4), priority: .medium, subject: econ)
+        let t13 = StudyTask(title: "Study for Econ Midterm", isCompleted: false, dueDate: daysFromNow(14), priority: .high, subject: econ)
+        
+        // General
+        let t14 = StudyTask(title: "Buy Textbooks for next semester", isCompleted: false, dueDate: daysFromNow(20), priority: .low, reminderTime: .weekBefore1)
+        let t15 = StudyTask(title: "Renew Library Card", isCompleted: true, dueDate: daysFromNow(-10), priority: .low)
+        
+        // Insert All
+        let allItems: [any PersistentModel] = [
+            math, cs, physics, history, lit, econ,
+            g1, g2, g3, g4, g5, g6,
+            t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15
+        ]
+        
+        for item in allItems {
+            modelContext.insert(item)
+        }
         
         do {
             try modelContext.save()
-            print("Demo data created and saved.")
+            print("Expanded demo data created successfully.")
         } catch {
             print("Failed to save demo data: \(error)")
         }
@@ -96,7 +190,6 @@ class DemoDataManager {
             try modelContext.delete(model: GradeEntry.self)
             try modelContext.delete(model: AttendanceEntry.self)
             try modelContext.delete(model: StudyCalendarEvent.self)
-            // Note: We do NOT delete StudentProfile here, that is handled separately if needed
             
             // Force save to ensure deletion persists immediately
             try modelContext.save()
@@ -108,5 +201,9 @@ class DemoDataManager {
     
     private func date(hour: Int, minute: Int) -> Date {
         return Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
+    }
+    
+    private func daysFromNow(_ days: Double) -> Date {
+        return Date().addingTimeInterval(days * 86400)
     }
 }
