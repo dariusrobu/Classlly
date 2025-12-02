@@ -11,6 +11,9 @@ struct AddSubjectView: View {
                 ArcadeAddSubjectView()
             case .retro:
                 RetroAddSubjectView()
+            case .rainbow:
+                StandardAddSubjectView()
+                    .preferredColorScheme(.dark)
             case .none:
                 StandardAddSubjectView()
             }
@@ -18,7 +21,7 @@ struct AddSubjectView: View {
     }
 }
 
-// MARK: - 👔 STANDARD VIEW
+// MARK: - 👔 STANDARD ADD VIEW
 struct StandardAddSubjectView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -111,17 +114,19 @@ struct StandardAddSubjectView: View {
     }
 }
 
-// MARK: - 🕹️ ARCADE VIEW
+// MARK: - 🕹️ ARCADE ADD VIEW
 struct ArcadeAddSubjectView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
 
     @State private var title = ""
+    // Course
     @State private var courseTeacher = ""
     @State private var courseClassroom = ""
     @State private var courseStartTime = Date()
     @State private var courseEndTime = Date().addingTimeInterval(3600)
     @State private var selectedCourseDays: Set<Int> = []
+    // Seminar
     @State private var seminarTeacher = ""
     @State private var seminarClassroom = ""
     @State private var seminarStartTime = Date()
@@ -137,6 +142,7 @@ struct ArcadeAddSubjectView: View {
                 
                 ScrollView {
                     VStack(spacing: 24) {
+                        // Title
                         VStack(alignment: .leading) {
                             Text("SKILL TREE NAME").font(.caption).fontWeight(.black).foregroundColor(.cyan)
                             TextField("Enter Subject...", text: $title)
@@ -147,9 +153,12 @@ struct ArcadeAddSubjectView: View {
                                 .foregroundColor(.white)
                         }
                         
+                        // Course Section
                         ArcadeSection(title: "MAIN QUEST (COURSE)", color: .purple) {
                             ArcadeInput(icon: "person.fill", placeholder: "Instructor", text: $courseTeacher)
                             ArcadeInput(icon: "mappin.and.ellipse", placeholder: "Location", text: $courseClassroom)
+                            
+                            // Days
                             HStack {
                                 ForEach(daysOfWeek, id: \.0) { day in
                                     ArcadeDayChip(label: day.1, isSelected: selectedCourseDays.contains(day.0), color: .purple) {
@@ -157,6 +166,7 @@ struct ArcadeAddSubjectView: View {
                                     }
                                 }
                             }
+                            // Times
                             HStack {
                                 DatePicker("", selection: $courseStartTime, displayedComponents: .hourAndMinute).labelsHidden().colorScheme(.dark)
                                 Text("TO").font(.caption).fontWeight(.bold).foregroundColor(.gray)
@@ -164,9 +174,12 @@ struct ArcadeAddSubjectView: View {
                             }
                         }
                         
+                        // Seminar Section
                         ArcadeSection(title: "SIDE QUEST (SEMINAR)", color: .orange) {
                             ArcadeInput(icon: "person.fill", placeholder: "Instructor", text: $seminarTeacher)
                             ArcadeInput(icon: "mappin.and.ellipse", placeholder: "Location", text: $seminarClassroom)
+                            
+                            // Days
                             HStack {
                                 ForEach(daysOfWeek, id: \.0) { day in
                                     ArcadeDayChip(label: day.1, isSelected: selectedSeminarDays.contains(day.0), color: .orange) {
@@ -174,6 +187,7 @@ struct ArcadeAddSubjectView: View {
                                     }
                                 }
                             }
+                            // Times
                             HStack {
                                 DatePicker("", selection: $seminarStartTime, displayedComponents: .hourAndMinute).labelsHidden().colorScheme(.dark)
                                 Text("TO").font(.caption).fontWeight(.bold).foregroundColor(.gray)
@@ -209,7 +223,7 @@ struct ArcadeAddSubjectView: View {
     }
 }
 
-// MARK: - 👾 RETRO VIEW
+// MARK: - 👾 RETRO ADD VIEW
 struct RetroAddSubjectView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -218,6 +232,9 @@ struct RetroAddSubjectView: View {
     @State private var courseTeacher = ""
     @State private var courseClassroom = ""
     @State private var selectedCourseDays: Set<Int> = []
+    // Retro needs simplified fields for aesthetic, but we must pass all required fields to model
+    @State private var seminarTeacher = ""
+    @State private var seminarClassroom = ""
     
     private let daysOfWeek = [(1, "SUN"), (2, "MON"), (3, "TUE"), (4, "WED"), (5, "THU"), (6, "FRI"), (7, "SAT")]
 
@@ -230,6 +247,7 @@ struct RetroAddSubjectView: View {
                     VStack(alignment: .leading, spacing: 24) {
                         Text("> INITIALIZE_NEW_SUBJECT").font(.system(.headline, design: .monospaced)).foregroundColor(.green)
                         
+                        // Title
                         VStack(alignment: .leading, spacing: 4) {
                             Text("TITLE_STRING:").font(.caption).foregroundColor(.gray).fontDesign(.monospaced)
                             TextField("...", text: $title)
@@ -239,6 +257,7 @@ struct RetroAddSubjectView: View {
                                 .border(Color.green.opacity(0.5), width: 1)
                         }
                         
+                        // Course
                         VStack(alignment: .leading, spacing: 4) {
                             Text("INSTRUCTOR_ID:").font(.caption).foregroundColor(.gray).fontDesign(.monospaced)
                             TextField("...", text: $courseTeacher)
@@ -248,6 +267,16 @@ struct RetroAddSubjectView: View {
                                 .border(Color.green.opacity(0.5), width: 1)
                         }
                         
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("COORDINATES:").font(.caption).foregroundColor(.gray).fontDesign(.monospaced)
+                            TextField("...", text: $courseClassroom)
+                                .font(.system(.body, design: .monospaced))
+                                .foregroundColor(.green)
+                                .padding(8)
+                                .border(Color.green.opacity(0.5), width: 1)
+                        }
+                        
+                        // Days
                         VStack(alignment: .leading, spacing: 8) {
                             Text("ACTIVE_CYCLE:").font(.caption).foregroundColor(.gray).fontDesign(.monospaced)
                             LazyVGrid(columns: [GridItem(.adaptive(minimum: 80))], spacing: 8) {
@@ -276,9 +305,9 @@ struct RetroAddSubjectView: View {
             courseTeacher: courseTeacher,
             courseClassroom: courseClassroom,
             courseDays: Array(selectedCourseDays).sorted(),
-            // FIX: Provide required empty strings for seminar fields
-            seminarTeacher: "",
-            seminarClassroom: ""
+            // Providing required empty strings for un-entered data in retro mode
+            seminarTeacher: seminarTeacher,
+            seminarClassroom: seminarClassroom
         )
         modelContext.insert(newSubject)
         dismiss()

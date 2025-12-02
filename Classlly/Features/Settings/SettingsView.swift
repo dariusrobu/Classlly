@@ -10,6 +10,9 @@ struct SettingsView: View {
                 ArcadeSettingsView()
             case .retro:
                 RetroSettingsView()
+            case .rainbow:
+                StandardSettingsView()
+                    .preferredColorScheme(.dark)
             case .none:
                 StandardSettingsView()
             }
@@ -79,16 +82,13 @@ struct ArcadeSettingsView: View {
             Color.black.ignoresSafeArea()
             ScrollView {
                 VStack(spacing: 24) {
-                    // Game Mode Selector
                     ArcadeSection(title: "SYSTEM INTERFACE", color: .cyan) {
                         Picker("", selection: $themeManager.selectedGameMode) {
                             ForEach(GameMode.allCases) { mode in Text(mode.rawValue).tag(mode) }
                         }
-                        .pickerStyle(.segmented)
-                        .colorScheme(.dark)
+                        .pickerStyle(.segmented).colorScheme(.dark)
                     }
                     
-                    // Theme
                     ArcadeSection(title: "VISUAL CORE", color: .purple) {
                         LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(Theme.allCases) { theme in
@@ -99,14 +99,12 @@ struct ArcadeSettingsView: View {
                         }
                     }
                     
-                    // Toggles
                     ArcadeSection(title: "SYSTEM CONTROLS", color: .orange) {
                         ArcadeToggle(icon: "bell.fill", label: "NOTIFICATIONS", isOn: $notificationsEnabled)
                         ArcadeToggle(icon: "moon.fill", label: "DARK MODE", isOn: $darkModeEnabled)
                         ArcadeToggle(icon: "arrow.triangle.2.circlepath", label: "AUTO SYNC", isOn: $autoSyncEnabled)
                     }
-                }
-                .padding()
+                }.padding()
             }
         }
         .navigationTitle("System Config")
@@ -121,8 +119,7 @@ struct ArcadeToggle: View {
             Text(label).font(.caption).fontWeight(.black).foregroundColor(.white)
             Spacer()
             Toggle("", isOn: $isOn).labelsHidden().tint(.yellow)
-        }
-        .padding(8).background(Color.black).cornerRadius(8)
+        }.padding(8).background(Color.black).cornerRadius(8)
     }
 }
 
@@ -142,18 +139,15 @@ struct RetroSettingsView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     Text("> CONFIGURATION_MENU").font(.system(.headline, design: .monospaced)).foregroundColor(.green)
                     
-                    // Mode
                     VStack(alignment: .leading, spacing: 8) {
                         Text("UI_MODE:").font(.caption).fontDesign(.monospaced).foregroundColor(.gray)
                         Picker("", selection: $themeManager.selectedGameMode) {
                             ForEach(GameMode.allCases) { mode in Text(mode.rawValue).tag(mode) }
                         }
-                        .pickerStyle(.segmented)
-                        .colorScheme(.dark)
+                        .pickerStyle(.segmented).colorScheme(.dark)
                         .overlay(Rectangle().stroke(Color.green, lineWidth: 1))
                     }
                     
-                    // Theme
                     VStack(alignment: .leading, spacing: 8) {
                         Text("COLOR_PALETTE:").font(.caption).fontDesign(.monospaced).foregroundColor(.gray)
                         LazyVGrid(columns: columns, spacing: 16) {
@@ -165,15 +159,13 @@ struct RetroSettingsView: View {
                         }
                     }
                     
-                    // Toggles
                     VStack(alignment: .leading, spacing: 12) {
                         Text("FLAGS:").font(.caption).fontDesign(.monospaced).foregroundColor(.gray)
                         RetroToggle(label: "ENABLE_NOTIFICATIONS", isOn: $notificationsEnabled)
                         RetroToggle(label: "DARK_MODE_OVERRIDE", isOn: $darkModeEnabled)
                         RetroToggle(label: "AUTO_SYNC_PROTOCOL", isOn: $autoSyncEnabled)
                     }
-                }
-                .padding()
+                }.padding()
             }
         }
         .navigationTitle("CONFIG.INI")
@@ -187,12 +179,10 @@ struct RetroToggle: View {
             Text(label).font(.system(.body, design: .monospaced)).foregroundColor(.green)
             Spacer()
             Toggle("", isOn: $isOn).labelsHidden().tint(.green)
-        }
-        .padding(8).border(Color.green.opacity(0.3), width: 1)
+        }.padding(8).border(Color.green.opacity(0.3), width: 1)
     }
 }
 
-// Helper
 struct ThemeCircle: View {
     let theme: Theme; let isSelected: Bool; let action: () -> Void
     var body: some View {

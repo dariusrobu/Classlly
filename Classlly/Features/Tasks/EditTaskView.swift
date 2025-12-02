@@ -12,6 +12,9 @@ struct EditTaskView: View {
                 ArcadeEditTaskView(task: task)
             case .retro:
                 RetroEditTaskView(task: task)
+            case .rainbow:
+                StandardEditTaskView(task: task)
+                    .preferredColorScheme(.dark)
             case .none:
                 StandardEditTaskView(task: task)
             }
@@ -27,6 +30,7 @@ struct StandardEditTaskView: View {
     @Query(sort: \Subject.title) var subjects: [Subject]
 
     @State private var title: String
+    @State private var notes: String
     @State private var selectedSubject: Subject?
     @State private var priority: TaskPriority
     @State private var dueDate: Date
@@ -38,6 +42,7 @@ struct StandardEditTaskView: View {
     init(task: StudyTask) {
         self.task = task
         _title = State(initialValue: task.title)
+        _notes = State(initialValue: task.notes)
         _selectedSubject = State(initialValue: task.subject)
         _priority = State(initialValue: task.priority)
         _dueDate = State(initialValue: task.dueDate ?? Date())
@@ -65,6 +70,12 @@ struct StandardEditTaskView: View {
                         }
                     }
                 }
+                
+                Section(header: Text("Notes")) {
+                    TextEditor(text: $notes)
+                        .frame(minHeight: 80)
+                }
+                
                 Section(header: Text("Priority")) {
                     Picker("Priority", selection: $priority) {
                         ForEach(TaskPriority.allCases, id: \.self) { p in
@@ -95,6 +106,7 @@ struct StandardEditTaskView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         task.title = title
+                        task.notes = notes
                         task.subject = selectedSubject
                         task.priority = priority
                         task.dueDate = hasDueDate ? dueDate : nil
@@ -126,6 +138,7 @@ struct ArcadeEditTaskView: View {
     @Query(sort: \Subject.title) var subjects: [Subject]
 
     @State private var title: String
+    @State private var notes: String
     @State private var selectedSubject: Subject?
     @State private var priority: TaskPriority
     @State private var dueDate: Date
@@ -135,6 +148,7 @@ struct ArcadeEditTaskView: View {
     init(task: StudyTask) {
         self.task = task
         _title = State(initialValue: task.title)
+        _notes = State(initialValue: task.notes)
         _selectedSubject = State(initialValue: task.subject)
         _priority = State(initialValue: task.priority)
         _dueDate = State(initialValue: task.dueDate ?? Date())
@@ -160,6 +174,22 @@ struct ArcadeEditTaskView: View {
                                 .background(Color(white: 0.1))
                                 .cornerRadius(12)
                                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.cyan.opacity(0.5), lineWidth: 1))
+                                .foregroundColor(.white)
+                        }
+                        
+                        // Notes
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("MISSION INTEL")
+                                .font(.system(size: 10, weight: .bold, design: .rounded))
+                                .foregroundColor(.green)
+                            
+                            TextEditor(text: $notes)
+                                .scrollContentBackground(.hidden)
+                                .frame(minHeight: 100)
+                                .padding(8)
+                                .background(Color(white: 0.1))
+                                .cornerRadius(12)
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.green.opacity(0.5), lineWidth: 1))
                                 .foregroundColor(.white)
                         }
                         
@@ -251,6 +281,7 @@ struct ArcadeEditTaskView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save Changes") {
                         task.title = title
+                        task.notes = notes
                         task.subject = selectedSubject
                         task.priority = priority
                         task.dueDate = hasDueDate ? dueDate : nil
@@ -273,6 +304,7 @@ struct RetroEditTaskView: View {
     @Query(sort: \Subject.title) var subjects: [Subject]
 
     @State private var title: String
+    @State private var notes: String
     @State private var selectedSubject: Subject?
     @State private var priority: TaskPriority
     @State private var dueDate: Date
@@ -282,6 +314,7 @@ struct RetroEditTaskView: View {
     init(task: StudyTask) {
         self.task = task
         _title = State(initialValue: task.title)
+        _notes = State(initialValue: task.notes)
         _selectedSubject = State(initialValue: task.subject)
         _priority = State(initialValue: task.priority)
         _dueDate = State(initialValue: task.dueDate ?? Date())
@@ -308,6 +341,22 @@ struct RetroEditTaskView: View {
                                 .font(.system(.body, design: .monospaced))
                                 .foregroundColor(.green)
                                 .padding(8)
+                                .border(Color.green.opacity(0.5), width: 1)
+                        }
+                        
+                        // Notes
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("DATA_STREAM (NOTES):")
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundColor(.gray)
+                            
+                            TextEditor(text: $notes)
+                                .scrollContentBackground(.hidden)
+                                .frame(minHeight: 100)
+                                .font(.system(.body, design: .monospaced))
+                                .foregroundColor(.green)
+                                .padding(8)
+                                .background(Color.black)
                                 .border(Color.green.opacity(0.5), width: 1)
                         }
                         
@@ -371,6 +420,7 @@ struct RetroEditTaskView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
                         task.title = title
+                        task.notes = notes
                         task.subject = selectedSubject
                         task.priority = priority
                         task.dueDate = hasDueDate ? dueDate : nil

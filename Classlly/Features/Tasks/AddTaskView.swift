@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - MAIN SWITCHER
 struct AddTaskView: View {
     @EnvironmentObject var themeManager: AppTheme
     var preSelectedSubject: Subject?
@@ -16,6 +17,10 @@ struct AddTaskView: View {
                 ArcadeAddTaskView(preSelectedSubject: preSelectedSubject)
             case .retro:
                 RetroAddTaskView(preSelectedSubject: preSelectedSubject)
+            case .rainbow:
+                // Rainbow mode uses standard layout but forced dark
+                StandardAddTaskView(preSelectedSubject: preSelectedSubject)
+                    .preferredColorScheme(.dark)
             case .none:
                 StandardAddTaskView(preSelectedSubject: preSelectedSubject)
             }
@@ -30,6 +35,7 @@ struct StandardAddTaskView: View {
     @Query(sort: \Subject.title) var subjects: [Subject]
 
     @State private var title = ""
+    @State private var notes = ""
     @State private var selectedSubject: Subject?
     @State private var priority: TaskPriority = .medium
     @State private var dueDate = Date()
@@ -64,6 +70,11 @@ struct StandardAddTaskView: View {
                     }
                 }
                 
+                Section(header: Text("Notes")) {
+                    TextEditor(text: $notes)
+                        .frame(minHeight: 80)
+                }
+                
                 Section(header: Text("Priority")) {
                     StandardPriorityPicker(selectedPriority: $priority)
                 }
@@ -95,7 +106,8 @@ struct StandardAddTaskView: View {
                             priority: priority,
                             subject: selectedSubject,
                             reminderTime: hasDueDate ? reminderTime : .none,
-                            isFlagged: isFlagged
+                            isFlagged: isFlagged,
+                            notes: notes
                         )
                         modelContext.insert(newTask)
                         dismiss()
@@ -116,13 +128,13 @@ struct ArcadeAddTaskView: View {
     @Query(sort: \Subject.title) var subjects: [Subject]
 
     @State private var title = ""
+    @State private var notes = ""
     @State private var selectedSubject: Subject?
     @State private var priority: TaskPriority = .medium
     @State private var dueDate = Date()
     @State private var hasDueDate = false
     @State private var isFlagged: Bool = false
     
-    // Default subject init
     init(preSelectedSubject: Subject? = nil) {
         _selectedSubject = State(initialValue: preSelectedSubject)
     }
@@ -145,6 +157,22 @@ struct ArcadeAddTaskView: View {
                                 .background(Color(white: 0.1))
                                 .cornerRadius(12)
                                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.cyan.opacity(0.5), lineWidth: 1))
+                                .foregroundColor(.white)
+                        }
+                        
+                        // Notes Input
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("INTEL / NOTES")
+                                .font(.system(size: 10, weight: .bold, design: .rounded))
+                                .foregroundColor(.green)
+                            
+                            TextEditor(text: $notes)
+                                .scrollContentBackground(.hidden)
+                                .frame(minHeight: 100)
+                                .padding(8)
+                                .background(Color(white: 0.1))
+                                .cornerRadius(12)
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.green.opacity(0.5), lineWidth: 1))
                                 .foregroundColor(.white)
                         }
                         
@@ -254,7 +282,8 @@ struct ArcadeAddTaskView: View {
                             dueDate: hasDueDate ? dueDate : nil,
                             priority: priority,
                             subject: selectedSubject,
-                            isFlagged: isFlagged
+                            isFlagged: isFlagged,
+                            notes: notes
                         )
                         modelContext.insert(newTask)
                         dismiss()
@@ -276,6 +305,7 @@ struct RetroAddTaskView: View {
     @Query(sort: \Subject.title) var subjects: [Subject]
 
     @State private var title = ""
+    @State private var notes = ""
     @State private var selectedSubject: Subject?
     @State private var priority: TaskPriority = .medium
     @State private var hasDueDate = false
@@ -293,7 +323,6 @@ struct RetroAddTaskView: View {
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        // Header
                         Text("> INITIALIZE_NEW_TASK")
                             .font(.system(.headline, design: .monospaced))
                             .foregroundColor(.green)
@@ -312,6 +341,22 @@ struct RetroAddTaskView: View {
                             }
                             .padding(8)
                             .border(Color.green.opacity(0.5), width: 1)
+                        }
+                        
+                        // Notes
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("INPUT_DATA_STREAM (NOTES):")
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundColor(.gray)
+                            
+                            TextEditor(text: $notes)
+                                .scrollContentBackground(.hidden)
+                                .frame(minHeight: 100)
+                                .font(.system(.body, design: .monospaced))
+                                .foregroundColor(.green)
+                                .padding(8)
+                                .background(Color.black)
+                                .border(Color.green.opacity(0.5), width: 1)
                         }
                         
                         // Subject
@@ -394,7 +439,8 @@ struct RetroAddTaskView: View {
                             dueDate: hasDueDate ? dueDate : nil,
                             priority: priority,
                             subject: selectedSubject,
-                            isFlagged: isFlagged
+                            isFlagged: isFlagged,
+                            notes: notes
                         )
                         modelContext.insert(newTask)
                         dismiss()
@@ -410,7 +456,7 @@ struct RetroAddTaskView: View {
     }
 }
 
-// Helper for Standard View
+// MARK: - HELPER
 fileprivate struct StandardPriorityPicker: View {
     @Binding var selectedPriority: TaskPriority
     var body: some View {

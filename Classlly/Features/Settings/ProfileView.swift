@@ -15,6 +15,8 @@ struct ProfileView: View {
                 ArcadeProfileView(user: authManager.currentUser, subjects: subjects, tasks: tasks)
             case .retro:
                 RetroProfileView(user: authManager.currentUser, subjects: subjects, tasks: tasks)
+            case .rainbow:
+                StandardProfileView(user: authManager.currentUser, subjects: subjects, tasks: tasks)
             case .none:
                 StandardProfileView(user: authManager.currentUser, subjects: subjects, tasks: tasks)
             }
@@ -274,3 +276,4 @@ struct RetroProfileView: View {
         .navigationTitle("USER_PROFILE")
     }
 }
+

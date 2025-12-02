@@ -12,6 +12,10 @@ struct EditSubjectView: View {
                 ArcadeEditSubjectView(subject: subject)
             case .retro:
                 RetroEditSubjectView(subject: subject)
+            case .rainbow:
+                // Rainbow mode uses Standard view with forced dark scheme
+                StandardEditSubjectView(subject: subject)
+                    .preferredColorScheme(.dark)
             case .none:
                 StandardEditSubjectView(subject: subject)
             }
