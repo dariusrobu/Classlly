@@ -1,476 +1,276 @@
 import SwiftUI
-import UIKit
 import SwiftData
 
+// MARK: - MAIN SWITCHER
 struct ProfileView: View {
-    // ... (Properties unchanged) ...
-    @AppStorage("darkModeEnabled") private var darkModeEnabled = false
+    @EnvironmentObject var themeManager: AppTheme
     @EnvironmentObject var authManager: AuthenticationManager
-    @StateObject private var notificationManager = NotificationManager.shared
-    @Environment(\.colorScheme) var colorScheme
-    @Environment(\.modelContext) private var modelContext
-
     @Query var subjects: [Subject]
     @Query var tasks: [StudyTask]
-    @Query var events: [StudyCalendarEvent]
     
-    public init() {}
+    var body: some View {
+        Group {
+            switch themeManager.selectedGameMode {
+            case .arcade:
+                ArcadeProfileView(user: authManager.currentUser, subjects: subjects, tasks: tasks)
+            case .retro:
+                RetroProfileView(user: authManager.currentUser, subjects: subjects, tasks: tasks)
+            case .none:
+                StandardProfileView(user: authManager.currentUser, subjects: subjects, tasks: tasks)
+            }
+        }
+    }
+}
 
+// MARK: - 👔 STANDARD VIEW
+struct StandardProfileView: View {
+    let user: UserProfile?
+    let subjects: [Subject]
+    let tasks: [StudyTask]
+    @EnvironmentObject var authManager: AuthenticationManager
+    @Environment(\.modelContext) var modelContext
+    
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
-                // ... (Header / Stats / Account sections unchanged) ...
-                if let user = authManager.currentUser {
+            if let user = user {
+                VStack(spacing: 24) {
+                    // Avatar & Name
                     VStack(spacing: 16) {
                         ZStack {
                             Circle()
                                 .fill(LinearGradient(
-                                    gradient: Gradient(colors: [.themeBlue, .themePurple]),
+                                    gradient: Gradient(colors: [.themePrimary, .themeSecondary]),
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ))
                                 .frame(width: 100, height: 100)
                             
-                            Text(getInitials(from: user.fullName))
+                            Text(String(user.firstName.prefix(1)))
                                 .font(.system(size: 40, weight: .bold))
                                 .foregroundColor(.white)
                         }
+                        
                         VStack(spacing: 4) {
                             Text(user.fullName)
                                 .font(.title2)
                                 .fontWeight(.semibold)
-                                .foregroundColor(.adaptivePrimary)
+                                .foregroundColor(.primary)
+                            
                             Text(user.schoolName)
                                 .font(.subheadline)
-                                .foregroundColor(.adaptiveSecondary)
-                            if let major = user.major {
-                                Text(major)
-                                    .font(.subheadline)
-                                    .foregroundColor(.adaptiveSecondary)
-                            }
-                            HStack(spacing: 8) {
-                                Text(user.gradeLevel)
-                                Text("•")
-                                Text(user.academicYear)
-                            }
-                            .font(.caption)
-                            .foregroundColor(.adaptiveSecondary)
+                                .foregroundColor(.secondary)
+                            
+                            Text(user.gradeLevel)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                     }
                     .padding()
                     .frame(maxWidth: .infinity)
-                    .adaptiveCard()
+                    .background(Color.themeSurface)
+                    .cornerRadius(12)
                     .padding(.horizontal)
-                }
-                
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Quick Stats")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.adaptivePrimary)
-                        .padding(.horizontal)
-                        .padding(.bottom, 16)
                     
-                    HStack(spacing: 12) {
-                        StatBox(title: "Subjects", value: "\(subjects.count)")
-                        StatBox(title: "Tasks", value: "\(tasks.count)")
-                        StatBox(title: "Events", value: "\(events.count)")
+                    // Stats
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Quick Stats")
+                            .font(.headline)
+                            .padding(.horizontal)
+                        
+                        HStack(spacing: 12) {
+                            StatBox(title: "Subjects", value: "\(subjects.count)")
+                            StatBox(title: "Tasks", value: "\(tasks.count)")
+                        }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
-                }
-
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Account")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.adaptivePrimary)
-                        .padding(.horizontal)
-                        .padding(.bottom, 16)
                     
-                    VStack(spacing: 0) {
-                        if let user = authManager.currentUser {
-                            NavigationLink(destination: EditProfileView(user: user)) {
-                                SettingsRow(
-                                    icon: "person.crop.circle",
-                                    iconColor: .themeBlue,
-                                    title: "Edit Profile",
-                                    value: nil
-                                )
+                    // Account Actions
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Account")
+                            .font(.headline)
+                            .padding(.horizontal)
+                        
+                        VStack(spacing: 0) {
+                            Button(action: {
+                                authManager.signOut(modelContext: modelContext)
+                            }) {
+                                HStack {
+                                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                                        .foregroundColor(.red)
+                                    Text("Sign Out")
+                                        .foregroundColor(.red)
+                                    Spacer()
+                                }
+                                .padding()
+                                .background(Color.themeSurface)
                             }
-                            .buttonStyle(PlainButtonStyle())
                         }
-                        
-                        Divider()
-                            .padding(.leading, 52)
-                        
-                        Button(action: {
-                            exportData()
-                        }) {
-                            SettingsRow(
-                                icon: "square.and.arrow.up",
-                                iconColor: .themeBlue,
-                                title: "Export Data",
-                                value: nil
-                            )
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        
-                        Divider()
-                            .padding(.leading, 52)
-                        
-                        Button(action: {
-                            confirmClearData()
-                        }) {
-                            SettingsRow(
-                                icon: "trash",
-                                iconColor: .themeRed,
-                                title: "Clear All Data",
-                                value: nil
-                            )
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    }
-                    .adaptiveCard()
-                    .padding(.horizontal)
-                }
-                
-                // --- SIGN OUT BUTTON ---
-                Button(action: {
-                    handleSignOut()
-                }) {
-                    Text("Sign Out")
-                        .font(.body)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.themeRed)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.themeSurface)
                         .cornerRadius(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.themeRed.opacity(0.3), lineWidth: 1)
-                        )
+                        .padding(.horizontal)
+                    }
                 }
-                .padding(.horizontal)
+                .padding(.vertical)
             }
-            .padding(.vertical)
         }
         .background(Color.themeBackground)
         .navigationTitle("Profile")
-        .navigationBarTitleDisplayMode(.inline)
-        .preferredColorScheme(darkModeEnabled ? .dark : .light)
-    }
-    
-    // --- UPDATED: Pass context to manager ---
-    private func handleSignOut() {
-        authManager.signOut(modelContext: modelContext)
-    }
-    
-    private func getInitials(from name: String) -> String {
-        let names = name.split(separator: " ")
-        let initials = names.prefix(2).map { String($0.first ?? Character("")) }
-        return initials.joined()
-    }
-    
-    private func exportData() {
-        let alert = UIAlertController(
-            title: "Export Not Implemented",
-            message: "Exporting SwiftData models requires a custom Codable implementation.",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootViewController = windowScene.windows.first?.rootViewController {
-            rootViewController.present(alert, animated: true)
-        }
-    }
-    
-    private func confirmClearData() {
-        let alert = UIAlertController(
-            title: "Clear All Data",
-            message: "Are you sure you want to clear all your data? This will remove all subjects, tasks, and events. This action cannot be undone.",
-            preferredStyle: .alert
-        )
-        
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Clear All", style: .destructive) { _ in
-            notificationManager.removeAllNotifications()
-            DemoDataManager.shared.deleteAllData(modelContext: modelContext)
-        })
-        
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootViewController = windowScene.windows.first?.rootViewController {
-            rootViewController.present(alert, animated: true)
-        }
     }
 }
 
-// ... (Rest of NotificationSettingsView, EditProfileView, etc. remains unchanged) ...
-// [Keep the rest of the file content]
-
-// MARK: - Notification Settings View
-struct NotificationSettingsView: View {
-    @StateObject private var notificationManager = NotificationManager.shared
-    @State private var pendingNotifications: [UNNotificationRequest] = []
-    @Environment(\.colorScheme) var colorScheme
-    
-    public init() {}
-    
-    var body: some View {
-        List {
-            Section(header: Text("Notification Status").foregroundColor(.adaptiveSecondary)) {
-                HStack {
-                    Text("Permission Status")
-                    Spacer()
-                    Text(notificationManager.permissionGranted ? "Granted" : "Denied")
-                        .foregroundColor(notificationManager.permissionGranted ? .themeGreen : .themeRed)
-                }
-                HStack {
-                    Text("Pending Notifications")
-                    Spacer()
-                    Text("\(pendingNotifications.count)")
-                        .foregroundColor(.themeBlue)
-                }
-            }
-            .listRowBackground(Color.themeSurface)
-            
-            Section(header: Text("Manage Notifications").foregroundColor(.adaptiveSecondary)) {
-                Button("View All Pending Notifications") { loadPendingNotifications() }
-                Button("Remove All Notifications", role: .destructive) { removeAllNotifications() }
-            }
-            .listRowBackground(Color.themeSurface)
-            
-            if !pendingNotifications.isEmpty {
-                Section(header: Text("Pending Notifications").foregroundColor(.adaptiveSecondary)) {
-                    ForEach(pendingNotifications, id: \.identifier) { notification in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(notification.content.title)
-                            Text(notification.content.body)
-                            if let trigger = notification.trigger as? UNCalendarNotificationTrigger {
-                                Text("Scheduled: \(formatTriggerDate(trigger))")
-                            }
-                        }
-                        .font(.caption)
-                    }
-                }
-                .listRowBackground(Color.themeSurface)
-            }
-        }
-        .scrollContentBackground(.hidden)
-        .background(Color.themeBackground)
-        .navigationTitle("Notification Settings")
-        .onAppear { loadPendingNotifications() }
-    }
-    
-    private func loadPendingNotifications() {
-        notificationManager.getPendingNotifications { requests in
-            DispatchQueue.main.async { self.pendingNotifications = requests }
-        }
-    }
-    
-    private func removeAllNotifications() {
-        notificationManager.removeAllNotifications()
-        loadPendingNotifications()
-    }
-    
-    private func formatTriggerDate(_ trigger: UNCalendarNotificationTrigger) -> String {
-        if let date = trigger.nextTriggerDate() {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .medium
-            formatter.timeStyle = .short
-            return formatter.string(from: date)
-        } else {
-            return "Unknown"
-        }
-    }
-}
-
-// Remove Codable conformance. Exporting is now handled separately.
-struct ExportData {
+// MARK: - 🕹️ ARCADE VIEW
+struct ArcadeProfileView: View {
+    let user: UserProfile?
     let subjects: [Subject]
     let tasks: [StudyTask]
-    let events: [StudyCalendarEvent]
-    let exportDate: Date
-}
-
-// MARK: - Edit Profile View
-struct EditProfileView: View {
-    @Environment(\.dismiss) var dismiss
     @EnvironmentObject var authManager: AuthenticationManager
-    // --- FIX: Add modelContext environment variable ---
-    @Environment(\.modelContext) private var modelContext
-    
-    let user: UserProfile
-    @Environment(\.colorScheme) var colorScheme
-    
-    @State private var firstName: String
-    @State private var lastName: String
-    @State private var schoolName: String
-    @State private var gradeLevel: String
-    @State private var major: String
-    @State private var academicYear: String
-    
-    private let gradeLevels = ["Freshman", "Sophomore", "Junior", "Senior", "Graduate", "PhD", "Other"]
-    private let academicYears = ["2023-2024", "2024-2025", "2025-2026", "2026-2027", "2027-2028"]
-    private let popularMajors = [
-        "Computer Science", "Engineering", "Business", "Medicine", "Law",
-        "Psychology", "Biology", "Chemistry", "Physics", "Mathematics",
-        "Economics", "Political Science", "History", "English", "Art",
-        "Music", "Architecture", "Education", "Nursing", "Other"
-    ]
-    
-    init(user: UserProfile) {
-        self.user = user
-        _firstName = State(initialValue: user.firstName)
-        _lastName = State(initialValue: user.lastName)
-        _schoolName = State(initialValue: user.schoolName)
-        _gradeLevel = State(initialValue: user.gradeLevel)
-        _major = State(initialValue: user.major ?? "")
-        _academicYear = State(initialValue: user.academicYear)
-    }
-    
+    @Environment(\.modelContext) var modelContext
+
     var body: some View {
-        Form {
-            Section(header: Text("Personal Information").foregroundColor(.adaptiveSecondary)) {
-                TextField("First Name", text: $firstName)
-                TextField("Last Name", text: $lastName)
-            }
-            .listRowBackground(Color.themeSurface)
+        ZStack {
+            Color.black.ignoresSafeArea()
             
-            Section(header: Text("Academic Information").foregroundColor(.adaptiveSecondary)) {
-                TextField("School/University", text: $schoolName)
-                Picker("Grade Level", selection: $gradeLevel) {
-                    ForEach(gradeLevels, id: \.self) { Text($0) }
+            ScrollView {
+                VStack(spacing: 24) {
+                    if let user = user {
+                        // Avatar
+                        ZStack {
+                            Circle()
+                                .stroke(Color.cyan, lineWidth: 3)
+                                .frame(width: 110, height: 110)
+                            
+                            Circle()
+                                .fill(Color.purple.opacity(0.5))
+                                .frame(width: 100, height: 100)
+                            
+                            Text(String(user.firstName.prefix(1)))
+                                .font(.system(size: 40, weight: .black))
+                                .foregroundColor(.white)
+                        }
+                        .shadow(color: .cyan, radius: 10)
+                        
+                        // Info
+                        VStack(spacing: 8) {
+                            Text(user.fullName.uppercased())
+                                .font(.system(.title2, design: .rounded))
+                                .fontWeight(.black)
+                                .foregroundColor(.white)
+                            
+                            Text("CLASS: \(user.gradeLevel.uppercased())")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.gray)
+                            
+                            Text("GUILD: \(user.schoolName.uppercased())")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.gray)
+                        }
+                        
+                        // Stats
+                        HStack(spacing: 16) {
+                            ArcadeStatPill(icon: "bolt.fill", value: "\(subjects.count)", label: "Skills", gradient: Gradient(colors: [.blue, .purple]))
+                            ArcadeStatPill(icon: "flame.fill", value: "\(tasks.count)", label: "Quests", gradient: Gradient(colors: [.orange, .red]))
+                        }
+                        .padding()
+                        
+                        // Logout
+                        Button(action: {
+                            authManager.signOut(modelContext: modelContext)
+                        }) {
+                            Text("LOGOUT")
+                                .font(.system(.caption, design: .rounded))
+                                .fontWeight(.black)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(Color.red.opacity(0.2))
+                                .foregroundColor(.red)
+                                .cornerRadius(12)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.red, lineWidth: 1)
+                                )
+                        }
+                        .padding(.horizontal)
+                    }
                 }
-                Picker("Major", selection: $major) {
-                    ForEach(popularMajors, id: \.self) { Text($0) }
-                }
-                Picker("Academic Year", selection: $academicYear) {
-                    ForEach(academicYears, id: \.self) { Text($0) }
-                }
+                .padding(.top)
             }
-            .listRowBackground(Color.themeSurface)
         }
-        .scrollContentBackground(.hidden)
-        .background(Color.themeBackground)
-        .navigationTitle("Edit Profile")
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(true)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button("Cancel") { dismiss() }.foregroundColor(.themeBlue)
-            }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Save") { saveProfile() }
-                    .disabled(!isFormValid)
-                    .fontWeight(.semibold)
-                    .foregroundColor(isFormValid ? .themeBlue : .adaptiveSecondary)
-            }
-        }
-    }
-    
-    private var isFormValid: Bool {
-        !firstName.isEmpty && !lastName.isEmpty && !schoolName.isEmpty
-    }
-    
-    private func saveProfile() {
-        let updatedProfile = UserProfile(
-            id: user.id,
-            firstName: firstName,
-            lastName: lastName,
-            email: user.email,
-            schoolName: schoolName,
-            gradeLevel: gradeLevel,
-            major: major.isEmpty ? nil : major,
-            academicYear: academicYear,
-            profileImageData: user.profileImageData
-        )
-        // --- FIX: Pass modelContext to the function call ---
-        authManager.completeProfileSetup(profile: updatedProfile, modelContext: modelContext)
-        dismiss()
+        .navigationTitle("Player Stats")
     }
 }
 
-struct StatBox: View {
-    let title: String
-    let value: String
-    @Environment(\.colorScheme) var colorScheme
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            Text(value)
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.themeBlue)
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.adaptiveSecondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .background(Color.themeSurface)
-        .cornerRadius(12)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.adaptiveBorder.opacity(0.3), lineWidth: 1)
-        )
-    }
-}
+// MARK: - 👾 RETRO VIEW
+struct RetroProfileView: View {
+    let user: UserProfile?
+    let subjects: [Subject]
+    let tasks: [StudyTask]
+    @EnvironmentObject var authManager: AuthenticationManager
+    @Environment(\.modelContext) var modelContext
 
-struct PreferenceRow: View {
-    let icon: String
-    let iconColor: Color
-    let title: String
-    @Binding var isOn: Bool
-    @Environment(\.colorScheme) var colorScheme
-    
     var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(iconColor)
-                .frame(width: 24)
-            Text(title)
-                .font(.body)
-                .foregroundColor(.adaptivePrimary)
-            Spacer()
-            Toggle("", isOn: $isOn)
-                .labelsHidden()
-                .tint(iconColor)
-        }
-        .padding()
-        .background(Color.themeSurface)
-    }
-}
-
-struct SettingsRow: View {
-    let icon: String
-    let iconColor: Color
-    let title: String
-    let value: String?
-    @Environment(\.colorScheme) var colorScheme
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(iconColor)
-                .frame(width: 24)
-            Text(title)
-                .font(.body)
-                .foregroundColor(.adaptivePrimary)
-            Spacer()
-            if let value = value {
-                Text(value)
-                    .font(.subheadline)
-                    .foregroundColor(.adaptiveSecondary)
+        ZStack {
+            Color(red: 0.05, green: 0.05, blue: 0.05).ignoresSafeArea()
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    if let user = user {
+                        Text("> IDENTIFYING_USER...")
+                            .font(.caption)
+                            .fontDesign(.monospaced)
+                            .foregroundColor(.green)
+                        
+                        // User Data
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("USER_ID: \(user.firstName.uppercased())")
+                                .font(.title3)
+                                .fontDesign(.monospaced)
+                                .foregroundColor(.white)
+                            
+                            RetroInfoRow(label: "FULL_NAME", value: user.fullName)
+                            RetroInfoRow(label: "AFFILIATION", value: user.schoolName)
+                            RetroInfoRow(label: "RANK", value: user.gradeLevel)
+                        }
+                        .padding()
+                        .border(Color.green, width: 1)
+                        
+                        // Stats
+                        Text("STATS_DUMP:")
+                            .font(.caption)
+                            .fontDesign(.monospaced)
+                            .foregroundColor(.gray)
+                        
+                        HStack {
+                            Text("SKILLS_LOADED: \(subjects.count)")
+                                .font(.body)
+                                .fontDesign(.monospaced)
+                                .foregroundColor(.green)
+                            Spacer()
+                            Text("QUESTS_ACTIVE: \(tasks.count)")
+                                .font(.body)
+                                .fontDesign(.monospaced)
+                                .foregroundColor(.green)
+                        }
+                        .padding()
+                        .border(Color.green.opacity(0.5), width: 1)
+                        
+                        // Logout
+                        Button(action: {
+                            authManager.signOut(modelContext: modelContext)
+                        }) {
+                            Text("[ TERMINATE_SESSION ]")
+                                .font(.system(.body, design: .monospaced))
+                                .foregroundColor(.red)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .border(Color.red, width: 1)
+                        }
+                        .padding(.top)
+                    }
+                }
+                .padding()
             }
-            Image(systemName: "chevron.right")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.secondary)
         }
-        .padding()
-        .background(Color.themeSurface)
-        .contentShape(Rectangle())
+        .navigationTitle("USER_PROFILE")
     }
 }

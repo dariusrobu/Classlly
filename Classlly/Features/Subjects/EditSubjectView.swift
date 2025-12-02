@@ -2,6 +2,25 @@ import SwiftUI
 import SwiftData
 
 struct EditSubjectView: View {
+    @EnvironmentObject var themeManager: AppTheme
+    @Bindable var subject: Subject
+    
+    var body: some View {
+        Group {
+            switch themeManager.selectedGameMode {
+            case .arcade:
+                ArcadeEditSubjectView(subject: subject)
+            case .retro:
+                RetroEditSubjectView(subject: subject)
+            case .none:
+                StandardEditSubjectView(subject: subject)
+            }
+        }
+    }
+}
+
+// MARK: - 👔 STANDARD VIEW
+struct StandardEditSubjectView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
     @Bindable var subject: Subject
@@ -21,10 +40,7 @@ struct EditSubjectView: View {
     @State private var selectedSeminarDays: Set<Int>
     @State private var seminarFrequency: ClassFrequency
 
-    private let daysOfWeek = [
-        (1, "Sun"), (2, "Mon"), (3, "Tue"), (4, "Wed"),
-        (5, "Thu"), (6, "Fri"), (7, "Sat")
-    ]
+    private let daysOfWeek = [(1, "Sun"), (2, "Mon"), (3, "Tue"), (4, "Wed"), (5, "Thu"), (6, "Fri"), (7, "Sat")]
 
     init(subject: Subject) {
         self.subject = subject
@@ -48,147 +64,56 @@ struct EditSubjectView: View {
         NavigationView {
             Form {
                 Section(header: Text("Subject Details")) {
-                    TextField("Subject Title", text: $title)
-                        .textInputAutocapitalization(.words)
+                    TextField("Subject Title", text: $title).textInputAutocapitalization(.words)
                 }
 
                 Section(header: Text("Course Information")) {
-                    TextField("Course Teacher", text: $courseTeacher)
-                        .textInputAutocapitalization(.words)
+                    TextField("Course Teacher", text: $courseTeacher).textInputAutocapitalization(.words)
                     TextField("Course Classroom", text: $courseClassroom)
-                    
                     Picker("Frequency", selection: $courseFrequency) {
-                        ForEach(ClassFrequency.allCases, id: \.self) { frequency in
-                            HStack {
-                                Image(systemName: frequency.iconName)
-                                    .foregroundColor(.themePrimary)
-                                Text(frequency.rawValue)
-                            }
-                            .tag(frequency)
-                        }
+                        ForEach(ClassFrequency.allCases, id: \.self) { f in Text(f.rawValue).tag(f) }
                     }
-                    .pickerStyle(MenuPickerStyle())
-                    
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Course Days")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
+                        Text("Course Days").font(.caption).foregroundColor(.secondary)
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
                             ForEach(daysOfWeek, id: \.0) { day in
-                                DayChip(
-                                    day: day.1,
-                                    isSelected: selectedCourseDays.contains(day.0),
-                                    action: {
-                                        if selectedCourseDays.contains(day.0) {
-                                            selectedCourseDays.remove(day.0)
-                                        } else {
-                                            selectedCourseDays.insert(day.0)
-                                        }
-                                    }
-                                )
+                                StandardDayChip(day: day.1, isSelected: selectedCourseDays.contains(day.0)) {
+                                    if selectedCourseDays.contains(day.0) { selectedCourseDays.remove(day.0) } else { selectedCourseDays.insert(day.0) }
+                                }
                             }
                         }
                     }
-                    .padding(.vertical, 4)
-
                     DatePicker("Start Time", selection: $courseStartTime, displayedComponents: .hourAndMinute)
                     DatePicker("End Time", selection: $courseEndTime, displayedComponents: .hourAndMinute)
                 }
 
                 Section(header: Text("Seminar Information")) {
-                    TextField("Seminar Teacher", text: $seminarTeacher)
-                        .textInputAutocapitalization(.words)
+                    TextField("Seminar Teacher", text: $seminarTeacher).textInputAutocapitalization(.words)
                     TextField("Seminar Classroom", text: $seminarClassroom)
-
                     Picker("Frequency", selection: $seminarFrequency) {
-                        ForEach(ClassFrequency.allCases, id: \.self) { frequency in
-                            HStack {
-                                Image(systemName: frequency.iconName)
-                                    .foregroundColor(.themeSuccess)
-                                Text(frequency.rawValue)
-                            }
-                            .tag(frequency)
-                        }
+                        ForEach(ClassFrequency.allCases, id: \.self) { f in Text(f.rawValue).tag(f) }
                     }
-                    .pickerStyle(MenuPickerStyle())
-                    
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Seminar Days")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
+                        Text("Seminar Days").font(.caption).foregroundColor(.secondary)
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
                             ForEach(daysOfWeek, id: \.0) { day in
-                                DayChip(
-                                    day: day.1,
-                                    isSelected: selectedSeminarDays.contains(day.0),
-                                    action: {
-                                        if selectedSeminarDays.contains(day.0) {
-                                            selectedSeminarDays.remove(day.0)
-                                        } else {
-                                            selectedSeminarDays.insert(day.0)
-                                        }
-                                    }
-                                )
+                                StandardDayChip(day: day.1, isSelected: selectedSeminarDays.contains(day.0)) {
+                                    if selectedSeminarDays.contains(day.0) { selectedSeminarDays.remove(day.0) } else { selectedSeminarDays.insert(day.0) }
+                                }
                             }
                         }
                     }
-                    .padding(.vertical, 4)
-
                     DatePicker("Start Time", selection: $seminarStartTime, displayedComponents: .hourAndMinute)
                     DatePicker("End Time", selection: $seminarEndTime, displayedComponents: .hourAndMinute)
-                }
-                
-                Section(header: Text("Frequency Help")) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("How frequencies work:")
-                            .font(.headline)
-                        
-                        FrequencyHelpRow(
-                            frequency: .weekly,
-                            description: "Class occurs every week during teaching periods"
-                        )
-                        
-                        FrequencyHelpRow(
-                            frequency: .biweeklyOdd,
-                            description: "Class occurs only in odd academic weeks (Week 1, 3, 5...)"
-                        )
-                        
-                        FrequencyHelpRow(
-                            frequency: .biweeklyEven,
-                            description: "Class occurs only in even academic weeks (Week 2, 4, 6...)"
-                        )
-                    }
-                    .padding(.vertical, 4)
                 }
             }
             .navigationTitle("Edit Subject")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundColor(.themeError)
-                }
-
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        saveSubject()
-                    }
-                    .disabled(!isFormValid)
-                    .fontWeight(.semibold)
-                }
+                ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { dismiss() }.foregroundColor(.themeError) }
+                ToolbarItem(placement: .navigationBarTrailing) { Button("Save") { saveSubject() }.disabled(title.isEmpty).fontWeight(.semibold) }
             }
         }
-    }
-
-    private var isFormValid: Bool {
-        !title.isEmpty &&
-        !courseTeacher.isEmpty &&
-        !courseClassroom.isEmpty &&
-        !selectedCourseDays.isEmpty
     }
 
     private func saveSubject() {
@@ -205,56 +130,123 @@ struct EditSubjectView: View {
         subject.seminarEndTime = seminarEndTime
         subject.seminarDays = Array(selectedSeminarDays).sorted()
         subject.seminarFrequency = seminarFrequency
-        
         dismiss()
     }
 }
 
-// --- ADDED HELPER STRUCTS (marked fileprivate) ---
+// MARK: - 🕹️ ARCADE VIEW
+struct ArcadeEditSubjectView: View {
+    @Environment(\.dismiss) var dismiss
+    @Bindable var subject: Subject
 
-fileprivate struct DayChip: View {
-    let day: String
-    let isSelected: Bool
-    let action: () -> Void
+    @State private var title: String
+    @State private var courseTeacher: String
+    @State private var courseClassroom: String
+    @State private var selectedCourseDays: Set<Int>
     
+    private let daysOfWeek = [(1, "S"), (2, "M"), (3, "T"), (4, "W"), (5, "T"), (6, "F"), (7, "S")]
+    
+    init(subject: Subject) {
+        self.subject = subject
+        _title = State(initialValue: subject.title)
+        _courseTeacher = State(initialValue: subject.courseTeacher)
+        _courseClassroom = State(initialValue: subject.courseClassroom)
+        _selectedCourseDays = State(initialValue: Set(subject.courseDays))
+    }
+
     var body: some View {
-        Button(action: action) {
-            Text(day)
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundColor(isSelected ? .white : .primary)
-                .frame(height: 32)
-                .frame(maxWidth: .infinity)
-                .background(isSelected ? Color.themePrimary : Color(.systemGray6))
-                .cornerRadius(8)
+        NavigationView {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                ScrollView {
+                    VStack(spacing: 24) {
+                        VStack(alignment: .leading) {
+                            Text("RENAME SKILL").font(.caption).fontWeight(.black).foregroundColor(.cyan)
+                            TextField("...", text: $title)
+                                .padding().background(Color(white: 0.1)).cornerRadius(12).overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.cyan, lineWidth: 1)).foregroundColor(.white)
+                        }
+                        
+                        ArcadeSection(title: "MAIN QUEST CONFIG", color: .purple) {
+                            ArcadeInput(icon: "person.fill", placeholder: "Instructor", text: $courseTeacher)
+                            ArcadeInput(icon: "mappin.and.ellipse", placeholder: "Location", text: $courseClassroom)
+                            HStack {
+                                ForEach(daysOfWeek, id: \.0) { day in
+                                    ArcadeDayChip(label: day.1, isSelected: selectedCourseDays.contains(day.0), color: .purple) {
+                                        if selectedCourseDays.contains(day.0) { selectedCourseDays.remove(day.0) } else { selectedCourseDays.insert(day.0) }
+                                    }
+                                }
+                            }
+                        }
+                    }.padding()
+                }
+            }
+            .navigationTitle("Configure Skill")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { dismiss() }.foregroundColor(.gray) }
+                ToolbarItem(placement: .navigationBarTrailing) { Button("Update") { saveSubject() }.fontWeight(.black).foregroundColor(.cyan) }
+            }
         }
-        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private func saveSubject() {
+        subject.title = title
+        subject.courseTeacher = courseTeacher
+        subject.courseClassroom = courseClassroom
+        subject.courseDays = Array(selectedCourseDays).sorted()
+        dismiss()
     }
 }
 
-fileprivate struct FrequencyHelpRow: View {
-    let frequency: ClassFrequency
-    let description: String
+// MARK: - 👾 RETRO VIEW
+struct RetroEditSubjectView: View {
+    @Environment(\.dismiss) var dismiss
+    @Bindable var subject: Subject
+
+    @State private var title: String
+    @State private var courseTeacher: String
+    @State private var courseClassroom: String
     
+    init(subject: Subject) {
+        self.subject = subject
+        _title = State(initialValue: subject.title)
+        _courseTeacher = State(initialValue: subject.courseTeacher)
+        _courseClassroom = State(initialValue: subject.courseClassroom)
+    }
+
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: frequency.iconName)
-                .foregroundColor(.themePrimary)
-                .frame(width: 20)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(frequency.rawValue)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                
-                Text(description)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+        NavigationView {
+            ZStack {
+                Color(red: 0.05, green: 0.05, blue: 0.05).ignoresSafeArea()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        Text("> MODIFY_FILE_HEADER").font(.system(.headline, design: .monospaced)).foregroundColor(.green)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("TITLE_STRING:").font(.caption).foregroundColor(.gray).fontDesign(.monospaced)
+                            TextField("...", text: $title)
+                                .font(.system(.body, design: .monospaced)).foregroundColor(.green).padding(8).border(Color.green.opacity(0.5), width: 1)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("INSTRUCTOR_ID:").font(.caption).foregroundColor(.gray).fontDesign(.monospaced)
+                            TextField("...", text: $courseTeacher)
+                                .font(.system(.body, design: .monospaced)).foregroundColor(.green).padding(8).border(Color.green.opacity(0.5), width: 1)
+                        }
+                    }.padding()
+                }
             }
-            
-            Spacer()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) { Button("< BACK") { dismiss() }.fontDesign(.monospaced).foregroundColor(.gray) }
+                ToolbarItem(placement: .navigationBarTrailing) { Button("[ OVERWRITE ]") { saveSubject() }.fontDesign(.monospaced).foregroundColor(.green) }
+            }
         }
-        .padding(.vertical, 2)
+    }
+    
+    private func saveSubject() {
+        subject.title = title
+        subject.courseTeacher = courseTeacher
+        dismiss()
     }
 }

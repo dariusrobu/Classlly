@@ -5,7 +5,8 @@ import Combine
 enum GameMode: String, CaseIterable, Identifiable, Codable {
     case none = "Standard"
     case arcade = "Arcade"
-    case retro = "Retro" // NEW: Added Retro option
+    case retro = "Retro"
+    case rainbow = "Rainbow" // NEW
     
     var id: String { self.rawValue }
     
@@ -14,6 +15,7 @@ enum GameMode: String, CaseIterable, Identifiable, Codable {
         case .none: return "Clean academic focus"
         case .arcade: return "Modern gaming hub with neon vibes"
         case .retro: return "Old-school 8-bit RPG style"
+        case .rainbow: return "Vibrant gradients based on your theme"
         }
     }
     
@@ -22,6 +24,7 @@ enum GameMode: String, CaseIterable, Identifiable, Codable {
         case .none: return "book.closed.fill"
         case .arcade: return "gamecontroller.fill"
         case .retro: return "square.grid.2x2.fill"
+        case .rainbow: return "paintpalette.fill"
         }
     }
 }
@@ -74,17 +77,14 @@ enum Theme: String, CaseIterable, Identifiable {
 
 // MARK: - App Theme Manager
 class AppTheme: ObservableObject {
-    // Singleton instance allows static access in Color+Theme.swift
     static let shared = AppTheme()
     
-    // We use @Published with a didSet to save to UserDefaults manually.
     @Published var selectedTheme: Theme {
         didSet {
             UserDefaults.standard.set(selectedTheme.rawValue, forKey: "selectedTheme")
         }
     }
     
-    // NEW: Game Mode State
     @Published var selectedGameMode: GameMode {
         didSet {
             UserDefaults.standard.set(selectedGameMode.rawValue, forKey: "selectedGameMode")
@@ -92,19 +92,15 @@ class AppTheme: ObservableObject {
     }
     
     init() {
-        // Load theme from UserDefaults on init
         let storedTheme = UserDefaults.standard.string(forKey: "selectedTheme") ?? Theme.classicBlue.rawValue
         self.selectedTheme = Theme(rawValue: storedTheme) ?? .classicBlue
         
-        // Load Game Mode
         let storedMode = UserDefaults.standard.string(forKey: "selectedGameMode") ?? GameMode.none.rawValue
         self.selectedGameMode = GameMode(rawValue: storedMode) ?? .none
     }
     
-    // Call this to change the theme
     func setTheme(_ theme: Theme) {
         self.selectedTheme = theme
-        // UI update is triggered automatically by @Published
     }
     
     func setGameMode(_ mode: GameMode) {
