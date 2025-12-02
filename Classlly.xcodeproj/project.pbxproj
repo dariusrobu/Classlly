@@ -6,352 +6,223 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		BCC7B3322ED8B79C001564BD /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BCC7B3312ED8B79C001564BD /* WidgetKit.framework */; };
-		BCC7B3342ED8B79C001564BD /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BCC7B3332ED8B79C001564BD /* SwiftUI.framework */; };
-		BCC7B3412ED8B79E001564BD /* ClassllyWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BCC7B32F2ED8B79C001564BD /* ClassllyWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-/* End PBXBuildFile section */
-
 /* Begin PBXContainerItemProxy section */
-		BC53B6BC2EC7B59900CFB6B1 /* PBXContainerItemProxy */ = {
+		BC5948022EB573FB0067A24C /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = BC53B6A22EC7B59800CFB6B1 /* Project object */;
+			containerPortal = BC5947E82EB573FA0067A24C /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = BC53B6A92EC7B59800CFB6B1;
+			remoteGlobalIDString = BC5947EF2EB573FA0067A24C;
 			remoteInfo = Classlly;
 		};
-		BC53B6C62EC7B59900CFB6B1 /* PBXContainerItemProxy */ = {
+		BC59480C2EB573FB0067A24C /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = BC53B6A22EC7B59800CFB6B1 /* Project object */;
+			containerPortal = BC5947E82EB573FA0067A24C /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = BC53B6A92EC7B59800CFB6B1;
+			remoteGlobalIDString = BC5947EF2EB573FA0067A24C;
 			remoteInfo = Classlly;
-		};
-		BCC7B33F2ED8B79E001564BD /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = BC53B6A22EC7B59800CFB6B1 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = BCC7B32E2ED8B79C001564BD;
-			remoteInfo = ClassllyWidgetsExtension;
 		};
 /* End PBXContainerItemProxy section */
 
-/* Begin PBXCopyFilesBuildPhase section */
-		BCC7B3422ED8B79E001564BD /* Embed Foundation Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				BCC7B3412ED8B79E001564BD /* ClassllyWidgetsExtension.appex in Embed Foundation Extensions */,
-			);
-			name = "Embed Foundation Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
-		BC53B6AA2EC7B59800CFB6B1 /* Classlly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Classlly.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		BC53B6BB2EC7B59900CFB6B1 /* ClassllyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClassllyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		BC53B6C52EC7B59900CFB6B1 /* ClassllyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClassllyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		BCC7B32F2ED8B79C001564BD /* ClassllyWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ClassllyWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		BCC7B3312ED8B79C001564BD /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
-		BCC7B3332ED8B79C001564BD /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
-		BCC7B3512ED8C8BD001564BD /* ClassllyWidgetsExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ClassllyWidgetsExtension.entitlements; sourceTree = "<group>"; };
+		BC5947F02EB573FA0067A24C /* Classlly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Classlly.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BC5948012EB573FB0067A24C /* ClassllyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClassllyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BC59480B2EB573FB0067A24C /* ClassllyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClassllyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		BC53B6CD2EC7B59900CFB6B1 /* Exceptions for "Classlly" folder in "Classlly" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Resources/Info.plist,
-			);
-			target = BC53B6A92EC7B59800CFB6B1 /* Classlly */;
-		};
-		BCC7B3462ED8B79E001564BD /* Exceptions for "ClassllyWidgets" folder in "ClassllyWidgetsExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = BCC7B32E2ED8B79C001564BD /* ClassllyWidgetsExtension */;
-		};
-		BCC7B3482ED8B7F2001564BD /* Exceptions for "Classlly" folder in "ClassllyWidgetsExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Core/Data/DataModels.swift,
-				Core/Data/SharedModelContainer.swift,
-				Core/Data/SharedPersistence.swift,
-				Core/Data/UserProfile.swift,
-				Core/Theme/AppTheme.swift,
-				"Core/Theme/Color+Theme.swift",
-			);
-			target = BCC7B32E2ED8B79C001564BD /* ClassllyWidgetsExtension */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		BC53B6AC2EC7B59800CFB6B1 /* Classlly */ = {
+		BC5947F22EB573FA0067A24C /* Classlly */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				BC53B6CD2EC7B59900CFB6B1 /* Exceptions for "Classlly" folder in "Classlly" target */,
-				BCC7B3482ED8B7F2001564BD /* Exceptions for "Classlly" folder in "ClassllyWidgetsExtension" target */,
-			);
 			path = Classlly;
 			sourceTree = "<group>";
 		};
-		BC53B6BE2EC7B59900CFB6B1 /* ClassllyTests */ = {
+		BC5948042EB573FB0067A24C /* ClassllyTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = ClassllyTests;
 			sourceTree = "<group>";
 		};
-		BC53B6C82EC7B59900CFB6B1 /* ClassllyUITests */ = {
+		BC59480E2EB573FB0067A24C /* ClassllyUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = ClassllyUITests;
-			sourceTree = "<group>";
-		};
-		BCC7B3352ED8B79C001564BD /* ClassllyWidgets */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				BCC7B3462ED8B79E001564BD /* Exceptions for "ClassllyWidgets" folder in "ClassllyWidgetsExtension" target */,
-			);
-			path = ClassllyWidgets;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		BC53B6A72EC7B59800CFB6B1 /* Frameworks */ = {
+		BC5947ED2EB573FA0067A24C /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		BC53B6B82EC7B59900CFB6B1 /* Frameworks */ = {
+		BC5947FE2EB573FB0067A24C /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		BC53B6C22EC7B59900CFB6B1 /* Frameworks */ = {
+		BC5948082EB573FB0067A24C /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		BCC7B32C2ED8B79C001564BD /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				BCC7B3342ED8B79C001564BD /* SwiftUI.framework in Frameworks */,
-				BCC7B3322ED8B79C001564BD /* WidgetKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		BC53B6A12EC7B59800CFB6B1 = {
+		BC5947E72EB573FA0067A24C = {
 			isa = PBXGroup;
 			children = (
-				BCC7B3512ED8C8BD001564BD /* ClassllyWidgetsExtension.entitlements */,
-				BC53B6AC2EC7B59800CFB6B1 /* Classlly */,
-				BC53B6BE2EC7B59900CFB6B1 /* ClassllyTests */,
-				BC53B6C82EC7B59900CFB6B1 /* ClassllyUITests */,
-				BCC7B3352ED8B79C001564BD /* ClassllyWidgets */,
-				BCC7B3302ED8B79C001564BD /* Frameworks */,
-				BC53B6AB2EC7B59800CFB6B1 /* Products */,
+				BC5947F22EB573FA0067A24C /* Classlly */,
+				BC5948042EB573FB0067A24C /* ClassllyTests */,
+				BC59480E2EB573FB0067A24C /* ClassllyUITests */,
+				BC5947F12EB573FA0067A24C /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		BC53B6AB2EC7B59800CFB6B1 /* Products */ = {
+		BC5947F12EB573FA0067A24C /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				BC53B6AA2EC7B59800CFB6B1 /* Classlly.app */,
-				BC53B6BB2EC7B59900CFB6B1 /* ClassllyTests.xctest */,
-				BC53B6C52EC7B59900CFB6B1 /* ClassllyUITests.xctest */,
-				BCC7B32F2ED8B79C001564BD /* ClassllyWidgetsExtension.appex */,
+				BC5947F02EB573FA0067A24C /* Classlly.app */,
+				BC5948012EB573FB0067A24C /* ClassllyTests.xctest */,
+				BC59480B2EB573FB0067A24C /* ClassllyUITests.xctest */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		BCC7B3302ED8B79C001564BD /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				BCC7B3312ED8B79C001564BD /* WidgetKit.framework */,
-				BCC7B3332ED8B79C001564BD /* SwiftUI.framework */,
-			);
-			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		BC53B6A92EC7B59800CFB6B1 /* Classlly */ = {
+		BC5947EF2EB573FA0067A24C /* Classlly */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = BC53B6CE2EC7B59900CFB6B1 /* Build configuration list for PBXNativeTarget "Classlly" */;
+			buildConfigurationList = BC5948142EB573FB0067A24C /* Build configuration list for PBXNativeTarget "Classlly" */;
 			buildPhases = (
-				BC53B6A62EC7B59800CFB6B1 /* Sources */,
-				BC53B6A72EC7B59800CFB6B1 /* Frameworks */,
-				BC53B6A82EC7B59800CFB6B1 /* Resources */,
-				BCC7B3422ED8B79E001564BD /* Embed Foundation Extensions */,
+				BC5947EC2EB573FA0067A24C /* Sources */,
+				BC5947ED2EB573FA0067A24C /* Frameworks */,
+				BC5947EE2EB573FA0067A24C /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				BCC7B3402ED8B79E001564BD /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				BC53B6AC2EC7B59800CFB6B1 /* Classlly */,
+				BC5947F22EB573FA0067A24C /* Classlly */,
 			);
 			name = Classlly;
 			packageProductDependencies = (
 			);
 			productName = Classlly;
-			productReference = BC53B6AA2EC7B59800CFB6B1 /* Classlly.app */;
+			productReference = BC5947F02EB573FA0067A24C /* Classlly.app */;
 			productType = "com.apple.product-type.application";
 		};
-		BC53B6BA2EC7B59900CFB6B1 /* ClassllyTests */ = {
+		BC5948002EB573FB0067A24C /* ClassllyTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = BC53B6D32EC7B59900CFB6B1 /* Build configuration list for PBXNativeTarget "ClassllyTests" */;
+			buildConfigurationList = BC5948192EB573FB0067A24C /* Build configuration list for PBXNativeTarget "ClassllyTests" */;
 			buildPhases = (
-				BC53B6B72EC7B59900CFB6B1 /* Sources */,
-				BC53B6B82EC7B59900CFB6B1 /* Frameworks */,
-				BC53B6B92EC7B59900CFB6B1 /* Resources */,
+				BC5947FD2EB573FB0067A24C /* Sources */,
+				BC5947FE2EB573FB0067A24C /* Frameworks */,
+				BC5947FF2EB573FB0067A24C /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				BC53B6BD2EC7B59900CFB6B1 /* PBXTargetDependency */,
+				BC5948032EB573FB0067A24C /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				BC53B6BE2EC7B59900CFB6B1 /* ClassllyTests */,
+				BC5948042EB573FB0067A24C /* ClassllyTests */,
 			);
 			name = ClassllyTests;
 			packageProductDependencies = (
 			);
 			productName = ClassllyTests;
-			productReference = BC53B6BB2EC7B59900CFB6B1 /* ClassllyTests.xctest */;
+			productReference = BC5948012EB573FB0067A24C /* ClassllyTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		BC53B6C42EC7B59900CFB6B1 /* ClassllyUITests */ = {
+		BC59480A2EB573FB0067A24C /* ClassllyUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = BC53B6D62EC7B59900CFB6B1 /* Build configuration list for PBXNativeTarget "ClassllyUITests" */;
+			buildConfigurationList = BC59481C2EB573FB0067A24C /* Build configuration list for PBXNativeTarget "ClassllyUITests" */;
 			buildPhases = (
-				BC53B6C12EC7B59900CFB6B1 /* Sources */,
-				BC53B6C22EC7B59900CFB6B1 /* Frameworks */,
-				BC53B6C32EC7B59900CFB6B1 /* Resources */,
+				BC5948072EB573FB0067A24C /* Sources */,
+				BC5948082EB573FB0067A24C /* Frameworks */,
+				BC5948092EB573FB0067A24C /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				BC53B6C72EC7B59900CFB6B1 /* PBXTargetDependency */,
+				BC59480D2EB573FB0067A24C /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				BC53B6C82EC7B59900CFB6B1 /* ClassllyUITests */,
+				BC59480E2EB573FB0067A24C /* ClassllyUITests */,
 			);
 			name = ClassllyUITests;
 			packageProductDependencies = (
 			);
 			productName = ClassllyUITests;
-			productReference = BC53B6C52EC7B59900CFB6B1 /* ClassllyUITests.xctest */;
+			productReference = BC59480B2EB573FB0067A24C /* ClassllyUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
-		};
-		BCC7B32E2ED8B79C001564BD /* ClassllyWidgetsExtension */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = BCC7B3452ED8B79E001564BD /* Build configuration list for PBXNativeTarget "ClassllyWidgetsExtension" */;
-			buildPhases = (
-				BCC7B32B2ED8B79C001564BD /* Sources */,
-				BCC7B32C2ED8B79C001564BD /* Frameworks */,
-				BCC7B32D2ED8B79C001564BD /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				BCC7B3352ED8B79C001564BD /* ClassllyWidgets */,
-			);
-			name = ClassllyWidgetsExtension;
-			packageProductDependencies = (
-			);
-			productName = ClassllyWidgetsExtension;
-			productReference = BCC7B32F2ED8B79C001564BD /* ClassllyWidgetsExtension.appex */;
-			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		BC53B6A22EC7B59800CFB6B1 /* Project object */ = {
+		BC5947E82EB573FA0067A24C /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2610;
+				LastSwiftUpdateCheck = 2600;
 				LastUpgradeCheck = 2610;
 				TargetAttributes = {
-					BC53B6A92EC7B59800CFB6B1 = {
-						CreatedOnToolsVersion = 26.1.1;
+					BC5947EF2EB573FA0067A24C = {
+						CreatedOnToolsVersion = 26.0.1;
 					};
-					BC53B6BA2EC7B59900CFB6B1 = {
-						CreatedOnToolsVersion = 26.1.1;
-						TestTargetID = BC53B6A92EC7B59800CFB6B1;
+					BC5948002EB573FB0067A24C = {
+						CreatedOnToolsVersion = 26.0.1;
+						TestTargetID = BC5947EF2EB573FA0067A24C;
 					};
-					BC53B6C42EC7B59900CFB6B1 = {
-						CreatedOnToolsVersion = 26.1.1;
-						TestTargetID = BC53B6A92EC7B59800CFB6B1;
-					};
-					BCC7B32E2ED8B79C001564BD = {
-						CreatedOnToolsVersion = 26.1.1;
+					BC59480A2EB573FB0067A24C = {
+						CreatedOnToolsVersion = 26.0.1;
+						TestTargetID = BC5947EF2EB573FA0067A24C;
 					};
 				};
 			};
-			buildConfigurationList = BC53B6A52EC7B59800CFB6B1 /* Build configuration list for PBXProject "Classlly" */;
+			buildConfigurationList = BC5947EB2EB573FA0067A24C /* Build configuration list for PBXProject "Classlly" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
-			mainGroup = BC53B6A12EC7B59800CFB6B1;
+			mainGroup = BC5947E72EB573FA0067A24C;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = BC53B6AB2EC7B59800CFB6B1 /* Products */;
+			productRefGroup = BC5947F12EB573FA0067A24C /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				BC53B6A92EC7B59800CFB6B1 /* Classlly */,
-				BC53B6BA2EC7B59900CFB6B1 /* ClassllyTests */,
-				BC53B6C42EC7B59900CFB6B1 /* ClassllyUITests */,
-				BCC7B32E2ED8B79C001564BD /* ClassllyWidgetsExtension */,
+				BC5947EF2EB573FA0067A24C /* Classlly */,
+				BC5948002EB573FB0067A24C /* ClassllyTests */,
+				BC59480A2EB573FB0067A24C /* ClassllyUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		BC53B6A82EC7B59800CFB6B1 /* Resources */ = {
+		BC5947EE2EB573FA0067A24C /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		BC53B6B92EC7B59900CFB6B1 /* Resources */ = {
+		BC5947FF2EB573FB0067A24C /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		BC53B6C32EC7B59900CFB6B1 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		BCC7B32D2ED8B79C001564BD /* Resources */ = {
+		BC5948092EB573FB0067A24C /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -361,28 +232,21 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		BC53B6A62EC7B59800CFB6B1 /* Sources */ = {
+		BC5947EC2EB573FA0067A24C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		BC53B6B72EC7B59900CFB6B1 /* Sources */ = {
+		BC5947FD2EB573FB0067A24C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		BC53B6C12EC7B59900CFB6B1 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		BCC7B32B2ED8B79C001564BD /* Sources */ = {
+		BC5948072EB573FB0067A24C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -392,37 +256,32 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		BC53B6BD2EC7B59900CFB6B1 /* PBXTargetDependency */ = {
+		BC5948032EB573FB0067A24C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = BC53B6A92EC7B59800CFB6B1 /* Classlly */;
-			targetProxy = BC53B6BC2EC7B59900CFB6B1 /* PBXContainerItemProxy */;
+			target = BC5947EF2EB573FA0067A24C /* Classlly */;
+			targetProxy = BC5948022EB573FB0067A24C /* PBXContainerItemProxy */;
 		};
-		BC53B6C72EC7B59900CFB6B1 /* PBXTargetDependency */ = {
+		BC59480D2EB573FB0067A24C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = BC53B6A92EC7B59800CFB6B1 /* Classlly */;
-			targetProxy = BC53B6C62EC7B59900CFB6B1 /* PBXContainerItemProxy */;
-		};
-		BCC7B3402ED8B79E001564BD /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = BCC7B32E2ED8B79C001564BD /* ClassllyWidgetsExtension */;
-			targetProxy = BCC7B33F2ED8B79E001564BD /* PBXContainerItemProxy */;
+			target = BC5947EF2EB573FA0067A24C /* Classlly */;
+			targetProxy = BC59480C2EB573FB0067A24C /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		BC53B6CF2EC7B59900CFB6B1 /* Debug */ = {
+		BC5948152EB573FB0067A24C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
-				CODE_SIGN_ENTITLEMENTS = Classlly/App/Classlly.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Classlly/Classlly.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 2K7NKASVSD;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Classlly/Resources/Info.plist;
+				INFOPLIST_FILE = Classlly/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Classlly;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -430,14 +289,15 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.7;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.robudarius.classlly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -448,19 +308,19 @@
 			};
 			name = Debug;
 		};
-		BC53B6D02EC7B59900CFB6B1 /* Release */ = {
+		BC5948162EB573FB0067A24C /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
-				CODE_SIGN_ENTITLEMENTS = Classlly/App/Classlly.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Classlly/Classlly.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 2K7NKASVSD;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Classlly/Resources/Info.plist;
+				INFOPLIST_FILE = Classlly/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Classlly;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -468,14 +328,15 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.7;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.robudarius.classlly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -486,7 +347,7 @@
 			};
 			name = Release;
 		};
-		BC53B6D12EC7B59900CFB6B1 /* Debug */ = {
+		BC5948172EB573FB0067A24C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -539,18 +400,19 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
 		};
-		BC53B6D22EC7B59900CFB6B1 /* Release */ = {
+		BC5948182EB573FB0067A24C /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -597,17 +459,18 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
 		};
-		BC53B6D42EC7B59900CFB6B1 /* Debug */ = {
+		BC59481A2EB573FB0067A24C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -615,7 +478,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2K7NKASVSD;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.robu.darius.ClassllyTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -629,7 +492,7 @@
 			};
 			name = Debug;
 		};
-		BC53B6D52EC7B59900CFB6B1 /* Release */ = {
+		BC59481B2EB573FB0067A24C /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -637,7 +500,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2K7NKASVSD;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.robu.darius.ClassllyTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -651,13 +514,14 @@
 			};
 			name = Release;
 		};
-		BC53B6D72EC7B59900CFB6B1 /* Debug */ = {
+		BC59481D2EB573FB0067A24C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2K7NKASVSD;
 				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.robu.darius.ClassllyUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -671,13 +535,14 @@
 			};
 			name = Debug;
 		};
-		BC53B6D82EC7B59900CFB6B1 /* Release */ = {
+		BC59481E2EB573FB0067A24C /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2K7NKASVSD;
 				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.robu.darius.ClassllyUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -688,124 +553,49 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = Classlly;
-			};
-			name = Release;
-		};
-		BCC7B3432ED8B79E001564BD /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
-				CODE_SIGN_ENTITLEMENTS = ClassllyWidgetsExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
-				DEVELOPMENT_TEAM = 2K7NKASVSD;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ClassllyWidgets/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = ClassllyWidgets;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.robudarius.classlly.ClassllyWidgets;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		BCC7B3442ED8B79E001564BD /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
-				CODE_SIGN_ENTITLEMENTS = ClassllyWidgetsExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
-				DEVELOPMENT_TEAM = 2K7NKASVSD;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ClassllyWidgets/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = ClassllyWidgets;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.robudarius.classlly.ClassllyWidgets;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		BC53B6A52EC7B59800CFB6B1 /* Build configuration list for PBXProject "Classlly" */ = {
+		BC5947EB2EB573FA0067A24C /* Build configuration list for PBXProject "Classlly" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				BC53B6D12EC7B59900CFB6B1 /* Debug */,
-				BC53B6D22EC7B59900CFB6B1 /* Release */,
+				BC5948172EB573FB0067A24C /* Debug */,
+				BC5948182EB573FB0067A24C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		BC53B6CE2EC7B59900CFB6B1 /* Build configuration list for PBXNativeTarget "Classlly" */ = {
+		BC5948142EB573FB0067A24C /* Build configuration list for PBXNativeTarget "Classlly" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				BC53B6CF2EC7B59900CFB6B1 /* Debug */,
-				BC53B6D02EC7B59900CFB6B1 /* Release */,
+				BC5948152EB573FB0067A24C /* Debug */,
+				BC5948162EB573FB0067A24C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		BC53B6D32EC7B59900CFB6B1 /* Build configuration list for PBXNativeTarget "ClassllyTests" */ = {
+		BC5948192EB573FB0067A24C /* Build configuration list for PBXNativeTarget "ClassllyTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				BC53B6D42EC7B59900CFB6B1 /* Debug */,
-				BC53B6D52EC7B59900CFB6B1 /* Release */,
+				BC59481A2EB573FB0067A24C /* Debug */,
+				BC59481B2EB573FB0067A24C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		BC53B6D62EC7B59900CFB6B1 /* Build configuration list for PBXNativeTarget "ClassllyUITests" */ = {
+		BC59481C2EB573FB0067A24C /* Build configuration list for PBXNativeTarget "ClassllyUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				BC53B6D72EC7B59900CFB6B1 /* Debug */,
-				BC53B6D82EC7B59900CFB6B1 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		BCC7B3452ED8B79E001564BD /* Build configuration list for PBXNativeTarget "ClassllyWidgetsExtension" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				BCC7B3432ED8B79E001564BD /* Debug */,
-				BCC7B3442ED8B79E001564BD /* Release */,
+				BC59481D2EB573FB0067A24C /* Debug */,
+				BC59481E2EB573FB0067A24C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = BC53B6A22EC7B59800CFB6B1 /* Project object */;
+	rootObject = BC5947E82EB573FA0067A24C /* Project object */;
 }
