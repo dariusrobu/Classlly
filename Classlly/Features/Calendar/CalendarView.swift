@@ -93,11 +93,12 @@ struct CalendarView: View {
     }
 }
 
-// MARK: - 🌈 RAINBOW CALENDAR (REDESIGNED)
+// MARK: - 🌈 RAINBOW CALENDAR (Fixed Top Alignment & Custom Header)
 struct RainbowCalendarView: View {
     @State private var currentDate = Date()
     @State private var selectedDate = Date()
     @EnvironmentObject var calendarManager: AcademicCalendarManager
+    @EnvironmentObject var themeManager: AppTheme
     @Environment(\.colorScheme) var colorScheme
     
     @Query var subjects: [Subject]
@@ -110,14 +111,26 @@ struct RainbowCalendarView: View {
     @State private var showingAddTask = false
     
     var body: some View {
-        NavigationStack {
-            ZStack {
+        let accentColor = themeManager.selectedTheme.primaryColor
+        
+        VStack(spacing: 0) {
+            // 1. CUSTOM HEADER (Consistent with other tabs)
+            RainbowHeader(
+                title: "Calendar",
+                accentColor: accentColor,
+                showBackButton: false,
+                backAction: nil,
+                trailingIcon: "plus",
+                trailingAction: { showingAddTask = true }
+            )
+            
+            ZStack(alignment: .top) { // Fix: Align content to top for iPad
                 Color.black.ignoresSafeArea()
                 
                 VStack(spacing: 24) {
-                    // 1. Header & Controls
+                    // 2. Week Info & Date Controls
                     VStack(spacing: 16) {
-                        // Week Info
+                        // Week Label
                         if let currentWeek = calendarManager.currentTeachingWeek {
                             HStack {
                                 Text("Week \(currentWeek)")
@@ -133,7 +146,7 @@ struct RainbowCalendarView: View {
                             .padding(.horizontal)
                         }
                         
-                        // Date Navigation
+                        // Arrows + Date Range
                         HStack {
                             Button(action: previousWeek) {
                                 Image(systemName: "chevron.left")
@@ -154,7 +167,7 @@ struct RainbowCalendarView: View {
                                 Text(currentDate, formatter: monthYearFormatter)
                                     .font(.caption)
                                     .fontWeight(.bold)
-                                    .foregroundColor(RainbowColors.blue)
+                                    .foregroundColor(accentColor)
                             }
                             
                             Spacer()
@@ -170,15 +183,15 @@ struct RainbowCalendarView: View {
                         }
                         .padding(.horizontal)
                     }
-                    .padding(.top, 10)
+                    .padding(.top, 20)
                     
-                    // 2. Calendar Grid (Dark Card)
+                    // 3. Calendar Grid (Dark Card)
                     RainbowContainer {
-                        RainbowWeeklyCalendarGrid(currentDate: $currentDate, selectedDate: $selectedDate)
+                        RainbowWeeklyCalendarGrid(currentDate: $currentDate, selectedDate: $selectedDate, accentColor: accentColor)
                     }
                     .padding(.horizontal)
                     
-                    // 3. Events List
+                    // 4. Events List
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
                             Text("Events")
@@ -188,11 +201,6 @@ struct RainbowCalendarView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.gray)
                             Spacer()
-                            Button(action: { showingAddTask = true }) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.title2)
-                                    .foregroundColor(RainbowColors.orange)
-                            }
                         }
                         .padding(.horizontal)
                         
@@ -201,7 +209,7 @@ struct RainbowCalendarView: View {
                             VStack(spacing: 16) {
                                 Image(systemName: "calendar")
                                     .font(.system(size: 50))
-                                    .foregroundColor(RainbowColors.darkCard.opacity(2)) // Slightly lighter than black
+                                    .foregroundColor(RainbowColors.darkCard.opacity(2))
                                 Text("No events today")
                                     .font(.headline)
                                     .foregroundColor(.gray)
@@ -217,18 +225,17 @@ struct RainbowCalendarView: View {
                                     }
                                 }
                                 .padding(.horizontal)
+                                .padding(.bottom, 20)
                             }
                         }
                     }
                 }
             }
-            .navigationTitle("Calendar")
-            .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showingTaskDetail) { if let t = selectedTask { EditTaskView(task: t) } }
-            .sheet(isPresented: $showingSubjectDetail) { if let s = selectedSubject { SubjectDetailView(subject: s) } }
-            .sheet(isPresented: $showingAddTask) { AddTaskView() }
         }
-        .preferredColorScheme(.dark)
+        .background(Color.black.ignoresSafeArea())
+        .sheet(isPresented: $showingTaskDetail) { if let t = selectedTask { EditTaskView(task: t) } }
+        .sheet(isPresented: $showingSubjectDetail) { if let s = selectedSubject { SubjectDetailView(subject: s) } }
+        .sheet(isPresented: $showingAddTask) { AddTaskView() }
     }
     
     // Logic Helpers
@@ -275,6 +282,8 @@ struct RainbowCalendarView: View {
 struct RainbowWeeklyCalendarGrid: View {
     @Binding var currentDate: Date
     @Binding var selectedDate: Date
+    let accentColor: Color
+    
     private let daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     private let columns = Array(repeating: GridItem(.flexible()), count: 7)
     
@@ -300,14 +309,14 @@ struct RainbowWeeklyCalendarGrid: View {
                     VStack {
                         Text("\(Calendar.current.component(.day, from: date))")
                             .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(isSelected ? .white : (isToday ? RainbowColors.blue : .white))
+                            .foregroundColor(isSelected ? .white : (isToday ? accentColor : .white))
                             .frame(width: 40, height: 40)
                             .background(
                                 ZStack {
                                     if isSelected {
-                                        Circle().fill(RainbowColors.blue)
+                                        Circle().fill(accentColor)
                                     } else if isToday {
-                                        Circle().stroke(RainbowColors.blue, lineWidth: 2)
+                                        Circle().stroke(accentColor, lineWidth: 2)
                                     }
                                 }
                             )
@@ -402,7 +411,9 @@ struct RainbowEventRow: View {
     }()
 }
 
-// MARK: - 👔 STANDARD CALENDAR
+// ... (Standard, Arcade, Retro views remain unchanged below)
+// [Preserved existing code]
+
 struct StandardCalendarView: View {
     @State private var currentDate = Date()
     @State private var selectedDate = Date()

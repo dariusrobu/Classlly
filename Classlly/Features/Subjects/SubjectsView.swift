@@ -21,7 +21,7 @@ struct SubjectsView: View {
     }
 }
 
-// MARK: - 🌈 RAINBOW SUBJECTS (Fixed Navigation)
+// MARK: - 🌈 RAINBOW SUBJECTS (Updated: More Colors & Info)
 struct RainbowSubjectsView: View {
     @Query(sort: \Subject.title) var subjects: [Subject]
     @EnvironmentObject var themeManager: AppTheme
@@ -30,7 +30,7 @@ struct RainbowSubjectsView: View {
     
     var embedInNavigationStack: Bool = true
     
-    // Expanded Vibrant Palette for Subject Cards
+    // 1. Expanded Vibrant Palette
     private let cardColors: [Color] = [
         RainbowColors.green,
         RainbowColors.blue,
@@ -42,13 +42,13 @@ struct RainbowSubjectsView: View {
         Color.red,
         Color.yellow,
         Color.cyan,
-        Color.mint
+        Color.mint,
+        Color(red: 1.0, green: 0.4, blue: 0.4) // Salmon
     ]
     
     var body: some View {
         let accentColor = themeManager.selectedTheme.primaryColor
         
-        // 1. Conditionally wrap in NavigationStack
         if embedInNavigationStack {
             NavigationStack {
                 content(accentColor: accentColor)
@@ -60,15 +60,14 @@ struct RainbowSubjectsView: View {
         }
     }
     
-    // 2. Extracted Content to avoid code duplication
     @ViewBuilder
     private func content(accentColor: Color) -> some View {
         VStack(spacing: 0) {
-            // CUSTOM HEADER (Inline Title, Back, Add)
+            // CUSTOM HEADER
             RainbowHeader(
                 title: "Subjects",
                 accentColor: accentColor,
-                showBackButton: !embedInNavigationStack, // Show back only if pushed (Home)
+                showBackButton: !embedInNavigationStack,
                 backAction: { dismiss() },
                 trailingIcon: "plus",
                 trailingAction: { showingAddSubject = true }
@@ -106,21 +105,21 @@ struct RainbowSubjectsView: View {
             }
         }
         .background(Color.black.ignoresSafeArea())
-        .navigationBarHidden(true) // Hide system bar so RainbowHeader takes over
+        .navigationBarHidden(true)
         .sheet(isPresented: $showingAddSubject) {
             AddSubjectView()
         }
     }
 }
 
-// Local Component: Solid Colorful Subject Card
+// Local Component: Solid Colorful Subject Card with More Info
 struct RainbowSubjectCard: View {
     let subject: Subject
     let color: Color
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Header: Icon + Title
+            // Header: Icon + Title + Teacher
             HStack(alignment: .top, spacing: 12) {
                 ZStack {
                     Circle()
@@ -147,7 +146,7 @@ struct RainbowSubjectCard: View {
                 
                 Spacer()
                 
-                // Optional: Grade Badge if exists
+                // Grade Badge
                 if let grade = subject.currentGrade {
                     VStack(spacing: 0) {
                         Text(String(format: "%.1f", grade))
@@ -163,17 +162,39 @@ struct RainbowSubjectCard: View {
                 }
             }
             
-            // Footer: Location + Stats
+            Divider().background(Color.white.opacity(0.3))
+            
+            // 2. NEW: Schedule Info (Days & Time)
+            HStack(spacing: 12) {
+                HStack(spacing: 6) {
+                    Image(systemName: "calendar")
+                    Text(subject.courseDaysString.isEmpty ? "TBA" : subject.courseDaysString)
+                }
+                
+                Text("•")
+                    .foregroundColor(.white.opacity(0.5))
+                
+                HStack(spacing: 6) {
+                    Image(systemName: "clock.fill")
+                    Text(subject.courseTimeString)
+                }
+            }
+            .font(.subheadline)
+            .fontWeight(.medium)
+            .foregroundColor(.white)
+            
+            // Footer: Location + Attendance
             HStack {
                 HStack(spacing: 6) {
                     Image(systemName: "mappin.and.ellipse")
                     Text(subject.courseClassroom.isEmpty ? "No Room" : subject.courseClassroom)
                 }
                 .font(.caption)
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundColor(.white.opacity(0.9))
                 
                 Spacer()
                 
+                // Attendance Pill
                 HStack(spacing: 4) {
                     Image(systemName: "person.3.fill")
                     Text("\(Int(subject.attendanceRate * 100))%")
@@ -188,15 +209,13 @@ struct RainbowSubjectCard: View {
             }
         }
         .padding(16)
-        .background(color)
+        .background(color) // Solid vibrant color
         .cornerRadius(20)
         .shadow(color: color.opacity(0.3), radius: 8, x: 0, y: 4)
     }
 }
 
-// ... (Rest of the standard/arcade/retro views unchanged)
-// [Preserving existing code below]
-
+// ... (Standard, Arcade, Retro views unchanged)
 struct StandardSubjectsView: View {
     @Query(sort: \Subject.title) var subjects: [Subject]
     @State private var showingAddSubject = false

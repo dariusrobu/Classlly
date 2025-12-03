@@ -56,6 +56,8 @@ struct SignInView: View {
                         FeatureRow(icon: "chart.bar", title: "Grade Tracking", subtitle: "Monitor your academic performance")
                     }
                     .padding(.horizontal, 30)
+                    // FIX: Prevent feature list from getting too wide on iPad
+                    .frame(maxWidth: 500)
                     
                     Spacer()
                     Spacer()
@@ -68,7 +70,6 @@ struct SignInView: View {
                             request.requestedScopes = [.fullName, .email]
                             request.nonce = authManager.sha256(nonce)
                         } onCompletion: { result in
-                            // Regular sign-in: NO data generation here.
                             authManager.handleSignInWithApple(result: result, modelContext: modelContext)
                         }
                         .signInWithAppleButtonStyle(.white)
@@ -76,13 +77,8 @@ struct SignInView: View {
                         .cornerRadius(10)
                         
                         Button(action: {
-                            // Demo sign-in: Explicitly generate data here.
                             authManager.signInAsDemoUser()
-                            
-                            // 1. Generate Calendar Data
                             calendarManager.loadDemoData()
-                            
-                            // 2. Generate Subjects & Tasks
                             DemoDataManager.shared.createDemoData(modelContext: modelContext)
                         }) {
                             Text("Continue as Demo User")
@@ -102,7 +98,13 @@ struct SignInView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
                     .padding(.bottom, 40)
+                    // FIX: Constrain width for iPad to prevent layout crash (Apple ID button max width is 375)
+                    .frame(maxWidth: 370)
                     .background(.regularMaterial)
+                    // Make the background container look nice on iPad (rounded corners)
+                    .cornerRadius(12)
+                    // Add some bottom padding for the safe area when centered on iPad
+                    .padding(.bottom, 20)
                 }
             }
             .navigationBarHidden(true)
@@ -122,7 +124,7 @@ struct SignInView: View {
                 }
             }
         }
-        .navigationViewStyle(.stack) // FIX: Force iPhone style on iPad
+        .navigationViewStyle(.stack)
     }
     
     struct FeatureRow: View {
@@ -161,14 +163,13 @@ struct SignInView: View {
                 VStack(spacing: 16) {
                     ProgressView()
                         .scaleEffect(1.5)
-                        .tint(.white) // Use .tint for ProgressView color
+                        .tint(.white)
                     
                     Text("Signing you in...")
                         .font(.headline)
                         .foregroundColor(.white)
                 }
                 .padding(30)
-                // Use system materials for a more modern look
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
                 .shadow(radius: 10)
             }

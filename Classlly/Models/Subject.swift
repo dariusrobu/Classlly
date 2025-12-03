@@ -129,8 +129,20 @@ final class Subject {
         return seminarFrequency.rawValue
     }
     
+    // Points to the weighted average logic
     var currentGrade: Double? {
-        (gradeHistory ?? []).last?.grade
+        return weightedAverage
+    }
+    
+    // The Logic for Weighted Grades
+    var weightedAverage: Double? {
+        guard let grades = gradeHistory, !grades.isEmpty else { return nil }
+        
+        let totalWeight = grades.reduce(0.0) { $0 + $1.weight }
+        guard totalWeight > 0 else { return nil }
+        
+        let weightedSum = grades.reduce(0.0) { $0 + ($1.grade * $1.weight) }
+        return weightedSum / totalWeight
     }
     
     var attendanceRate: Double {
@@ -169,13 +181,15 @@ final class GradeEntry {
     var id: UUID = UUID()
     var date: Date = Date()
     var grade: Double = 0.0
+    var weight: Double = 100.0 // Default weight (e.g. 100%)
     var descriptionText: String = ""
     var subject: Subject?
     
-    init(id: UUID = UUID(), date: Date = Date(), grade: Double, description: String = "") {
+    init(id: UUID = UUID(), date: Date = Date(), grade: Double, weight: Double = 100.0, description: String = "") {
         self.id = id
         self.date = date
         self.grade = grade
+        self.weight = weight
         self.descriptionText = description
     }
 }

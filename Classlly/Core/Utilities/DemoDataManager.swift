@@ -116,19 +116,23 @@ class DemoDataManager {
             seminarFrequency: .weekly
         )
         
-        // --- GRADES ---
-        let g1 = GradeEntry(date: daysFromNow(-10), grade: 9.5, description: "Midterm Exam")
-        let g2 = GradeEntry(date: daysFromNow(-5), grade: 8.0, description: "Quiz 1")
+        // --- GRADES (Updated with Percentage Weights) ---
+        // Math: Midterm (30%), Quiz (10%)
+        let g1 = GradeEntry(date: daysFromNow(-10), grade: 9.5, weight: 30.0, description: "Midterm Exam")
+        let g2 = GradeEntry(date: daysFromNow(-5), grade: 7.0, weight: 10.0, description: "Pop Quiz")
         g1.subject = math; g2.subject = math
         
-        let g3 = GradeEntry(date: daysFromNow(-20), grade: 10.0, description: "Binary Trees Project")
-        let g4 = GradeEntry(date: daysFromNow(-2), grade: 9.0, description: "Sorting Algorithms Quiz")
+        // CS: Project (40%), Quiz (15%)
+        let g3 = GradeEntry(date: daysFromNow(-20), grade: 10.0, weight: 40.0, description: "Final Project Phase 1")
+        let g4 = GradeEntry(date: daysFromNow(-2), grade: 8.5, weight: 15.0, description: "Sorting Quiz")
         g3.subject = cs; g4.subject = cs
         
-        let g5 = GradeEntry(date: daysFromNow(-15), grade: 7.5, description: "Lab Report 1")
+        // Physics: Lab (20%)
+        let g5 = GradeEntry(date: daysFromNow(-15), grade: 7.5, weight: 20.0, description: "Lab Report 1")
         g5.subject = physics
         
-        let g6 = GradeEntry(date: daysFromNow(-8), grade: 9.2, description: "Essay on The Great Gatsby")
+        // Lit: Essay (25%)
+        let g6 = GradeEntry(date: daysFromNow(-8), grade: 9.2, weight: 25.0, description: "Gatsby Essay")
         g6.subject = lit
         
         // --- TASKS ---
