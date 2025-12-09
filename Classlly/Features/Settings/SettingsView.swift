@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 struct SettingsView: View {
     @EnvironmentObject var themeManager: AppTheme
@@ -23,9 +24,14 @@ struct SettingsView: View {
 // MARK: - 👔 STANDARD SETTINGS
 struct StandardSettingsView: View {
     @EnvironmentObject var themeManager: AppTheme
+    @Environment(\.modelContext) var modelContext
+    
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
     @AppStorage("autoSyncEnabled") private var autoSyncEnabled = true
+    
+    @State private var showingDataAlert = false
+    @State private var alertMessage = ""
     
     private let columns = [GridItem(.adaptive(minimum: 50, maximum: 60), spacing: 16)]
     
@@ -63,10 +69,35 @@ struct StandardSettingsView: View {
             Section(header: Text("Data")) {
                 Toggle("Auto Sync", isOn: $autoSyncEnabled)
             }
+            
+            // --- NEW DEVELOPER SECTION ---
+            Section(header: Text("Developer Options")) {
+                Button("Load Heavy Stress Data (25 Tasks/Week)") {
+                    DemoDataManager.shared.createHeavyStressData(modelContext: modelContext)
+                    alertMessage = "Heavy stress test data loaded!\n(8 Subjects, 25 Tasks distributed over 7 days)"
+                    showingDataAlert = true
+                }
+                .foregroundColor(.blue)
+                
+                Button("Clear All Data", role: .destructive) {
+                    DemoDataManager.shared.deleteAllData(modelContext: modelContext)
+                    alertMessage = "All data cleared."
+                    showingDataAlert = true
+                }
+            }
         }
         .navigationTitle("Settings")
+        .alert("Data Operation", isPresented: $showingDataAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(alertMessage)
+        }
     }
 }
+
+// ... (ArcadeSettingsView, RetroSettingsView, ThemeCircle remain unchanged) ...
+// [Omitting repeated Arcade/Retro code as they just wrap the logic,
+// ensuring the Standard view is updated is the key for the Settings data actions]
 
 // MARK: - 🕹️ ARCADE SETTINGS
 struct ArcadeSettingsView: View {

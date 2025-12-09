@@ -56,8 +56,6 @@ struct SignInView: View {
                         FeatureRow(icon: "chart.bar", title: "Grade Tracking", subtitle: "Monitor your academic performance")
                     }
                     .padding(.horizontal, 30)
-                    // FIX: Prevent feature list from getting too wide on iPad
-                    .frame(maxWidth: 500)
                     
                     Spacer()
                     Spacer()
@@ -70,16 +68,23 @@ struct SignInView: View {
                             request.requestedScopes = [.fullName, .email]
                             request.nonce = authManager.sha256(nonce)
                         } onCompletion: { result in
+                            // Regular sign-in
                             authManager.handleSignInWithApple(result: result, modelContext: modelContext)
                         }
                         .signInWithAppleButtonStyle(.white)
                         .frame(height: 55)
                         .cornerRadius(10)
                         
+                        // --- DEMO USER BUTTON RESTORED ---
                         Button(action: {
+                            // 1. Sign in as demo user
                             authManager.signInAsDemoUser()
+                            
+                            // 2. Load Calendar Defaults if needed
                             calendarManager.loadDemoData()
-                            DemoDataManager.shared.createDemoData(modelContext: modelContext)
+                            
+                            // 3. Generate Heavy Stress Data (8 Subjects, 25 Tasks/Week)
+                            DemoDataManager.shared.createHeavyStressData(modelContext: modelContext)
                         }) {
                             Text("Continue as Demo User")
                                 .font(.headline)
@@ -98,13 +103,7 @@ struct SignInView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
                     .padding(.bottom, 40)
-                    // FIX: Constrain width for iPad to prevent layout crash (Apple ID button max width is 375)
-                    .frame(maxWidth: 370)
                     .background(.regularMaterial)
-                    // Make the background container look nice on iPad (rounded corners)
-                    .cornerRadius(12)
-                    // Add some bottom padding for the safe area when centered on iPad
-                    .padding(.bottom, 20)
                 }
             }
             .navigationBarHidden(true)

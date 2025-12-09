@@ -9,12 +9,13 @@ class AuthenticationManager: NSObject, ObservableObject {
     @Published var currentUser: UserProfile?
     @Published var isLoading = false
     @Published var errorMessage: String?
+    
+    // MARK: - Sticky Onboarding Flags
+    @AppStorage("hasCompletedStickyOnboarding") var hasCompletedStickyOnboarding: Bool = false
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedLegacyOnboarding: Bool = false
     @Published var requiresOnboarding: Bool = false
     @Published var universityNameForOnboarding: String = ""
 
-    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
-    
-    // --- NEW: Track if we are in Demo Mode ---
     @AppStorage("isDemoUser") var isDemoUser: Bool = false
     
     var currentNonce: String?
@@ -35,13 +36,16 @@ class AuthenticationManager: NSObject, ObservableObject {
         super.init()
     }
     
+    // MARK: - Authentication Logic
+    
     @MainActor
     func checkAuthentication(modelContext: ModelContext) {
         if isAuthenticated { return }
         
-        // Safety: If we think we are in demo mode but relaunching,
-        // we might want to stay logged in or reset.
-        // For now, standard logic: check for profile.
+        if isDemoUser {
+            signInAsDemoUser()
+            return
+        }
         
         let descriptor = FetchDescriptor<StudentProfile>()
         
@@ -52,20 +56,47 @@ class AuthenticationManager: NSObject, ObservableObject {
                 self.currentUser = profile.toUserProfile()
                 self.isAuthenticated = true
                 self.universityNameForOnboarding = profile.schoolName
+                self.isDemoUser = false
                 
-                if !hasCompletedOnboarding && !profile.schoolName.isEmpty {
-                    self.requiresOnboarding = true
+                if hasCompletedLegacyOnboarding {
+                    hasCompletedStickyOnboarding = true
                 }
-                // If we found a real profile, ensure demo mode is OFF
-                self.isDemoUser = false
-            } else {
-                // No profile found.
-                // Ensure we aren't stuck in a weird demo state
-                self.isDemoUser = false
             }
         } catch {
             print("Failed to fetch profiles: \(error)")
         }
+    }
+    
+    func completeStickyOnboarding() {
+        self.hasCompletedStickyOnboarding = true
+        self.hasCompletedLegacyOnboarding = true
+        self.requiresOnboarding = false
+    }
+    
+    // MARK: - Testing / Reset Logic
+    
+    /// Nukes all data to simulate a fresh install
+    @MainActor
+    func resetAppForTesting(modelContext: ModelContext) {
+        // 1. Reset Flags
+        hasCompletedStickyOnboarding = false
+        hasCompletedLegacyOnboarding = false
+        isDemoUser = false
+        requiresOnboarding = false
+        
+        // 2. Delete Student Profile (This makes you a "New User" next time)
+        try? modelContext.delete(model: StudentProfile.self)
+        
+        // 3. Delete All Data
+        DemoDataManager.shared.deleteAllData(modelContext: modelContext)
+        
+        // 4. Sign Out
+        isAuthenticated = false
+        currentUser = nil
+        
+        // 5. Force Save
+        try? modelContext.save()
+        print("🚨 App Reset Complete: User is now 'New'")
     }
     
     func handleSignInWithApple(result: Result<ASAuthorization, Error>, modelContext: ModelContext) {
@@ -76,8 +107,6 @@ class AuthenticationManager: NSObject, ObservableObject {
         case .success(let authorization):
             if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
                 let userIdentifier = appleIDCredential.user
-                
-                // Ensure Demo Mode is OFF for Apple Sign In
                 self.isDemoUser = false
                 
                 let descriptor = FetchDescriptor<StudentProfile>(predicate: #Predicate<StudentProfile> { profile in
@@ -88,11 +117,14 @@ class AuthenticationManager: NSObject, ObservableObject {
                     let existingProfiles = try modelContext.fetch(descriptor)
                     
                     if let existingProfile = existingProfiles.first {
+                        // Returning User -> Skip Flow
                         self.currentUser = existingProfile.toUserProfile()
                         self.isAuthenticated = true
                         self.universityNameForOnboarding = existingProfile.schoolName
                         self.isLoading = false
+                        self.hasCompletedStickyOnboarding = true
                     } else {
+                        // New User -> Show Flow
                         processAppleIDCredential(appleIDCredential)
                     }
                 } catch {
@@ -124,7 +156,9 @@ class AuthenticationManager: NSObject, ObservableObject {
         )
         
         self.currentUser = tempUser
+        self.isAuthenticated = true
         self.isLoading = false
+        // hasCompletedStickyOnboarding remains FALSE, triggering flow
     }
     
     @MainActor
@@ -140,109 +174,64 @@ class AuthenticationManager: NSObject, ObservableObject {
             academicYear: profile.academicYear
         )
         
-        let descriptor = FetchDescriptor<StudentProfile>(predicate: #Predicate<StudentProfile> { p in
-            p.id == profile.id
-        })
+        modelContext.insert(studentProfile)
         
-        do {
-            let results = try modelContext.fetch(descriptor)
-            if let existing = results.first {
-                existing.firstName = profile.firstName
-                existing.lastName = profile.lastName
-                existing.schoolName = profile.schoolName
-                existing.gradeLevel = profile.gradeLevel
-                existing.major = profile.major
-                existing.academicYear = profile.academicYear
-            } else {
-                modelContext.insert(studentProfile)
-            }
-            try? modelContext.save() // Explicit save
-            
-            self.currentUser = profile
-            self.isAuthenticated = true
-            self.universityNameForOnboarding = profile.schoolName
-            self.isDemoUser = false // Ensure false
-            
-            if !self.hasCompletedOnboarding {
-                self.requiresOnboarding = true
-            }
-            
-        } catch {
-            print("Failed to save profile: \(error)")
-            errorMessage = "Failed to save profile."
-        }
+        self.currentUser = profile
+        self.isAuthenticated = true
+        self.universityNameForOnboarding = profile.schoolName
+        self.hasCompletedLegacyOnboarding = true
+        self.hasCompletedStickyOnboarding = true
+        self.requiresOnboarding = false
     }
     
     func signInAsDemoUser() {
         self.currentUser = AuthenticationManager.demoUser
         self.isAuthenticated = true
-        self.hasCompletedOnboarding = true
+        self.hasCompletedStickyOnboarding = true
+        self.hasCompletedLegacyOnboarding = true
         self.requiresOnboarding = false
-        // --- TURN ON DEMO MODE ---
         self.isDemoUser = true
     }
     
-    // --- UPDATED: Sign Out with Cleanup ---
     @MainActor
     func signOut(modelContext: ModelContext) {
-        // If we were in demo mode, WIPE EVERYTHING
         if isDemoUser {
-            print("Signing out Demo User. Wiping data...")
             DemoDataManager.shared.deleteAllData(modelContext: modelContext)
             isDemoUser = false
         }
-        
         isAuthenticated = false
         currentUser = nil
-        hasCompletedOnboarding = false
-        universityNameForOnboarding = ""
     }
     
-    // ... (Helpers randomNonceString, sha256 unchanged) ...
+    // MARK: - Crypto Helpers
+    
     func randomNonceString(length: Int = 32) -> String {
         precondition(length > 0)
-        let charset: [Character] =
-            Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
-        var result = ""
-        var remainingLength = length
-        
+        let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
+        var result = ""; var remainingLength = length
         while remainingLength > 0 {
             let randoms: [UInt8] = (0 ..< 16).map { _ in
                 var random: UInt8 = 0
                 let errorCode = SecRandomCopyBytes(kSecRandomDefault, 1, &random)
-                if errorCode != errSecSuccess {
-                    fatalError("Unable to generate nonce. SecRandomCopyBytes failed with OSStatus \(errorCode)")
-                }
+                if errorCode != errSecSuccess { fatalError("Unable to generate nonce") }
                 return random
             }
-            
             randoms.forEach { random in
-                if remainingLength == 0 {
-                    return
-                }
-                
-                if random < charset.count {
-                    result.append(charset[Int(random)])
-                    remainingLength -= 1
-                }
+                if remainingLength == 0 { return }
+                if random < charset.count { result.append(charset[Int(random)]); remainingLength -= 1 }
             }
         }
-        
         return result
     }
     
     func sha256(_ input: String) -> String {
         let inputData = Data(input.utf8)
         let hashedData = SHA256.hash(data: inputData)
-        let hashString = hashedData.compactMap {
-            String(format: "%02x", $0)
-        }.joined()
-        
-        return hashString
+        return hashedData.compactMap { String(format: "%02x", $0) }.joined()
     }
 }
 
-// (UserProfile struct unchanged)
+// MARK: - UserProfile Model
 struct UserProfile: Codable, Equatable {
     let id: String
     var firstName: String

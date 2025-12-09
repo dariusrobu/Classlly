@@ -10,7 +10,6 @@ struct ContentView: View {
     @AppStorage("isFirstLaunch") private var isFirstLaunch: Bool = true
     @AppStorage("darkModeEnabled") private var darkModeEnabled: Bool = false
     
-    // FIX 1: Track the selected tab state here
     @State private var selectedTab: Int = 0
     
     public init() {}
@@ -22,18 +21,20 @@ struct ContentView: View {
             
             Group {
                 if authManager.isAuthenticated {
-                    // FIX 2: Pass the selection binding
-                    MainTabView(selection: $selectedTab)
-                    // FIX 3: REMOVED .id(...)
-                    // This prevents the TabView from being destroyed when theme changes.
+                    if authManager.hasCompletedStickyOnboarding {
+                        // User is fully setup -> Main Dashboard
+                        MainTabView(selection: $selectedTab)
+                    } else {
+                        // User is signed in but needs the "Sticky" setup
+                        StickyOnboardingView()
+                    }
                 } else {
+                    // User needs to sign in
                     SignInView()
                 }
             }
         }
         .preferredColorScheme(darkModeEnabled ? .dark : .light)
-        // This .tint updates global controls (TabBar, NavBar) automatically
-        // because ContentView observes themeManager.
         .tint(Color.themePrimary)
         .onAppear {
             if isFirstLaunch {
@@ -44,8 +45,8 @@ struct ContentView: View {
     }
 }
 
+// ... MainTabView remains unchanged ...
 struct MainTabView: View {
-    // FIX 4: Bind to the parent state
     @Binding var selection: Int
     
     var body: some View {
