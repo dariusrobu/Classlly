@@ -1,27 +1,38 @@
-//
-//  ScannedClassCandidate.swift
-//  Classlly
-//
-//  Created by Robu Darius on 09.12.2025.
-//
-
-
 import Foundation
+import SwiftUI
 
-/// A temporary staging model for classes detected by the OCR scanner.
-/// Users can edit this data before committing it to the permanent SwiftData store.
+enum ClassType: String, Codable, CaseIterable {
+    case course = "Course"
+    case seminar = "Seminar"
+    case lab = "Lab"
+    case online = "Online"
+}
+
 struct ScannedClassCandidate: Identifiable, Equatable {
     let id = UUID()
     
-    /// The full line of text recognized by Vision
+    // Raw Data
     let rawText: String
     
-    /// The detected subject name (editable by user)
-    var detectedTitle: String
+    // Extracted Fields
+    var day: String = "Monday" // Default
+    var startTime: Date
+    var endTime: Date
+    var title: String
+    var room: String = ""
+    var teacher: String = ""
+    var type: ClassType = .course
+    var weekRestriction: String = "" // e.g., "Odd Weeks", "S1"
+    var isOptional: Bool = false
     
-    /// The detected time string (e.g., "14:30", editable by user)
-    var detectedTime: String
-    
-    /// Whether this class should be imported (default true)
+    // State
     var isSelected: Bool = true
+    var hasConflict: Bool = false
+    
+    // Helper for UI
+    var timeString: String {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return "\(f.string(from: startTime)) - \(f.string(from: endTime))"
+    }
 }

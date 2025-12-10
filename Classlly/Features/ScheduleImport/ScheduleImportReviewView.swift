@@ -1,121 +1,152 @@
-//
-//  ScheduleImportReviewView.swift
-//  Classlly
-//
-//  Created by Robu Darius on 09.12.2025.
-//
-
-
 import SwiftUI
 import SwiftData
 
 struct ScheduleImportReviewView: View {
-    // Input: The candidates found by the scanner
     @State var candidates: [ScannedClassCandidate]
-    
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) var modelContext
     
-    // Alert state for completion
-    @State private var showingSuccessAlert = false
-    @State private var importedCount = 0
-
     var body: some View {
         NavigationView {
             List {
-                Section(header: Text("Detected Classes")) {
-                    if candidates.isEmpty {
-                        Text("No classes detected. Try scanning again with better lighting.")
-                            .foregroundColor(.secondary)
-                    } else {
-                        ForEach($candidates) { $candidate in
-                            CandidateRow(candidate: $candidate)
-                        }
-                    }
+                ForEach($candidates) { $candidate in
+                    ClassEditorRow(candidate: $candidate)
+                }
+                .onDelete { indexSet in
+                    candidates.remove(atOffsets: indexSet)
                 }
             }
-            .navigationTitle("Review Schedule")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("Review Classes")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
                 }
-                
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Import Selected") {
-                        importSelectedClasses()
+                    Button("Import All") {
+                        saveToSchedule()
                     }
                     .fontWeight(.bold)
-                    .disabled(candidates.filter { $0.isSelected }.isEmpty)
                 }
-            }
-            .alert("Import Complete", isPresented: $showingSuccessAlert) {
-                Button("Done") { dismiss() }
-            } message: {
-                Text("Successfully imported \(importedCount) subjects into your schedule.")
             }
         }
     }
     
-    // MARK: - SwiftData Conversion Logic
-    private func importSelectedClasses() {
-        let selectedCandidates = candidates.filter { $0.isSelected }
+    private func saveToSchedule() {
+        let selected = candidates.filter { $0.isSelected }
         
-        for candidate in selectedCandidates {
-            // NOTE: In a production app, you would parse candidate.detectedTime into a real Date object.
-            // For now, we use defaults as requested.
+        for item in selected {
+            // Convert 'Day String' to weekday Int (1=Sun, 2=Mon...)
+            let weekday = dayStringToInt(item.day)
             
             let newSubject = Subject(
-                title: candidate.detectedTitle,
-                courseTeacher: "", // OCR didn't detect this specifically
-                courseClassroom: "", // User can add this later
-                courseDate: Date(),
-                courseStartTime: Date(), // Placeholder: Add logic to parse candidate.detectedTime
-                courseEndTime: Date().addingTimeInterval(5400), // Defaulting to 1.5 hours duration
-                courseDays: [], // Placeholder: Needs day parsing logic
-                seminarTeacher: "",
-                seminarClassroom: ""
+                title: item.title,
+                courseTeacher: item.type == .course ? item.teacher : "",
+                courseClassroom: item.type == .course ? item.room : "",
+                courseStartTime: item.startTime,
+                courseEndTime: item.endTime,
+                courseDays: item.type == .course ? [weekday] : [],
+                seminarTeacher: item.type != .course ? item.teacher : "",
+                seminarClassroom: item.type != .course ? item.room : "",
+                seminarStartTime: item.type != .course ? item.startTime : Date(),
+                seminarEndTime: item.type != .course ? item.endTime : Date(),
+                seminarDays: item.type != .course ? [weekday] : []
             )
             
+            // Save logic
             modelContext.insert(newSubject)
         }
         
-        // Save Context
-        do {
-            try modelContext.save()
-            importedCount = selectedCandidates.count
-            showingSuccessAlert = true
-        } catch {
-            print("Failed to import subjects: \(error)")
+        dismiss()
+    }
+    
+    private func dayStringToInt(_ day: String) -> Int {
+        // Simple mapper
+        switch day.prefix(3).lowercased() {
+        case "mon": return 2
+        case "tue": return 3
+        case "wed": return 4
+        case "thu": return 5
+        case "fri": return 6
+        case "sat": return 7
+        case "sun": return 1
+        default: return 2 // Default Mon
         }
     }
 }
 
-// MARK: - Helper Row View
-struct CandidateRow: View {
+// MARK: - Editor Row
+struct ClassEditorRow: View {
     @Binding var candidate: ScannedClassCandidate
+    @State private var isExpanded = false
     
     var body: some View {
-        HStack(spacing: 12) {
-            // 1. Toggle Selection
-            Toggle(isOn: $candidate.isSelected) {
-                EmptyView()
-            }
-            .labelsHidden()
-            .tint(.blue)
-            
-            // 2. Editable Fields
-            VStack(alignment: .leading, spacing: 4) {
-                TextField("Class Name", text: $candidate.detectedTitle)
-                    .font(.headline)
-                    .foregroundColor(candidate.isSelected ? .primary : .secondary)
+        VStack(alignment: .leading, spacing: 12) {
+            // Header Row (Always Visible)
+            HStack {
+                Toggle("", isOn: $candidate.isSelected)
+                    .labelsHidden()
                 
-                TextField("Time", text: $candidate.detectedTime)
-                    .font(.subheadline)
+                VStack(alignment: .leading) {
+                    TextField("Subject Name", text: $candidate.title)
+                        .font(.headline)
+                    
+                    HStack {
+                        Text(candidate.day)
+                            .foregroundColor(.blue)
+                        Text("•")
+                        Text(candidate.timeString)
+                    }
+                    .font(.caption)
                     .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                if candidate.hasConflict {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                }
+                
+                Button(action: { withAnimation { isExpanded.toggle() }}) {
+                    Image(systemName: "chevron.down")
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                }
             }
-            .opacity(candidate.isSelected ? 1.0 : 0.5) // visually dim unselected items
+            
+            // Expanded Details
+            if isExpanded {
+                Divider()
+                
+                Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 12) {
+                    GridRow {
+                        Text("Room").font(.caption).foregroundColor(.gray)
+                        TextField("Room", text: $candidate.room)
+                    }
+                    GridRow {
+                        Text("Teacher").font(.caption).foregroundColor(.gray)
+                        TextField("Teacher Name", text: $candidate.teacher)
+                    }
+                    GridRow {
+                        Text("Type").font(.caption).foregroundColor(.gray)
+                        Picker("Type", selection: $candidate.type) {
+                            ForEach(ClassType.allCases, id: \.self) { type in
+                                Text(type.rawValue).tag(type)
+                            }
+                        }
+                        .labelsHidden()
+                    }
+                    GridRow {
+                        Text("Weeks").font(.caption).foregroundColor(.gray)
+                        TextField("e.g. Odd, S1", text: $candidate.weekRestriction)
+                    }
+                }
+                .font(.subheadline)
+                
+                Toggle("Optional Class", isOn: $candidate.isOptional)
+                    .font(.caption)
+                    .tint(.blue)
+            }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 8)
     }
 }

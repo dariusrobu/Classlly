@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		BCD96F7B2EEA261000825511 /* GoogleGenerativeAI in Frameworks */ = {isa = PBXBuildFile; productRef = BCD96F7A2EEA261000825511 /* GoogleGenerativeAI */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		BC5948022EB573FB0067A24C /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -65,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BCD96F7B2EEA261000825511 /* GoogleGenerativeAI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,6 +130,7 @@
 			);
 			name = Classlly;
 			packageProductDependencies = (
+				BCD96F7A2EEA261000825511 /* GoogleGenerativeAI */,
 			);
 			productName = Classlly;
 			productReference = BC5947F02EB573FA0067A24C /* Classlly.app */;
@@ -208,6 +214,9 @@
 			);
 			mainGroup = BC5947E72EB573FA0067A24C;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				BCD96F792EEA261000825511 /* XCRemoteSwiftPackageReference "generative-ai-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BC5947F12EB573FA0067A24C /* Products */;
 			projectDirPath = "";
@@ -609,6 +618,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		BCD96F792EEA261000825511 /* XCRemoteSwiftPackageReference "generative-ai-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/generative-ai-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.5.6;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BCD96F7A2EEA261000825511 /* GoogleGenerativeAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BCD96F792EEA261000825511 /* XCRemoteSwiftPackageReference "generative-ai-swift" */;
+			productName = GoogleGenerativeAI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = BC5947E82EB573FA0067A24C /* Project object */;
 }
