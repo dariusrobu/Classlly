@@ -1,75 +1,79 @@
 import SwiftUI
 import SwiftData
+import PhotosUI
 
 struct ContentView: View {
-    @EnvironmentObject var authManager: AuthenticationManager
-    @EnvironmentObject var calendarManager: AcademicCalendarManager
-    @EnvironmentObject var themeManager: AppTheme
-    @Environment(\.modelContext) var modelContext
-
-    @AppStorage("isFirstLaunch") private var isFirstLaunch: Bool = true
-    @AppStorage("darkModeEnabled") private var darkModeEnabled: Bool = false
+    // SwiftData Context
+    @Environment(\.modelContext) private var modelContext
     
-    @State private var selectedTab: Int = 0
+    // Query fetches data from disk automatically
+    @Query(sort: \PhotoItem.createdAt, order: .reverse) private var photos: [PhotoItem]
     
-    public init() {}
+    // Picker State
+    @State private var selectedItem: PhotosPickerItem?
     
     var body: some View {
-        ZStack {
-            Color.themeBackground
-                .ignoresSafeArea()
-            
-            Group {
-                if authManager.isAuthenticated {
-                    if authManager.hasCompletedStickyOnboarding {
-                        // User is fully setup -> Main Dashboard
-                        MainTabView(selection: $selectedTab)
-                    } else {
-                        // User is signed in but needs the "Sticky" setup
-                        StickyOnboardingView()
+        NavigationStack {
+            List {
+                if photos.isEmpty {
+                    ContentUnavailableView("No Photos", systemImage: "photo.on.rectangle.angled", description: "Tap the + button to save your first photo permanently.")
+                }
+                
+                ForEach(photos) { photo in
+                    PhotoRow(item: photo)
+                }
+                .onDelete(perform: deleteItems)
+            }
+            .navigationTitle("PhotoKeeper")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    // Photo Picker Button
+                    PhotosPicker(selection: $selectedItem, matching: .images) {
+                        Image(systemName: "plus")
                     }
-                } else {
-                    // User needs to sign in
-                    SignInView()
+                }
+            }
+            // Listen for image selection
+            .onChange(of: selectedItem) { _, newItem in
+                Task {
+                    if let newItem = newItem,
+                       let data = try? await newItem.loadTransferable(type: Data.self),
+                       let uiImage = UIImage(data: data) {
+                        savePhoto(image: uiImage)
+                    }
+                    // Reset selection
+                    selectedItem = nil
                 }
             }
         }
-        .preferredColorScheme(darkModeEnabled ? .dark : .light)
-        .tint(Color.themePrimary)
-        .onAppear {
-            if isFirstLaunch {
-                isFirstLaunch = false
-            }
-            authManager.checkAuthentication(modelContext: modelContext)
+    }
+    
+    // Logic: Save to Disk -> Create Model -> Save to DB
+    private func savePhoto(image: UIImage) {
+        // 1. Save binary to file system
+        if let filename = ImageStore.save(image: image) {
+            
+            // 2. Create metadata record
+            let newPhoto = PhotoItem(title: "My Photo", imageID: filename)
+            
+            // 3. Save to SwiftData
+            modelContext.insert(newPhoto)
+            try? modelContext.save()
+            print("Successfully saved photo + metadata")
         }
     }
-}
-
-// ... MainTabView remains unchanged ...
-struct MainTabView: View {
-    @Binding var selection: Int
     
-    var body: some View {
-        TabView(selection: $selection) {
-            HomeView()
-                .tabItem { Image(systemName: "house.fill"); Text("Home") }
-                .tag(0)
-            
-            CalendarView()
-                .tabItem { Image(systemName: "calendar"); Text("Calendar") }
-                .tag(1)
-            
-            TasksView()
-                .tabItem { Image(systemName: "checklist"); Text("Tasks") }
-                .tag(2)
-            
-            SubjectsView()
-                .tabItem { Image(systemName: "book.fill"); Text("Subjects") }
-                .tag(3)
-            
-            SettingsDashboardView()
-                .tabItem { Image(systemName: "ellipsis"); Text("More") }
-                .tag(4)
+    private func deleteItems(offsets: IndexSet) {
+        withAnimation {
+            for index in offsets {
+                let photo = photos[index]
+                
+                // Cleanup file from disk
+                ImageStore.delete(fileName: photo.imageID)
+                
+                // Delete from DB
+                modelContext.delete(photo)
+            }
         }
     }
 }

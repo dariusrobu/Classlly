@@ -28,12 +28,11 @@ struct RainbowProfileView: View {
     let subjects: [Subject]
     let tasks: [StudyTask]
     @EnvironmentObject var authManager: AuthenticationManager
-    @EnvironmentObject var themeManager: AppTheme // Added for dynamic color
+    @EnvironmentObject var themeManager: AppTheme
     @Environment(\.modelContext) var modelContext
     @State private var showingEditProfile = false
     
     var body: some View {
-        // Get the dynamic accent color
         let accentColor = themeManager.selectedTheme.primaryColor
         
         NavigationStack {
@@ -46,13 +45,22 @@ struct RainbowProfileView: View {
                             // 1. Profile Header Card
                             VStack(spacing: 16) {
                                 ZStack {
-                                    Circle()
-                                        .fill(Color.white.opacity(0.2))
-                                        .frame(width: 100, height: 100)
-                                    
-                                    Text(String(user.firstName.prefix(1)))
-                                        .font(.system(size: 40, weight: .bold))
-                                        .foregroundColor(.white)
+                                    if let data = user.profileImageData, let uiImage = UIImage(data: data) {
+                                        Image(uiImage: uiImage)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 100, height: 100)
+                                            .clipShape(Circle())
+                                            .overlay(Circle().stroke(Color.white, lineWidth: 3))
+                                    } else {
+                                        Circle()
+                                            .fill(Color.white.opacity(0.2))
+                                            .frame(width: 100, height: 100)
+                                        
+                                        Text(String(user.firstName.prefix(1)))
+                                            .font(.system(size: 40, weight: .bold))
+                                            .foregroundColor(.white)
+                                    }
                                 }
                                 .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
                                 
@@ -78,7 +86,7 @@ struct RainbowProfileView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(24)
-                            .background(accentColor) // Dynamic Accent Background
+                            .background(accentColor)
                             .cornerRadius(24)
                             .padding(.horizontal)
                             .shadow(color: accentColor.opacity(0.4), radius: 15, x: 0, y: 5)
@@ -109,7 +117,6 @@ struct RainbowProfileView: View {
                                     VStack(spacing: 16) {
                                         ProfileInfoRow(icon: "graduationcap.fill", label: "Major", value: user.major ?? "Undeclared", color: RainbowColors.green)
                                         Divider().background(Color.gray.opacity(0.3))
-                                        // Year now uses accent color to match header
                                         ProfileInfoRow(icon: "calendar", label: "Year", value: user.academicYear, color: accentColor)
                                         Divider().background(Color.gray.opacity(0.3))
                                         ProfileInfoRow(icon: "envelope.fill", label: "Email", value: user.email ?? "No Email", color: RainbowColors.orange)
@@ -144,7 +151,7 @@ struct RainbowProfileView: View {
                     Button(action: { showingEditProfile = true }) {
                         Text("Edit")
                             .fontWeight(.bold)
-                            .foregroundColor(accentColor) // Dynamic Edit Button
+                            .foregroundColor(accentColor)
                     }
                 }
             }
@@ -189,13 +196,17 @@ struct EditProfileView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) var modelContext
     @EnvironmentObject var authManager: AuthenticationManager
-    @EnvironmentObject var themeManager: AppTheme // Added
+    @EnvironmentObject var themeManager: AppTheme
     
     @State private var firstName: String
     @State private var lastName: String
     @State private var schoolName: String
     @State private var major: String
     @State private var academicYear: String
+    
+    // Image Handling
+    @State private var showingImagePicker = false
+    @State private var inputImage: UIImage?
     
     let user: UserProfile
     
@@ -206,6 +217,10 @@ struct EditProfileView: View {
         _schoolName = State(initialValue: user.schoolName)
         _major = State(initialValue: user.major ?? "")
         _academicYear = State(initialValue: user.academicYear)
+        
+        if let data = user.profileImageData, let image = UIImage(data: data) {
+            _inputImage = State(initialValue: image)
+        }
     }
     
     var body: some View {
@@ -217,6 +232,36 @@ struct EditProfileView: View {
                 
                 ScrollView {
                     VStack(spacing: 24) {
+                        // Image Picker
+                        Button(action: { showingImagePicker = true }) {
+                            ZStack {
+                                if let inputImage = inputImage {
+                                    Image(uiImage: inputImage)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 100, height: 100)
+                                        .clipShape(Circle())
+                                } else {
+                                    Circle()
+                                        .fill(Color.gray.opacity(0.3))
+                                        .frame(width: 100, height: 100)
+                                    Image(systemName: "camera.fill")
+                                        .foregroundColor(.white)
+                                }
+                                // Edit Overlay
+                                VStack {
+                                    Spacer()
+                                    HStack {
+                                        Spacer()
+                                        Image(systemName: "pencil.circle.fill")
+                                            .foregroundColor(accentColor)
+                                            .background(Circle().fill(Color.white))
+                                    }
+                                }
+                                .frame(width: 100, height: 100)
+                            }
+                        }
+                        
                         RainbowContainer {
                             VStack(alignment: .leading, spacing: 16) {
                                 Text("Personal Info").font(.headline).foregroundColor(.gray)
@@ -250,7 +295,12 @@ struct EditProfileView: View {
                         saveProfile()
                     }
                     .fontWeight(.bold)
-                    .foregroundColor(accentColor) // Dynamic Save Button
+                    .foregroundColor(accentColor)
+                }
+            }
+            .sheet(isPresented: $showingImagePicker) {
+                ImagePicker { image in
+                    self.inputImage = image
                 }
             }
         }
@@ -258,7 +308,9 @@ struct EditProfileView: View {
     }
     
     private func saveProfile() {
-        // Update UserProfile struct
+        let imageData = inputImage?.jpegData(compressionQuality: 0.8)
+        
+        // 1. Create the updated struct
         let updatedProfile = UserProfile(
             id: user.id,
             firstName: firstName,
@@ -268,10 +320,13 @@ struct EditProfileView: View {
             gradeLevel: user.gradeLevel,
             major: major,
             academicYear: academicYear,
-            profileImageData: user.profileImageData
+            profileImageData: imageData
         )
         
-        // Update SwiftData
+        // 2. Update Global State IMMEDIATELY (Fixes "Nothing Happens" bug)
+        authManager.currentUser = updatedProfile
+        
+        // 3. Try to persist to Database
         let id = user.id
         let descriptor = FetchDescriptor<StudentProfile>(predicate: #Predicate<StudentProfile> { p in
             p.id == id
@@ -284,13 +339,15 @@ struct EditProfileView: View {
                 profile.schoolName = schoolName
                 profile.major = major
                 profile.academicYear = academicYear
-                try modelContext.save()
+                profile.profileImageData = imageData
                 
-                // Update Auth Manager
-                authManager.currentUser = updatedProfile
+                try modelContext.save()
+                print("✅ Profile saved to database")
+            } else {
+                print("⚠️ Profile not found in database (Demo User?), updated in-memory only.")
             }
         } catch {
-            print("Failed to update profile: \(error)")
+            print("❌ Failed to save profile to DB: \(error)")
         }
         
         dismiss()
@@ -307,7 +364,7 @@ struct CustomTextField: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(placeholder)
                 .font(.caption)
-                .foregroundColor(color) // Dynamic Label Color
+                .foregroundColor(color)
                 .fontWeight(.bold)
             
             TextField("", text: $text)
@@ -326,6 +383,7 @@ struct StandardProfileView: View {
     let tasks: [StudyTask]
     @EnvironmentObject var authManager: AuthenticationManager
     @Environment(\.modelContext) var modelContext
+    @State private var showingEditProfile = false
     
     var body: some View {
         ScrollView {
@@ -334,17 +392,25 @@ struct StandardProfileView: View {
                     // Avatar & Name
                     VStack(spacing: 16) {
                         ZStack {
-                            Circle()
-                                .fill(LinearGradient(
-                                    gradient: Gradient(colors: [.themePrimary, .themeSecondary]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ))
-                                .frame(width: 100, height: 100)
-                            
-                            Text(String(user.firstName.prefix(1)))
-                                .font(.system(size: 40, weight: .bold))
-                                .foregroundColor(.white)
+                            if let data = user.profileImageData, let uiImage = UIImage(data: data) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 100, height: 100)
+                                    .clipShape(Circle())
+                            } else {
+                                Circle()
+                                    .fill(LinearGradient(
+                                        gradient: Gradient(colors: [.themePrimary, .themeSecondary]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ))
+                                    .frame(width: 100, height: 100)
+                                
+                                Text(String(user.firstName.prefix(1)))
+                                    .font(.system(size: 40, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
                         }
                         
                         VStack(spacing: 4) {
@@ -411,6 +477,18 @@ struct StandardProfileView: View {
         }
         .background(Color.themeBackground)
         .navigationTitle("Profile")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Edit") {
+                    showingEditProfile = true
+                }
+            }
+        }
+        .sheet(isPresented: $showingEditProfile) {
+            if let user = authManager.currentUser {
+                EditProfileView(user: user)
+            }
+        }
     }
 }
 
@@ -421,6 +499,7 @@ struct ArcadeProfileView: View {
     let tasks: [StudyTask]
     @EnvironmentObject var authManager: AuthenticationManager
     @Environment(\.modelContext) var modelContext
+    @State private var showingEditProfile = false
 
     var body: some View {
         ZStack {
@@ -435,13 +514,21 @@ struct ArcadeProfileView: View {
                                 .stroke(Color.cyan, lineWidth: 3)
                                 .frame(width: 110, height: 110)
                             
-                            Circle()
-                                .fill(Color.purple.opacity(0.5))
-                                .frame(width: 100, height: 100)
-                            
-                            Text(String(user.firstName.prefix(1)))
-                                .font(.system(size: 40, weight: .black))
-                                .foregroundColor(.white)
+                            if let data = user.profileImageData, let uiImage = UIImage(data: data) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 100, height: 100)
+                                    .clipShape(Circle())
+                            } else {
+                                Circle()
+                                    .fill(Color.purple.opacity(0.5))
+                                    .frame(width: 100, height: 100)
+                                
+                                Text(String(user.firstName.prefix(1)))
+                                    .font(.system(size: 40, weight: .black))
+                                    .foregroundColor(.white)
+                            }
                         }
                         .shadow(color: .cyan, radius: 10)
                         
@@ -494,5 +581,20 @@ struct ArcadeProfileView: View {
             }
         }
         .navigationTitle("Player Stats")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: { showingEditProfile = true }) {
+                    Text("EDIT PLAYER")
+                        .font(.system(.caption, design: .rounded))
+                        .fontWeight(.black)
+                        .foregroundColor(.cyan)
+                }
+            }
+        }
+        .sheet(isPresented: $showingEditProfile) {
+            if let user = authManager.currentUser {
+                EditProfileView(user: user)
+            }
+        }
     }
 }

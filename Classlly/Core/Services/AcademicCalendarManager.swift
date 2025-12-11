@@ -1,16 +1,20 @@
-import SwiftUI
 import Foundation
-import Combine
+import SwiftUI
+import Combine // <-- ADDED THIS to fix the error
 
-// --- STRUCT FOR TEMPLATES ---
-struct CalendarTemplate: Identifiable, Hashable {
-    let id = UUID()
-    var universityName: String
-    var academicYear: String
-    var sem1StartStr: String
-    var sem1EndStr: String
-    var sem2StartStr: String
-    var sem2EndStr: String
+class AcademicCalendarManager: ObservableObject {
+    @Published var currentTerm: String = "Fall 2024"
+    @Published var daysRemaining: Int = 45
+    
+    // Singleton instance (optional, but good for services)
+    static let shared = AcademicCalendarManager()
+    
+    private init() {}
+    
+    func fetchCalendar() {
+        // Placeholder logic
+        print("Fetching academic calendar...")
+    }
 }
 
 // MARK: - Event Type

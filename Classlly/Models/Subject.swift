@@ -183,14 +183,16 @@ final class GradeEntry {
     var grade: Double = 0.0
     var weight: Double = 100.0 // Default weight (e.g. 100%)
     var descriptionText: String = ""
+    var isExam: Bool = false // New Property
     var subject: Subject?
     
-    init(id: UUID = UUID(), date: Date = Date(), grade: Double, weight: Double = 100.0, description: String = "") {
+    init(id: UUID = UUID(), date: Date = Date(), grade: Double, weight: Double = 100.0, description: String = "", isExam: Bool = false) {
         self.id = id
         self.date = date
         self.grade = grade
         self.weight = weight
         self.descriptionText = description
+        self.isExam = isExam
     }
 }
 

@@ -39,6 +39,99 @@ struct HomeView: View {
     }
 }
 
+// MARK: - ⚡️ QUICK ATTENDANCE BUTTON
+struct QuickAttendanceButton: View {
+    @Bindable var subject: Subject
+    @Environment(\.modelContext) var modelContext
+    var color: Color
+    var style: ButtonStyleType = .standard
+    
+    enum ButtonStyleType {
+        case standard, rainbow, arcade
+    }
+    
+    var isAttendedToday: Bool {
+        let calendar = Calendar.current
+        return subject.attendanceHistory?.contains { calendar.isDate($0.date, inSameDayAs: Date()) } ?? false
+    }
+    
+    var body: some View {
+        Button(action: toggleAttendance) {
+            Group {
+                if isAttendedToday {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(style == .arcade ? .green : (style == .rainbow ? .white : .themeSuccess))
+                        .opacity(style == .rainbow ? 0.8 : 1.0)
+                } else {
+                    Image(systemName: "plus.circle")
+                        .font(.title2)
+                        .foregroundColor(color)
+                        .contentShape(Circle()) // Increases tap area
+                }
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private func toggleAttendance() {
+        let calendar = Calendar.current
+        let today = Date()
+        
+        if isAttendedToday {
+            // Remove today's attendance
+            if let entryIndex = subject.attendanceHistory?.firstIndex(where: { calendar.isDate($0.date, inSameDayAs: today) }) {
+                if let entry = subject.attendanceHistory?[entryIndex] {
+                    modelContext.delete(entry)
+                }
+            }
+        } else {
+            // Add attendance
+            let newEntry = AttendanceEntry(date: today, attended: true, notes: "Quick add from Dashboard")
+            newEntry.subject = subject
+            modelContext.insert(newEntry)
+        }
+    }
+}
+
+// MARK: - 📊 PROGRESS RING COMPONENT
+struct DayProgressRing: View {
+    let completed: Int
+    let total: Int
+    let color: Color
+    
+    var progress: Double {
+        guard total > 0 else { return 0 }
+        return Double(completed) / Double(total)
+    }
+    
+    var body: some View {
+        ZStack {
+            // Background Circle
+            Circle()
+                .stroke(color.opacity(0.2), lineWidth: 6)
+            
+            // Progress Circle
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(color, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .animation(.spring, value: progress)
+            
+            // Text
+            VStack(spacing: 0) {
+                Text("\(completed)/\(total)")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(color)
+                Text("Done")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundColor(.gray)
+            }
+        }
+        .frame(width: 55, height: 55)
+    }
+}
+
 // MARK: - 🌈 RAINBOW DASHBOARD
 struct RainbowDashboard: View {
     let subjects: [Subject]
@@ -47,34 +140,40 @@ struct RainbowDashboard: View {
     @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
-        // Dynamic Accent Color
         let accentColor = themeManager.selectedTheme.primaryColor
         let formattedDate = Date().formatted(date: .abbreviated, time: .omitted)
+        let progress = DashboardLogic.getDailyProgress(subjects: subjects, academicWeek: calendarManager.currentTeachingWeek)
         
         ScrollView {
             VStack(spacing: 24) {
                 // 1. Welcome Header
                 RainbowContainer {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Welcome back!")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                        
-                        Text("Here's your academic overview for today")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                        
-                        if let currentWeek = calendarManager.currentTeachingWeek {
-                            HStack {
-                                Image(systemName: "calendar")
-                                    .foregroundColor(accentColor)
-                                // Added Date here
-                                Text("Week \(currentWeek) • \(calendarManager.currentSemester.displayName) • \(formattedDate)")
-                                    .font(.caption)
-                                    .foregroundColor(accentColor)
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Welcome back!")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                            
+                            Text("Here's your academic overview")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                            
+                            if let currentWeek = calendarManager.currentTeachingWeek {
+                                HStack {
+                                    Image(systemName: "calendar")
+                                        .foregroundColor(accentColor)
+                                    Text("Week \(currentWeek) • \(formattedDate)")
+                                        .font(.caption)
+                                        .foregroundColor(accentColor)
+                                }
+                                .padding(.top, 4)
                             }
-                            .padding(.top, 4)
+                        }
+                        Spacer()
+                        if progress.total > 0 {
+                            DayProgressRing(completed: progress.completed, total: progress.total, color: accentColor)
+                                .padding(.leading, 8)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -90,7 +189,7 @@ struct RainbowDashboard: View {
                         }
                     }
                     
-                    let todaysClasses = filterTodayClasses(academicWeek: calendarManager.currentTeachingWeek)
+                    let todaysClasses = DashboardLogic.filterTodayClasses(subjects: subjects, academicWeek: calendarManager.currentTeachingWeek)
                     
                     if todaysClasses.isEmpty {
                         RainbowContainer {
@@ -121,7 +220,10 @@ struct RainbowDashboard: View {
                                                 .font(.caption).foregroundColor(.gray)
                                         }
                                         Spacer()
-                                        Image(systemName: "chevron.right").foregroundColor(.gray)
+                                        
+                                        // Quick Attendance Button
+                                        QuickAttendanceButton(subject: subject, color: accentColor, style: .rainbow)
+                                            .frame(width: 44, height: 44)
                                     }
                                 }
                             }
@@ -170,18 +272,6 @@ struct RainbowDashboard: View {
         .background(Color.black.ignoresSafeArea())
     }
     
-    private func filterTodayClasses(academicWeek: Int?) -> [Subject] {
-        let today = Date()
-        let weekday = Calendar.current.component(.weekday, from: today)
-        return subjects.filter { subject in
-            let hasCourseToday = subject.courseDays.contains(weekday) &&
-                               subject.occursThisWeek(academicWeek: academicWeek, isCourse: true)
-            let hasSeminarToday = subject.seminarDays.contains(weekday) &&
-                                subject.occursThisWeek(academicWeek: academicWeek, isCourse: false)
-            return hasCourseToday || hasSeminarToday
-        }
-    }
-    
     private func formatDate(_ date: Date) -> String {
         let f = DateFormatter()
         if Calendar.current.isDateInToday(date) { return "today" }
@@ -199,27 +289,39 @@ struct StandardDashboard: View {
     
     var body: some View {
         let formattedDate = Date().formatted(date: .abbreviated, time: .omitted)
+        let progress = DashboardLogic.getDailyProgress(subjects: subjects, academicWeek: calendarManager.currentTeachingWeek)
         
         ScrollView {
             VStack(spacing: 20) {
+                // Header Card
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Welcome back!")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.themeTextPrimary)
-                    Text("Here's your academic overview for today")
-                        .font(.subheadline)
-                        .foregroundColor(.themeTextSecondary)
-                    
-                    if let currentWeek = calendarManager.currentTeachingWeek {
-                        HStack {
-                            Image(systemName: "calendar")
-                            // Added Date here
-                            Text("Week \(currentWeek) • \(calendarManager.currentSemester.displayName) • \(formattedDate)")
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Welcome back!")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.themeTextPrimary)
+                            Text("Here's your academic overview")
+                                .font(.subheadline)
+                                .foregroundColor(.themeTextSecondary)
+                            
+                            if let currentWeek = calendarManager.currentTeachingWeek {
+                                HStack {
+                                    Image(systemName: "calendar")
+                                    Text("Week \(currentWeek) • \(formattedDate)")
+                                }
+                                .font(.caption)
+                                .foregroundColor(.themePrimary)
+                                .padding(.top, 4)
+                            }
                         }
-                        .font(.caption)
-                        .foregroundColor(.themePrimary)
-                        .padding(.top, 4)
+                        
+                        Spacer()
+                        
+                        // Progress Ring
+                        if progress.total > 0 {
+                            DayProgressRing(completed: progress.completed, total: progress.total, color: .themePrimary)
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -249,7 +351,7 @@ struct StandardDashboard: View {
                     .foregroundColor(.themePrimary)
             }
             
-            let todaysClasses = filterTodayClasses(academicWeek: calendarManager.currentTeachingWeek)
+            let todaysClasses = DashboardLogic.filterTodayClasses(subjects: subjects, academicWeek: calendarManager.currentTeachingWeek)
             
             if todaysClasses.isEmpty {
                 HomeEmptyStateView(
@@ -315,6 +417,7 @@ struct StandardDashboard: View {
                     .font(.subheadline)
                     .foregroundColor(.themePrimary)
             }
+            .padding(.horizontal)
             
             if subjects.isEmpty {
                 HomeEmptyStateView(
@@ -322,25 +425,17 @@ struct StandardDashboard: View {
                     title: "No Subjects",
                     message: "Add your first subject to track academic performance"
                 )
+                .padding(.horizontal)
             } else {
-                LazyVStack(spacing: 12) {
-                    ForEach(subjects.prefix(4)) { subject in
-                        SubjectPerformanceCard(subject: subject)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(subjects) { subject in
+                            CompactPerformanceCard(subject: subject)
+                        }
                     }
+                    .padding(.horizontal)
                 }
             }
-        }
-    }
-    
-    private func filterTodayClasses(academicWeek: Int?) -> [Subject] {
-        let today = Date()
-        let weekday = Calendar.current.component(.weekday, from: today)
-        return subjects.filter { subject in
-            let hasCourseToday = subject.courseDays.contains(weekday) &&
-                               subject.occursThisWeek(academicWeek: academicWeek, isCourse: true)
-            let hasSeminarToday = subject.seminarDays.contains(weekday) &&
-                                subject.occursThisWeek(academicWeek: academicWeek, isCourse: false)
-            return hasCourseToday || hasSeminarToday
         }
     }
 }
@@ -353,6 +448,7 @@ struct ArcadeDashboard: View {
     
     var body: some View {
         let formattedDate = Date().formatted(date: .abbreviated, time: .omitted).uppercased()
+        let progress = DashboardLogic.getDailyProgress(subjects: subjects, academicWeek: calendarManager.currentTeachingWeek)
         
         ScrollView {
             VStack(spacing: 24) {
@@ -372,29 +468,33 @@ struct ArcadeDashboard: View {
                                 .font(.title2)
                                 .foregroundColor(.yellow)
                             
-                            // Stacked Level and Date
                             VStack(alignment: .leading, spacing: 0) {
                                 Text("LEVEL \(calendarManager.currentTeachingWeek ?? 1)")
                                     .font(.system(.headline, design: .rounded))
                                     .fontWeight(.black)
                                     .foregroundColor(.white)
                                 
-                                Text(formattedDate) // Added Date
+                                Text(formattedDate)
                                     .font(.system(size: 10, weight: .bold, design: .rounded))
                                     .foregroundColor(.white.opacity(0.7))
                             }
                             
                             Spacer()
-                            Text("RANK: SCHOLAR")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(.ultraThinMaterial)
-                                .cornerRadius(12)
+                            
+                            if progress.total > 0 {
+                                DayProgressRing(completed: progress.completed, total: progress.total, color: .cyan)
+                            } else {
+                                Text("RANK: SCHOLAR")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 4)
+                                    .background(.ultraThinMaterial)
+                                    .cornerRadius(12)
+                            }
                         }
                         
-                        // XP Bar Placeholder
+                        // XP Bar
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
                                 Text("XP PROGRESS").font(.system(size: 10, weight: .bold)).foregroundColor(.white.opacity(0.8))
@@ -429,7 +529,7 @@ struct ArcadeDashboard: View {
                             .cornerRadius(8)
                     }
                     
-                    let todaysClasses = filterTodayClasses(academicWeek: calendarManager.currentTeachingWeek)
+                    let todaysClasses = DashboardLogic.filterTodayClasses(subjects: subjects, academicWeek: calendarManager.currentTeachingWeek)
                     
                     if todaysClasses.isEmpty {
                         Text("No raids scheduled. Base is secure.")
@@ -453,13 +553,16 @@ struct ArcadeDashboard: View {
                                     }.font(.caption2).foregroundColor(.gray)
                                 }
                                 Spacer()
+                                // Arcade Check-In
+                                QuickAttendanceButton(subject: subject, color: .cyan, style: .arcade)
+                                    .frame(width: 44, height: 44)
                             }
                             .padding().background(Color(white: 0.1)).cornerRadius(16).overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.cyan.opacity(0.3), lineWidth: 1))
                         }
                     }
                 }
                 
-                // 3. Quest Log (Tasks)
+                // 3. Quest Log
                 VStack(alignment: .leading, spacing: 16) {
                     HStack {
                         Text("QUEST LOG")
@@ -503,7 +606,7 @@ struct ArcadeDashboard: View {
                     }
                 }
                 
-                // 4. Skill Mastery (Academic Performance)
+                // 4. Skill Mastery
                 VStack(alignment: .leading, spacing: 16) {
                     HStack {
                         Text("SKILL MASTERY")
@@ -546,7 +649,38 @@ struct ArcadeDashboard: View {
         .background(Color.black.ignoresSafeArea())
     }
     
-    private func filterTodayClasses(academicWeek: Int?) -> [Subject] {
+    private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateFormat = "MMM d"; return f.string(from: date) }
+}
+
+// MARK: - DASHBOARD LOGIC HELPER
+struct DashboardLogic {
+    static func getDailyProgress(subjects: [Subject], academicWeek: Int?) -> (completed: Int, total: Int) {
+        let today = Date()
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: today)
+        
+        var total = 0
+        var completed = 0
+        
+        for subject in subjects {
+            let isCourseToday = subject.courseDays.contains(weekday) && subject.occursThisWeek(academicWeek: academicWeek, isCourse: true)
+            let isSeminarToday = subject.seminarDays.contains(weekday) && subject.occursThisWeek(academicWeek: academicWeek, isCourse: false)
+            
+            if isCourseToday {
+                total += 1
+                if isTimePassed(subject.courseEndTime) { completed += 1 }
+            }
+            
+            if isSeminarToday {
+                total += 1
+                if isTimePassed(subject.seminarEndTime) { completed += 1 }
+            }
+        }
+        
+        return (completed, total)
+    }
+    
+    static func filterTodayClasses(subjects: [Subject], academicWeek: Int?) -> [Subject] {
         let today = Date()
         let weekday = Calendar.current.component(.weekday, from: today)
         return subjects.filter { subject in
@@ -558,7 +692,22 @@ struct ArcadeDashboard: View {
         }
     }
     
-    private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateFormat = "MMM d"; return f.string(from: date) }
+    private static func isTimePassed(_ date: Date) -> Bool {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        // Extract hour/minute from subject date (assuming it has correct components)
+        // and compare with current hour/minute
+        let eventComponents = calendar.dateComponents([.hour, .minute], from: date)
+        let nowComponents = calendar.dateComponents([.hour, .minute], from: now)
+        
+        guard let eh = eventComponents.hour, let em = eventComponents.minute,
+              let nh = nowComponents.hour, let nm = nowComponents.minute else { return false }
+        
+        if nh > eh { return true }
+        if nh == eh && nm >= em { return true }
+        return false
+    }
 }
 
 // MARK: - LOCAL COMPONENTS (For Standard Dashboard)
@@ -590,7 +739,9 @@ struct HomeClassCard: View {
             
             Spacer()
             
-            Image(systemName: "chevron.right").font(.system(size: 14, weight: .medium)).foregroundColor(.secondary)
+            // Standard Quick Attendance Button
+            QuickAttendanceButton(subject: subject, color: .themePrimary, style: .standard)
+                .frame(width: 44, height: 44)
         }
         .padding()
         .background(Color.themeSurface)
@@ -651,6 +802,79 @@ struct HomeEmptyStateView: View {
         .padding(40)
         .background(Color.themeSurface)
         .cornerRadius(12)
+    }
+}
+
+// Compact Card for Horizontal Scroll
+struct CompactPerformanceCard: View {
+    let subject: Subject
+    
+    var body: some View {
+        NavigationLink(destination: SubjectDetailView(subject: subject)) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    ZStack {
+                        Circle()
+                            .fill(Color.themePrimary.opacity(0.1))
+                            .frame(width: 32, height: 32)
+                        Image(systemName: "book.fill")
+                            .font(.caption)
+                            .foregroundColor(.themePrimary)
+                    }
+                    Spacer()
+                    if let grade = subject.currentGrade {
+                        Text(String(format: "%.1f", grade))
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(gradeColor(grade).opacity(0.1))
+                            .foregroundColor(gradeColor(grade))
+                            .cornerRadius(4)
+                    }
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(subject.title)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.themeTextPrimary)
+                        .lineLimit(1)
+                    
+                    Text(subject.courseTeacher)
+                        .font(.caption)
+                        .foregroundColor(.themeTextSecondary)
+                        .lineLimit(1)
+                }
+                
+                HStack {
+                    Image(systemName: "person.2.fill")
+                        .font(.caption2)
+                    Text("\(Int(subject.attendanceRate * 100))%")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                }
+                .foregroundColor(.themeTextSecondary)
+            }
+            .padding(12)
+            .frame(width: 150)
+            .background(Color.themeSurface)
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.adaptiveBorder.opacity(0.3), lineWidth: 1)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private func gradeColor(_ grade: Double) -> Color {
+        switch grade {
+        case 9...10: return .themeSuccess
+        case 7..<9: return .themePrimary
+        case 5..<7: return .themeWarning
+        default: return .themeError
+        }
     }
 }
 

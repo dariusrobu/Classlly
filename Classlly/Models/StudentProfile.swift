@@ -1,39 +1,17 @@
-import SwiftUI
-import SwiftData
+import Foundation
 
-@Model
-final class StudentProfile {
-    var id: String = ""
-    var firstName: String = ""
-    var lastName: String = ""
-    var email: String? = nil
-    var schoolName: String = ""
-    var gradeLevel: String = ""
-    var major: String? = nil
-    var academicYear: String = ""
+struct StudentProfile: Codable, Identifiable, Equatable {
+    let id: String
+    var email: String
+    var fullName: String
+    var gradeLevel: Int
+    // Add other fields as needed
     
-    init(id: String, firstName: String, lastName: String, email: String? = nil, schoolName: String = "", gradeLevel: String = "", major: String? = nil, academicYear: String = "") {
+    // explicit init to avoid inference issues
+    init(id: String, email: String, fullName: String, gradeLevel: Int) {
         self.id = id
-        self.firstName = firstName
-        self.lastName = lastName
         self.email = email
-        self.schoolName = schoolName
+        self.fullName = fullName
         self.gradeLevel = gradeLevel
-        self.major = major
-        self.academicYear = academicYear
-    }
-    
-    func toUserProfile() -> UserProfile {
-        UserProfile(
-            id: id,
-            firstName: firstName,
-            lastName: lastName,
-            email: email,
-            schoolName: schoolName,
-            gradeLevel: gradeLevel,
-            major: major,
-            academicYear: academicYear,
-            profileImageData: nil
-        )
     }
 }

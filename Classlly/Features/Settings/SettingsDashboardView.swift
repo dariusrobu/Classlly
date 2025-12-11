@@ -35,14 +35,23 @@ struct RainbowSettingsDashboardView: View {
                             NavigationLink(destination: ProfileView()) {
                                 HStack(spacing: 16) {
                                     ZStack {
-                                        Circle()
-                                            .fill(Color.white.opacity(0.2))
-                                            .frame(width: 60, height: 60)
-                                        
-                                        Text(String(user.firstName.prefix(1)))
-                                            .font(.title)
-                                            .fontWeight(.bold)
-                                            .foregroundColor(.white)
+                                        if let data = user.profileImageData, let uiImage = UIImage(data: data) {
+                                            Image(uiImage: uiImage)
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(width: 60, height: 60)
+                                                .clipShape(Circle())
+                                                .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                                        } else {
+                                            Circle()
+                                                .fill(Color.white.opacity(0.2))
+                                                .frame(width: 60, height: 60)
+                                            
+                                            Text(String(user.firstName.prefix(1)))
+                                                .font(.title)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.white)
+                                        }
                                     }
                                     
                                     VStack(alignment: .leading, spacing: 4) {
@@ -157,38 +166,77 @@ struct RainbowMenuRow: View {
     }
 }
 
-// ... (Rest of Standard/Arcade/Retro views unchanged)
-// [Preserving existing code structure below]
-
+// MARK: - 👔 STANDARD SETTINGS DASHBOARD
 struct StandardSettingsDashboardView: View {
     @EnvironmentObject var authManager: AuthenticationManager
+    
     var body: some View {
         NavigationStack {
             List {
                 if let user = authManager.currentUser {
                     NavigationLink(destination: ProfileView()) {
                         HStack(spacing: 16) {
-                            ZStack { Circle().fill(LinearGradient(gradient: Gradient(colors: [.themePrimary, .themeSecondary]), startPoint: .topLeading, endPoint: .bottomTrailing)).frame(width: 60, height: 60); Text(getInitials(from: user.fullName)).font(.title2).fontWeight(.bold).foregroundColor(.white) }
-                            VStack(alignment: .leading, spacing: 4) { Text(user.fullName).font(.headline).fontWeight(.semibold); Text("View Profile & Stats").font(.subheadline).foregroundColor(.secondary) }
-                        }.padding(.vertical, 8)
-                    }.listRowBackground(Color.themeSurface)
+                            ZStack {
+                                if let data = user.profileImageData, let uiImage = UIImage(data: data) {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 60, height: 60)
+                                        .clipShape(Circle())
+                                } else {
+                                    Circle()
+                                        .fill(LinearGradient(gradient: Gradient(colors: [.themePrimary, .themeSecondary]), startPoint: .topLeading, endPoint: .bottomTrailing))
+                                        .frame(width: 60, height: 60)
+                                    Text(getInitials(from: user.fullName))
+                                        .font(.title2)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.white)
+                                }
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(user.fullName)
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                Text("View Profile & Stats")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    }
+                    .listRowBackground(Color.themeSurface)
                 }
+                
                 Section {
-                    NavigationLink(destination: AcademicCalendarView()) { Label("Academic Calendar", systemImage: "calendar.circle.fill") }
-                    NavigationLink(destination: SettingsView()) { Label("Settings", systemImage: "gearshape.fill") }
-                }.listRowBackground(Color.themeSurface)
+                    NavigationLink(destination: AcademicCalendarView()) {
+                        Label("Academic Calendar", systemImage: "calendar.circle.fill")
+                    }
+                    NavigationLink(destination: SettingsView()) {
+                        Label("Settings", systemImage: "gearshape.fill")
+                    }
+                }
+                .listRowBackground(Color.themeSurface)
+                
                 Section {
-                    NavigationLink(destination: PrivacyPolicyView()) { Label("Terms & Privacy Policy", systemImage: "lock.shield.fill") }
-                }.listRowBackground(Color.themeSurface)
+                    NavigationLink(destination: PrivacyPolicyView()) {
+                        Label("Terms & Privacy Policy", systemImage: "lock.shield.fill")
+                    }
+                }
+                .listRowBackground(Color.themeSurface)
             }
-            .scrollContentBackground(.hidden).background(Color.themeBackground)
-            .navigationTitle("More").navigationBarTitleDisplayMode(.inline)
+            .scrollContentBackground(.hidden)
+            .background(Color.themeBackground)
+            .navigationTitle("More")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
 
+// MARK: - 🕹️ ARCADE SETTINGS DASHBOARD
 struct ArcadeSettingsDashboardView: View {
     @EnvironmentObject var authManager: AuthenticationManager
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -198,28 +246,73 @@ struct ArcadeSettingsDashboardView: View {
                         if let user = authManager.currentUser {
                             NavigationLink(destination: ProfileView()) {
                                 ZStack {
-                                    LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing).mask(RoundedRectangle(cornerRadius: 20))
+                                    LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                        .mask(RoundedRectangle(cornerRadius: 20))
+                                    
                                     HStack(spacing: 20) {
-                                        ZStack { Circle().fill(Color.black.opacity(0.3)).frame(width: 64, height: 64); Text(getInitials(from: user.fullName)).font(.system(.title3, design: .rounded)).fontWeight(.black).foregroundColor(.white) }
-                                        VStack(alignment: .leading, spacing: 4) { Text(user.fullName.uppercased()).font(.system(.headline, design: .rounded)).fontWeight(.black).foregroundColor(.white); Text("PLAYER PROFILE").font(.system(size: 10, weight: .bold)).foregroundColor(.cyan).padding(4).background(Color.black.opacity(0.3)).cornerRadius(6) }
-                                        Spacer(); Image(systemName: "chevron.right").foregroundColor(.white.opacity(0.7))
-                                    }.padding(20)
-                                }.shadow(color: .blue.opacity(0.4), radius: 10)
-                            }.buttonStyle(PlainButtonStyle())
+                                        ZStack {
+                                            if let data = user.profileImageData, let uiImage = UIImage(data: data) {
+                                                Image(uiImage: uiImage)
+                                                    .resizable()
+                                                    .scaledToFill()
+                                                    .frame(width: 64, height: 64)
+                                                    .clipShape(Circle())
+                                                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                                            } else {
+                                                Circle()
+                                                    .fill(Color.black.opacity(0.3))
+                                                    .frame(width: 64, height: 64)
+                                                Text(getInitials(from: user.fullName))
+                                                    .font(.system(.title3, design: .rounded))
+                                                    .fontWeight(.black)
+                                                    .foregroundColor(.white)
+                                            }
+                                        }
+                                        
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(user.fullName.uppercased())
+                                                .font(.system(.headline, design: .rounded))
+                                                .fontWeight(.black)
+                                                .foregroundColor(.white)
+                                            Text("PLAYER PROFILE")
+                                                .font(.system(size: 10, weight: .bold))
+                                                .foregroundColor(.cyan)
+                                                .padding(4)
+                                                .background(Color.black.opacity(0.3))
+                                                .cornerRadius(6)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(.white.opacity(0.7))
+                                    }
+                                    .padding(20)
+                                }
+                                .shadow(color: .blue.opacity(0.4), radius: 10)
+                            }
+                            .buttonStyle(PlainButtonStyle())
                         }
+                        
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("SYSTEM SETTINGS").font(.system(.caption, design: .rounded)).fontWeight(.black).foregroundColor(.gray).padding(.horizontal)
+                            Text("SYSTEM SETTINGS")
+                                .font(.system(.caption, design: .rounded))
+                                .fontWeight(.black)
+                                .foregroundColor(.gray)
+                                .padding(.horizontal)
+                            
                             VStack(spacing: 12) {
                                 ArcadeMenuButton(title: "ACADEMIC CALENDAR", icon: "calendar", color: .green, destination: AnyView(AcademicCalendarView()))
                                 ArcadeMenuButton(title: "SYSTEM CONFIG", icon: "gearshape.fill", color: .orange, destination: AnyView(SettingsView()))
                                 ArcadeMenuButton(title: "LEGAL PROTOCOLS", icon: "lock.shield.fill", color: .gray, destination: AnyView(PrivacyPolicyView()))
                             }
                         }
-                    }.padding()
+                    }
+                    .padding()
                 }
             }
-            .navigationTitle("Command Center").navigationBarTitleDisplayMode(.inline)
-        }.preferredColorScheme(.dark)
+            .navigationTitle("Command Center")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .preferredColorScheme(.dark)
     }
 }
 
@@ -236,6 +329,7 @@ struct ArcadeMenuButton: View {
     }
 }
 
+// MARK: - 👾 RETRO VIEW
 struct RetroSettingsDashboardView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     var body: some View {
@@ -249,6 +343,16 @@ struct RetroSettingsDashboardView: View {
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text("> USER_DETECTED: \(user.fullName.uppercased())").font(.system(.headline, design: .monospaced)).foregroundColor(.green)
                                     HStack { Text("STATUS:"); Text("ONLINE").foregroundColor(.green).blinking(duration: 1.0) }.font(.system(.caption, design: .monospaced)).foregroundColor(.gray)
+                                    
+                                    // Add image logic here if you want it in Retro too
+                                    if let data = user.profileImageData, let uiImage = UIImage(data: data) {
+                                        Image(uiImage: uiImage)
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(height: 100)
+                                            .border(Color.green, width: 1)
+                                    }
+                                    
                                     Text("[ ACCESS_PROFILE ]").font(.system(.caption, design: .monospaced)).foregroundColor(.black).padding(6).background(Color.green)
                                 }.padding().frame(maxWidth: .infinity, alignment: .leading).border(Color.green, width: 1)
                             }.buttonStyle(PlainButtonStyle())

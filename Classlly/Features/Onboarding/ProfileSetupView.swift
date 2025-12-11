@@ -16,6 +16,10 @@ struct ProfileSetupView: View {
     @State private var major: String = ""
     @State private var academicYear: String = ""
     
+    // Image Handling
+    @State private var showingImagePicker = false
+    @State private var inputImage: UIImage?
+    
     private let educationLevels = ["High School", "Bachelor's Degree", "Master's Degree", "PhD", "Other"]
     private let academicYears = ["2023-2024", "2024-2025", "2025-2026", "2026-2027", "2027-2028"]
     private let popularMajors = [
@@ -34,6 +38,49 @@ struct ProfileSetupView: View {
     var body: some View {
         NavigationView {
             Form {
+                // Profile Picture Section
+                Section {
+                    HStack {
+                        Spacer()
+                        Button(action: { showingImagePicker = true }) {
+                            ZStack {
+                                if let inputImage = inputImage {
+                                    Image(uiImage: inputImage)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 100, height: 100)
+                                        .clipShape(Circle())
+                                } else {
+                                    Circle()
+                                        .fill(Color.gray.opacity(0.2))
+                                        .frame(width: 100, height: 100)
+                                    
+                                    Image(systemName: "camera.fill")
+                                        .font(.title)
+                                        .foregroundColor(.gray)
+                                }
+                                
+                                // Edit badge
+                                VStack {
+                                    Spacer()
+                                    HStack {
+                                        Spacer()
+                                        Image(systemName: "pencil.circle.fill")
+                                            .font(.title2)
+                                            .foregroundColor(.themePrimary)
+                                            .background(Circle().fill(Color.white))
+                                    }
+                                }
+                                .frame(width: 100, height: 100)
+                            }
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        Spacer()
+                    }
+                    .padding(.vertical, 8)
+                }
+                .listRowBackground(Color.clear)
+                
                 Section(header: Text("Personal Information")) {
                     HStack {
                         TextField("First Name", text: $firstName)
@@ -84,8 +131,13 @@ struct ProfileSetupView: View {
                     .fontWeight(.semibold)
                 }
             }
+            .sheet(isPresented: $showingImagePicker) {
+                ImagePicker { image in
+                    self.inputImage = image
+                }
+            }
         }
-        .navigationViewStyle(.stack) // FIX: Force iPhone style on iPad
+        .navigationViewStyle(.stack)
     }
     
     private var isFormValid: Bool {
@@ -99,10 +151,10 @@ struct ProfileSetupView: View {
             lastName: lastName,
             email: user.email,
             schoolName: schoolName,
-            gradeLevel: educationLevel, // Mapping UI 'educationLevel' to UserProfile 'gradeLevel'
+            gradeLevel: educationLevel,
             major: major.isEmpty ? nil : major,
             academicYear: academicYear,
-            profileImageData: nil
+            profileImageData: inputImage?.jpegData(compressionQuality: 0.8)
         )
         
         authManager.completeProfileSetup(profile: completedProfile, modelContext: modelContext)
