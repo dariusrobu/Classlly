@@ -46,15 +46,10 @@ struct RainbowDashboard: View {
     @EnvironmentObject var calendarManager: AcademicCalendarManager
     @EnvironmentObject var themeManager: AppTheme
     
-    private let statsColumns = [
-        GridItem(.flexible()),
-        GridItem(.flexible()),
-        GridItem(.flexible())
-    ]
-    
     var body: some View {
         // Dynamic Accent Color
         let accentColor = themeManager.selectedTheme.primaryColor
+        let formattedDate = Date().formatted(date: .abbreviated, time: .omitted)
         
         ScrollView {
             VStack(spacing: 24) {
@@ -74,7 +69,8 @@ struct RainbowDashboard: View {
                             HStack {
                                 Image(systemName: "calendar")
                                     .foregroundColor(accentColor)
-                                Text("Academic Week \(currentWeek) • \(calendarManager.currentSemester.displayName)")
+                                // Added Date here
+                                Text("Week \(currentWeek) • \(calendarManager.currentSemester.displayName) • \(formattedDate)")
                                     .font(.caption)
                                     .foregroundColor(accentColor)
                             }
@@ -84,38 +80,11 @@ struct RainbowDashboard: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 
-                // 2. Quick Stats
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Quick Stats").font(.headline).foregroundColor(.white)
-                    
-                    LazyVGrid(columns: statsColumns, spacing: 12) {
-                        RainbowStatBox(
-                            title: "Today's Classes",
-                            value: "\(filterTodayClasses(academicWeek: calendarManager.currentTeachingWeek).count)",
-                            icon: "calendar",
-                            color: accentColor // Dynamic
-                        )
-                        RainbowStatBox(
-                            title: "Pending Tasks",
-                            value: "\(tasks.filter { !$0.isCompleted }.count)",
-                            icon: "checklist",
-                            color: RainbowColors.orange
-                        )
-                        RainbowStatBox(
-                            title: "Subjects",
-                            value: "\(subjects.count)",
-                            icon: "book",
-                            color: RainbowColors.green
-                        )
-                    }
-                }
-                
-                // 3. Today's Classes
+                // 2. Today's Classes
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Text("Today's Classes").font(.headline).foregroundColor(.white)
                         Spacer()
-                        // Pass embedInNavigationStack: false
                         NavigationLink(destination: SubjectsView(embedInNavigationStack: false)) {
                             Text("See All").font(.subheadline).foregroundColor(accentColor)
                         }
@@ -160,12 +129,11 @@ struct RainbowDashboard: View {
                     }
                 }
                 
-                // 4. Upcoming Tasks
+                // 3. Upcoming Tasks
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Text("Upcoming Tasks").font(.headline).foregroundColor(.white)
                         Spacer()
-                        // Pass embedInNavigationStack: false
                         NavigationLink(destination: TasksView(embedInNavigationStack: false)) {
                             Text("See All").font(.subheadline).foregroundColor(accentColor)
                         }
@@ -230,10 +198,35 @@ struct StandardDashboard: View {
     @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
+        let formattedDate = Date().formatted(date: .abbreviated, time: .omitted)
+        
         ScrollView {
             VStack(spacing: 20) {
-                welcomeHeader
-                quickStatsSection
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Welcome back!")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.themeTextPrimary)
+                    Text("Here's your academic overview for today")
+                        .font(.subheadline)
+                        .foregroundColor(.themeTextSecondary)
+                    
+                    if let currentWeek = calendarManager.currentTeachingWeek {
+                        HStack {
+                            Image(systemName: "calendar")
+                            // Added Date here
+                            Text("Week \(currentWeek) • \(calendarManager.currentSemester.displayName) • \(formattedDate)")
+                        }
+                        .font(.caption)
+                        .foregroundColor(.themePrimary)
+                        .padding(.top, 4)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+                .background(Color.themeSurface)
+                .cornerRadius(12)
+                
                 todaysClassesSection
                 upcomingTasksSection
                 academicPerformanceSection
@@ -241,58 +234,6 @@ struct StandardDashboard: View {
             .padding()
         }
         .background(Color.themeBackground)
-    }
-    
-    private var welcomeHeader: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Welcome back!")
-                .font(.title2)
-                .fontWeight(.semibold)
-                .foregroundColor(.themeTextPrimary)
-            Text("Here's your academic overview for today")
-                .font(.subheadline)
-                .foregroundColor(.themeTextSecondary)
-            
-            if let currentWeek = calendarManager.currentTeachingWeek {
-                HStack {
-                    Image(systemName: "calendar")
-                    Text("Academic Week \(currentWeek)")
-                    Text("•")
-                    Text(calendarManager.currentSemester.displayName)
-                }
-                .font(.caption)
-                .foregroundColor(.themePrimary)
-                .padding(.top, 4)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color.themeSurface)
-        .cornerRadius(12)
-    }
-    
-    private var quickStatsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Quick Stats")
-                .font(.headline)
-                .fontWeight(.semibold)
-                .foregroundColor(.themeTextPrimary)
-            
-            HStack(spacing: 12) {
-                StatBox(
-                    title: "Today's Classes",
-                    value: "\(filterTodayClasses(academicWeek: calendarManager.currentTeachingWeek).count)"
-                )
-                StatBox(
-                    title: "Pending Tasks",
-                    value: "\(tasks.filter { !$0.isCompleted }.count)"
-                )
-                StatBox(
-                    title: "Subjects",
-                    value: "\(subjects.count)"
-                )
-            }
-        }
     }
     
     private var todaysClassesSection: some View {
@@ -410,14 +351,9 @@ struct ArcadeDashboard: View {
     let tasks: [StudyTask]
     @EnvironmentObject var calendarManager: AcademicCalendarManager
     
-    // 3 Column Grid for Stats
-    private let statsColumns = [
-        GridItem(.flexible()),
-        GridItem(.flexible()),
-        GridItem(.flexible())
-    ]
-    
     var body: some View {
+        let formattedDate = Date().formatted(date: .abbreviated, time: .omitted).uppercased()
+        
         ScrollView {
             VStack(spacing: 24) {
                 // 1. Hero Card
@@ -435,10 +371,19 @@ struct ArcadeDashboard: View {
                             Image(systemName: "crown.fill")
                                 .font(.title2)
                                 .foregroundColor(.yellow)
-                            Text("LEVEL \(calendarManager.currentTeachingWeek ?? 1)")
-                                .font(.system(.headline, design: .rounded))
-                                .fontWeight(.black)
-                                .foregroundColor(.white)
+                            
+                            // Stacked Level and Date
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text("LEVEL \(calendarManager.currentTeachingWeek ?? 1)")
+                                    .font(.system(.headline, design: .rounded))
+                                    .fontWeight(.black)
+                                    .foregroundColor(.white)
+                                
+                                Text(formattedDate) // Added Date
+                                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                            
                             Spacer()
                             Text("RANK: SCHOLAR")
                                 .font(.caption)
@@ -468,29 +413,7 @@ struct ArcadeDashboard: View {
                     .padding(20)
                 }
                 
-                // 2. Stats Grid
-                LazyVGrid(columns: statsColumns, spacing: 12) {
-                    ArcadeStatPill(
-                        icon: "shield.fill",
-                        value: "\(filterTodayClasses(academicWeek: calendarManager.currentTeachingWeek).count)",
-                        label: "Raids",
-                        gradient: Gradient(colors: [.cyan, .blue])
-                    )
-                    ArcadeStatPill(
-                        icon: "flame.fill",
-                        value: "\(tasks.filter { !$0.isCompleted }.count)",
-                        label: "Quests",
-                        gradient: Gradient(colors: [.orange, .red])
-                    )
-                    ArcadeStatPill(
-                        icon: "bolt.fill",
-                        value: "\(subjects.count)",
-                        label: "Skills",
-                        gradient: Gradient(colors: [.purple, .pink])
-                    )
-                }
-                
-                // 3. Daily Raids (Today's Classes)
+                // 2. Daily Raids (Today's Classes)
                 VStack(alignment: .leading, spacing: 16) {
                     HStack {
                         Text("DAILY RAIDS")
@@ -536,7 +459,7 @@ struct ArcadeDashboard: View {
                     }
                 }
                 
-                // 4. Quest Log (Tasks)
+                // 3. Quest Log (Tasks)
                 VStack(alignment: .leading, spacing: 16) {
                     HStack {
                         Text("QUEST LOG")
@@ -580,7 +503,7 @@ struct ArcadeDashboard: View {
                     }
                 }
                 
-                // 5. Skill Mastery (Academic Performance)
+                // 4. Skill Mastery (Academic Performance)
                 VStack(alignment: .leading, spacing: 16) {
                     HStack {
                         Text("SKILL MASTERY")
