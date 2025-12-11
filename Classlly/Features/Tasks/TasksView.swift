@@ -3,7 +3,7 @@ import SwiftData
 
 struct TasksView: View {
     @EnvironmentObject var themeManager: AppTheme
-    var embedInNavigationStack: Bool = true // Default true for Tab Bar
+    var embedInNavigationStack: Bool = true
     
     var body: some View {
         Group {
@@ -12,8 +12,6 @@ struct TasksView: View {
                 RainbowTasksView(embedInNavigationStack: embedInNavigationStack)
             case .arcade:
                 ArcadeTasksView()
-            case .retro:
-                RetroTasksView()
             case .none:
                 StandardTasksView()
             }

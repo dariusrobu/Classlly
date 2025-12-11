@@ -1,8 +1,6 @@
 import SwiftUI
-import Combine
 import SwiftData
 
-// MARK: - MAIN SWITCHER
 struct SubjectDetailView: View {
     @EnvironmentObject var themeManager: AppTheme
     @Bindable var subject: Subject
@@ -14,8 +12,6 @@ struct SubjectDetailView: View {
                 RainbowSubjectDetailView(subject: subject)
             case .arcade:
                 ArcadeSubjectDetailView(subject: subject)
-            case .retro:
-                RetroSubjectDetailView(subject: subject)
             case .none:
                 StandardSubjectDetailView(subject: subject)
             }

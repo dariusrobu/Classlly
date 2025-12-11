@@ -10,8 +10,6 @@ struct NotificationSettingsView: View {
             switch themeManager.selectedGameMode {
             case .arcade:
                 ArcadeNotificationSettingsView()
-            case .retro:
-                RetroNotificationSettingsView()
             case .none:
                 StandardNotificationSettingsView()
             case .rainbow:
