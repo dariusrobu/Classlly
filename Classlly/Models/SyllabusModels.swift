@@ -1,11 +1,3 @@
-//
-//  SyllabusResponse.swift
-//  Classlly
-//
-//  Created by Robu Darius on 11.12.2025.
-//
-
-
 import Foundation
 import SwiftData
 
@@ -27,12 +19,12 @@ struct SyllabusEvent: Codable {
 
 @Model
 final class ClassEvent {
-    var id: UUID
-    var title: String
-    var date: Date
-    var type: String // e.g., "Exam", "Assignment", "Quiz"
-    var isCompleted: Bool
-    var courseName: String? // Optional: Track which course this belongs to
+    var id: UUID = UUID()
+    var title: String = ""
+    var date: Date = Date()
+    var type: String = "General"
+    var isCompleted: Bool = false
+    var courseName: String? = nil
     
     init(title: String, date: Date, type: String, courseName: String? = nil, isCompleted: Bool = false) {
         self.id = UUID()
@@ -50,13 +42,10 @@ extension SyllabusResponse {
     func toSwiftDataModels() -> [ClassEvent] {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
-        // Ensure lenient parsing if needed, or set specific time zone
         dateFormatter.timeZone = TimeZone.current
         
         return events.compactMap { event in
-            // Guard against invalid dates returned by AI
             guard let validDate = dateFormatter.date(from: event.date) else {
-                print("Warning: Failed to parse date string: \(event.date)")
                 return nil
             }
             

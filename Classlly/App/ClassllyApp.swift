@@ -1,19 +1,39 @@
 import SwiftUI
-import SwiftData // or Firebase, depending on your stack
+import SwiftData
 
 @main
 struct ClassllyApp: App {
-    // If you use an AppDelegate, adapt accordingly.
-    // Otherwise, this is the standard entry point.
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
-    init() {
-        // Optional: UI Setup code here
-    }
-
+    // Initialize shared managers
+    @StateObject private var authManager = AuthenticationManager.shared
+    @StateObject private var themeManager = AppTheme.shared
+    @StateObject private var calendarManager = AcademicCalendarManager.shared
+    
     var body: some Scene {
         WindowGroup {
-            // Point this to your actual initial view (e.g., LoginView or MainTabView)
-            ContentView()
+            if authManager.isAuthenticated {
+                // ✅ LOGGED IN: Show Main Tab Bar
+                MainTabView()
+                    .environmentObject(themeManager)
+                    .environmentObject(authManager)
+                    .environmentObject(calendarManager)
+            } else {
+                // 🔒 LOGGED OUT: Show Sign In
+                SignInView()
+                    .environmentObject(authManager)
+                    .environmentObject(calendarManager)
+            }
         }
+        // 🔴 CRITICAL: Registers the database. If this is missing, the app crashes.
+        .modelContainer(for: [
+            Subject.self,
+            StudyTask.self,
+            GradeEntry.self,
+            AttendanceEntry.self,
+            StudyCalendarEvent.self,
+            StudentProfile.self,
+            ClassEvent.self
+        ])
     }
 }

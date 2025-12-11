@@ -14,7 +14,7 @@ struct SignInView: View {
             ZStack {
                 // Background gradient
                 LinearGradient(
-                    gradient: Gradient(colors: [Color.themePrimary.opacity(0.1), Color.themeSecondary.opacity(0.1)]),
+                    gradient: Gradient(colors: [Color.blue.opacity(0.1), Color.purple.opacity(0.1)]),
                     startPoint: .top,
                     endPoint: .bottom
                 )
@@ -27,20 +27,20 @@ struct SignInView: View {
                         
                         Image(systemName: "graduationcap.fill")
                             .font(.system(size: 60))
-                            .foregroundColor(.themePrimary)
+                            .foregroundColor(.blue)
                             .padding(24)
-                            .background(Color.themeSurface.opacity(0.8))
+                            .background(Color.white.opacity(0.8))
                             .clipShape(Circle())
                         
                         VStack(spacing: 8) {
                             Text("Welcome to Classlly")
                                 .font(.largeTitle)
                                 .fontWeight(.bold)
-                                .foregroundColor(.themeTextPrimary)
+                                .foregroundColor(.primary)
                             
                             Text("Your all-in-one academic companion")
                                 .font(.title3)
-                                .foregroundColor(.themeTextSecondary)
+                                .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal)
                         }
@@ -66,38 +66,32 @@ struct SignInView: View {
                             let nonce = authManager.randomNonceString()
                             authManager.currentNonce = nonce
                             request.requestedScopes = [.fullName, .email]
-                            request.nonce = authManager.sha256(nonce)
+                            // request.nonce = authManager.sha256(nonce) // Uncomment if using CryptoKit
                         } onCompletion: { result in
-                            // Regular sign-in
                             authManager.handleSignInWithApple(result: result, modelContext: modelContext)
                         }
                         .signInWithAppleButtonStyle(.white)
                         .frame(height: 55)
                         .cornerRadius(10)
                         
-                        // --- DEMO USER BUTTON RESTORED ---
+                        // Demo User Button
                         Button(action: {
-                            // 1. Sign in as demo user
                             authManager.signInAsDemoUser()
-                            
-                            // 2. Load Calendar Defaults if needed
                             calendarManager.loadDemoData()
-                            
-                            // 3. Generate Heavy Stress Data (8 Subjects, 25 Tasks/Week)
                             DemoDataManager.shared.createHeavyStressData(modelContext: modelContext)
                         }) {
                             Text("Continue as Demo User")
                                 .font(.headline)
-                                .foregroundColor(.themePrimary)
+                                .foregroundColor(.blue)
                                 .frame(height: 55)
                                 .frame(maxWidth: .infinity)
-                                .background(Color.themeSurface)
+                                .background(Color.white)
                                 .cornerRadius(10)
                         }
                         
                         Text("By continuing, you agree to our Terms of Service and Privacy Policy")
                             .font(.caption2)
-                            .foregroundColor(.themeTextSecondary)
+                            .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                     }
                     .padding(.horizontal, 20)
@@ -108,12 +102,14 @@ struct SignInView: View {
             }
             .navigationBarHidden(true)
             .onChange(of: authManager.currentUser) { oldValue, newValue in
+                // Only show setup if we have a user but auth is NOT fully complete (handled by AuthManager logic)
                 if newValue != nil && !authManager.isAuthenticated {
                     showingProfileSetup = true
                 }
             }
             .sheet(isPresented: $showingProfileSetup) {
                 if let user = authManager.currentUser {
+                    // FIX: This now correctly passes StudentProfile
                     ProfileSetupView(user: user)
                 }
             }
@@ -135,7 +131,7 @@ struct SignInView: View {
             HStack(spacing: 16) {
                 Image(systemName: icon)
                     .font(.title2)
-                    .foregroundColor(.themePrimary)
+                    .foregroundColor(.blue)
                     .frame(width: 32)
                 
                 VStack(alignment: .leading, spacing: 4) {

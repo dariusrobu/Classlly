@@ -6,8 +6,8 @@ struct ProfileSetupView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @Environment(\.modelContext) private var modelContext
     
-    let user: UserProfile
-    @Environment(\.colorScheme) var colorScheme
+    // Changed from UserProfile to StudentProfile
+    let user: StudentProfile
     
     @State private var firstName: String
     @State private var lastName: String
@@ -29,7 +29,7 @@ struct ProfileSetupView: View {
         "Music", "Architecture", "Education", "Nursing", "Other"
     ]
     
-    init(user: UserProfile) {
+    init(user: StudentProfile) {
         self.user = user
         _firstName = State(initialValue: user.firstName)
         _lastName = State(initialValue: user.lastName)
@@ -67,7 +67,7 @@ struct ProfileSetupView: View {
                                         Spacer()
                                         Image(systemName: "pencil.circle.fill")
                                             .font(.title2)
-                                            .foregroundColor(.themePrimary)
+                                            .foregroundColor(.blue) // Fixed hardcoded color
                                             .background(Circle().fill(Color.white))
                                     }
                                 }
@@ -120,7 +120,7 @@ struct ProfileSetupView: View {
                         authManager.signOut(modelContext: modelContext)
                         dismiss()
                     }
-                    .foregroundColor(.themeError)
+                    .foregroundColor(.red)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -145,19 +145,17 @@ struct ProfileSetupView: View {
     }
     
     private func completeProfile() {
-        let completedProfile = UserProfile(
-            id: user.id,
-            firstName: firstName,
-            lastName: lastName,
-            email: user.email,
-            schoolName: schoolName,
-            gradeLevel: educationLevel,
-            major: major.isEmpty ? nil : major,
-            academicYear: academicYear,
-            profileImageData: inputImage?.jpegData(compressionQuality: 0.8)
-        )
+        // Update the existing user object properties
+        user.firstName = firstName
+        user.lastName = lastName
+        user.schoolName = schoolName
+        user.gradeLevel = educationLevel
+        user.major = major.isEmpty ? nil : major
+        user.academicYear = academicYear
+        user.profileImageData = inputImage?.jpegData(compressionQuality: 0.8)
         
-        authManager.completeProfileSetup(profile: completedProfile, modelContext: modelContext)
+        // Pass the updated StudentProfile object
+        authManager.completeProfileSetup(profile: user, modelContext: modelContext)
         dismiss()
     }
 }

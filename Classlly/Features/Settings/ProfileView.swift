@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Combine
 
 // MARK: - MAIN SWITCHER
 struct ProfileView: View {
@@ -22,9 +23,9 @@ struct ProfileView: View {
     }
 }
 
-// MARK: - 🌈 RAINBOW PROFILE VIEW (Dynamic Color)
+// MARK: - 🌈 RAINBOW PROFILE VIEW
 struct RainbowProfileView: View {
-    let user: UserProfile?
+    let user: StudentProfile?
     let subjects: [Subject]
     let tasks: [StudyTask]
     @EnvironmentObject var authManager: AuthenticationManager
@@ -119,7 +120,7 @@ struct RainbowProfileView: View {
                                         Divider().background(Color.gray.opacity(0.3))
                                         ProfileInfoRow(icon: "calendar", label: "Year", value: user.academicYear, color: accentColor)
                                         Divider().background(Color.gray.opacity(0.3))
-                                        ProfileInfoRow(icon: "envelope.fill", label: "Email", value: user.email ?? "No Email", color: RainbowColors.orange)
+                                        ProfileInfoRow(icon: "envelope.fill", label: "Email", value: user.email, color: RainbowColors.orange)
                                     }
                                 }
                                 .padding(.horizontal)
@@ -198,6 +199,9 @@ struct EditProfileView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @EnvironmentObject var themeManager: AppTheme
     
+    // Direct reference to the SwiftData object
+    let user: StudentProfile
+    
     @State private var firstName: String
     @State private var lastName: String
     @State private var schoolName: String
@@ -208,9 +212,7 @@ struct EditProfileView: View {
     @State private var showingImagePicker = false
     @State private var inputImage: UIImage?
     
-    let user: UserProfile
-    
-    init(user: UserProfile) {
+    init(user: StudentProfile) {
         self.user = user
         _firstName = State(initialValue: user.firstName)
         _lastName = State(initialValue: user.lastName)
@@ -225,10 +227,11 @@ struct EditProfileView: View {
     
     var body: some View {
         let accentColor = themeManager.selectedTheme.primaryColor
+        let isDark = themeManager.selectedGameMode != .none
         
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                if isDark { Color.black.ignoresSafeArea() } else { Color.themeBackground.ignoresSafeArea() }
                 
                 ScrollView {
                     VStack(spacing: 24) {
@@ -262,24 +265,24 @@ struct EditProfileView: View {
                             }
                         }
                         
-                        RainbowContainer {
-                            VStack(alignment: .leading, spacing: 16) {
-                                Text("Personal Info").font(.headline).foregroundColor(.gray)
-                                
-                                CustomTextField(placeholder: "First Name", text: $firstName, color: accentColor)
-                                CustomTextField(placeholder: "Last Name", text: $lastName, color: accentColor)
-                            }
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Personal Info").font(.headline).foregroundColor(.gray)
+                            CustomTextField(placeholder: "First Name", text: $firstName, color: accentColor)
+                            CustomTextField(placeholder: "Last Name", text: $lastName, color: accentColor)
                         }
+                        .padding()
+                        .background(isDark ? Color(white: 0.1) : Color.white)
+                        .cornerRadius(12)
                         
-                        RainbowContainer {
-                            VStack(alignment: .leading, spacing: 16) {
-                                Text("Academic Info").font(.headline).foregroundColor(.gray)
-                                
-                                CustomTextField(placeholder: "University/School", text: $schoolName, color: accentColor)
-                                CustomTextField(placeholder: "Major", text: $major, color: accentColor)
-                                CustomTextField(placeholder: "Academic Year", text: $academicYear, color: accentColor)
-                            }
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Academic Info").font(.headline).foregroundColor(.gray)
+                            CustomTextField(placeholder: "University/School", text: $schoolName, color: accentColor)
+                            CustomTextField(placeholder: "Major", text: $major, color: accentColor)
+                            CustomTextField(placeholder: "Academic Year", text: $academicYear, color: accentColor)
                         }
+                        .padding()
+                        .background(isDark ? Color(white: 0.1) : Color.white)
+                        .cornerRadius(12)
                     }
                     .padding()
                 }
@@ -288,7 +291,8 @@ struct EditProfileView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") { dismiss() }.foregroundColor(.white)
+                    Button("Cancel") { dismiss() }
+                        .foregroundColor(isDark ? .white : .primary)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
@@ -304,61 +308,35 @@ struct EditProfileView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
     
     private func saveProfile() {
-        let imageData = inputImage?.jpegData(compressionQuality: 0.8)
-        
-        // 1. Create the updated struct
-        let updatedProfile = UserProfile(
-            id: user.id,
-            firstName: firstName,
-            lastName: lastName,
-            email: user.email,
-            schoolName: schoolName,
-            gradeLevel: user.gradeLevel,
-            major: major,
-            academicYear: academicYear,
-            profileImageData: imageData
-        )
-        
-        // 2. Update Global State IMMEDIATELY (Fixes "Nothing Happens" bug)
-        authManager.currentUser = updatedProfile
-        
-        // 3. Try to persist to Database
-        let id = user.id
-        let descriptor = FetchDescriptor<StudentProfile>(predicate: #Predicate<StudentProfile> { p in
-            p.id == id
-        })
+        // Update the SwiftData object directly
+        user.firstName = firstName
+        user.lastName = lastName
+        user.schoolName = schoolName
+        user.major = major
+        user.academicYear = academicYear
+        user.profileImageData = inputImage?.jpegData(compressionQuality: 0.8)
         
         do {
-            if let profile = try modelContext.fetch(descriptor).first {
-                profile.firstName = firstName
-                profile.lastName = lastName
-                profile.schoolName = schoolName
-                profile.major = major
-                profile.academicYear = academicYear
-                profile.profileImageData = imageData
-                
-                try modelContext.save()
-                print("✅ Profile saved to database")
-            } else {
-                print("⚠️ Profile not found in database (Demo User?), updated in-memory only.")
-            }
+            try modelContext.save()
+            // Notify AuthManager to refresh if it's listening
+            authManager.objectWillChange.send()
         } catch {
-            print("❌ Failed to save profile to DB: \(error)")
+            print("Failed to save profile: \(error)")
         }
         
         dismiss()
     }
 }
 
-// Helper TextField for Rainbow Forms
+// Helper TextField
 struct CustomTextField: View {
     let placeholder: String
     @Binding var text: String
     var color: Color
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -369,16 +347,15 @@ struct CustomTextField: View {
             
             TextField("", text: $text)
                 .padding()
-                .background(Color.black.opacity(0.3))
+                .background(Color.gray.opacity(0.15))
                 .cornerRadius(10)
-                .foregroundColor(.white)
         }
     }
 }
 
 // MARK: - 👔 STANDARD VIEW
 struct StandardProfileView: View {
-    let user: UserProfile?
+    let user: StudentProfile? // Changed from UserProfile
     let subjects: [Subject]
     let tasks: [StudyTask]
     @EnvironmentObject var authManager: AuthenticationManager
@@ -494,7 +471,7 @@ struct StandardProfileView: View {
 
 // MARK: - 🕹️ ARCADE VIEW
 struct ArcadeProfileView: View {
-    let user: UserProfile?
+    let user: StudentProfile? // Changed from UserProfile
     let subjects: [Subject]
     let tasks: [StudyTask]
     @EnvironmentObject var authManager: AuthenticationManager
