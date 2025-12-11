@@ -9,11 +9,17 @@ struct ScheduleImportReviewView: View {
     var body: some View {
         NavigationView {
             List {
-                ForEach($candidates) { $candidate in
-                    ClassEditorRow(candidate: $candidate)
-                }
-                .onDelete { indexSet in
-                    candidates.remove(atOffsets: indexSet)
+                if candidates.isEmpty {
+                    Text("No classes detected. Please try a clearer image.")
+                        .foregroundColor(.secondary)
+                        .padding()
+                } else {
+                    ForEach($candidates) { $candidate in
+                        ClassEditorRow(candidate: $candidate)
+                    }
+                    .onDelete { indexSet in
+                        candidates.remove(atOffsets: indexSet)
+                    }
                 }
             }
             .navigationTitle("Review Classes")
@@ -22,10 +28,11 @@ struct ScheduleImportReviewView: View {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Import All") {
+                    Button("Import \(candidates.filter{$0.isSelected}.count)") {
                         saveToSchedule()
                     }
                     .fontWeight(.bold)
+                    .disabled(candidates.filter{$0.isSelected}.isEmpty)
                 }
             }
         }
@@ -38,6 +45,17 @@ struct ScheduleImportReviewView: View {
             // Convert 'Day String' to weekday Int (1=Sun, 2=Mon...)
             let weekday = dayStringToInt(item.day)
             
+            // Parse frequency logic based on weekRestriction string
+            var cFreq: ClassFrequency = .weekly
+            var sFreq: ClassFrequency = .weekly
+            
+            let restriction = item.weekRestriction.lowercased()
+            if restriction.contains("odd") || restriction.contains("impar") {
+                cFreq = .biweeklyOdd; sFreq = .biweeklyOdd
+            } else if restriction.contains("even") || restriction.contains("par") {
+                cFreq = .biweeklyEven; sFreq = .biweeklyEven
+            }
+            
             let newSubject = Subject(
                 title: item.title,
                 courseTeacher: item.type == .course ? item.teacher : "",
@@ -45,14 +63,15 @@ struct ScheduleImportReviewView: View {
                 courseStartTime: item.startTime,
                 courseEndTime: item.endTime,
                 courseDays: item.type == .course ? [weekday] : [],
+                courseFrequency: cFreq,
                 seminarTeacher: item.type != .course ? item.teacher : "",
                 seminarClassroom: item.type != .course ? item.room : "",
                 seminarStartTime: item.type != .course ? item.startTime : Date(),
                 seminarEndTime: item.type != .course ? item.endTime : Date(),
-                seminarDays: item.type != .course ? [weekday] : []
+                seminarDays: item.type != .course ? [weekday] : [],
+                seminarFrequency: sFreq
             )
             
-            // Save logic
             modelContext.insert(newSubject)
         }
         
@@ -60,17 +79,27 @@ struct ScheduleImportReviewView: View {
     }
     
     private func dayStringToInt(_ day: String) -> Int {
-        // Simple mapper
-        switch day.prefix(3).lowercased() {
-        case "mon": return 2
-        case "tue": return 3
-        case "wed": return 4
-        case "thu": return 5
-        case "fri": return 6
-        case "sat": return 7
-        case "sun": return 1
-        default: return 2 // Default Mon
-        }
+        let d = day.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // English Checks
+        if d.starts(with: "mon") { return 2 }
+        if d.starts(with: "tue") { return 3 }
+        if d.starts(with: "wed") { return 4 }
+        if d.starts(with: "thu") { return 5 }
+        if d.starts(with: "fri") { return 6 }
+        if d.starts(with: "sat") { return 7 }
+        if d.starts(with: "sun") { return 1 }
+        
+        // Romanian Checks
+        if d.starts(with: "lun") { return 2 } // Luni
+        if d.starts(with: "mar") { return 3 } // Marti
+        if d.starts(with: "mie") { return 4 } // Miercuri
+        if d.starts(with: "joi") { return 5 } // Joi
+        if d.starts(with: "vin") { return 6 } // Vineri
+        if d.starts(with: "sam") { return 7 } // Sambata
+        if d.starts(with: "dum") { return 1 } // Duminica
+        
+        return 2 // Default to Monday if unknown
     }
 }
 
@@ -93,6 +122,7 @@ struct ClassEditorRow: View {
                     HStack {
                         Text(candidate.day)
                             .foregroundColor(.blue)
+                            .fontWeight(.medium)
                         Text("•")
                         Text(candidate.timeString)
                     }
@@ -102,10 +132,14 @@ struct ClassEditorRow: View {
                 
                 Spacer()
                 
-                if candidate.hasConflict {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.orange)
-                }
+                // Type Badge
+                Text(candidate.type.rawValue.prefix(1))
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .frame(width: 24, height: 24)
+                    .background(candidate.type.color)
+                    .clipShape(Circle())
                 
                 Button(action: { withAnimation { isExpanded.toggle() }}) {
                     Image(systemName: "chevron.down")
@@ -137,16 +171,13 @@ struct ClassEditorRow: View {
                     }
                     GridRow {
                         Text("Weeks").font(.caption).foregroundColor(.gray)
-                        TextField("e.g. Odd, S1", text: $candidate.weekRestriction)
+                        TextField("e.g. Odd, Even", text: $candidate.weekRestriction)
                     }
                 }
                 .font(.subheadline)
-                
-                Toggle("Optional Class", isOn: $candidate.isOptional)
-                    .font(.caption)
-                    .tint(.blue)
             }
         }
         .padding(.vertical, 8)
+        .opacity(candidate.isSelected ? 1.0 : 0.5)
     }
 }

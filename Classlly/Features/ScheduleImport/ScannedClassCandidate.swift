@@ -6,16 +6,25 @@ enum ClassType: String, Codable, CaseIterable {
     case seminar = "Seminar"
     case lab = "Lab"
     case online = "Online"
+    
+    var color: Color {
+        switch self {
+        case .course: return .blue
+        case .seminar: return .green
+        case .lab: return .orange
+        case .online: return .purple
+        }
+    }
 }
 
 struct ScannedClassCandidate: Identifiable, Equatable {
     let id = UUID()
     
-    // Raw Data
-    let rawText: String
+    // Raw Data (Legacy OCR text, unused with Gemini but kept for model compatibility)
+    var rawText: String = ""
     
     // Extracted Fields
-    var day: String = "Monday" // Default
+    var day: String = "Monday"
     var startTime: Date
     var endTime: Date
     var title: String
@@ -25,7 +34,7 @@ struct ScannedClassCandidate: Identifiable, Equatable {
     var weekRestriction: String = "" // e.g., "Odd Weeks", "S1"
     var isOptional: Bool = false
     
-    // State
+    // State for the Review UI
     var isSelected: Bool = true
     var hasConflict: Bool = false
     
