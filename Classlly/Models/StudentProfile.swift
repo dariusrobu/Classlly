@@ -3,7 +3,8 @@ import SwiftData
 
 @Model
 final class StudentProfile {
-    @Attribute(.unique) var id: String = ""
+    // 🔴 FIX: Removed @Attribute(.unique) to allow CloudKit sync
+    var id: String = ""
     var email: String = ""
     var firstName: String = ""
     var lastName: String = ""

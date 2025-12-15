@@ -10,6 +10,8 @@ struct AcademicCalendarView: View {
             switch themeManager.selectedGameMode {
             case .arcade:
                 ArcadeSemesterListView()
+            case .retro:
+                RetroSemesterListView()
             case .rainbow:
                 StandardSemesterListView()
                     .preferredColorScheme(.dark)
@@ -202,6 +204,69 @@ struct ArcadeSemesterEvents: View {
         }
     }
     private func formatDate(_ dateString: String) -> String { let i = DateFormatter(); i.dateFormat = "yyyy-MM-dd"; guard let d = i.date(from: dateString) else { return dateString }; let o = DateFormatter(); o.dateFormat = "MMM d"; return o.string(from: d) }
+}
+
+// MARK: - 👾 RETRO VIEW
+struct RetroSemesterListView: View {
+    @EnvironmentObject var calendarManager: AcademicCalendarManager
+    @State private var showingCalendarManagement = false
+    @State private var showingEditCalendar = false
+    private var retroFont: Font.Design { .monospaced }
+    
+    var body: some View {
+        ZStack {
+            Color(red: 0.05, green: 0.05, blue: 0.05).ignoresSafeArea()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("> SYSTEM_CALENDAR").font(.system(.headline, design: retroFont)).foregroundColor(.green)
+                        if let calendar = calendarManager.currentAcademicYear {
+                            Text("LOADED: \(calendar.academicYear)").font(.system(.caption, design: retroFont)).foregroundColor(.gray)
+                            Text("ORG: \(calendar.universityName ?? "UNKNOWN")").font(.system(.caption, design: retroFont)).foregroundColor(.gray)
+                        } else { Text("ERROR: NO_CALENDAR_MOUNTED").font(.system(.caption, design: retroFont)).foregroundColor(.red) }
+                        Rectangle().frame(height: 1).foregroundColor(.green)
+                    }
+                    HStack {
+                        RetroButton(label: "[ LOAD_DB ]") { showingCalendarManagement = true }
+                        RetroButton(label: "[ MODIFY ]", color: .yellow) { showingEditCalendar = true }
+                        RetroButton(label: "[ NEW ]", color: .cyan) { createNewCalendar() }
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("CURRENT_STATUS:").font(.system(.caption, design: retroFont)).foregroundColor(.gray)
+                        HStack { Text("WEEK_INDEX:"); Spacer(); if let week = calendarManager.currentTeachingWeek { Text("\(week)").fontWeight(.bold).foregroundColor(.green) } else { Text("NULL (BREAK)").foregroundColor(.yellow) } }.font(.system(.body, design: retroFont)).foregroundColor(.green)
+                        HStack { Text("SEMESTER:"); Spacer(); Text(calendarManager.currentSemester == .semester1 ? "1" : "2").foregroundColor(.green) }.font(.system(.body, design: retroFont)).foregroundColor(.green)
+                    }.padding().border(Color.green.opacity(0.5), width: 1)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("SEQUENCE_A (SEM_1):").font(.system(.caption, design: retroFont)).foregroundColor(.gray)
+                        RetroEventRows(events: calendarManager.getSemesterEvents(.semester1))
+                    }.padding().border(Color.green.opacity(0.3), width: 1)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("SEQUENCE_B (SEM_2):").font(.system(.caption, design: retroFont)).foregroundColor(.gray)
+                        RetroEventRows(events: calendarManager.getSemesterEvents(.semester2))
+                    }.padding().border(Color.green.opacity(0.3), width: 1)
+                }.padding()
+            }
+        }
+        .navigationTitle("CAL_DB").navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showingCalendarManagement) { CalendarManagementView(calendarManager: calendarManager) }
+        .sheet(isPresented: $showingEditCalendar) { if let calendar = calendarManager.currentAcademicYear { EditAcademicCalendarView(calendar: calendar, calendarManager: calendarManager) } }
+    }
+    
+    private func createNewCalendar() {
+        let newCalendar = calendarManager.createNewCalendar(year: "2025-2026", universityName: "My University", customName: "Custom Calendar")
+        calendarManager.addCustomCalendar(newCalendar); calendarManager.setCurrentCalendar(newCalendar); showingEditCalendar = true
+    }
+}
+
+struct RetroEventRows: View {
+    let events: [AcademicEventData]
+    var body: some View {
+        ForEach(events) { event in
+            Text("[ \(event.weeks)w ] \(event.customName?.uppercased() ?? "EVENT")").font(.system(.caption, design: .monospaced)).foregroundColor(.green)
+        }
+    }
 }
 
 // MARK: - SHARED SUPPORTING VIEWS

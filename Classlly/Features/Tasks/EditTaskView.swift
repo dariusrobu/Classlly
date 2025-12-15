@@ -10,6 +10,8 @@ struct EditTaskView: View {
             switch themeManager.selectedGameMode {
             case .arcade:
                 ArcadeEditTaskView(task: task)
+            case .retro:
+                RetroEditTaskView(task: task)
             case .rainbow:
                 RainbowEditTaskView(task: task)
             case .none:

@@ -17,6 +17,8 @@ struct AddTaskView: View {
                 RainbowAddTaskView(preSelectedSubject: preSelectedSubject)
             case .arcade:
                 ArcadeAddTaskView(preSelectedSubject: preSelectedSubject)
+            case .retro:
+                RetroAddTaskView(preSelectedSubject: preSelectedSubject)
             case .none:
                 StandardAddTaskView(preSelectedSubject: preSelectedSubject)
             }

@@ -84,6 +84,8 @@ struct CalendarView: View {
                 RainbowCalendarView()
             case .arcade:
                 ArcadeCalendarView()
+            case .retro:
+                RetroCalendarView()
             case .none:
                 StandardCalendarView()
             }

@@ -16,6 +16,8 @@ struct ProfileView: View {
                 RainbowProfileView(user: authManager.currentUser, subjects: subjects, tasks: tasks)
             case .arcade:
                 ArcadeProfileView(user: authManager.currentUser, subjects: subjects, tasks: tasks)
+            case .retro:
+                RetroProfileView(user: authManager.currentUser, subjects: subjects, tasks: tasks)
             case .none:
                 StandardProfileView(user: authManager.currentUser, subjects: subjects, tasks: tasks)
             }
@@ -573,5 +575,80 @@ struct ArcadeProfileView: View {
                 EditProfileView(user: user)
             }
         }
+    }
+}
+
+// MARK: - 👾 RETRO VIEW
+struct RetroProfileView: View {
+    let user: UserProfile?
+    let subjects: [Subject]
+    let tasks: [StudyTask]
+    @EnvironmentObject var authManager: AuthenticationManager
+    @Environment(\.modelContext) var modelContext
+
+    var body: some View {
+        ZStack {
+            Color(red: 0.05, green: 0.05, blue: 0.05).ignoresSafeArea()
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    if let user = user {
+                        Text("> IDENTIFYING_USER...")
+                            .font(.caption)
+                            .fontDesign(.monospaced)
+                            .foregroundColor(.green)
+                        
+                        // User Data
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("USER_ID: \(user.firstName.uppercased())")
+                                .font(.title3)
+                                .fontDesign(.monospaced)
+                                .foregroundColor(.white)
+                            
+                            RetroInfoRow(label: "FULL_NAME", value: user.fullName)
+                            RetroInfoRow(label: "AFFILIATION", value: user.schoolName)
+                            RetroInfoRow(label: "RANK", value: user.gradeLevel)
+                        }
+                        .padding()
+                        .border(Color.green, width: 1)
+                        
+                        // Stats
+                        Text("STATS_DUMP:")
+                            .font(.caption)
+                            .fontDesign(.monospaced)
+                            .foregroundColor(.gray)
+                        
+                        HStack {
+                            Text("SKILLS_LOADED: \(subjects.count)")
+                                .font(.body)
+                                .fontDesign(.monospaced)
+                                .foregroundColor(.green)
+                            Spacer()
+                            Text("QUESTS_ACTIVE: \(tasks.count)")
+                                .font(.body)
+                                .fontDesign(.monospaced)
+                                .foregroundColor(.green)
+                        }
+                        .padding()
+                        .border(Color.green.opacity(0.5), width: 1)
+                        
+                        // Logout
+                        Button(action: {
+                            authManager.signOut(modelContext: modelContext)
+                        }) {
+                            Text("[ TERMINATE_SESSION ]")
+                                .font(.system(.body, design: .monospaced))
+                                .foregroundColor(.red)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .border(Color.red, width: 1)
+                        }
+                        .padding(.top)
+                    }
+                }
+                .padding()
+            }
+        }
+        .navigationTitle("USER_PROFILE")
     }
 }
