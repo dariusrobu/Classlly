@@ -9,23 +9,17 @@ enum CalendarEvent: Identifiable {
     
     var id: String {
         switch self {
-        case .task(let task): return "task-\(task.id.uuidString)"
+        case .task(let task):
+            return "task-\(task.id.uuidString)"
         case .class(let subject, let isCourse, let date):
             let type = isCourse ? "course" : "seminar"
             return "class-\(subject.id.uuidString)-\(type)-\(date.timeIntervalSince1970)"
         }
     }
     
-    var isExam: Bool {
-        switch self {
-        case .task(let task): return task.isExam
-        case .class: return false
-        }
-    }
-    
     var icon: String {
         switch self {
-        case .task(let task): return task.isExam ? "graduationcap.fill" : "checkmark.circle"
+        case .task: return "checkmark.circle"
         case .class(_, let isCourse, _): return isCourse ? "book.fill" : "person.2.fill"
         }
     }
@@ -46,7 +40,7 @@ enum CalendarEvent: Identifiable {
     
     var title: String {
         switch self {
-        case .task(let task): return task.isExam ? "EXAM: \(task.title)" : task.title
+        case .task(let task): return task.title
         case .class(let subject, let isCourse, _):
             let type = isCourse ? "Course" : "Seminar"
             return "\(subject.title) (\(type))"
@@ -65,7 +59,7 @@ enum CalendarEvent: Identifiable {
     
     var color: Color {
         switch self {
-        case .task(let task): return task.isExam ? .red : .themeWarning
+        case .task: return .themeWarning
         case .class(_, let isCourse, _): return isCourse ? .themePrimary : .themeSuccess
         }
     }
@@ -90,6 +84,8 @@ struct CalendarView: View {
                 RainbowCalendarView()
             case .arcade:
                 ArcadeCalendarView()
+            case .retro:
+                RetroCalendarView()
             case .none:
                 StandardCalendarView()
             }
@@ -97,7 +93,7 @@ struct CalendarView: View {
     }
 }
 
-// MARK: - 🌈 RAINBOW CALENDAR
+// MARK: - 🌈 RAINBOW CALENDAR (Fixed Top Alignment & Custom Header)
 struct RainbowCalendarView: View {
     @State private var currentDate = Date()
     @State private var selectedDate = Date()
@@ -118,62 +114,118 @@ struct RainbowCalendarView: View {
         let accentColor = themeManager.selectedTheme.primaryColor
         
         VStack(spacing: 0) {
+            // 1. CUSTOM HEADER (Consistent with other tabs)
             RainbowHeader(
-                title: "Calendar", accentColor: accentColor, showBackButton: false,
-                backAction: nil, trailingIcon: "plus", trailingAction: { showingAddTask = true }
+                title: "Calendar",
+                accentColor: accentColor,
+                showBackButton: false,
+                backAction: nil,
+                trailingIcon: "plus",
+                trailingAction: { showingAddTask = true }
             )
             
-            ZStack(alignment: .top) {
+            ZStack(alignment: .top) { // Fix: Align content to top for iPad
                 Color.black.ignoresSafeArea()
                 
                 VStack(spacing: 24) {
+                    // 2. Week Info & Date Controls
                     VStack(spacing: 16) {
+                        // Week Label
                         if let currentWeek = calendarManager.currentTeachingWeek {
                             HStack {
-                                Text("Week \(currentWeek)").font(.title2).fontWeight(.bold).foregroundColor(.white)
-                                Text("•").foregroundColor(.gray)
-                                Text(calendarManager.currentSemester.displayName).font(.subheadline).foregroundColor(.gray)
+                                Text("Week \(currentWeek)")
+                                    .font(.title2).fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                Text("•")
+                                    .foregroundColor(.gray)
+                                Text(calendarManager.currentSemester.displayName)
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
                                 Spacer()
-                            }.padding(.horizontal)
+                            }
+                            .padding(.horizontal)
                         }
                         
+                        // Arrows + Date Range
                         HStack {
-                            Button(action: previousWeek) { Image(systemName: "chevron.left").font(.headline).foregroundColor(.white).frame(width: 44, height: 44).background(RainbowColors.darkCard).clipShape(Circle()) }
-                            Spacer()
-                            VStack(spacing: 4) {
-                                Text(weekRangeString).font(.headline).fontWeight(.bold).foregroundColor(.white)
-                                Text(currentDate, formatter: monthYearFormatter).font(.caption).fontWeight(.bold).foregroundColor(accentColor)
+                            Button(action: previousWeek) {
+                                Image(systemName: "chevron.left")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .frame(width: 44, height: 44)
+                                    .background(RainbowColors.darkCard)
+                                    .clipShape(Circle())
                             }
+                            
                             Spacer()
-                            Button(action: nextWeek) { Image(systemName: "chevron.right").font(.headline).foregroundColor(.white).frame(width: 44, height: 44).background(RainbowColors.darkCard).clipShape(Circle()) }
-                        }.padding(.horizontal)
-                    }.padding(.top, 20)
+                            
+                            VStack(spacing: 4) {
+                                Text(weekRangeString)
+                                    .font(.headline)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                Text(currentDate, formatter: monthYearFormatter)
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(accentColor)
+                            }
+                            
+                            Spacer()
+                            
+                            Button(action: nextWeek) {
+                                Image(systemName: "chevron.right")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .frame(width: 44, height: 44)
+                                    .background(RainbowColors.darkCard)
+                                    .clipShape(Circle())
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    .padding(.top, 20)
                     
+                    // 3. Calendar Grid (Dark Card)
                     RainbowContainer {
                         RainbowWeeklyCalendarGrid(currentDate: $currentDate, selectedDate: $selectedDate, accentColor: accentColor)
-                    }.padding(.horizontal)
+                    }
+                    .padding(.horizontal)
                     
+                    // 4. Events List
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
-                            Text("Events").font(.title3).bold().foregroundColor(.white)
-                            Text(formattedSelectedDate).font(.subheadline).foregroundColor(.gray)
+                            Text("Events")
+                                .font(.title3).bold()
+                                .foregroundColor(.white)
+                            Text(formattedSelectedDate)
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
                             Spacer()
-                        }.padding(.horizontal)
+                        }
+                        .padding(.horizontal)
                         
                         if eventsForSelectedDate.isEmpty {
                             Spacer()
                             VStack(spacing: 16) {
-                                Image(systemName: "calendar").font(.system(size: 50)).foregroundColor(RainbowColors.darkCard.opacity(2))
-                                Text("No events today").font(.headline).foregroundColor(.gray)
-                            }.frame(maxWidth: .infinity)
+                                Image(systemName: "calendar")
+                                    .font(.system(size: 50))
+                                    .foregroundColor(RainbowColors.darkCard.opacity(2))
+                                Text("No events today")
+                                    .font(.headline)
+                                    .foregroundColor(.gray)
+                            }
+                            .frame(maxWidth: .infinity)
                             Spacer()
                         } else {
                             ScrollView {
                                 LazyVStack(spacing: 12) {
                                     ForEach(eventsForSelectedDate) { event in
-                                        RainbowEventRow(event: event).onTapGesture { handleEventTap(event) }
+                                        RainbowEventRow(event: event)
+                                            .onTapGesture { handleEventTap(event) }
                                     }
-                                }.padding(.horizontal).padding(.bottom, 20)
+                                }
+                                .padding(.horizontal)
+                                .padding(.bottom, 20)
                             }
                         }
                     }
@@ -186,6 +238,7 @@ struct RainbowCalendarView: View {
         .sheet(isPresented: $showingAddTask) { AddTaskView() }
     }
     
+    // Logic Helpers
     private var eventsForSelectedDate: [CalendarEvent] {
         let tasksOnDate = tasks.filter { task in guard let d = task.dueDate else { return false }; return Calendar.current.isDate(d, inSameDayAs: selectedDate) }
         var classEvents: [CalendarEvent] = []
@@ -193,16 +246,15 @@ struct RainbowCalendarView: View {
         let academicWeek = calendarManager.currentTeachingWeek
         
         for subject in subjects {
-            if subject.courseDays.contains(weekday) && subject.occursThisWeek(academicWeek: academicWeek, isCourse: true) { classEvents.append(.class(subject: subject, isCourse: true, date: selectedDate)) }
-            if subject.seminarDays.contains(weekday) && subject.occursThisWeek(academicWeek: academicWeek, isCourse: false) { classEvents.append(.class(subject: subject, isCourse: false, date: selectedDate)) }
+            if subject.courseDays.contains(weekday) && subject.occursThisWeek(academicWeek: academicWeek, isCourse: true) {
+                classEvents.append(.class(subject: subject, isCourse: true, date: selectedDate))
+            }
+            if subject.seminarDays.contains(weekday) && subject.occursThisWeek(academicWeek: academicWeek, isCourse: false) {
+                classEvents.append(.class(subject: subject, isCourse: false, date: selectedDate))
+            }
         }
         let taskEvents = tasksOnDate.map { CalendarEvent.task($0) }
-        
-        // Sorting: Exams first, then by Start Time
-        return (taskEvents + classEvents).sorted {
-            if $0.isExam != $1.isExam { return $0.isExam } // True comes first
-            return $0.startTime < $1.startTime
-        }
+        return (taskEvents + classEvents).sorted { $0.startTime < $1.startTime }
     }
     
     private var weekRangeString: String {
@@ -226,55 +278,219 @@ struct RainbowCalendarView: View {
 }
 
 // MARK: - RAINBOW CALENDAR COMPONENTS
+
 struct RainbowWeeklyCalendarGrid: View {
-    @Binding var currentDate: Date; @Binding var selectedDate: Date; let accentColor: Color
+    @Binding var currentDate: Date
+    @Binding var selectedDate: Date
+    let accentColor: Color
+    
     private let daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     private let columns = Array(repeating: GridItem(.flexible()), count: 7)
+    
     var body: some View {
         VStack(spacing: 0) {
-            LazyVGrid(columns: columns, spacing: 10) { ForEach(daysOfWeek, id: \.self) { day in Text(day).font(.caption).fontWeight(.bold).foregroundColor(.gray).frame(height: 30) } }
-            LazyVGrid(columns: columns, spacing: 8) { ForEach(getDaysInWeek(), id: \.self) { date in let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate); let isToday = Calendar.current.isDateInToday(date); VStack { Text("\(Calendar.current.component(.day, from: date))").font(.system(size: 16, weight: .bold)).foregroundColor(isSelected ? .white : (isToday ? accentColor : .white)).frame(width: 40, height: 40).background(ZStack { if isSelected { Circle().fill(accentColor) } else if isToday { Circle().stroke(accentColor, lineWidth: 2) } }) }.onTapGesture { withAnimation(.spring(response: 0.3)) { selectedDate = date } } } }
+            // Day Names
+            LazyVGrid(columns: columns, spacing: 10) {
+                ForEach(daysOfWeek, id: \.self) { day in
+                    Text(day)
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.gray)
+                        .frame(height: 30)
+                }
+            }
+            
+            // Days
+            LazyVGrid(columns: columns, spacing: 8) {
+                ForEach(getDaysInWeek(), id: \.self) { date in
+                    let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
+                    let isToday = Calendar.current.isDateInToday(date)
+                    
+                    VStack {
+                        Text("\(Calendar.current.component(.day, from: date))")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(isSelected ? .white : (isToday ? accentColor : .white))
+                            .frame(width: 40, height: 40)
+                            .background(
+                                ZStack {
+                                    if isSelected {
+                                        Circle().fill(accentColor)
+                                    } else if isToday {
+                                        Circle().stroke(accentColor, lineWidth: 2)
+                                    }
+                                }
+                            )
+                    }
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.3)) {
+                            selectedDate = date
+                        }
+                    }
+                }
+            }
         }
     }
-    private func getDaysInWeek() -> [Date] { let c = Calendar.current; guard let i = c.dateInterval(of: .weekOfYear, for: currentDate) else { return [] }; return (0..<7).compactMap { c.date(byAdding: .day, value: $0, to: i.start) } }
+    
+    private func getDaysInWeek() -> [Date] {
+        let c = Calendar.current
+        guard let i = c.dateInterval(of: .weekOfYear, for: currentDate) else { return [] }
+        return (0..<7).compactMap { c.date(byAdding: .day, value: $0, to: i.start) }
+    }
 }
 
 struct RainbowEventRow: View {
     let event: CalendarEvent
+    
     var body: some View {
         RainbowContainer {
             HStack(spacing: 16) {
-                ZStack { Circle().fill(iconColor.opacity(0.15)).frame(width: 44, height: 44); Image(systemName: event.icon).font(.headline).foregroundColor(iconColor) }
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(event.title).font(.headline).fontWeight(isExam ? .black : .bold).foregroundColor(isExam ? .yellow : .white)
-                    Text(event.subtitle).font(.subheadline).foregroundColor(.gray)
-                    HStack(spacing: 6) { Image(systemName: "clock").font(.caption2).foregroundColor(iconColor); Text(event.startTime, formatter: timeFormatter).font(.caption).foregroundColor(iconColor).fontWeight(.medium); if let fi = event.frequencyInfo { Text("•").font(.caption2).foregroundColor(.gray); Text(fi).font(.caption2).padding(.horizontal, 6).padding(.vertical, 2).background(Color.white.opacity(0.1)).cornerRadius(4).foregroundColor(.gray) } }
+                // Color Bar / Icon
+                ZStack {
+                    Circle()
+                        .fill(iconColor.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: event.icon)
+                        .font(.headline)
+                        .foregroundColor(iconColor)
                 }
-                Spacer(); Image(systemName: "chevron.right").foregroundColor(.gray)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(event.title)
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                    
+                    Text(event.subtitle)
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                    
+                    HStack(spacing: 6) {
+                        Image(systemName: "clock")
+                            .font(.caption2)
+                            .foregroundColor(iconColor)
+                        Text(event.startTime, formatter: timeFormatter)
+                            .font(.caption)
+                            .foregroundColor(iconColor)
+                            .fontWeight(.medium)
+                        
+                        if let fi = event.frequencyInfo {
+                            Text("•")
+                                .font(.caption2)
+                                .foregroundColor(.gray)
+                            Text(fi)
+                                .font(.caption2)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.white.opacity(0.1))
+                                .cornerRadius(4)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.gray)
             }
         }
     }
-    private var isExam: Bool { return event.isExam }
-    private var iconColor: Color { if isExam { return .red }; switch event { case .task: return RainbowColors.orange; case .class(_, let isCourse, _): return isCourse ? RainbowColors.blue : RainbowColors.green } }
-    private let timeFormatter: DateFormatter = { let f = DateFormatter(); f.dateFormat = "h:mm a"; return f }()
+    
+    private var iconColor: Color {
+        switch event {
+        case .task: return RainbowColors.orange
+        case .class(_, let isCourse, _): return isCourse ? RainbowColors.blue : RainbowColors.green
+        }
+    }
+    
+    private let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "h:mm a"
+        return f
+    }()
 }
 
-// MARK: - STANDARD CALENDAR VIEW
+// ... (Standard, Arcade, Retro views remain unchanged below)
+// [Preserved existing code]
+
 struct StandardCalendarView: View {
-    @State private var currentDate = Date(); @State private var selectedDate = Date()
-    @Environment(\.colorScheme) var colorScheme; @EnvironmentObject var calendarManager: AcademicCalendarManager
-    @Query var subjects: [Subject]; @Query var tasks: [StudyTask]
-    @State private var selectedTask: StudyTask?; @State private var selectedSubject: Subject?; @State private var showingTaskDetail = false; @State private var showingSubjectDetail = false; @State private var showingAddTask = false
+    @State private var currentDate = Date()
+    @State private var selectedDate = Date()
+    @Environment(\.colorScheme) var colorScheme
+    @EnvironmentObject var calendarManager: AcademicCalendarManager
+    
+    @Query var subjects: [Subject]
+    @Query var tasks: [StudyTask]
+    
+    @State private var selectedTask: StudyTask?
+    @State private var selectedSubject: Subject?
+    @State private var showingTaskDetail = false
+    @State private var showingSubjectDetail = false
+    @State private var showingAddTask = false
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                VStack(spacing: 8) { if let currentWeek = calendarManager.currentTeachingWeek { HStack { Image(systemName: "clock.badge.checkmark").foregroundColor(currentWeek % 2 == 1 ? .themeWarning : .themePrimary); Text("Week \(currentWeek) • \(currentWeek % 2 == 1 ? "ODD" : "EVEN")").font(.subheadline).fontWeight(.semibold).foregroundColor(currentWeek % 2 == 1 ? .themeWarning : .themePrimary); Text("•").foregroundColor(.secondary); Text(calendarManager.currentSemester.displayName).font(.subheadline).foregroundColor(.secondary); Spacer() } } }.padding(.horizontal).padding(.top, 8)
-                VStack(spacing: 12) { HStack { Button(action: previousWeek) { Image(systemName: "chevron.left").font(.system(size: 16, weight: .medium)).foregroundColor(.themePrimary).frame(width: 30, height: 30).background(Color.themePrimary.opacity(0.1)).clipShape(Circle()) }; Spacer(); VStack(spacing: 2) { Text(weekRangeString).font(.title2).fontWeight(.semibold).foregroundColor(.themeTextPrimary); Text(currentDate, formatter: monthYearFormatter).font(.subheadline).foregroundColor(.themeTextSecondary) }; Spacer(); Button(action: nextWeek) { Image(systemName: "chevron.right").font(.system(size: 16, weight: .medium)).foregroundColor(.themePrimary).frame(width: 30, height: 30).background(Color.themePrimary.opacity(0.1)).clipShape(Circle()) } }.padding(.horizontal, 8) }.padding(.vertical, 16).padding(.horizontal)
+                // Header Info
+                VStack(spacing: 8) {
+                    if let currentWeek = calendarManager.currentTeachingWeek {
+                        HStack {
+                            Image(systemName: "clock.badge.checkmark")
+                                .foregroundColor(currentWeek % 2 == 1 ? .themeWarning : .themePrimary)
+                            Text("Week \(currentWeek) • \(currentWeek % 2 == 1 ? "ODD" : "EVEN")")
+                                .font(.subheadline).fontWeight(.semibold)
+                                .foregroundColor(currentWeek % 2 == 1 ? .themeWarning : .themePrimary)
+                            Text("•").foregroundColor(.secondary)
+                            Text(calendarManager.currentSemester.displayName)
+                                .font(.subheadline).foregroundColor(.secondary)
+                            Spacer()
+                        }
+                    }
+                }.padding(.horizontal).padding(.top, 8)
+                
+                // Date Controls
+                VStack(spacing: 12) {
+                    HStack {
+                        Button(action: previousWeek) {
+                            Image(systemName: "chevron.left").font(.system(size: 16, weight: .medium)).foregroundColor(.themePrimary)
+                                .frame(width: 30, height: 30).background(Color.themePrimary.opacity(0.1)).clipShape(Circle())
+                        }
+                        Spacer()
+                        VStack(spacing: 2) {
+                            Text(weekRangeString).font(.title2).fontWeight(.semibold).foregroundColor(.themeTextPrimary)
+                            Text(currentDate, formatter: monthYearFormatter).font(.subheadline).foregroundColor(.themeTextSecondary)
+                        }
+                        Spacer()
+                        Button(action: nextWeek) {
+                            Image(systemName: "chevron.right").font(.system(size: 16, weight: .medium)).foregroundColor(.themePrimary)
+                                .frame(width: 30, height: 30).background(Color.themePrimary.opacity(0.1)).clipShape(Circle())
+                        }
+                    }.padding(.horizontal, 8)
+                }.padding(.vertical, 16).padding(.horizontal)
+                
+                // Calendar Grid
                 WeeklyCalendarGrid(currentDate: $currentDate, selectedDate: $selectedDate).padding(.horizontal)
+                
+                // Events List
                 VStack(alignment: .leading, spacing: 16) {
-                    HStack { Text("Events for \(formattedSelectedDate)").font(.headline).fontWeight(.semibold).foregroundColor(.themeTextPrimary); Spacer(); Button(action: { showingAddTask = true }) { Image(systemName: "plus.circle.fill").font(.system(size: 20, weight: .medium)).foregroundColor(.themePrimary) } }.padding(.horizontal)
-                    if eventsForSelectedDate.isEmpty { CalendarEmptyStateView(icon: "calendar", title: "No Events", message: "No classes or tasks.") } else { ScrollView { LazyVStack(spacing: 12) { ForEach(eventsForSelectedDate) { event in EventRow(event: event).onTapGesture { handleEventTap(event) } } }.padding(.horizontal) } }
+                    HStack {
+                        Text("Events for \(formattedSelectedDate)").font(.headline).fontWeight(.semibold).foregroundColor(.themeTextPrimary)
+                        Spacer()
+                        Button(action: { showingAddTask = true }) { Image(systemName: "plus.circle.fill").font(.system(size: 20, weight: .medium)).foregroundColor(.themePrimary) }
+                    }.padding(.horizontal)
+                    
+                    if eventsForSelectedDate.isEmpty {
+                        CalendarEmptyStateView(icon: "calendar", title: "No Events", message: "No classes or tasks.")
+                    } else {
+                        ScrollView {
+                            LazyVStack(spacing: 12) {
+                                ForEach(eventsForSelectedDate) { event in
+                                    EventRow(event: event).onTapGesture { handleEventTap(event) }
+                                }
+                            }.padding(.horizontal)
+                        }
+                    }
                 }.padding(.vertical)
                 Spacer()
             }
@@ -284,26 +500,47 @@ struct StandardCalendarView: View {
             .sheet(isPresented: $showingAddTask) { AddTaskView() }
         }
     }
-    // Updated sorting
+    
+    // Logic Helpers
     private var eventsForSelectedDate: [CalendarEvent] {
         let tasksOnDate = tasks.filter { task in guard let d = task.dueDate else { return false }; return Calendar.current.isDate(d, inSameDayAs: selectedDate) }
         var classEvents: [CalendarEvent] = []
         let weekday = Calendar.current.component(.weekday, from: selectedDate)
-        let aw = calendarManager.currentTeachingWeek
-        for s in subjects { if s.courseDays.contains(weekday) && s.occursThisWeek(academicWeek: aw, isCourse: true) { classEvents.append(.class(subject: s, isCourse: true, date: selectedDate)) }; if s.seminarDays.contains(weekday) && s.occursThisWeek(academicWeek: aw, isCourse: false) { classEvents.append(.class(subject: s, isCourse: false, date: selectedDate)) } }
-        return (tasksOnDate.map { CalendarEvent.task($0) } + classEvents).sorted {
-            if $0.isExam != $1.isExam { return $0.isExam }
-            return $0.startTime < $1.startTime
+        let academicWeek = calendarManager.currentTeachingWeek
+        
+        for subject in subjects {
+            if subject.courseDays.contains(weekday) && subject.occursThisWeek(academicWeek: academicWeek, isCourse: true) {
+                classEvents.append(.class(subject: subject, isCourse: true, date: selectedDate))
+            }
+            if subject.seminarDays.contains(weekday) && subject.occursThisWeek(academicWeek: academicWeek, isCourse: false) {
+                classEvents.append(.class(subject: subject, isCourse: false, date: selectedDate))
+            }
         }
+        let taskEvents = tasksOnDate.map { CalendarEvent.task($0) }
+        return (taskEvents + classEvents).sorted { $0.startTime < $1.startTime }
     }
-    private var weekRangeString: String { let c = Calendar.current; guard let i = c.dateInterval(of: .weekOfYear, for: currentDate) else { return "This Week" }; let e = c.date(byAdding: .day, value: 6, to: i.start) ?? i.start; let f = DateFormatter(); f.dateFormat = "MMM d"; return "\(f.string(from: i.start)) - \(f.string(from: e))" }
+    
+    private var weekRangeString: String {
+        let calendar = Calendar.current
+        guard let interval = calendar.dateInterval(of: .weekOfYear, for: currentDate) else { return "This Week" }
+        let end = calendar.date(byAdding: .day, value: 6, to: interval.start) ?? interval.start
+        let f = DateFormatter(); f.dateFormat = "MMM d"
+        return "\(f.string(from: interval.start)) - \(f.string(from: end))"
+    }
+    
     private var formattedSelectedDate: String { let f = DateFormatter(); f.dateStyle = .long; return f.string(from: selectedDate) }
     private func previousWeek() { if let d = Calendar.current.date(byAdding: .weekOfYear, value: -1, to: currentDate) { currentDate = d } }
     private func nextWeek() { if let d = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: currentDate) { currentDate = d } }
-    private func handleEventTap(_ event: CalendarEvent) { switch event { case .task(let t): selectedTask = t; showingTaskDetail = true; case .class(let s, _, _): selectedSubject = s; showingSubjectDetail = true } }
+    
+    private func handleEventTap(_ event: CalendarEvent) {
+        switch event {
+        case .task(let t): selectedTask = t; showingTaskDetail = true
+        case .class(let s, _, _): selectedSubject = s; showingSubjectDetail = true
+        }
+    }
 }
 
-// MARK: - 🕹️ ARCADE CALENDAR VIEW
+// MARK: - 🕹️ ARCADE CALENDAR
 struct ArcadeCalendarView: View {
     @State private var currentDate = Date(); @State private var selectedDate = Date()
     @EnvironmentObject var calendarManager: AcademicCalendarManager
@@ -314,11 +551,27 @@ struct ArcadeCalendarView: View {
             ZStack {
                 Color.black.ignoresSafeArea()
                 VStack(spacing: 20) {
-                    HStack { Button(action: { currentDate = Calendar.current.date(byAdding: .weekOfYear, value: -1, to: currentDate) ?? currentDate }) { Image(systemName: "arrowtriangle.left.fill").foregroundColor(.cyan) }; VStack { Text(weekRangeString.uppercased()).font(.system(.headline, design: .rounded)).fontWeight(.black).foregroundColor(.white).shadow(color: .cyan, radius: 5); Text("SECTOR \(calendarManager.currentTeachingWeek ?? 1)").font(.caption).fontWeight(.bold).padding(4).background(Color.cyan.opacity(0.2)).cornerRadius(4).foregroundColor(.cyan) }; Button(action: { currentDate = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: currentDate) ?? currentDate }) { Image(systemName: "arrowtriangle.right.fill").foregroundColor(.cyan) } }.padding(.top)
+                    // Header
+                    HStack {
+                        Button(action: { currentDate = Calendar.current.date(byAdding: .weekOfYear, value: -1, to: currentDate) ?? currentDate }) { Image(systemName: "arrowtriangle.left.fill").foregroundColor(.cyan) }
+                        VStack {
+                            Text(weekRangeString.uppercased()).font(.system(.headline, design: .rounded)).fontWeight(.black).foregroundColor(.white).shadow(color: .cyan, radius: 5)
+                            Text("SECTOR \(calendarManager.currentTeachingWeek ?? 1)").font(.caption).fontWeight(.bold).padding(4).background(Color.cyan.opacity(0.2)).cornerRadius(4).foregroundColor(.cyan)
+                        }
+                        Button(action: { currentDate = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: currentDate) ?? currentDate }) { Image(systemName: "arrowtriangle.right.fill").foregroundColor(.cyan) }
+                    }.padding(.top)
+                    
+                    // Grid
                     ArcadeCalendarGrid(currentDate: $currentDate, selectedDate: $selectedDate)
+                    
+                    // List
                     VStack(alignment: .leading, spacing: 12) {
                         Text("ACTIVE MISSIONS").font(.system(.title3, design: .rounded)).fontWeight(.heavy).foregroundColor(.yellow).padding(.horizontal)
-                        if eventsForSelectedDate.isEmpty { VStack(spacing: 12) { Image(systemName: "moon.stars.fill").font(.largeTitle).foregroundColor(.purple); Text("No missions detected.").font(.system(.body, design: .rounded)).foregroundColor(.gray) }.frame(maxWidth: .infinity, maxHeight: .infinity) } else { ScrollView { LazyVStack(spacing: 16) { ForEach(eventsForSelectedDate) { event in ArcadeEventRow(event: event) } }.padding(.horizontal) } }
+                        if eventsForSelectedDate.isEmpty {
+                            VStack(spacing: 12) { Image(systemName: "moon.stars.fill").font(.largeTitle).foregroundColor(.purple); Text("No missions detected.").font(.system(.body, design: .rounded)).foregroundColor(.gray) }.frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else {
+                            ScrollView { LazyVStack(spacing: 16) { ForEach(eventsForSelectedDate) { event in ArcadeEventRow(event: event) } }.padding(.horizontal) }
+                        }
                     }
                     Spacer()
                 }
@@ -326,24 +579,40 @@ struct ArcadeCalendarView: View {
             .navigationTitle("Mission Log").navigationBarTitleDisplayMode(.inline)
         }.preferredColorScheme(.dark)
     }
-    // Updated sorting
+    
     private var eventsForSelectedDate: [CalendarEvent] {
         let tasksOnDate = tasks.filter { t in guard let d = t.dueDate else { return false }; return Calendar.current.isDate(d, inSameDayAs: selectedDate) }
         var classEvents: [CalendarEvent] = []
         let weekday = Calendar.current.component(.weekday, from: selectedDate)
         let aw = calendarManager.currentTeachingWeek
-        for s in subjects { if s.courseDays.contains(weekday) && s.occursThisWeek(academicWeek: aw, isCourse: true) { classEvents.append(.class(subject: s, isCourse: true, date: selectedDate)) }; if s.seminarDays.contains(weekday) && s.occursThisWeek(academicWeek: aw, isCourse: false) { classEvents.append(.class(subject: s, isCourse: false, date: selectedDate)) } }
-        return (tasksOnDate.map { CalendarEvent.task($0) } + classEvents).sorted {
-            if $0.isExam != $1.isExam { return $0.isExam }
-            return $0.startTime < $1.startTime
+        for s in subjects {
+            if s.courseDays.contains(weekday) && s.occursThisWeek(academicWeek: aw, isCourse: true) { classEvents.append(.class(subject: s, isCourse: true, date: selectedDate)) }
+            if s.seminarDays.contains(weekday) && s.occursThisWeek(academicWeek: aw, isCourse: false) { classEvents.append(.class(subject: s, isCourse: false, date: selectedDate)) }
         }
+        return (tasksOnDate.map { CalendarEvent.task($0) } + classEvents).sorted { $0.startTime < $1.startTime }
     }
-    private var weekRangeString: String { let c = Calendar.current; guard let i = c.dateInterval(of: .weekOfYear, for: currentDate) else { return "" }; let e = c.date(byAdding: .day, value: 6, to: i.start) ?? i.start; let f = DateFormatter(); f.dateFormat = "MMM d"; return "\(f.string(from: i.start)) - \(f.string(from: e))" }
+    private var weekRangeString: String {
+        let c = Calendar.current; guard let i = c.dateInterval(of: .weekOfYear, for: currentDate) else { return "" }
+        let e = c.date(byAdding: .day, value: 6, to: i.start) ?? i.start
+        let f = DateFormatter(); f.dateFormat = "MMM d"; return "\(f.string(from: i.start)) - \(f.string(from: e))"
+    }
 }
 
 struct ArcadeCalendarGrid: View {
     @Binding var currentDate: Date; @Binding var selectedDate: Date; private let columns = Array(repeating: GridItem(.flexible()), count: 7)
-    var body: some View { VStack { LazyVGrid(columns: columns, spacing: 12) { ForEach(getDaysInWeek(), id: \.self) { date in let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate); VStack { Text(getDayAbbrev(date).uppercased()).font(.system(size: 10, weight: .bold)).foregroundColor(.cyan.opacity(0.7)); Text("\(Calendar.current.component(.day, from: date))").font(.system(.title3, design: .rounded)).fontWeight(.bold).foregroundColor(isSelected ? .black : .white).frame(width: 40, height: 40).background(ZStack { if isSelected { Circle().fill(Color.cyan).shadow(color: .cyan, radius: 8) } else { Circle().fill(Color.white.opacity(0.1)) } }) }.onTapGesture { selectedDate = date } } } }.padding().background(Color(white: 0.05)).cornerRadius(20).overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.cyan.opacity(0.3), lineWidth: 1)).padding(.horizontal) }
+    var body: some View {
+        VStack {
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(getDaysInWeek(), id: \.self) { date in
+                    let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
+                    VStack {
+                        Text(getDayAbbrev(date).uppercased()).font(.system(size: 10, weight: .bold)).foregroundColor(.cyan.opacity(0.7))
+                        Text("\(Calendar.current.component(.day, from: date))").font(.system(.title3, design: .rounded)).fontWeight(.bold).foregroundColor(isSelected ? .black : .white).frame(width: 40, height: 40).background(ZStack { if isSelected { Circle().fill(Color.cyan).shadow(color: .cyan, radius: 8) } else { Circle().fill(Color.white.opacity(0.1)) } })
+                    }.onTapGesture { selectedDate = date }
+                }
+            }
+        }.padding().background(Color(white: 0.05)).cornerRadius(20).overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.cyan.opacity(0.3), lineWidth: 1)).padding(.horizontal)
+    }
     private func getDaysInWeek() -> [Date] { let c = Calendar.current; guard let i = c.dateInterval(of: .weekOfYear, for: currentDate) else { return [] }; return (0..<7).compactMap { c.date(byAdding: .day, value: $0, to: i.start) } }
     private func getDayAbbrev(_ date: Date) -> String { let f = DateFormatter(); f.dateFormat = "E"; return f.string(from: date) }
 }
@@ -353,22 +622,93 @@ struct ArcadeEventRow: View {
     var body: some View {
         HStack(spacing: 16) {
             Circle().fill(event.color).frame(width: 4, height: 40)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(event.title).font(.system(.headline, design: .rounded)).fontWeight(isExam ? .black : .bold).foregroundColor(isExam ? .red : .white)
-                HStack { Image(systemName: "clock.fill").font(.caption2).foregroundColor(.gray); Text(timeString).font(.caption).foregroundColor(.gray) }
-            }
+            VStack(alignment: .leading, spacing: 4) { Text(event.title).font(.system(.headline, design: .rounded)).fontWeight(.bold).foregroundColor(.white); HStack { Image(systemName: "clock.fill").font(.caption2).foregroundColor(.gray); Text(timeString).font(.caption).foregroundColor(.gray) } }
             Spacer(); Image(systemName: event.icon).font(.title2).foregroundColor(event.color)
         }.padding().background(Color(white: 0.1)).cornerRadius(16).overlay(RoundedRectangle(cornerRadius: 16).stroke(event.color.opacity(0.3), lineWidth: 1))
     }
-    var isExam: Bool { return event.isExam }
     var timeString: String { let f = DateFormatter(); f.dateFormat = "h:mm a"; return f.string(from: event.startTime) }
 }
 
-// MARK: - SHARED HELPERS
+// MARK: - 👾 RETRO CALENDAR
+struct RetroCalendarView: View {
+    @State private var currentDate = Date(); @State private var selectedDate = Date()
+    @EnvironmentObject var calendarManager: AcademicCalendarManager
+    @Query var subjects: [Subject]; @Query var tasks: [StudyTask]
+    private let columns = Array(repeating: GridItem(.flexible()), count: 7)
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(red: 0.05, green: 0.05, blue: 0.05).ignoresSafeArea()
+                VStack(spacing: 24) {
+                    HStack {
+                        Button(action: { currentDate = Calendar.current.date(byAdding: .weekOfYear, value: -1, to: currentDate) ?? currentDate }) { Text("< PREV").font(.system(.caption, design: .monospaced)).foregroundColor(.green) }
+                        Spacer(); VStack { Text(weekRangeString).font(.system(.headline, design: .monospaced)).foregroundColor(.green); Text("WEEK_ID: \(calendarManager.currentTeachingWeek ?? 0)").font(.system(size: 10, design: .monospaced)).foregroundColor(.gray) }; Spacer()
+                        Button(action: { currentDate = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: currentDate) ?? currentDate }) { Text("NEXT >").font(.system(.caption, design: .monospaced)).foregroundColor(.green) }
+                    }.padding().border(Color.green, width: 1).padding(.horizontal)
+                    
+                    LazyVGrid(columns: columns, spacing: 0) {
+                        ForEach(getDaysInWeek(), id: \.self) { date in
+                            let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
+                            VStack(spacing: 8) {
+                                Text(getDayAbbrev(date)).font(.system(size: 10, design: .monospaced)).foregroundColor(.green)
+                                Text("\(Calendar.current.component(.day, from: date))").font(.system(.body, design: .monospaced)).foregroundColor(isSelected ? .black : .green).frame(width: 30, height: 30).background(isSelected ? Color.green : Color.clear).overlay(Rectangle().stroke(Color.green, lineWidth: 1))
+                            }.padding(.vertical, 8).onTapGesture { selectedDate = date }
+                        }
+                    }.border(Color.green.opacity(0.5), width: 1).padding(.horizontal)
+                    
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("> SCHEDULED_ENCOUNTERS").font(.system(.caption, design: .monospaced)).foregroundColor(.gray).padding(.horizontal).padding(.bottom, 8)
+                        if eventsForSelectedDate.isEmpty { Text("NO DATA FOUND.").font(.system(.body, design: .monospaced)).foregroundColor(.gray).padding(.top, 40) }
+                        else { ScrollView { LazyVStack(spacing: 0) { ForEach(eventsForSelectedDate) { event in RetroEventRow(event: event) } } } }
+                    }
+                }
+            }.navigationTitle("TIME_DB").navigationBarTitleDisplayMode(.inline)
+        }.preferredColorScheme(.dark)
+    }
+    // Logic duplication
+    private var eventsForSelectedDate: [CalendarEvent] {
+        let tasksOnDate = tasks.filter { t in guard let d = t.dueDate else { return false }; return Calendar.current.isDate(d, inSameDayAs: selectedDate) }
+        var classEvents: [CalendarEvent] = []
+        let weekday = Calendar.current.component(.weekday, from: selectedDate)
+        let aw = calendarManager.currentTeachingWeek
+        for s in subjects {
+            if s.courseDays.contains(weekday) && s.occursThisWeek(academicWeek: aw, isCourse: true) { classEvents.append(.class(subject: s, isCourse: true, date: selectedDate)) }
+            if s.seminarDays.contains(weekday) && s.occursThisWeek(academicWeek: aw, isCourse: false) { classEvents.append(.class(subject: s, isCourse: false, date: selectedDate)) }
+        }
+        return (tasksOnDate.map { CalendarEvent.task($0) } + classEvents).sorted { $0.startTime < $1.startTime }
+    }
+    private var weekRangeString: String {
+        let c = Calendar.current; guard let i = c.dateInterval(of: .weekOfYear, for: currentDate) else { return "" }
+        let e = c.date(byAdding: .day, value: 6, to: i.start) ?? i.start
+        let f = DateFormatter(); f.dateFormat = "MMM d"; return "\(f.string(from: i.start)) - \(f.string(from: e))"
+    }
+    private func getDaysInWeek() -> [Date] { let c = Calendar.current; guard let i = c.dateInterval(of: .weekOfYear, for: currentDate) else { return [] }; return (0..<7).compactMap { c.date(byAdding: .day, value: $0, to: i.start) } }
+    private func getDayAbbrev(_ date: Date) -> String { let f = DateFormatter(); f.dateFormat = "E"; return f.string(from: date) }
+}
+
+struct RetroEventRow: View {
+    let event: CalendarEvent
+    var body: some View {
+        HStack {
+            Text("[ ]").font(.system(.body, design: .monospaced)).foregroundColor(.green)
+            VStack(alignment: .leading) { Text(event.title.uppercased()).font(.system(.body, design: .monospaced)).foregroundColor(.green); Text(event.subtitle.uppercased()).font(.system(.caption, design: .monospaced)).foregroundColor(.gray) }
+            Spacer(); Text(timeString).font(.system(.caption, design: .monospaced)).foregroundColor(.green)
+        }.padding().border(Color.green.opacity(0.3), width: 1).background(Color.black)
+    }
+    var timeString: String { let f = DateFormatter(); f.dateFormat = "HH:mm"; return f.string(from: event.startTime) }
+}
+
+// MARK: - SHARED HELPERS (Calendar Specific)
 struct WeeklyCalendarGrid: View {
     @Binding var currentDate: Date; @Binding var selectedDate: Date; @Environment(\.colorScheme) var colorScheme
     private let daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]; private let columns = Array(repeating: GridItem(.flexible()), count: 7)
-    var body: some View { VStack(spacing: 0) { LazyVGrid(columns: columns, spacing: 10) { ForEach(daysOfWeek, id: \.self) { day in Text(day).font(.caption).fontWeight(.medium).foregroundColor(.secondary).frame(height: 30) } }; LazyVGrid(columns: columns, spacing: 8) { ForEach(getDaysInWeek(), id: \.self) { date in WeeklyDayCell(date: date, isSelected: Calendar.current.isDate(date, inSameDayAs: selectedDate), isToday: Calendar.current.isDateInToday(date)).onTapGesture { selectedDate = date } } } }.padding().background(Color.themeSurface).cornerRadius(12) }
+    var body: some View {
+        VStack(spacing: 0) {
+            LazyVGrid(columns: columns, spacing: 10) { ForEach(daysOfWeek, id: \.self) { day in Text(day).font(.caption).fontWeight(.medium).foregroundColor(.secondary).frame(height: 30) } }
+            LazyVGrid(columns: columns, spacing: 8) { ForEach(getDaysInWeek(), id: \.self) { date in WeeklyDayCell(date: date, isSelected: Calendar.current.isDate(date, inSameDayAs: selectedDate), isToday: Calendar.current.isDateInToday(date)).onTapGesture { selectedDate = date } } }
+        }.padding().background(Color.themeSurface).cornerRadius(12)
+    }
     private func getDaysInWeek() -> [Date] { let c = Calendar.current; guard let i = c.dateInterval(of: .weekOfYear, for: currentDate) else { return [] }; return (0..<7).compactMap { c.date(byAdding: .day, value: $0, to: i.start) } }
 }
 
@@ -385,17 +725,13 @@ struct EventRow: View {
             VStack(spacing: 4) { Circle().fill(event.color).frame(width: 12, height: 12); Rectangle().fill(event.color).frame(width: 2).frame(maxHeight: .infinity) }
             VStack(alignment: .leading, spacing: 6) {
                 HStack { Text(event.startTime, formatter: timeFormatter).font(.subheadline).fontWeight(.medium).foregroundColor(event.color); Spacer(); HStack(spacing: 4) { Text(eventTypeText).font(.caption2).fontWeight(.medium).padding(.horizontal, 6).padding(.vertical, 2).background(event.color.opacity(0.2)).foregroundColor(event.color).cornerRadius(4); if let fi = event.frequencyInfo { Text(fi).font(.caption2).fontWeight(.medium).padding(.horizontal, 6).padding(.vertical, 2).background(Color.themeSecondary.opacity(0.2)).foregroundColor(.themeSecondary).cornerRadius(4) } } }
-                Text(event.title)
-                    .font(.headline)
-                    .fontWeight(isExam ? .bold : .regular)
-                    .foregroundColor(isExam ? .red : .themeTextPrimary)
+                Text(event.title).font(.headline).foregroundColor(.themeTextPrimary)
                 HStack { Image(systemName: event.icon).font(.caption).foregroundColor(.themeTextSecondary); Text(event.subtitle).font(.subheadline).foregroundColor(.themeTextSecondary); Spacer() }
             }
             Spacer(); Image(systemName: "chevron.right").font(.system(size: 14, weight: .medium)).foregroundColor(.secondary)
         }.padding().background(Color.themeSurface).cornerRadius(12)
     }
-    private var isExam: Bool { return event.isExam }
-    private var eventTypeText: String { switch event { case .task(let t): return t.isExam ? "Exam" : "Task"; case .class(_, let isCourse, _): return isCourse ? "Course" : "Seminar" } }
+    private var eventTypeText: String { switch event { case .task: return "Task"; case .class(_, let isCourse, _): return isCourse ? "Course" : "Seminar" } }
     private let timeFormatter: DateFormatter = { let f = DateFormatter(); f.dateFormat = "h:mm a"; return f }()
 }
 

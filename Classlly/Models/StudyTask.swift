@@ -33,8 +33,7 @@ final class StudyTask {
     var title: String = ""
     var isCompleted: Bool = false
     var dueDate: Date? = nil
-    var notes: String = ""
-    var isExam: Bool = false // New property
+    var notes: String = "" // Added notes field
     
     var priorityRaw: String = TaskPriority.medium.rawValue
     @Transient var priority: TaskPriority {
@@ -59,7 +58,6 @@ final class StudyTask {
          subject: Subject? = nil,
          reminderTime: TaskReminderTime = .hourBefore1,
          isFlagged: Bool = false,
-         isExam: Bool = false, // Added to init
          notes: String = ""
     ) {
         self.id = id
@@ -70,7 +68,6 @@ final class StudyTask {
         self.subject = subject
         self.reminderTimeRaw = reminderTime.rawValue
         self.isFlagged = isFlagged
-        self.isExam = isExam
         self.notes = notes
     }
 }

@@ -9,6 +9,7 @@ struct SettingsDashboardView: View {
             switch themeManager.selectedGameMode {
             case .rainbow: RainbowSettingsDashboardView()
             case .arcade: ArcadeSettingsDashboardView()
+            case .retro: RetroSettingsDashboardView()
             case .none: StandardSettingsDashboardView()
             }
         }

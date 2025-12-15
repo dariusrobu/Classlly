@@ -19,6 +19,8 @@ struct HomeView: View {
                     RainbowDashboard(subjects: subjects, tasks: tasks)
                 case .arcade:
                     ArcadeDashboard(subjects: subjects, tasks: tasks)
+                case .retro:
+                    RetroDashboard(subjects: subjects, tasks: tasks)
                 case .none:
                     StandardDashboard(subjects: subjects, tasks: tasks)
                 }
@@ -27,18 +29,20 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .navigationViewStyle(.stack)
-        .preferredColorScheme((themeManager.selectedGameMode == .arcade || themeManager.selectedGameMode == .rainbow) ? .dark : nil)
+        .preferredColorScheme((themeManager.selectedGameMode == .arcade || themeManager.selectedGameMode == .retro || themeManager.selectedGameMode == .rainbow) ? .dark : nil)
     }
     
     private var navigationTitle: String {
         switch themeManager.selectedGameMode {
         case .none: return "Dashboard"
         case .arcade: return "Arcade Hub"
+        case .retro: return "Player 1"
         case .rainbow: return "Dashboard"
         }
     }
 }
 
+<<<<<<< HEAD
 // MARK: - ⚡️ QUICK ATTENDANCE BUTTON
 struct QuickAttendanceButton: View {
     @Bindable var subject: Subject
@@ -133,21 +137,34 @@ struct DayProgressRing: View {
 }
 
 // MARK: - 🌈 RAINBOW DASHBOARD
+=======
+// MARK: - 🌈 RAINBOW DASHBOARD (Refined Fix)
+>>>>>>> parent of 347e801 (removed retro)
 struct RainbowDashboard: View {
     let subjects: [Subject]
     let tasks: [StudyTask]
     @EnvironmentObject var calendarManager: AcademicCalendarManager
     @EnvironmentObject var themeManager: AppTheme
     
+    private let statsColumns = [
+        GridItem(.flexible()),
+        GridItem(.flexible()),
+        GridItem(.flexible())
+    ]
+    
     var body: some View {
         let accentColor = themeManager.selectedTheme.primaryColor
+<<<<<<< HEAD
         let formattedDate = Date().formatted(date: .abbreviated, time: .omitted)
         let progress = DashboardLogic.getDailyProgress(subjects: subjects, academicWeek: calendarManager.currentTeachingWeek)
+=======
+>>>>>>> parent of 80025b8 (exam added)
         
         ScrollView {
             VStack(spacing: 24) {
                 // 1. Welcome Header
                 RainbowContainer {
+<<<<<<< HEAD
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Welcome back!")
@@ -168,6 +185,25 @@ struct RainbowDashboard: View {
                                         .foregroundColor(accentColor)
                                 }
                                 .padding(.top, 4)
+=======
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Welcome back!")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                        
+                        Text("Here's your academic overview for today")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                        
+                        if let currentWeek = calendarManager.currentTeachingWeek {
+                            HStack {
+                                Image(systemName: "calendar")
+                                    .foregroundColor(accentColor)
+                                Text("Academic Week \(currentWeek) • \(calendarManager.currentSemester.displayName)")
+                                    .font(.caption)
+                                    .foregroundColor(accentColor)
+>>>>>>> parent of 80025b8 (exam added)
                             }
                         }
                         Spacer()
@@ -179,11 +215,38 @@ struct RainbowDashboard: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 
-                // 2. Today's Classes
+                // 2. Quick Stats
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Quick Stats").font(.headline).foregroundColor(.white)
+                    
+                    LazyVGrid(columns: statsColumns, spacing: 12) {
+                        RainbowStatBox(
+                            title: "Today's Classes",
+                            value: "\(filterTodayClasses(academicWeek: calendarManager.currentTeachingWeek).count)",
+                            icon: "calendar",
+                            color: accentColor // Dynamic
+                        )
+                        RainbowStatBox(
+                            title: "Pending Tasks",
+                            value: "\(tasks.filter { !$0.isCompleted }.count)",
+                            icon: "checklist",
+                            color: RainbowColors.orange
+                        )
+                        RainbowStatBox(
+                            title: "Subjects",
+                            value: "\(subjects.count)",
+                            icon: "book",
+                            color: RainbowColors.green
+                        )
+                    }
+                }
+                
+                // 3. Today's Classes
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Text("Today's Classes").font(.headline).foregroundColor(.white)
                         Spacer()
+                        // FIX: Pass embedInNavigationStack: false
                         NavigationLink(destination: SubjectsView(embedInNavigationStack: false)) {
                             Text("See All").font(.subheadline).foregroundColor(accentColor)
                         }
@@ -231,11 +294,12 @@ struct RainbowDashboard: View {
                     }
                 }
                 
-                // 3. Upcoming Tasks
+                // 4. Upcoming Tasks
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Text("Upcoming Tasks").font(.headline).foregroundColor(.white)
                         Spacer()
+                        // FIX: Pass embedInNavigationStack: false
                         NavigationLink(destination: TasksView(embedInNavigationStack: false)) {
                             Text("See All").font(.subheadline).foregroundColor(accentColor)
                         }
@@ -244,7 +308,7 @@ struct RainbowDashboard: View {
                     let upcoming = tasks.filter { !$0.isCompleted }.sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
                     
                     if let task = upcoming.first {
-                        NavigationLink(destination: EditTaskView(task: task)) {
+                        Button(action: {}) {
                             HStack(spacing: 16) {
                                 Image(systemName: "exclamationmark.circle.fill")
                                     .font(.title2)
@@ -280,7 +344,7 @@ struct RainbowDashboard: View {
     }
 }
 
-// MARK: - 👔 STANDARD DASHBOARD
+// ... Standard/Arcade/Retro Code is preserved (omitted for brevity)
 struct StandardDashboard: View {
     let subjects: [Subject]
     let tasks: [StudyTask]
@@ -288,6 +352,7 @@ struct StandardDashboard: View {
     @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
+<<<<<<< HEAD
         let formattedDate = Date().formatted(date: .abbreviated, time: .omitted)
         let progress = DashboardLogic.getDailyProgress(subjects: subjects, academicWeek: calendarManager.currentTeachingWeek)
         
@@ -329,13 +394,70 @@ struct StandardDashboard: View {
                 .background(Color.themeSurface)
                 .cornerRadius(12)
                 
+=======
+        ScrollView {
+            VStack(spacing: 20) {
+                welcomeHeader
+                quickStatsSection
+>>>>>>> parent of 80025b8 (exam added)
                 todaysClassesSection
                 upcomingTasksSection
                 academicPerformanceSection
             }
             .padding()
         }
-        .background(Color.themeBackground)
+    }
+    
+    private var welcomeHeader: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Welcome back!")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundColor(.themeTextPrimary)
+            Text("Here's your academic overview for today")
+                .font(.subheadline)
+                .foregroundColor(.themeTextSecondary)
+            
+            if let currentWeek = calendarManager.currentTeachingWeek {
+                HStack {
+                    Image(systemName: "calendar")
+                    Text("Academic Week \(currentWeek)")
+                    Text("•")
+                    Text(calendarManager.currentSemester.displayName)
+                }
+                .font(.caption)
+                .foregroundColor(.themePrimary)
+                .padding(.top, 4)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color.themeSurface)
+        .cornerRadius(12)
+    }
+    
+    private var quickStatsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Quick Stats")
+                .font(.headline)
+                .fontWeight(.semibold)
+                .foregroundColor(.themeTextPrimary)
+            
+            HStack(spacing: 12) {
+                StatBox(
+                    title: "Today's Classes",
+                    value: "\(filterTodayClasses(academicWeek: calendarManager.currentTeachingWeek).count)"
+                )
+                StatBox(
+                    title: "Pending Tasks",
+                    value: "\(tasks.filter { !$0.isCompleted }.count)"
+                )
+                StatBox(
+                    title: "Subjects",
+                    value: "\(subjects.count)"
+                )
+            }
+        }
     }
     
     private var todaysClassesSection: some View {
@@ -395,10 +517,7 @@ struct StandardDashboard: View {
             } else {
                 LazyVStack(spacing: 12) {
                     ForEach(upcomingTasks.prefix(3)) { task in
-                        NavigationLink(destination: EditTaskView(task: task)) {
-                            HomeTaskCard(task: task)
-                        }
-                        .buttonStyle(PlainButtonStyle())
+                        HomeTaskCard(task: task)
                     }
                 }
             }
@@ -440,16 +559,25 @@ struct StandardDashboard: View {
     }
 }
 
-// MARK: - 🕹️ ARCADE DASHBOARD
 struct ArcadeDashboard: View {
     let subjects: [Subject]
     let tasks: [StudyTask]
     @EnvironmentObject var calendarManager: AcademicCalendarManager
     
+    // 3 Column Grid for Stats
+    private let statsColumns = [
+        GridItem(.flexible()),
+        GridItem(.flexible()),
+        GridItem(.flexible())
+    ]
+    
     var body: some View {
+<<<<<<< HEAD
         let formattedDate = Date().formatted(date: .abbreviated, time: .omitted).uppercased()
         let progress = DashboardLogic.getDailyProgress(subjects: subjects, academicWeek: calendarManager.currentTeachingWeek)
         
+=======
+>>>>>>> parent of 80025b8 (exam added)
         ScrollView {
             VStack(spacing: 24) {
                 // 1. Hero Card
@@ -467,6 +595,7 @@ struct ArcadeDashboard: View {
                             Image(systemName: "crown.fill")
                                 .font(.title2)
                                 .foregroundColor(.yellow)
+<<<<<<< HEAD
                             
                             VStack(alignment: .leading, spacing: 0) {
                                 Text("LEVEL \(calendarManager.currentTeachingWeek ?? 1)")
@@ -479,6 +608,12 @@ struct ArcadeDashboard: View {
                                     .foregroundColor(.white.opacity(0.7))
                             }
                             
+=======
+                            Text("LEVEL \(calendarManager.currentTeachingWeek ?? 1)")
+                                .font(.system(.headline, design: .rounded))
+                                .fontWeight(.black)
+                                .foregroundColor(.white)
+>>>>>>> parent of 80025b8 (exam added)
                             Spacer()
                             
                             if progress.total > 0 {
@@ -513,7 +648,29 @@ struct ArcadeDashboard: View {
                     .padding(20)
                 }
                 
-                // 2. Daily Raids (Today's Classes)
+                // 2. Stats Grid
+                LazyVGrid(columns: statsColumns, spacing: 12) {
+                    ArcadeStatPill(
+                        icon: "shield.fill",
+                        value: "\(filterTodayClasses(academicWeek: calendarManager.currentTeachingWeek).count)",
+                        label: "Raids",
+                        gradient: Gradient(colors: [.cyan, .blue])
+                    )
+                    ArcadeStatPill(
+                        icon: "flame.fill",
+                        value: "\(tasks.filter { !$0.isCompleted }.count)",
+                        label: "Quests",
+                        gradient: Gradient(colors: [.orange, .red])
+                    )
+                    ArcadeStatPill(
+                        icon: "bolt.fill",
+                        value: "\(subjects.count)",
+                        label: "Skills",
+                        gradient: Gradient(colors: [.purple, .pink])
+                    )
+                }
+                
+                // 3. Daily Raids (Today's Classes)
                 VStack(alignment: .leading, spacing: 16) {
                     HStack {
                         Text("DAILY RAIDS")
@@ -562,7 +719,11 @@ struct ArcadeDashboard: View {
                     }
                 }
                 
+<<<<<<< HEAD
                 // 3. Quest Log
+=======
+                // 4. Quest Log (Tasks)
+>>>>>>> parent of 80025b8 (exam added)
                 VStack(alignment: .leading, spacing: 16) {
                     HStack {
                         Text("QUEST LOG")
@@ -584,29 +745,30 @@ struct ArcadeDashboard: View {
                         Text("Map Clear. No active quests.").font(.caption).fontWeight(.bold).foregroundColor(.gray).padding().frame(maxWidth: .infinity).background(Color(white: 0.1)).cornerRadius(16)
                     } else {
                         ForEach(activeQuests) { task in
-                            NavigationLink(destination: EditTaskView(task: task)) {
-                                HStack {
-                                    Image(systemName: task.priority.iconName).foregroundColor(task.priority.color)
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(task.title).font(.system(.body, design: .rounded)).fontWeight(.bold).foregroundColor(.white)
-                                        if !task.notes.isEmpty { Text(task.notes).font(.caption2).foregroundColor(.gray).lineLimit(1) }
-                                        
-                                        HStack {
-                                            if let sub = task.subject { Text(sub.title).foregroundColor(.cyan) }
-                                            if let d = task.dueDate { Text("• \(formatDate(d))").foregroundColor(.gray) }
-                                        }.font(.caption2)
-                                    }
-                                    Spacer()
-                                    Text("+100 XP").font(.system(size: 10, weight: .black)).foregroundColor(.green).padding(4).background(Color.green.opacity(0.2)).cornerRadius(4)
+                            HStack {
+                                Image(systemName: task.priority.iconName).foregroundColor(task.priority.color)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(task.title).font(.system(.body, design: .rounded)).fontWeight(.bold).foregroundColor(.white)
+                                    if !task.notes.isEmpty { Text(task.notes).font(.caption2).foregroundColor(.gray).lineLimit(1) }
+                                    
+                                    HStack {
+                                        if let sub = task.subject { Text(sub.title).foregroundColor(.cyan) }
+                                        if let d = task.dueDate { Text("• \(formatDate(d))").foregroundColor(.gray) }
+                                    }.font(.caption2)
                                 }
-                                .padding().background(Color(white: 0.1)).cornerRadius(16).overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.1), lineWidth: 1))
+                                Spacer()
+                                Text("+100 XP").font(.system(size: 10, weight: .black)).foregroundColor(.green).padding(4).background(Color.green.opacity(0.2)).cornerRadius(4)
                             }
-                            .buttonStyle(PlainButtonStyle())
+                            .padding().background(Color(white: 0.1)).cornerRadius(16).overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.1), lineWidth: 1))
                         }
                     }
                 }
                 
+<<<<<<< HEAD
                 // 4. Skill Mastery
+=======
+                // 5. Skill Mastery (Academic Performance)
+>>>>>>> parent of 80025b8 (exam added)
                 VStack(alignment: .leading, spacing: 16) {
                     HStack {
                         Text("SKILL MASTERY")
@@ -710,7 +872,178 @@ struct DashboardLogic {
     }
 }
 
-// MARK: - LOCAL COMPONENTS (For Standard Dashboard)
+// MARK: - 👾 RETRO DASHBOARD
+struct RetroDashboard: View {
+    let subjects: [Subject]
+    let tasks: [StudyTask]
+    @EnvironmentObject var calendarManager: AcademicCalendarManager
+    private var retroFont: Font.Design { .monospaced }
+    
+    private let statsColumns = [
+        GridItem(.flexible()),
+        GridItem(.flexible()),
+        GridItem(.flexible())
+    ]
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                // 1. Header
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Image(systemName: "person.crop.square.fill").font(.system(size: 40)).foregroundColor(.green)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("PLAYER 1").font(.system(.title3, design: retroFont)).fontWeight(.black).foregroundColor(.green)
+                            Text("Level \(calendarManager.currentTeachingWeek ?? 1)").font(.system(.caption, design: retroFont)).foregroundColor(.white)
+                        }
+                        Spacer()
+                        Text("HP 100/100").font(.system(.caption, design: retroFont)).foregroundColor(.red).padding(6).overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.red, lineWidth: 1))
+                    }
+                }
+                .padding().background(Color.black).overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.green, lineWidth: 2))
+                
+                // 2. Inventory (Stats)
+                LazyVGrid(columns: statsColumns, spacing: 12) {
+                    RetroStatCard(
+                        label: "RAIDS",
+                        value: "\(filterTodayClasses(academicWeek: calendarManager.currentTeachingWeek).count)",
+                        color: .cyan
+                    )
+                    RetroStatCard(
+                        label: "MANA",
+                        value: "\(tasks.filter { !$0.isCompleted }.count)",
+                        color: .blue
+                    )
+                    RetroStatCard(
+                        label: "SKILLS",
+                        value: "\(subjects.count)",
+                        color: .purple
+                    )
+                }
+                
+                // 3. Active Cycle (Classes)
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("> ACTIVE_CYCLE").font(.system(.headline, design: retroFont)).foregroundColor(.cyan)
+                        Spacer()
+                        NavigationLink(" [ LIST ] ") { SubjectsView() }
+                            .font(.system(.caption, design: retroFont))
+                            .foregroundColor(.cyan)
+                            .border(Color.cyan, width: 1)
+                    }
+                    
+                    let todaysClasses = filterTodayClasses(academicWeek: calendarManager.currentTeachingWeek)
+                    
+                    if todaysClasses.isEmpty {
+                        Text("CYCLE_EMPTY. REST_MODE_ENGAGED.").font(.system(.caption, design: retroFont)).foregroundColor(.gray)
+                    } else {
+                        ForEach(todaysClasses) { subject in
+                            HStack {
+                                Text("[ ]").foregroundColor(.cyan)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(subject.title.uppercased()).font(.system(.subheadline, design: retroFont)).foregroundColor(.white)
+                                    HStack {
+                                        Text("ROOM: \(subject.courseClassroom)")
+                                        Text("|")
+                                        Text(subject.courseTimeString)
+                                    }.font(.system(.caption2, design: retroFont)).foregroundColor(.gray)
+                                }
+                                Spacer()
+                                if subject.occursThisWeek(academicWeek: calendarManager.currentTeachingWeek, isCourse: true) {
+                                    Text("<CRS>").font(.system(.caption2, design: retroFont)).foregroundColor(.cyan)
+                                } else {
+                                    Text("<SEM>").font(.system(.caption2, design: retroFont)).foregroundColor(.orange)
+                                }
+                            }.padding(8).border(Color.cyan.opacity(0.5), width: 1)
+                        }
+                    }
+                }
+                
+                // 4. Active Quests
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("> ACTIVE_QUESTS").font(.system(.headline, design: retroFont)).foregroundColor(.yellow)
+                        Spacer()
+                        NavigationLink(" [ LIST ] ") { TasksView() }
+                            .font(.system(.caption, design: retroFont))
+                            .foregroundColor(.yellow)
+                            .border(Color.yellow, width: 1)
+                    }
+                    
+                    let activeQuests = tasks.filter { !$0.isCompleted }.prefix(3)
+                    if activeQuests.isEmpty {
+                        Text("NO_DATA").font(.system(.caption, design: retroFont)).foregroundColor(.gray)
+                    } else {
+                        ForEach(activeQuests) { task in
+                            HStack {
+                                Text(task.isCompleted ? "[X]" : "[ ]").foregroundColor(.yellow)
+                                VStack(alignment: .leading) {
+                                    Text(task.title.uppercased()).font(.system(.subheadline, design: retroFont)).foregroundColor(.white)
+                                    if !task.notes.isEmpty { Text(task.notes).font(.system(size: 8, design: retroFont)).foregroundColor(.gray) }
+                                    HStack {
+                                        if let s = task.subject { Text("SUB: \(s.title)") }
+                                        if let d = task.dueDate { Text("DUE: \(formatDate(d))") }
+                                    }.font(.system(size: 8, design: retroFont)).foregroundColor(.gray)
+                                }
+                                Spacer()
+                                Text("EXP+").font(.system(size: 10, design: retroFont)).foregroundColor(.green)
+                            }.padding(8).border(Color.yellow.opacity(0.5), width: 1)
+                        }
+                    }
+                }
+                
+                // 5. Skill Trees (Performance)
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("> SKILL_TREES").font(.system(.headline, design: retroFont)).foregroundColor(.purple)
+                        Spacer()
+                        NavigationLink(" [ LIST ] ") { SubjectsView() }
+                            .font(.system(.caption, design: retroFont))
+                            .foregroundColor(.purple)
+                            .border(Color.purple, width: 1)
+                    }
+                    
+                    ForEach(subjects.prefix(3)) { subject in
+                        HStack {
+                            Text("::").foregroundColor(.purple)
+                            VStack(alignment: .leading) {
+                                Text(subject.title.uppercased()).font(.system(.subheadline, design: retroFont)).foregroundColor(.white)
+                                Text("INSTR: \(subject.courseTeacher.uppercased())").font(.system(.caption2, design: retroFont)).foregroundColor(.gray)
+                            }
+                            Spacer()
+                            VStack(alignment: .trailing) {
+                                Text("LVL \(Int(subject.attendanceRate * 10))").font(.system(.caption, design: retroFont)).foregroundColor(.purple)
+                                if let g = subject.currentGrade {
+                                    Text("VAL: \(String(format: "%.1f", g))").font(.system(.caption2, design: retroFont)).foregroundColor(.green)
+                                }
+                            }
+                        }
+                        .padding(8)
+                        .border(Color.purple.opacity(0.5), width: 1)
+                    }
+                }
+            }
+            .padding()
+        }
+        .background(Color(red: 0.05, green: 0.05, blue: 0.1).ignoresSafeArea())
+    }
+    
+    private func filterTodayClasses(academicWeek: Int?) -> [Subject] {
+        let today = Date()
+        let weekday = Calendar.current.component(.weekday, from: today)
+        return subjects.filter { subject in
+            let hasCourseToday = subject.courseDays.contains(weekday) &&
+                               subject.occursThisWeek(academicWeek: academicWeek, isCourse: true)
+            let hasSeminarToday = subject.seminarDays.contains(weekday) &&
+                                subject.occursThisWeek(academicWeek: academicWeek, isCourse: false)
+            return hasCourseToday || hasSeminarToday
+        }
+    }
+    
+    private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateFormat = "MM-dd"; return f.string(from: date) }
+}
+
+// MARK: - LOCAL COMPONENTS
 
 struct HomeClassCard: View {
     let subject: Subject

@@ -9,6 +9,8 @@ struct SettingsView: View {
             switch themeManager.selectedGameMode {
             case .arcade:
                 ArcadeSettingsView()
+            case .retro:
+                RetroSettingsView()
             case .rainbow:
                 StandardSettingsView()
                     .preferredColorScheme(.dark)
