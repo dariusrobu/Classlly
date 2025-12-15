@@ -2,7 +2,7 @@
 //  WhatIfGradeView.swift
 //  Classlly
 //
-//  Created by Robu Darius on 11.12.2025.
+//  Created by Robu Darius on 15.12.2025.
 //
 
 
@@ -19,6 +19,8 @@ struct WhatIfGradeView: View {
                 ArcadeWhatIfView(subject: subject)
             case .rainbow:
                 RainbowWhatIfView(subject: subject)
+            case .retro:
+                RetroWhatIfView(subject: subject)
             case .none:
                 StandardWhatIfView(subject: subject)
             }
@@ -368,5 +370,113 @@ struct ArcadeWhatIfView: View {
                   let weight = Double(examWeight) else { return }
             resultGrade = subject.calculateRequiredGrade(targetGrade: target, newItemWeight: weight)
         }
+    }
+}
+
+// MARK: - 👾 RETRO VIEW
+struct RetroWhatIfView: View {
+    let subject: Subject
+    @Environment(\.dismiss) var dismiss
+    
+    @State private var targetGrade: String = ""
+    @State private var examWeight: String = ""
+    @State private var resultGrade: Double? = nil
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(red: 0.05, green: 0.05, blue: 0.05).ignoresSafeArea()
+                
+                VStack(spacing: 30) {
+                    // Header
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("> SYSTEM.CALC_PROBABILITY").font(.system(.caption, design: .monospaced)).foregroundColor(.green)
+                        Text("TARGET_ACQUISITION").font(.system(.title, design: .monospaced)).fontWeight(.bold).foregroundColor(.green)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .border(Color.green, width: 1)
+                    .padding(.horizontal)
+                    
+                    // Stats
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text("CURRENT_VAL:").font(.system(.body, design: .monospaced)).foregroundColor(.gray)
+                            Spacer()
+                            Text(String(format: "%.2f", subject.weightedAverage ?? 0.0))
+                                .font(.system(.body, design: .monospaced))
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .padding(.horizontal)
+                    
+                    // Inputs
+                    VStack(spacing: 20) {
+                        HStack {
+                            Text("INPUT_TARGET >").font(.system(.caption, design: .monospaced)).foregroundColor(.green)
+                            TextField("0.00", text: $targetGrade)
+                                .font(.system(.body, design: .monospaced))
+                                .foregroundColor(.white)
+                                .accentColor(.green)
+                        }
+                        .padding(10)
+                        .border(Color.green.opacity(0.5), width: 1)
+                        
+                        HStack {
+                            Text("INPUT_WEIGHT >").font(.system(.caption, design: .monospaced)).foregroundColor(.green)
+                            TextField("00", text: $examWeight)
+                                .font(.system(.body, design: .monospaced))
+                                .foregroundColor(.white)
+                                .accentColor(.green)
+                        }
+                        .padding(10)
+                        .border(Color.green.opacity(0.5), width: 1)
+                    }
+                    .padding(.horizontal)
+                    
+                    Button(action: calculate) {
+                        Text("[ EXECUTE_CALCULATION ]")
+                            .font(.system(.body, design: .monospaced))
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.green)
+                    }
+                    .padding(.horizontal)
+                    
+                    // Result
+                    if let result = resultGrade {
+                        VStack(spacing: 8) {
+                            Text("> RESULT_GENERATED:").font(.system(.caption, design: .monospaced)).foregroundColor(.green)
+                            Text(String(format: "%.2f", result))
+                                .font(.system(size: 50, design: .monospaced))
+                                .foregroundColor(result > 10 ? .red : .white)
+                            
+                            if result > 10 {
+                                Text("ERROR: TARGET_UNREACHABLE").font(.system(.caption, design: .monospaced)).foregroundColor(.red)
+                            }
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .border(result > 10 ? Color.red : Color.white, width: 1)
+                        .padding(.horizontal)
+                    }
+                    
+                    Spacer()
+                }
+                .padding(.top)
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("EXIT") { dismiss() }.font(.system(.caption, design: .monospaced)).foregroundColor(.red)
+                }
+            }
+        }
+    }
+    
+    private func calculate() {
+        guard let target = Double(targetGrade),
+              let weight = Double(examWeight) else { return }
+        resultGrade = subject.calculateRequiredGrade(targetGrade: target, newItemWeight: weight)
     }
 }

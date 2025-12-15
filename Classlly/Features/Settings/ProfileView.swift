@@ -580,7 +580,7 @@ struct ArcadeProfileView: View {
 
 // MARK: - 👾 RETRO VIEW
 struct RetroProfileView: View {
-    let user: UserProfile?
+    let user: StudentProfile? // Fixed: Changed from UserProfile to StudentProfile
     let subjects: [Subject]
     let tasks: [StudyTask]
     @EnvironmentObject var authManager: AuthenticationManager
