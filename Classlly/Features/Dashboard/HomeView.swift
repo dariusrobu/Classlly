@@ -42,6 +42,463 @@ struct HomeView: View {
     }
 }
 
+// MARK: - 🏠 STANDARD DASHBOARD (Reimagined)
+struct StandardDashboard: View {
+    let subjects: [Subject]
+    let tasks: [StudyTask]
+    @EnvironmentObject var calendarManager: AcademicCalendarManager
+    
+    // Computed schedule for today
+    private var todaysSchedule: [TodayClassEvent] {
+        DashboardLogic.getTodaysSchedule(subjects: subjects, academicWeek: calendarManager.currentTeachingWeek)
+    }
+    
+    private var nextClass: TodayClassEvent? {
+        DashboardLogic.getNextClass(from: todaysSchedule)
+    }
+    
+    private var remainingClasses: [TodayClassEvent] {
+        DashboardLogic.getRemainingClasses(from: todaysSchedule)
+    }
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                // 1. Welcome Header
+                welcomeHeader
+                
+                // 2. Next Class (Hero Section)
+                if let next = nextClass {
+                    NextClassCard(event: next)
+                } else if !todaysSchedule.isEmpty {
+                    // Classes exist today but are all finished
+                    AllDoneCard()
+                } else {
+                    // No classes today at all
+                    FreeDayCard()
+                }
+                
+                // 3. Rest of Today
+                if !remainingClasses.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Rest of Today")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 4)
+                        
+                        VStack(spacing: 12) {
+                            ForEach(remainingClasses) { event in
+                                CompactClassRow(event: event)
+                            }
+                        }
+                    }
+                }
+                
+                // 4. Upcoming Tasks
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Upcoming Tasks")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        NavigationLink("See All") { TasksView() }
+                            .font(.subheadline)
+                            .foregroundColor(.themePrimary)
+                    }
+                    .padding(.horizontal, 4)
+                    
+                    let upcomingTasks = tasks
+                        .filter { !$0.isCompleted }
+                        .sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
+                    
+                    if upcomingTasks.isEmpty {
+                        HomeEmptyStateView(
+                            icon: "checkmark.circle",
+                            title: "All Caught Up",
+                            message: "No pending tasks."
+                        )
+                    } else {
+                        VStack(spacing: 12) {
+                            ForEach(upcomingTasks.prefix(3)) { task in
+                                HomeTaskCard(task: task)
+                            }
+                        }
+                    }
+                }
+                
+                // 5. Academic Performance
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Performance")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        NavigationLink("Details") { SubjectsView() }
+                            .font(.subheadline)
+                            .foregroundColor(.themePrimary)
+                    }
+                    .padding(.horizontal, 4)
+                    
+                    if subjects.isEmpty {
+                        Text("Add subjects to track performance")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.themeSurface)
+                            .cornerRadius(12)
+                    } else {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(subjects) { subject in
+                                    CompactPerformanceCard(subject: subject)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .padding()
+        }
+        .background(Color.themeBackground)
+    }
+    
+    // MARK: - Components
+    
+    private var welcomeHeader: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Welcome back!")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(.themeTextPrimary)
+                
+                HStack(spacing: 12) {
+                    Label(Date().formatted(date: .abbreviated, time: .omitted), systemImage: "calendar")
+                    if let week = calendarManager.currentTeachingWeek {
+                        Text("•")
+                        Text("Week \(week)")
+                    }
+                    Text("•")
+                    Text(calendarManager.currentSemester.displayName)
+                }
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.themeTextSecondary)
+            }
+            Spacer()
+        }
+        .padding(.vertical, 8)
+    }
+}
+
+// MARK: - LOGIC MODELS & HELPERS
+
+struct TodayClassEvent: Identifiable {
+    let id: UUID = UUID() // Unique ID for list rendering
+    let subject: Subject
+    let type: ClassType
+    let startTime: Date
+    let endTime: Date
+    let room: String
+    
+    // Helper to calculate countdown string
+    var timeUntilStart: String {
+        let diff = startTime.timeIntervalSinceNow
+        if diff <= 0 { return "Now" }
+        
+        let hours = Int(diff) / 3600
+        let minutes = (Int(diff) % 3600) / 60
+        
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else {
+            return "\(minutes) min"
+        }
+    }
+}
+
+struct DashboardLogic {
+    // Flatten subjects into specific Course/Seminar events for Today
+    static func getTodaysSchedule(subjects: [Subject], academicWeek: Int?) -> [TodayClassEvent] {
+        let calendar = Calendar.current
+        let today = Date()
+        let weekday = calendar.component(.weekday, from: today) // 1=Sun, 2=Mon...
+        
+        var events: [TodayClassEvent] = []
+        
+        for subject in subjects {
+            // Check Course
+            if subject.courseDays.contains(weekday) && subject.occursThisWeek(academicWeek: academicWeek, isCourse: true) {
+                // Construct today's date with subject's time
+                if let start = combineDate(today, time: subject.courseStartTime),
+                   let end = combineDate(today, time: subject.courseEndTime) {
+                    events.append(TodayClassEvent(subject: subject, type: .course, startTime: start, endTime: end, room: subject.courseClassroom))
+                }
+            }
+            
+            // Check Seminar
+            if subject.seminarDays.contains(weekday) && subject.occursThisWeek(academicWeek: academicWeek, isCourse: false) {
+                if let start = combineDate(today, time: subject.seminarStartTime),
+                   let end = combineDate(today, time: subject.seminarEndTime) {
+                    events.append(TodayClassEvent(subject: subject, type: .seminar, startTime: start, endTime: end, room: subject.seminarClassroom))
+                }
+            }
+        }
+        
+        return events.sorted { $0.startTime < $1.startTime }
+    }
+    
+    static func getNextClass(from schedule: [TodayClassEvent]) -> TodayClassEvent? {
+        let now = Date()
+        // Find first class that hasn't started OR is currently running
+        // If we want strictly "Next", we check startTime > now.
+        // If we want "Current or Next", we check endTime > now.
+        // The user asked "in how many minutes... will be the next subject", implies future start.
+        // However, showing current class is usually better UX. Let's show Future starts first.
+        
+        return schedule.first { $0.endTime > now }
+    }
+    
+    static func getRemainingClasses(from schedule: [TodayClassEvent]) -> [TodayClassEvent] {
+        guard let next = getNextClass(from: schedule) else { return [] }
+        return schedule.filter { $0.startTime > next.startTime }
+    }
+    
+    // Legacy helper for other dashboards
+    static func getDailyProgress(subjects: [Subject], academicWeek: Int?) -> (completed: Int, total: Int) {
+        let schedule = getTodaysSchedule(subjects: subjects, academicWeek: academicWeek)
+        let total = schedule.count
+        let completed = schedule.filter { $0.endTime < Date() }.count
+        return (completed, total)
+    }
+    
+    static func filterTodayClasses(subjects: [Subject], academicWeek: Int?) -> [Subject] {
+        // Return unique subjects that have events today (legacy support)
+        let events = getTodaysSchedule(subjects: subjects, academicWeek: academicWeek)
+        let uniqueIDs = Set(events.map { $0.subject.id })
+        return subjects.filter { uniqueIDs.contains($0.id) }
+    }
+    
+    private static func combineDate(_ date: Date, time: Date) -> Date? {
+        let calendar = Calendar.current
+        let timeComps = calendar.dateComponents([.hour, .minute], from: time)
+        return calendar.date(bySettingHour: timeComps.hour ?? 0, minute: timeComps.minute ?? 0, second: 0, of: date)
+    }
+}
+
+// MARK: - UI COMPONENTS (New)
+
+struct NextClassCard: View {
+    let event: TodayClassEvent
+    @Environment(\.colorScheme) var colorScheme
+    
+    var isHappeningNow: Bool {
+        let now = Date()
+        return event.startTime <= now && event.endTime >= now
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Header: "Up Next" or "Happening Now"
+            HStack {
+                Text(isHappeningNow ? "Happening Now" : "Up Next")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .textCase(.uppercase)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(isHappeningNow ? Color.green.opacity(0.2) : Color.themePrimary.opacity(0.2))
+                    .foregroundColor(isHappeningNow ? .green : .themePrimary)
+                    .cornerRadius(4)
+                
+                Spacer()
+                
+                if !isHappeningNow {
+                    Label(event.timeUntilStart, systemImage: "timer")
+                        .font(.callout)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.themePrimary)
+                }
+            }
+            
+            // Content
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(event.subject.title)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.themeTextPrimary)
+                    
+                    HStack(spacing: 6) {
+                        Text(event.type.rawValue)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(event.type.color.opacity(0.15))
+                            .foregroundColor(event.type.color)
+                            .cornerRadius(4)
+                        
+                        Text("•")
+                            .foregroundColor(.secondary)
+                        
+                        Label(event.room, systemImage: "mappin.and.ellipse")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                Spacer()
+                
+                // Big Icon
+                ZStack {
+                    Circle()
+                        .fill(event.type.color.opacity(0.1))
+                        .frame(width: 56, height: 56)
+                    Image(systemName: event.type.icon)
+                        .font(.title2)
+                        .foregroundColor(event.type.color)
+                }
+            }
+            
+            Divider()
+            
+            HStack {
+                Image(systemName: "clock")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text("\(formatTime(event.startTime)) - \(formatTime(event.endTime))")
+                    .font(.subheadline)
+                    .foregroundColor(.themeTextSecondary)
+                
+                Spacer()
+                
+                // Quick Action
+                QuickAttendanceButton(subject: event.subject, color: event.type.color)
+            }
+        }
+        .padding(20)
+        .background(Color.themeSurface)
+        .cornerRadius(20)
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.05), radius: 10, x: 0, y: 4)
+    }
+    
+    private func formatTime(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        return f.string(from: date)
+    }
+}
+
+struct CompactClassRow: View {
+    let event: TodayClassEvent
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // Time Column
+            VStack(alignment: .center, spacing: 2) {
+                Text(formatTime(event.startTime))
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .foregroundColor(.themeTextPrimary)
+                Text(formatTime(event.endTime))
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            .frame(width: 50)
+            
+            // Divider Line
+            RoundedRectangle(cornerRadius: 2)
+                .fill(event.type.color)
+                .frame(width: 4)
+                .frame(maxHeight: .infinity)
+            
+            // Info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(event.subject.title)
+                    .font(.headline)
+                    .foregroundColor(.themeTextPrimary)
+                
+                HStack {
+                    Image(systemName: "mappin.circle.fill")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text(event.room)
+                        .font(.subheadline)
+                        .foregroundColor(.themeTextSecondary)
+                }
+            }
+            
+            Spacer()
+            
+            Text(event.type.rawValue.prefix(1))
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(event.type.color)
+                .frame(width: 24, height: 24)
+                .background(event.type.color.opacity(0.1))
+                .clipShape(Circle())
+        }
+        .padding()
+        .background(Color.themeSurface)
+        .cornerRadius(12)
+    }
+    
+    private func formatTime(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return f.string(from: date)
+    }
+}
+
+struct AllDoneCard: View {
+    var body: some View {
+        HStack(spacing: 16) {
+            Image(systemName: "moon.stars.fill")
+                .font(.title)
+                .foregroundColor(.indigo)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("That's a wrap!")
+                    .font(.headline)
+                    .foregroundColor(.themeTextPrimary)
+                Text("All classes for today are finished.")
+                    .font(.subheadline)
+                    .foregroundColor(.themeTextSecondary)
+            }
+            Spacer()
+        }
+        .padding()
+        .background(Color.themeSurface)
+        .cornerRadius(16)
+    }
+}
+
+struct FreeDayCard: View {
+    var body: some View {
+        HStack(spacing: 16) {
+            Image(systemName: "sun.max.fill")
+                .font(.title)
+                .foregroundColor(.orange)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Free Day")
+                    .font(.headline)
+                    .foregroundColor(.themeTextPrimary)
+                Text("No classes scheduled for today.")
+                    .font(.subheadline)
+                    .foregroundColor(.themeTextSecondary)
+            }
+            Spacer()
+        }
+        .padding()
+        .background(Color.themeSurface)
+        .cornerRadius(16)
+    }
+}
+
+
 // MARK: - ⚡️ QUICK ATTENDANCE BUTTON
 struct QuickAttendanceButton: View {
     @Bindable var subject: Subject
@@ -312,162 +769,6 @@ struct RainbowDashboard: View {
     }
 }
 
-// MARK: - STANDARD DASHBOARD
-struct StandardDashboard: View {
-    let subjects: [Subject]
-    let tasks: [StudyTask]
-    @EnvironmentObject var calendarManager: AcademicCalendarManager
-    @EnvironmentObject var themeManager: AppTheme
-    
-    var body: some View {
-        let formattedDate = Date().formatted(date: .abbreviated, time: .omitted)
-        let progress = DashboardLogic.getDailyProgress(subjects: subjects, academicWeek: calendarManager.currentTeachingWeek)
-        
-        ScrollView {
-            VStack(spacing: 20) {
-                // Header Card
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Welcome back!")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.themeTextPrimary)
-                            Text("Here's your academic overview")
-                                .font(.subheadline)
-                                .foregroundColor(.themeTextSecondary)
-                            
-                            if let currentWeek = calendarManager.currentTeachingWeek {
-                                HStack {
-                                    Image(systemName: "calendar")
-                                    Text("Week \(currentWeek) • \(formattedDate)")
-                                }
-                                .font(.caption)
-                                .foregroundColor(.themePrimary)
-                                .padding(.top, 4)
-                            }
-                        }
-                        
-                        Spacer()
-                        
-                        // Progress Ring
-                        if progress.total > 0 {
-                            DayProgressRing(completed: progress.completed, total: progress.total, color: .themePrimary)
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
-                .background(Color.themeSurface)
-                .cornerRadius(12)
-                
-                todaysClassesSection
-                upcomingTasksSection
-                academicPerformanceSection
-            }
-            .padding()
-        }
-    }
-    
-    private var todaysClassesSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Today's Classes")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.themeTextPrimary)
-                Spacer()
-                NavigationLink("See All") { SubjectsView() }
-                    .font(.subheadline)
-                    .foregroundColor(.themePrimary)
-            }
-            
-            let todaysClasses = DashboardLogic.filterTodayClasses(subjects: subjects, academicWeek: calendarManager.currentTeachingWeek)
-            
-            if todaysClasses.isEmpty {
-                HomeEmptyStateView(
-                    icon: "calendar.badge.clock",
-                    title: "No classes today",
-                    message: "Enjoy your free time or catch up on studies"
-                )
-            } else {
-                LazyVStack(spacing: 12) {
-                    ForEach(todaysClasses.prefix(3)) { subject in
-                        HomeClassCard(subject: subject, academicWeek: calendarManager.currentTeachingWeek)
-                    }
-                }
-            }
-        }
-    }
-    
-    private var upcomingTasksSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Upcoming Tasks")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.themeTextPrimary)
-                Spacer()
-                NavigationLink("See All") { TasksView() }
-                    .font(.subheadline)
-                    .foregroundColor(.themePrimary)
-            }
-            
-            let upcomingTasks = tasks
-                .filter { !$0.isCompleted }
-                .sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
-            
-            if upcomingTasks.isEmpty {
-                HomeEmptyStateView(
-                    icon: "checkmark.circle",
-                    title: "No pending tasks",
-                    message: "You're all caught up!"
-                )
-            } else {
-                LazyVStack(spacing: 12) {
-                    ForEach(upcomingTasks.prefix(3)) { task in
-                        HomeTaskCard(task: task)
-                    }
-                }
-            }
-        }
-    }
-    
-    private var academicPerformanceSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Academic Performance")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.themeTextPrimary)
-                Spacer()
-                NavigationLink("See All") { SubjectsView() }
-                    .font(.subheadline)
-                    .foregroundColor(.themePrimary)
-            }
-            .padding(.horizontal)
-            
-            if subjects.isEmpty {
-                HomeEmptyStateView(
-                    icon: "chart.bar.fill",
-                    title: "No Subjects",
-                    message: "Add your first subject to track academic performance"
-                )
-                .padding(.horizontal)
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(subjects) { subject in
-                            CompactPerformanceCard(subject: subject)
-                        }
-                    }
-                    .padding(.horizontal)
-                }
-            }
-        }
-    }
-}
-
 // MARK: - ARCADE DASHBOARD
 struct ArcadeDashboard: View {
     let subjects: [Subject]
@@ -703,64 +1004,6 @@ struct ArcadeDashboard: View {
     }
     
     private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateFormat = "MMM d"; return f.string(from: date) }
-}
-
-// MARK: - DASHBOARD LOGIC HELPER
-struct DashboardLogic {
-    static func getDailyProgress(subjects: [Subject], academicWeek: Int?) -> (completed: Int, total: Int) {
-        let today = Date()
-        let calendar = Calendar.current
-        let weekday = calendar.component(.weekday, from: today)
-        
-        var total = 0
-        var completed = 0
-        
-        for subject in subjects {
-            let isCourseToday = subject.courseDays.contains(weekday) && subject.occursThisWeek(academicWeek: academicWeek, isCourse: true)
-            let isSeminarToday = subject.seminarDays.contains(weekday) && subject.occursThisWeek(academicWeek: academicWeek, isCourse: false)
-            
-            if isCourseToday {
-                total += 1
-                if isTimePassed(subject.courseEndTime) { completed += 1 }
-            }
-            
-            if isSeminarToday {
-                total += 1
-                if isTimePassed(subject.seminarEndTime) { completed += 1 }
-            }
-        }
-        
-        return (completed, total)
-    }
-    
-    static func filterTodayClasses(subjects: [Subject], academicWeek: Int?) -> [Subject] {
-        let today = Date()
-        let weekday = Calendar.current.component(.weekday, from: today)
-        return subjects.filter { subject in
-            let hasCourseToday = subject.courseDays.contains(weekday) &&
-                               subject.occursThisWeek(academicWeek: academicWeek, isCourse: true)
-            let hasSeminarToday = subject.seminarDays.contains(weekday) &&
-                                subject.occursThisWeek(academicWeek: academicWeek, isCourse: false)
-            return hasCourseToday || hasSeminarToday
-        }
-    }
-    
-    private static func isTimePassed(_ date: Date) -> Bool {
-        let calendar = Calendar.current
-        let now = Date()
-        
-        // Extract hour/minute from subject date (assuming it has correct components)
-        // and compare with current hour/minute
-        let eventComponents = calendar.dateComponents([.hour, .minute], from: date)
-        let nowComponents = calendar.dateComponents([.hour, .minute], from: now)
-        
-        guard let eh = eventComponents.hour, let em = eventComponents.minute,
-              let nh = nowComponents.hour, let nm = nowComponents.minute else { return false }
-        
-        if nh > eh { return true }
-        if nh == eh && nm >= em { return true }
-        return false
-    }
 }
 
 // MARK: - 👾 RETRO DASHBOARD

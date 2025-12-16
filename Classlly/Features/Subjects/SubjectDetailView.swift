@@ -161,7 +161,8 @@ struct RainbowSubjectDetailView: View {
                         
                         // EXAMS SECTION
                         VStack(alignment: .leading, spacing: 16) {
-                            RainbowSectionHeader(title: "Exams", icon: "star.fill", color: RainbowColors.yellow)
+                            // FIX: Changed RainbowColors.yellow to .yellow
+                            RainbowSectionHeader(title: "Exams", icon: "star.fill", color: .yellow)
                             
                             if exams.isEmpty {
                                 EmptyRainbowState(icon: "star.slash", text: "No exams recorded")
@@ -331,7 +332,7 @@ struct StandardSubjectDetailView: View {
                 quickActionsSection(accentColor: accentColor)
                 performanceSection
                 
-                // Stacked Sections
+                // Stacked Scrollable Sections
                 examHistorySection
                 gradeHistorySection
                 attendanceHistorySection
@@ -439,78 +440,167 @@ struct StandardSubjectDetailView: View {
         }.padding(.vertical)
     }
     
+    // MARK: - Boxed Sections
+    
     private var examHistorySection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Exams").font(.headline).padding(.horizontal).padding(.top, 16)
-            
-            if exams.isEmpty {
-                SubjectEmptyStateView(icon: "star.slash", title: "No Exams", message: "Add an exam grade.").padding(.horizontal)
-            } else {
-                LazyVStack(spacing: 1) {
-                    ForEach(exams) { grade in
-                        GradeHistoryRow(grade: grade, averageGrade: averageGrade).padding(.horizontal).padding(.vertical, 12).background(Color.themeSurface).contentShape(Rectangle()).onTapGesture { editingGrade = grade }
+        HistorySectionView(
+            title: "Exams",
+            icon: "star.fill",
+            isEmpty: exams.isEmpty,
+            emptyIcon: "star.slash",
+            emptyMessage: "No exam grades recorded yet."
+        ) {
+            ForEach(exams) { grade in
+                VStack(spacing: 0) {
+                    GradeHistoryRow(grade: grade, averageGrade: averageGrade)
+                        .padding()
+                        .contentShape(Rectangle())
+                        .onTapGesture { editingGrade = grade }
+                    
+                    if grade.id != exams.last?.id {
+                        Divider().padding(.leading, 60)
                     }
                 }
-                .background(Color.themeSurface)
             }
         }
     }
     
     private var gradeHistorySection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Grades").font(.headline).padding(.horizontal).padding(.top, 16)
-            
-            if regularGrades.isEmpty {
-                SubjectEmptyStateView(icon: "chart.line.uptrend.xyaxis", title: "No Grades", message: "Add your first grade.").padding(.horizontal)
-            } else {
-                LazyVStack(spacing: 1) {
-                    ForEach(regularGrades) { grade in
-                        GradeHistoryRow(grade: grade, averageGrade: averageGrade).padding(.horizontal).padding(.vertical, 12).background(Color.themeSurface).contentShape(Rectangle()).onTapGesture { editingGrade = grade }
+        HistorySectionView(
+            title: "Grades",
+            icon: "chart.bar.fill",
+            isEmpty: regularGrades.isEmpty,
+            emptyIcon: "chart.xyaxis.line",
+            emptyMessage: "No grades recorded yet."
+        ) {
+            ForEach(regularGrades) { grade in
+                VStack(spacing: 0) {
+                    GradeHistoryRow(grade: grade, averageGrade: averageGrade)
+                        .padding()
+                        .contentShape(Rectangle())
+                        .onTapGesture { editingGrade = grade }
+                    
+                    if grade.id != regularGrades.last?.id {
+                        Divider().padding(.leading, 60)
                     }
                 }
-                .background(Color.themeSurface)
             }
         }
     }
     
     private var attendanceHistorySection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Attendance").font(.headline).padding(.horizontal).padding(.top, 16)
-            
-            if (subject.attendanceHistory ?? []).isEmpty {
-                SubjectEmptyStateView(icon: "calendar", title: "No Records", message: "Mark attendance to track it.").padding(.horizontal)
-            } else {
-                LazyVStack(spacing: 1) {
-                    ForEach((subject.attendanceHistory ?? []).sorted(by: { $0.date > $1.date })) { attendance in
-                        AttendanceHistoryRow(attendance: attendance).padding(.horizontal).padding(.vertical, 12).background(Color.themeSurface).contentShape(Rectangle()).onTapGesture { editingAttendance = attendance }
+        HistorySectionView(
+            title: "Attendance History",
+            icon: "calendar",
+            isEmpty: (subject.attendanceHistory ?? []).isEmpty,
+            emptyIcon: "calendar.badge.exclamationmark",
+            emptyMessage: "No attendance records found."
+        ) {
+            let sortedHistory = (subject.attendanceHistory ?? []).sorted(by: { $0.date > $1.date })
+            ForEach(sortedHistory) { attendance in
+                VStack(spacing: 0) {
+                    AttendanceHistoryRow(attendance: attendance)
+                        .padding()
+                        .contentShape(Rectangle())
+                        .onTapGesture { editingAttendance = attendance }
+                    
+                    if attendance.id != sortedHistory.last?.id {
+                        Divider().padding(.leading, 60)
                     }
                 }
-                .background(Color.themeSurface)
             }
         }
     }
     
     private var tasksSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Tasks").font(.headline).padding(.horizontal).padding(.top, 16)
-            
-            if subjectTasks.isEmpty {
-                SubjectEmptyStateView(icon: "checklist", title: "No Tasks", message: "Add tasks for this subject.").padding(.horizontal)
-            } else {
-                LazyVStack(spacing: 1) {
-                    ForEach(subjectTasks) { task in
-                        NavigationLink(destination: EditTaskView(task: task)) {
-                            TaskRowPreview(title: task.title, subject: task.subject?.title ?? "General", dueDate: task.dueDate != nil ? formatDate(task.dueDate!) : "No date", isCompleted: task.isCompleted).padding(.horizontal).padding(.vertical, 12).background(Color.themeSurface)
-                        }
-                        .buttonStyle(PlainButtonStyle())
+        HistorySectionView(
+            title: "Subject Tasks",
+            icon: "checklist",
+            isEmpty: subjectTasks.isEmpty,
+            emptyIcon: "checkmark.circle.badge.questionmark",
+            emptyMessage: "No tasks for this subject."
+        ) {
+            ForEach(subjectTasks) { task in
+                VStack(spacing: 0) {
+                    NavigationLink(destination: EditTaskView(task: task)) {
+                        TaskRowPreview(title: task.title, subject: task.subject?.title ?? "General", dueDate: task.dueDate != nil ? formatDate(task.dueDate!) : "No date", isCompleted: task.isCompleted)
+                            .padding()
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    if task.id != subjectTasks.last?.id {
+                        Divider().padding(.leading, 36)
                     }
                 }
-                .background(Color.themeSurface)
             }
         }
     }
     
     private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateStyle = .medium; return f.string(from: date) }
+}
+
+// MARK: - Reusable History Section Component
+
+struct HistorySectionView<Content: View>: View {
+    let title: String
+    let icon: String
+    let isEmpty: Bool
+    let emptyIcon: String
+    let emptyMessage: String
+    @ViewBuilder let content: () -> Content
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // Section Header
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.subheadline)
+                    .foregroundColor(.themePrimary)
+                    .padding(6)
+                    .background(Color.themePrimary.opacity(0.1))
+                    .clipShape(Circle())
+                
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(.themeTextPrimary)
+                
+                Spacer()
+            }
+            .padding(.horizontal)
+            .padding(.top, 4)
+            
+            // Box Content
+            Group {
+                if isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: emptyIcon)
+                            .font(.system(size: 32))
+                            .foregroundColor(.themeTextSecondary.opacity(0.4))
+                        Text(emptyMessage)
+                            .font(.subheadline)
+                            .foregroundColor(.themeTextSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 140) // Smaller height for empty states
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            content()
+                        }
+                    }
+                    .frame(height: 240) // Fixed height for scrolling
+                }
+            }
+            .background(Color.themeSurface)
+            .cornerRadius(16)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.adaptiveBorder.opacity(0.5), lineWidth: 1)
+            )
+            .padding(.horizontal)
+        }
+        .padding(.vertical, 8)
+    }
 }
 
 // MARK: - 🕹️ ARCADE & RETRO

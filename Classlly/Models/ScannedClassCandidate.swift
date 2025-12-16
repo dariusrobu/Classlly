@@ -15,6 +15,15 @@ enum ClassType: String, Codable, CaseIterable {
         case .online: return .purple
         }
     }
+    
+    var icon: String {
+        switch self {
+        case .course: return "book.fill"
+        case .seminar: return "person.2.fill"
+        case .lab: return "flask.fill"
+        case .online: return "laptopcomputer"
+        }
+    }
 }
 
 struct ScannedClassCandidate: Identifiable, Equatable {

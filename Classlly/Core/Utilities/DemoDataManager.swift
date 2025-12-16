@@ -23,6 +23,7 @@ class DemoDataManager {
             Subject(title: "Graphic Design", courseTeacher: "Prof. Art", courseClassroom: "Studio A", courseDays: [5], seminarTeacher: "Dali", seminarClassroom: "Studio B", seminarDays: [5])
         ]
         
+        // Insert Subjects first so they have IDs/Context
         for sub in subjects {
             modelContext.insert(sub)
         }
@@ -50,9 +51,66 @@ class DemoDataManager {
             modelContext.insert(task)
         }
         
+        // 3. Create Grades & Attendance for each Subject
+        for sub in subjects {
+            // --- Generate Grades ---
+            // Create 3 to 6 grades per subject
+            let gradesCount = Int.random(in: 3...6)
+            for i in 0..<gradesCount {
+                // Generate a date in the past 4 months
+                let pastDays = Int.random(in: 1...120) * -1
+                let gradeDate = calendar.date(byAdding: .day, value: pastDays, to: today) ?? today
+                
+                // Random grade between 5 and 10
+                let score = Double.random(in: 5...10)
+                // Random weight mostly 100%, sometimes higher or lower
+                let weight = [50.0, 100.0, 100.0, 100.0, 200.0].randomElement() ?? 100.0
+                
+                let isExam = (i == 0) // Make one an exam
+                let description = isExam ? "Midterm Exam" : "Assignment \(i + 1)"
+                
+                let gradeEntry = GradeEntry(
+                    date: gradeDate,
+                    grade: (score * 10).rounded() / 10, // Round to 1 decimal
+                    weight: weight,
+                    description: description,
+                    isExam: isExam
+                )
+                
+                // Link relationships
+                gradeEntry.subject = sub
+                sub.gradeHistory?.append(gradeEntry)
+                modelContext.insert(gradeEntry)
+            }
+            
+            // --- Generate Attendance ---
+            // Create 10 to 15 attendance records per subject
+            let attendanceCount = Int.random(in: 10...15)
+            for j in 0..<attendanceCount {
+                // Go back 'j' weeks
+                let pastDays = (j * 7) * -1
+                let attendanceDate = calendar.date(byAdding: .day, value: pastDays, to: today) ?? today
+                
+                // 80% chance of being present
+                let isPresent = Double.random(in: 0...1) < 0.8
+                let notes = isPresent ? "" : "Sick leave"
+                
+                let attendanceEntry = AttendanceEntry(
+                    date: attendanceDate,
+                    attended: isPresent,
+                    notes: notes
+                )
+                
+                // Link relationships
+                attendanceEntry.subject = sub
+                sub.attendanceHistory?.append(attendanceEntry)
+                modelContext.insert(attendanceEntry)
+            }
+        }
+        
         do {
             try modelContext.save()
-            print("Heavy stress test data created.")
+            print("Heavy stress test data (Subjects, Tasks, Grades, Attendance) created.")
         } catch {
             print("Failed to save stress data: \(error)")
         }
