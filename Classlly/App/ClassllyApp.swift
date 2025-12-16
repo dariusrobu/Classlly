@@ -5,35 +5,42 @@ import SwiftData
 struct ClassllyApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
-    // Initialize shared managers
+    // Shared Managers
     @StateObject private var authManager = AuthenticationManager.shared
     @StateObject private var themeManager = AppTheme.shared
     @StateObject private var calendarManager = AcademicCalendarManager.shared
     
+    // Listen to Settings
+    @AppStorage("darkModeEnabled") private var darkModeEnabled = false
+    
     var body: some Scene {
         WindowGroup {
-            if authManager.isAuthenticated {
-                // ✅ LOGGED IN: Show Main Tab Bar
-                MainTabView()
-                    .environmentObject(themeManager)
-                    .environmentObject(authManager)
-                    .environmentObject(calendarManager)
-            } else {
-                // 🔒 LOGGED OUT: Show Sign In
-                SignInView()
-                    .environmentObject(authManager)
-                    .environmentObject(calendarManager)
+            Group {
+                if authManager.isAuthenticated {
+                    MainTabView()
+                        .environmentObject(themeManager)
+                        .environmentObject(authManager)
+                        .environmentObject(calendarManager)
+                } else {
+                    SignInView()
+                        .environmentObject(authManager)
+                        .environmentObject(calendarManager)
+                }
             }
+            // 1. Force Dark Mode based on settings
+            .preferredColorScheme(darkModeEnabled ? .dark : nil)
+            // 2. Global Accent Color (buttons, tabs, links)
+            .tint(themeManager.selectedTheme.primaryColor)
+            // Database
+            .modelContainer(for: [
+                Subject.self,
+                StudyTask.self,
+                GradeEntry.self,
+                AttendanceEntry.self,
+                StudyCalendarEvent.self,
+                StudentProfile.self,
+                ClassEvent.self
+            ])
         }
-        // 🔴 CRITICAL: Registers the database. If this is missing, the app crashes.
-        .modelContainer(for: [
-            Subject.self,
-            StudyTask.self,
-            GradeEntry.self,
-            AttendanceEntry.self,
-            StudyCalendarEvent.self,
-            StudentProfile.self,
-            ClassEvent.self
-        ])
     }
 }

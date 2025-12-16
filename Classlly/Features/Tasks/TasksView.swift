@@ -12,8 +12,6 @@ struct TasksView: View {
                 RainbowTasksView(embedInNavigationStack: embedInNavigationStack)
             case .arcade:
                 ArcadeTasksView()
-            case .retro:
-                RetroTasksView()
             case .none:
                 StandardTasksView()
             }
@@ -210,9 +208,7 @@ struct RainbowTaskCard: View {
     }
 }
 
-// ... (Rest of Standard/Arcade/Retro views unchanged)
-// [Preserving existing code]
-
+// MARK: - 👔 STANDARD TASKS
 struct StandardTasksView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) var colorScheme
@@ -264,6 +260,7 @@ struct StandardTasksView: View {
     }
 }
 
+// MARK: - 🕹️ ARCADE TASKS
 struct ArcadeTasksView: View {
     @Environment(\.modelContext) private var modelContext; @Query private var tasks: [StudyTask]
     @State private var showingAddTask = false; @State private var editingTask: StudyTask?; @State private var taskFilter: TaskFilter = .today
@@ -319,51 +316,6 @@ struct ArcadeTaskRow: View {
         }.padding().background(Color(white: 0.1)).cornerRadius(16).overlay(RoundedRectangle(cornerRadius: 16).stroke(task.isCompleted ? Color.gray.opacity(0.3) : task.priority.color.opacity(0.3), lineWidth: 1))
     }
     private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateFormat = "MMM d"; return f.string(from: date) }
-}
-
-struct RetroTasksView: View {
-    @Environment(\.modelContext) private var modelContext; @Query private var tasks: [StudyTask]
-    @State private var showingAddTask = false; @State private var editingTask: StudyTask?; @State private var taskFilter: TaskFilter = .today
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Color(red: 0.05, green: 0.05, blue: 0.05).ignoresSafeArea()
-                VStack(spacing: 20) {
-                    ScrollView(.horizontal, showsIndicators: false) { HStack(spacing: 0) { ForEach(TaskFilter.allCases, id: \.self) { filter in Button(action: { taskFilter = filter }) { Text("[\(filter.rawValue.uppercased())]").font(.system(.caption, design: .monospaced)).fontWeight(taskFilter == filter ? .bold : .regular).foregroundColor(taskFilter == filter ? .green : .gray).padding(8).background(taskFilter == filter ? Color.green.opacity(0.2) : Color.clear) } } }.padding(.horizontal).padding(.top).overlay(Rectangle().frame(height: 1).foregroundColor(.green), alignment: .bottom) }
-                    if filteredTasks.isEmpty { VStack(spacing: 16) { Text("> SYSTEM_IDLE").font(.system(.title, design: .monospaced)).foregroundColor(.green); Text("No active processes.").font(.system(.body, design: .monospaced)).foregroundColor(.gray) }.frame(maxWidth: .infinity, maxHeight: .infinity) }
-                    else { ScrollView { LazyVStack(spacing: 0) { ForEach(filteredTasks) { task in RetroTaskRow(task: task).onTapGesture { editingTask = task } } }.padding() } }
-                }
-            }
-            .navigationTitle("CMD_TASKS").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button(action: { showingAddTask = true }) { Text("[ ADD ]").font(.system(.caption, design: .monospaced)).foregroundColor(.green) } } }
-            .sheet(isPresented: $showingAddTask) { AddTaskView() }.sheet(item: $editingTask) { task in EditTaskView(task: task) }
-        }.preferredColorScheme(.dark)
-    }
-    var filteredTasks: [StudyTask] {
-        let calendar = Calendar.current; let now = Date()
-        switch taskFilter {
-        case .today: return tasks.filter { guard let d = $0.dueDate else { return false }; return !$0.isCompleted && calendar.isDate(d, inSameDayAs: now) }.sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
-        case .flagged: return tasks.filter { $0.isFlagged && !$0.isCompleted }.sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
-        case .all: return tasks.filter { !$0.isCompleted }.sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
-        case .completed: return tasks.filter { $0.isCompleted }.sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
-        }
-    }
-}
-
-struct RetroTaskRow: View {
-    let task: StudyTask
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Text(task.isCompleted ? "[X]" : "[ ]").font(.system(.body, design: .monospaced)).foregroundColor(task.isCompleted ? .gray : .green)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(task.title.uppercased()).font(.system(.body, design: .monospaced)).foregroundColor(task.isCompleted ? .gray : .white).strikethrough(task.isCompleted)
-                if !task.notes.isEmpty { Text("> DATA: \(task.notes)").font(.system(size: 10, design: .monospaced)).foregroundColor(.gray).lineLimit(1) }
-                HStack { if let s = task.subject { Text("SUB: \(s.title)") }; if let d = task.dueDate { Text("DUE: \(formatDate(d))") } }.font(.system(size: 10, design: .monospaced)).foregroundColor(.gray)
-            }
-            Spacer()
-        }.padding(.vertical, 12).overlay(Rectangle().frame(height: 1).foregroundColor(Color.green.opacity(0.3)), alignment: .bottom)
-    }
-    private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateFormat = "MM-dd"; return f.string(from: date) }
 }
 
 enum TaskFilter: String, CaseIterable {

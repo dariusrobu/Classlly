@@ -84,8 +84,6 @@ struct CalendarView: View {
                 RainbowCalendarView()
             case .arcade:
                 ArcadeCalendarView()
-            case .retro:
-                RetroCalendarView()
             case .none:
                 StandardCalendarView()
             }
@@ -93,7 +91,7 @@ struct CalendarView: View {
     }
 }
 
-// MARK: - 🌈 RAINBOW CALENDAR (Fixed Top Alignment & Custom Header)
+// MARK: - 🌈 RAINBOW CALENDAR
 struct RainbowCalendarView: View {
     @State private var currentDate = Date()
     @State private var selectedDate = Date()
@@ -114,7 +112,7 @@ struct RainbowCalendarView: View {
         let accentColor = themeManager.selectedTheme.primaryColor
         
         VStack(spacing: 0) {
-            // 1. CUSTOM HEADER (Consistent with other tabs)
+            // 1. CUSTOM HEADER
             RainbowHeader(
                 title: "Calendar",
                 accentColor: accentColor,
@@ -124,7 +122,7 @@ struct RainbowCalendarView: View {
                 trailingAction: { showingAddTask = true }
             )
             
-            ZStack(alignment: .top) { // Fix: Align content to top for iPad
+            ZStack(alignment: .top) {
                 Color.black.ignoresSafeArea()
                 
                 VStack(spacing: 24) {
@@ -185,7 +183,7 @@ struct RainbowCalendarView: View {
                     }
                     .padding(.top, 20)
                     
-                    // 3. Calendar Grid (Dark Card)
+                    // 3. Calendar Grid
                     RainbowContainer {
                         RainbowWeeklyCalendarGrid(currentDate: $currentDate, selectedDate: $selectedDate, accentColor: accentColor)
                     }
@@ -289,7 +287,6 @@ struct RainbowWeeklyCalendarGrid: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Day Names
             LazyVGrid(columns: columns, spacing: 10) {
                 ForEach(daysOfWeek, id: \.self) { day in
                     Text(day)
@@ -300,7 +297,6 @@ struct RainbowWeeklyCalendarGrid: View {
                 }
             }
             
-            // Days
             LazyVGrid(columns: columns, spacing: 8) {
                 ForEach(getDaysInWeek(), id: \.self) { date in
                     let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
@@ -344,7 +340,6 @@ struct RainbowEventRow: View {
     var body: some View {
         RainbowContainer {
             HStack(spacing: 16) {
-                // Color Bar / Icon
                 ZStack {
                     Circle()
                         .fill(iconColor.opacity(0.15))
@@ -411,9 +406,7 @@ struct RainbowEventRow: View {
     }()
 }
 
-// ... (Standard, Arcade, Retro views remain unchanged below)
-// [Preserved existing code]
-
+// MARK: - STANDARD CALENDAR VIEW
 struct StandardCalendarView: View {
     @State private var currentDate = Date()
     @State private var selectedDate = Date()
@@ -627,76 +620,6 @@ struct ArcadeEventRow: View {
         }.padding().background(Color(white: 0.1)).cornerRadius(16).overlay(RoundedRectangle(cornerRadius: 16).stroke(event.color.opacity(0.3), lineWidth: 1))
     }
     var timeString: String { let f = DateFormatter(); f.dateFormat = "h:mm a"; return f.string(from: event.startTime) }
-}
-
-// MARK: - 👾 RETRO CALENDAR
-struct RetroCalendarView: View {
-    @State private var currentDate = Date(); @State private var selectedDate = Date()
-    @EnvironmentObject var calendarManager: AcademicCalendarManager
-    @Query var subjects: [Subject]; @Query var tasks: [StudyTask]
-    private let columns = Array(repeating: GridItem(.flexible()), count: 7)
-    
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Color(red: 0.05, green: 0.05, blue: 0.05).ignoresSafeArea()
-                VStack(spacing: 24) {
-                    HStack {
-                        Button(action: { currentDate = Calendar.current.date(byAdding: .weekOfYear, value: -1, to: currentDate) ?? currentDate }) { Text("< PREV").font(.system(.caption, design: .monospaced)).foregroundColor(.green) }
-                        Spacer(); VStack { Text(weekRangeString).font(.system(.headline, design: .monospaced)).foregroundColor(.green); Text("WEEK_ID: \(calendarManager.currentTeachingWeek ?? 0)").font(.system(size: 10, design: .monospaced)).foregroundColor(.gray) }; Spacer()
-                        Button(action: { currentDate = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: currentDate) ?? currentDate }) { Text("NEXT >").font(.system(.caption, design: .monospaced)).foregroundColor(.green) }
-                    }.padding().border(Color.green, width: 1).padding(.horizontal)
-                    
-                    LazyVGrid(columns: columns, spacing: 0) {
-                        ForEach(getDaysInWeek(), id: \.self) { date in
-                            let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
-                            VStack(spacing: 8) {
-                                Text(getDayAbbrev(date)).font(.system(size: 10, design: .monospaced)).foregroundColor(.green)
-                                Text("\(Calendar.current.component(.day, from: date))").font(.system(.body, design: .monospaced)).foregroundColor(isSelected ? .black : .green).frame(width: 30, height: 30).background(isSelected ? Color.green : Color.clear).overlay(Rectangle().stroke(Color.green, lineWidth: 1))
-                            }.padding(.vertical, 8).onTapGesture { selectedDate = date }
-                        }
-                    }.border(Color.green.opacity(0.5), width: 1).padding(.horizontal)
-                    
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("> SCHEDULED_ENCOUNTERS").font(.system(.caption, design: .monospaced)).foregroundColor(.gray).padding(.horizontal).padding(.bottom, 8)
-                        if eventsForSelectedDate.isEmpty { Text("NO DATA FOUND.").font(.system(.body, design: .monospaced)).foregroundColor(.gray).padding(.top, 40) }
-                        else { ScrollView { LazyVStack(spacing: 0) { ForEach(eventsForSelectedDate) { event in RetroEventRow(event: event) } } } }
-                    }
-                }
-            }.navigationTitle("TIME_DB").navigationBarTitleDisplayMode(.inline)
-        }.preferredColorScheme(.dark)
-    }
-    // Logic duplication
-    private var eventsForSelectedDate: [CalendarEvent] {
-        let tasksOnDate = tasks.filter { t in guard let d = t.dueDate else { return false }; return Calendar.current.isDate(d, inSameDayAs: selectedDate) }
-        var classEvents: [CalendarEvent] = []
-        let weekday = Calendar.current.component(.weekday, from: selectedDate)
-        let aw = calendarManager.currentTeachingWeek
-        for s in subjects {
-            if s.courseDays.contains(weekday) && s.occursThisWeek(academicWeek: aw, isCourse: true) { classEvents.append(.class(subject: s, isCourse: true, date: selectedDate)) }
-            if s.seminarDays.contains(weekday) && s.occursThisWeek(academicWeek: aw, isCourse: false) { classEvents.append(.class(subject: s, isCourse: false, date: selectedDate)) }
-        }
-        return (tasksOnDate.map { CalendarEvent.task($0) } + classEvents).sorted { $0.startTime < $1.startTime }
-    }
-    private var weekRangeString: String {
-        let c = Calendar.current; guard let i = c.dateInterval(of: .weekOfYear, for: currentDate) else { return "" }
-        let e = c.date(byAdding: .day, value: 6, to: i.start) ?? i.start
-        let f = DateFormatter(); f.dateFormat = "MMM d"; return "\(f.string(from: i.start)) - \(f.string(from: e))"
-    }
-    private func getDaysInWeek() -> [Date] { let c = Calendar.current; guard let i = c.dateInterval(of: .weekOfYear, for: currentDate) else { return [] }; return (0..<7).compactMap { c.date(byAdding: .day, value: $0, to: i.start) } }
-    private func getDayAbbrev(_ date: Date) -> String { let f = DateFormatter(); f.dateFormat = "E"; return f.string(from: date) }
-}
-
-struct RetroEventRow: View {
-    let event: CalendarEvent
-    var body: some View {
-        HStack {
-            Text("[ ]").font(.system(.body, design: .monospaced)).foregroundColor(.green)
-            VStack(alignment: .leading) { Text(event.title.uppercased()).font(.system(.body, design: .monospaced)).foregroundColor(.green); Text(event.subtitle.uppercased()).font(.system(.caption, design: .monospaced)).foregroundColor(.gray) }
-            Spacer(); Text(timeString).font(.system(.caption, design: .monospaced)).foregroundColor(.green)
-        }.padding().border(Color.green.opacity(0.3), width: 1).background(Color.black)
-    }
-    var timeString: String { let f = DateFormatter(); f.dateFormat = "HH:mm"; return f.string(from: event.startTime) }
 }
 
 // MARK: - SHARED HELPERS (Calendar Specific)

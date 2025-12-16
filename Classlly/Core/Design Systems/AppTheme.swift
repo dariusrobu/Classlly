@@ -29,11 +29,10 @@ enum Theme: String, CaseIterable, Identifiable, Codable {
     }
 }
 
-// MARK: - Game Mode Options
+// MARK: - Game Mode Options (Retro Removed)
 enum GameMode: String, CaseIterable, Identifiable, Codable {
     case none = "Standard"
     case arcade = "Arcade"
-    case retro = "Retro"
     case rainbow = "Rainbow"
     
     var id: String { self.rawValue }
@@ -42,7 +41,6 @@ enum GameMode: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .none: return "Clean academic focus"
         case .arcade: return "Modern gaming hub with neon vibes"
-        case .retro: return "Old-school 8-bit RPG style"
         case .rainbow: return "Vibrant gradients based on your theme"
         }
     }
@@ -51,7 +49,6 @@ enum GameMode: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .none: return "book.closed.fill"
         case .arcade: return "gamecontroller.fill"
-        case .retro: return "square.grid.2x2.fill"
         case .rainbow: return "paintpalette.fill"
         }
     }
@@ -78,7 +75,12 @@ class AppTheme: ObservableObject {
         self.selectedTheme = Theme(rawValue: storedTheme) ?? .classicBlue
         
         let storedMode = UserDefaults.standard.string(forKey: "selectedGameMode") ?? GameMode.none.rawValue
-        self.selectedGameMode = GameMode(rawValue: storedMode) ?? .none
+        // Fallback if 'Retro' was previously selected
+        if storedMode == "Retro" {
+            self.selectedGameMode = .none
+        } else {
+            self.selectedGameMode = GameMode(rawValue: storedMode) ?? .none
+        }
     }
     
     func setTheme(_ theme: Theme) {

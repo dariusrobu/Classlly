@@ -9,8 +9,6 @@ struct SettingsView: View {
             switch themeManager.selectedGameMode {
             case .arcade:
                 ArcadeSettingsView()
-            case .retro:
-                RetroSettingsView()
             case .rainbow:
                 StandardSettingsView()
                     .preferredColorScheme(.dark)
@@ -48,6 +46,7 @@ struct StandardSettingsView: View {
             
             Section(header: Text("Appearance")) {
                 Toggle("Dark Mode", isOn: $darkModeEnabled)
+                
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Accent Color").font(.caption).foregroundColor(.secondary).textCase(.uppercase)
                     LazyVGrid(columns: columns, spacing: 16) {
@@ -70,11 +69,10 @@ struct StandardSettingsView: View {
                 Toggle("Auto Sync", isOn: $autoSyncEnabled)
             }
             
-            // --- NEW DEVELOPER SECTION ---
             Section(header: Text("Developer Options")) {
-                Button("Load Heavy Stress Data (25 Tasks/Week)") {
+                Button("Load Heavy Stress Data") {
                     DemoDataManager.shared.createHeavyStressData(modelContext: modelContext)
-                    alertMessage = "Heavy stress test data loaded!\n(8 Subjects, 25 Tasks distributed over 7 days)"
+                    alertMessage = "Heavy stress test data loaded!"
                     showingDataAlert = true
                 }
                 .foregroundColor(.blue)
@@ -95,10 +93,6 @@ struct StandardSettingsView: View {
     }
 }
 
-// ... (ArcadeSettingsView, RetroSettingsView, ThemeCircle remain unchanged) ...
-// [Omitting repeated Arcade/Retro code as they just wrap the logic,
-// ensuring the Standard view is updated is the key for the Settings data actions]
-
 // MARK: - 🕹️ ARCADE SETTINGS
 struct ArcadeSettingsView: View {
     @EnvironmentObject var themeManager: AppTheme
@@ -113,6 +107,7 @@ struct ArcadeSettingsView: View {
             Color.black.ignoresSafeArea()
             ScrollView {
                 VStack(spacing: 24) {
+                    // Uses ArcadeSection from SharedComponents
                     ArcadeSection(title: "SYSTEM INTERFACE", color: .cyan) {
                         Picker("", selection: $themeManager.selectedGameMode) {
                             ForEach(GameMode.allCases) { mode in Text(mode.rawValue).tag(mode) }
@@ -142,6 +137,9 @@ struct ArcadeSettingsView: View {
     }
 }
 
+// MARK: - Local Helpers
+// Note: ArcadeSection is used from SharedComponents to avoid redeclaration
+
 struct ArcadeToggle: View {
     let icon: String; let label: String; @Binding var isOn: Bool
     var body: some View {
@@ -151,66 +149,6 @@ struct ArcadeToggle: View {
             Spacer()
             Toggle("", isOn: $isOn).labelsHidden().tint(.yellow)
         }.padding(8).background(Color.black).cornerRadius(8)
-    }
-}
-
-// MARK: - 👾 RETRO SETTINGS
-struct RetroSettingsView: View {
-    @EnvironmentObject var themeManager: AppTheme
-    @AppStorage("notificationsEnabled") private var notificationsEnabled = true
-    @AppStorage("darkModeEnabled") private var darkModeEnabled = false
-    @AppStorage("autoSyncEnabled") private var autoSyncEnabled = true
-    
-    private let columns = [GridItem(.adaptive(minimum: 50, maximum: 60), spacing: 16)]
-    
-    var body: some View {
-        ZStack {
-            Color(red: 0.05, green: 0.05, blue: 0.05).ignoresSafeArea()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    Text("> CONFIGURATION_MENU").font(.system(.headline, design: .monospaced)).foregroundColor(.green)
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("UI_MODE:").font(.caption).fontDesign(.monospaced).foregroundColor(.gray)
-                        Picker("", selection: $themeManager.selectedGameMode) {
-                            ForEach(GameMode.allCases) { mode in Text(mode.rawValue).tag(mode) }
-                        }
-                        .pickerStyle(.segmented).colorScheme(.dark)
-                        .overlay(Rectangle().stroke(Color.green, lineWidth: 1))
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("COLOR_PALETTE:").font(.caption).fontDesign(.monospaced).foregroundColor(.gray)
-                        LazyVGrid(columns: columns, spacing: 16) {
-                            ForEach(Theme.allCases) { theme in
-                                ThemeCircle(theme: theme, isSelected: themeManager.selectedTheme == theme) {
-                                    themeManager.setTheme(theme)
-                                }
-                            }
-                        }
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("FLAGS:").font(.caption).fontDesign(.monospaced).foregroundColor(.gray)
-                        RetroToggle(label: "ENABLE_NOTIFICATIONS", isOn: $notificationsEnabled)
-                        RetroToggle(label: "DARK_MODE_OVERRIDE", isOn: $darkModeEnabled)
-                        RetroToggle(label: "AUTO_SYNC_PROTOCOL", isOn: $autoSyncEnabled)
-                    }
-                }.padding()
-            }
-        }
-        .navigationTitle("CONFIG.INI")
-    }
-}
-
-struct RetroToggle: View {
-    let label: String; @Binding var isOn: Bool
-    var body: some View {
-        HStack {
-            Text(label).font(.system(.body, design: .monospaced)).foregroundColor(.green)
-            Spacer()
-            Toggle("", isOn: $isOn).labelsHidden().tint(.green)
-        }.padding(8).border(Color.green.opacity(0.3), width: 1)
     }
 }
 

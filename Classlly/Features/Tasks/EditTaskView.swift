@@ -9,13 +9,11 @@ struct EditTaskView: View {
         Group {
             switch themeManager.selectedGameMode {
             case .arcade:
-                ArcadeEditTaskView(task: task)
-            case .retro:
-                RetroEditTaskView(task: task)
+                AnyView(ArcadeEditTaskView(task: task))
             case .rainbow:
-                RainbowEditTaskView(task: task)
+                AnyView(RainbowEditTaskView(task: task))
             case .none:
-                StandardEditTaskView(task: task)
+                AnyView(StandardEditTaskView(task: task))
             }
         }
     }
@@ -191,7 +189,7 @@ struct RainbowEditTaskView: View {
     }
 }
 
-// ... (Rest of Standard/Arcade/Retro views unchanged)
+// MARK: - 👔 STANDARD EDIT TASK
 struct StandardEditTaskView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -256,7 +254,8 @@ struct StandardEditTaskView: View {
                 Section(header: Text("Due Date")) {
                     Toggle("Add Due Date", isOn: $hasDueDate)
                     if hasDueDate {
-                        DatePicker("Due Date", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
+                        DatePicker("Due Date", selection: $dueDate, in: Date()..., displayedComponents: [.date, .hourAndMinute])
+                            .datePickerStyle(.graphical)
                         Picker("Reminder", selection: $reminderTime) {
                             ForEach(TaskReminderTime.allCases, id: \.self) { time in
                                 Text(time.rawValue).tag(time)
@@ -299,6 +298,7 @@ struct StandardEditTaskView: View {
     }
 }
 
+// MARK: - 🕹️ ARCADE EDIT TASK
 struct ArcadeEditTaskView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -411,13 +411,14 @@ struct ArcadeEditTaskView: View {
                                             .background(priority == p ? p.color : Color(white: 0.1))
                                             .foregroundColor(priority == p ? .white : .gray)
                                             .cornerRadius(8)
+                                            .shadow(color: priority == p ? p.color.opacity(0.5) : .clear, radius: 8)
                                     }
                                 }
                             }
                         }
                         
                         // Date
-                        VStack(alignment: .leading) {
+                        VStack(alignment: .leading, spacing: 12) {
                             Toggle("TIME LIMIT", isOn: $hasDueDate).tint(.pink).font(.headline).foregroundColor(.white)
                             if hasDueDate {
                                 DatePicker("", selection: $dueDate).datePickerStyle(.graphical).colorScheme(.dark)
@@ -458,144 +459,6 @@ struct ArcadeEditTaskView: View {
                     }
                     .fontWeight(.bold)
                     .foregroundColor(.cyan)
-                }
-            }
-        }
-    }
-}
-
-struct RetroEditTaskView: View {
-    @Environment(\.dismiss) var dismiss
-    @Environment(\.modelContext) private var modelContext
-    @Bindable var task: StudyTask
-    @Query(sort: \Subject.title) var subjects: [Subject]
-
-    @State private var title: String
-    @State private var notes: String
-    @State private var selectedSubject: Subject?
-    @State private var priority: TaskPriority
-    @State private var dueDate: Date
-    @State private var hasDueDate: Bool
-    @State private var isFlagged: Bool
-    
-    init(task: StudyTask) {
-        self.task = task
-        _title = State(initialValue: task.title)
-        _notes = State(initialValue: task.notes)
-        _selectedSubject = State(initialValue: task.subject)
-        _priority = State(initialValue: task.priority)
-        _dueDate = State(initialValue: task.dueDate ?? Date())
-        _hasDueDate = State(initialValue: task.dueDate != nil)
-        _isFlagged = State(initialValue: task.isFlagged)
-    }
-
-    var body: some View {
-        NavigationView {
-            ZStack {
-                Color(red: 0.05, green: 0.05, blue: 0.05).ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        Text("> MODIFY_PROCESS_PARAMETERS")
-                            .font(.system(.headline, design: .monospaced))
-                            .foregroundColor(.green)
-                        
-                        // Title
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("TITLE_STRING:")
-                                .font(.caption).foregroundColor(.gray).fontDesign(.monospaced)
-                            TextField("...", text: $title)
-                                .font(.system(.body, design: .monospaced))
-                                .foregroundColor(.green)
-                                .padding(8)
-                                .border(Color.green.opacity(0.5), width: 1)
-                        }
-                        
-                        // Notes
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("DATA_STREAM (NOTES):")
-                                .font(.system(.caption, design: .monospaced))
-                                .foregroundColor(.gray)
-                            
-                            TextEditor(text: $notes)
-                                .scrollContentBackground(.hidden)
-                                .frame(minHeight: 100)
-                                .font(.system(.body, design: .monospaced))
-                                .foregroundColor(.green)
-                                .padding(8)
-                                .background(Color.black)
-                                .border(Color.green.opacity(0.5), width: 1)
-                        }
-                        
-                        // Subject
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("LINKED_SUBJECT:")
-                                .font(.caption).foregroundColor(.gray).fontDesign(.monospaced)
-                            Menu {
-                                Button("NULL") { selectedSubject = nil }
-                                ForEach(subjects) { sub in
-                                    Button(sub.title) { selectedSubject = sub }
-                                }
-                            } label: {
-                                Text("[ \(selectedSubject?.title.uppercased() ?? "NULL") ]")
-                                    .font(.system(.body, design: .monospaced))
-                                    .foregroundColor(.green)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(8)
-                                    .border(Color.green.opacity(0.5), width: 1)
-                            }
-                        }
-                        
-                        // Toggles
-                        Toggle("FLAG_BIT", isOn: $isFlagged)
-                            .toggleStyle(SwitchToggleStyle(tint: .green))
-                            .font(.system(.body, design: .monospaced))
-                            .foregroundColor(.green)
-                        
-                        Toggle("DEADLINE_ACTIVE", isOn: $hasDueDate)
-                            .toggleStyle(SwitchToggleStyle(tint: .green))
-                            .font(.system(.body, design: .monospaced))
-                            .foregroundColor(.green)
-                        
-                        if hasDueDate {
-                            DatePicker("", selection: $dueDate)
-                                .datePickerStyle(.compact)
-                                .colorScheme(.dark)
-                        }
-                        
-                        // Delete
-                        Button(action: { modelContext.delete(task); dismiss() }) {
-                            Text("[ TERMINATE_PROCESS ]")
-                                .font(.system(.body, design: .monospaced))
-                                .foregroundColor(.red)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .border(Color.red, width: 1)
-                        }
-                        .padding(.top, 20)
-                    }
-                    .padding()
-                }
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: { dismiss() }) {
-                        Text("< BACK").font(.system(.caption, design: .monospaced)).foregroundColor(.gray)
-                    }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        task.title = title
-                        task.notes = notes
-                        task.subject = selectedSubject
-                        task.priority = priority
-                        task.dueDate = hasDueDate ? dueDate : nil
-                        task.isFlagged = isFlagged
-                        dismiss()
-                    }) {
-                        Text("[ OVERWRITE ]").font(.system(.caption, design: .monospaced)).foregroundColor(.green)
-                    }
                 }
             }
         }
