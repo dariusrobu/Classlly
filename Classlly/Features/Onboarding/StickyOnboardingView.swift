@@ -1,17 +1,10 @@
-//
-//  StickyOnboardingView.swift
-//  Classlly
-//
-//  Created by Robu Darius on 09.12.2025.
-//
-
-
 import SwiftUI
 import SwiftData
 
 struct StickyOnboardingView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @EnvironmentObject var themeManager: AppTheme
+    @EnvironmentObject var calendarManager: AcademicCalendarManager
     @Environment(\.modelContext) var modelContext
     
     // Flow State
@@ -39,24 +32,13 @@ struct StickyOnboardingView: View {
                     StickyHookView(onNext: nextStep)
                         .transition(direction)
                 case 2:
-                    StickyPainPointView(selected: $selectedPainPoint, onNext: nextStep)
+                    StickyUniversityView(onNext: nextStep)
                         .transition(direction)
                 case 3:
-                    StickySetupView(
-                        endDate: $semesterEndDate,
-                        subjectCount: $subjectCount,
-                        onGenerate: generateAndProceed
-                    )
-                    .transition(direction)
+                    StickySetupView(onNext: nextStep, onGenerateDemo: generateAndProceed)
+                        .transition(direction)
                 case 4:
-                    StickyPayoffView(
-                        showConfetti: $showConfetti,
-                        showPopup: $showPopup,
-                        onNext: nextStep
-                    )
-                    .transition(direction)
-                case 5:
-                    StickyNotificationView(onFinish: finishOnboarding)
+                    StickyVibeView(onFinish: finishOnboarding)
                         .transition(direction)
                 default:
                     EmptyView()
@@ -64,12 +46,12 @@ struct StickyOnboardingView: View {
             }
             .animation(.easeInOut(duration: 0.5), value: currentStep)
             
-            // Confetti Overlay (Step 4)
+            // Confetti Overlay (Step 3->4 transition usually triggers this)
             if showConfetti {
                 ConfettiView()
             }
             
-            // "Aha!" Popup (Step 4)
+            // "Aha!" Popup
             if showPopup {
                 Color.black.opacity(0.4).ignoresSafeArea()
                 VStack(spacing: 16) {
@@ -119,20 +101,14 @@ struct StickyOnboardingView: View {
             semesterEnd: semesterEndDate
         )
         
-        // 2. Save Pain Point Preference
-        if let pain = selectedPainPoint {
-            UserDefaults.standard.set(pain.rawValue, forKey: "userMainPainPoint")
-        }
-        
-        // 3. Move to Payoff
+        // 2. Move to next step (Vibe Check)
         withAnimation {
             currentStep = 4
         }
         
-        // 4. Trigger "Aha" moments
+        // 3. Trigger "Aha" moments
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             showConfetti = true
-            // Haptic Feedback
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.success)
         }
@@ -144,11 +120,11 @@ struct StickyOnboardingView: View {
     
     private func finishOnboarding() {
         // Mark as complete in AuthManager
-        authManager.completeStickyOnboarding()
+        authManager.completeStickyOnboarding(modelContext: modelContext)
     }
 }
 
-// Data Model for Step 2
+// MARK: - Data Model
 enum OnboardingPainPoint: String, CaseIterable, Identifiable {
     case exams = "Passing Exams"
     case schedule = "Organizing Schedule"

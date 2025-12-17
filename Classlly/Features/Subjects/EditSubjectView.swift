@@ -2,255 +2,107 @@ import SwiftUI
 import SwiftData
 
 struct EditSubjectView: View {
-    @EnvironmentObject var themeManager: AppTheme
+    @Environment(\.dismiss) private var dismiss
+    
+    // DIRECT BINDING: This allows us to write directly to the SwiftData object
     @Bindable var subject: Subject
     
+    let daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    
     var body: some View {
-        Group {
-            switch themeManager.selectedGameMode {
-            case .arcade:
-                ArcadeEditSubjectView(subject: subject)
-            case .retro:
-                RetroEditSubjectView(subject: subject)
-            case .rainbow:
-                // Rainbow mode uses Standard view with forced dark scheme
-                StandardEditSubjectView(subject: subject)
-                    .preferredColorScheme(.dark)
-            case .none:
-                StandardEditSubjectView(subject: subject)
+        Form {
+            Section("Basic Info") {
+                TextField("Subject Name", text: $subject.title)
+                Stepper("ECTS Credits: \(subject.ectsCredits)", value: $subject.ectsCredits, in: 0...30)
             }
-        }
-    }
-}
-
-// MARK: - 👔 STANDARD VIEW
-struct StandardEditSubjectView: View {
-    @Environment(\.dismiss) var dismiss
-    @Environment(\.modelContext) private var modelContext
-    @Bindable var subject: Subject
-
-    @State private var title: String
-    @State private var courseTeacher: String
-    @State private var courseClassroom: String
-    @State private var courseStartTime: Date
-    @State private var courseEndTime: Date
-    @State private var selectedCourseDays: Set<Int>
-    @State private var courseFrequency: ClassFrequency
-
-    @State private var seminarTeacher: String
-    @State private var seminarClassroom: String
-    @State private var seminarStartTime: Date
-    @State private var seminarEndTime: Date
-    @State private var selectedSeminarDays: Set<Int>
-    @State private var seminarFrequency: ClassFrequency
-
-    private let daysOfWeek = [(1, "Sun"), (2, "Mon"), (3, "Tue"), (4, "Wed"), (5, "Thu"), (6, "Fri"), (7, "Sat")]
-
-    init(subject: Subject) {
-        self.subject = subject
-        _title = State(initialValue: subject.title)
-        _courseTeacher = State(initialValue: subject.courseTeacher)
-        _courseClassroom = State(initialValue: subject.courseClassroom)
-        _courseStartTime = State(initialValue: subject.courseStartTime)
-        _courseEndTime = State(initialValue: subject.courseEndTime)
-        _selectedCourseDays = State(initialValue: Set(subject.courseDays))
-        _courseFrequency = State(initialValue: subject.courseFrequency)
-
-        _seminarTeacher = State(initialValue: subject.seminarTeacher)
-        _seminarClassroom = State(initialValue: subject.seminarClassroom)
-        _seminarStartTime = State(initialValue: subject.seminarStartTime)
-        _seminarEndTime = State(initialValue: subject.seminarEndTime)
-        _selectedSeminarDays = State(initialValue: Set(subject.seminarDays))
-        _seminarFrequency = State(initialValue: subject.seminarFrequency)
-    }
-
-    var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Subject Details")) {
-                    TextField("Subject Title", text: $title).textInputAutocapitalization(.words)
-                }
-
-                Section(header: Text("Course Information")) {
-                    TextField("Course Teacher", text: $courseTeacher).textInputAutocapitalization(.words)
-                    TextField("Course Classroom", text: $courseClassroom)
-                    Picker("Frequency", selection: $courseFrequency) {
-                        ForEach(ClassFrequency.allCases, id: \.self) { f in Text(f.rawValue).tag(f) }
+            
+            Section("Course Details") {
+                TextField("Teacher", text: $subject.courseTeacher)
+                TextField("Room", text: $subject.courseClassroom)
+                
+                DatePicker("Start Time", selection: $subject.courseStartTime, displayedComponents: .hourAndMinute)
+                DatePicker("End Time", selection: $subject.courseEndTime, displayedComponents: .hourAndMinute)
+                
+                Picker("Frequency", selection: $subject.courseFrequency) {
+                    ForEach(ClassFrequency.allCases, id: \.self) { freq in
+                        Text(freq.rawValue).tag(freq)
                     }
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Course Days").font(.caption).foregroundColor(.secondary)
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
-                            ForEach(daysOfWeek, id: \.0) { day in
-                                StandardDayChip(day: day.1, isSelected: selectedCourseDays.contains(day.0)) {
-                                    if selectedCourseDays.contains(day.0) { selectedCourseDays.remove(day.0) } else { selectedCourseDays.insert(day.0) }
+                }
+                
+                // Custom Day Selector for Edit View
+                VStack(alignment: .leading) {
+                    Text("Days")
+                    HStack {
+                        ForEach(0..<7) { index in
+                            let dayNum = index + 1
+                            Text(daysOfWeek[index])
+                                .font(.caption)
+                                .padding(8)
+                                .background(subject.courseDays.contains(dayNum) ? Color.blue : Color.gray.opacity(0.2))
+                                .foregroundStyle(subject.courseDays.contains(dayNum) ? .white : .primary)
+                                .clipShape(Circle())
+                                .onTapGesture {
+                                    toggleCourseDay(dayNum)
                                 }
-                            }
                         }
                     }
-                    DatePicker("Start Time", selection: $courseStartTime, displayedComponents: .hourAndMinute)
-                    DatePicker("End Time", selection: $courseEndTime, displayedComponents: .hourAndMinute)
-                }
-
-                Section(header: Text("Seminar Information")) {
-                    TextField("Seminar Teacher", text: $seminarTeacher).textInputAutocapitalization(.words)
-                    TextField("Seminar Classroom", text: $seminarClassroom)
-                    Picker("Frequency", selection: $seminarFrequency) {
-                        ForEach(ClassFrequency.allCases, id: \.self) { f in Text(f.rawValue).tag(f) }
-                    }
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Seminar Days").font(.caption).foregroundColor(.secondary)
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
-                            ForEach(daysOfWeek, id: \.0) { day in
-                                StandardDayChip(day: day.1, isSelected: selectedSeminarDays.contains(day.0)) {
-                                    if selectedSeminarDays.contains(day.0) { selectedSeminarDays.remove(day.0) } else { selectedSeminarDays.insert(day.0) }
-                                }
-                            }
-                        }
-                    }
-                    DatePicker("Start Time", selection: $seminarStartTime, displayedComponents: .hourAndMinute)
-                    DatePicker("End Time", selection: $seminarEndTime, displayedComponents: .hourAndMinute)
                 }
             }
-            .navigationTitle("Edit Subject")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { dismiss() }.foregroundColor(.themeError) }
-                ToolbarItem(placement: .navigationBarTrailing) { Button("Save") { saveSubject() }.disabled(title.isEmpty).fontWeight(.semibold) }
+            
+            Section {
+                Toggle("Has Seminar?", isOn: $subject.hasSeminar)
             }
-        }
-    }
-
-    private func saveSubject() {
-        subject.title = title
-        subject.courseTeacher = courseTeacher
-        subject.courseClassroom = courseClassroom
-        subject.courseStartTime = courseStartTime
-        subject.courseEndTime = courseEndTime
-        subject.courseDays = Array(selectedCourseDays).sorted()
-        subject.courseFrequency = courseFrequency
-        subject.seminarTeacher = seminarTeacher
-        subject.seminarClassroom = seminarClassroom
-        subject.seminarStartTime = seminarStartTime
-        subject.seminarEndTime = seminarEndTime
-        subject.seminarDays = Array(selectedSeminarDays).sorted()
-        subject.seminarFrequency = seminarFrequency
-        dismiss()
-    }
-}
-
-// MARK: - 🕹️ ARCADE VIEW
-struct ArcadeEditSubjectView: View {
-    @Environment(\.dismiss) var dismiss
-    @Bindable var subject: Subject
-
-    @State private var title: String
-    @State private var courseTeacher: String
-    @State private var courseClassroom: String
-    @State private var selectedCourseDays: Set<Int>
-    
-    private let daysOfWeek = [(1, "S"), (2, "M"), (3, "T"), (4, "W"), (5, "T"), (6, "F"), (7, "S")]
-    
-    init(subject: Subject) {
-        self.subject = subject
-        _title = State(initialValue: subject.title)
-        _courseTeacher = State(initialValue: subject.courseTeacher)
-        _courseClassroom = State(initialValue: subject.courseClassroom)
-        _selectedCourseDays = State(initialValue: Set(subject.courseDays))
-    }
-
-    var body: some View {
-        NavigationView {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                ScrollView {
-                    VStack(spacing: 24) {
-                        VStack(alignment: .leading) {
-                            Text("RENAME SKILL").font(.caption).fontWeight(.black).foregroundColor(.cyan)
-                            TextField("...", text: $title)
-                                .padding().background(Color(white: 0.1)).cornerRadius(12).overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.cyan, lineWidth: 1)).foregroundColor(.white)
-                        }
-                        
-                        ArcadeSection(title: "MAIN QUEST CONFIG", color: .purple) {
-                            ArcadeInput(icon: "person.fill", placeholder: "Instructor", text: $courseTeacher)
-                            ArcadeInput(icon: "mappin.and.ellipse", placeholder: "Location", text: $courseClassroom)
-                            HStack {
-                                ForEach(daysOfWeek, id: \.0) { day in
-                                    ArcadeDayChip(label: day.1, isSelected: selectedCourseDays.contains(day.0), color: .purple) {
-                                        if selectedCourseDays.contains(day.0) { selectedCourseDays.remove(day.0) } else { selectedCourseDays.insert(day.0) }
+            
+            if subject.hasSeminar {
+                Section("Seminar Details") {
+                    TextField("Teacher", text: $subject.seminarTeacher)
+                    TextField("Room", text: $subject.seminarClassroom)
+                    
+                    DatePicker("Start Time", selection: $subject.seminarStartTime, displayedComponents: .hourAndMinute)
+                    DatePicker("End Time", selection: $subject.seminarEndTime, displayedComponents: .hourAndMinute)
+                    
+                    VStack(alignment: .leading) {
+                        Text("Days")
+                        HStack {
+                            ForEach(0..<7) { index in
+                                let dayNum = index + 1
+                                Text(daysOfWeek[index])
+                                    .font(.caption)
+                                    .padding(8)
+                                    .background(subject.seminarDays.contains(dayNum) ? Color.blue : Color.gray.opacity(0.2))
+                                    .foregroundStyle(subject.seminarDays.contains(dayNum) ? .white : .primary)
+                                    .clipShape(Circle())
+                                    .onTapGesture {
+                                        toggleSeminarDay(dayNum)
                                     }
-                                }
                             }
                         }
-                    }.padding()
+                    }
                 }
             }
-            .navigationTitle("Configure Skill")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { dismiss() }.foregroundColor(.gray) }
-                ToolbarItem(placement: .navigationBarTrailing) { Button("Update") { saveSubject() }.fontWeight(.black).foregroundColor(.cyan) }
+        }
+        .navigationTitle("Edit Subject")
+        .toolbar {
+            Button("Done") {
+                dismiss()
             }
         }
     }
     
-    private func saveSubject() {
-        subject.title = title
-        subject.courseTeacher = courseTeacher
-        subject.courseClassroom = courseClassroom
-        subject.courseDays = Array(selectedCourseDays).sorted()
-        dismiss()
-    }
-}
-
-// MARK: - 👾 RETRO VIEW
-struct RetroEditSubjectView: View {
-    @Environment(\.dismiss) var dismiss
-    @Bindable var subject: Subject
-
-    @State private var title: String
-    @State private var courseTeacher: String
-    @State private var courseClassroom: String
-    
-    init(subject: Subject) {
-        self.subject = subject
-        _title = State(initialValue: subject.title)
-        _courseTeacher = State(initialValue: subject.courseTeacher)
-        _courseClassroom = State(initialValue: subject.courseClassroom)
-    }
-
-    var body: some View {
-        NavigationView {
-            ZStack {
-                Color(red: 0.05, green: 0.05, blue: 0.05).ignoresSafeArea()
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        Text("> MODIFY_FILE_HEADER").font(.system(.headline, design: .monospaced)).foregroundColor(.green)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("TITLE_STRING:").font(.caption).foregroundColor(.gray).fontDesign(.monospaced)
-                            TextField("...", text: $title)
-                                .font(.system(.body, design: .monospaced)).foregroundColor(.green).padding(8).border(Color.green.opacity(0.5), width: 1)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("INSTRUCTOR_ID:").font(.caption).foregroundColor(.gray).fontDesign(.monospaced)
-                            TextField("...", text: $courseTeacher)
-                                .font(.system(.body, design: .monospaced)).foregroundColor(.green).padding(8).border(Color.green.opacity(0.5), width: 1)
-                        }
-                    }.padding()
-                }
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) { Button("< BACK") { dismiss() }.fontDesign(.monospaced).foregroundColor(.gray) }
-                ToolbarItem(placement: .navigationBarTrailing) { Button("[ OVERWRITE ]") { saveSubject() }.fontDesign(.monospaced).foregroundColor(.green) }
-            }
+    // Helpers to manage the [Int] arrays since SwiftUI Bindings don't like arrays directly in this specific way
+    private func toggleCourseDay(_ day: Int) {
+        if let idx = subject.courseDays.firstIndex(of: day) {
+            subject.courseDays.remove(at: idx)
+        } else {
+            subject.courseDays.append(day)
         }
     }
     
-    private func saveSubject() {
-        subject.title = title
-        subject.courseTeacher = courseTeacher
-        dismiss()
+    private func toggleSeminarDay(_ day: Int) {
+        if let idx = subject.seminarDays.firstIndex(of: day) {
+            subject.seminarDays.remove(at: idx)
+        } else {
+            subject.seminarDays.append(day)
+        }
     }
 }

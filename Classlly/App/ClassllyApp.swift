@@ -25,6 +25,7 @@ struct ClassllyApp: App {
                     SignInView()
                         .environmentObject(authManager)
                         .environmentObject(calendarManager)
+                        .environmentObject(themeManager) // ✅ FIXED: Injected here so Onboarding can see it
                 }
             }
             // 1. Force Dark Mode based on settings

@@ -2,188 +2,145 @@ import SwiftUI
 import SwiftData
 
 struct AddSubjectView: View {
-    @EnvironmentObject var themeManager: AppTheme
-    
-    var body: some View {
-        Group {
-            switch themeManager.selectedGameMode {
-            case .arcade:
-                ArcadeAddSubjectView()
-            case .rainbow:
-                StandardAddSubjectView()
-                    .preferredColorScheme(.dark)
-            case .none:
-                StandardAddSubjectView()
-            }
-        }
-    }
-}
-
-// MARK: - 👔 STANDARD ADD VIEW
-struct StandardAddSubjectView: View {
-    @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
-
+    @Environment(\.dismiss) private var dismiss
+    
+    // Basic Info
     @State private var title = ""
+    @State private var ectsCredits = 0
+    @State private var colorHex = "007AFF"
+    
+    // Course Info
     @State private var courseTeacher = ""
     @State private var courseClassroom = ""
-    @State private var courseDate = Date()
-    @State private var courseStartTime = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
-    @State private var courseEndTime = Calendar.current.date(bySettingHour: 10, minute: 30, second: 0, of: Date()) ?? Date()
-    @State private var selectedCourseDays: Set<Int> = [2, 4]
     @State private var courseFrequency: ClassFrequency = .weekly
-    
-    @State private var seminarTeacher = ""
-    @State private var seminarClassroom = ""
-    @State private var seminarDate = Date()
-    @State private var seminarStartTime = Calendar.current.date(bySettingHour: 14, minute: 0, second: 0, of: Date()) ?? Date()
-    @State private var seminarEndTime = Calendar.current.date(bySettingHour: 15, minute: 30, second: 0, of: Date()) ?? Date()
-    @State private var selectedSeminarDays: Set<Int> = [5]
-    @State private var seminarFrequency: ClassFrequency = .weekly
-    
-    private let daysOfWeek = [(1, "Sun"), (2, "Mon"), (3, "Tue"), (4, "Wed"), (5, "Thu"), (6, "Fri"), (7, "Sat")]
-    
-    var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Subject Details")) {
-                    TextField("Subject Title", text: $title).textInputAutocapitalization(.words)
-                }
-                
-                Section(header: Text("Course Information")) {
-                    TextField("Course Teacher", text: $courseTeacher).textInputAutocapitalization(.words)
-                    TextField("Course Classroom", text: $courseClassroom)
-                    Picker("Frequency", selection: $courseFrequency) {
-                        ForEach(ClassFrequency.allCases, id: \.self) { f in Text(f.rawValue).tag(f) }
-                    }
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Course Days").font(.caption).foregroundColor(.secondary)
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
-                            ForEach(daysOfWeek, id: \.0) { day in
-                                StandardDayChip(day: day.1, isSelected: selectedCourseDays.contains(day.0)) {
-                                    if selectedCourseDays.contains(day.0) { selectedCourseDays.remove(day.0) } else { selectedCourseDays.insert(day.0) }
-                                }
-                            }
-                        }
-                    }
-                    DatePicker("Start Time", selection: $courseStartTime, displayedComponents: .hourAndMinute)
-                    DatePicker("End Time", selection: $courseEndTime, displayedComponents: .hourAndMinute)
-                }
-                
-                Section(header: Text("Seminar Information")) {
-                    TextField("Seminar Teacher", text: $seminarTeacher).textInputAutocapitalization(.words)
-                    TextField("Seminar Classroom", text: $seminarClassroom)
-                    Picker("Frequency", selection: $seminarFrequency) {
-                        ForEach(ClassFrequency.allCases, id: \.self) { f in Text(f.rawValue).tag(f) }
-                    }
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Seminar Days").font(.caption).foregroundColor(.secondary)
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
-                            ForEach(daysOfWeek, id: \.0) { day in
-                                StandardDayChip(day: day.1, isSelected: selectedSeminarDays.contains(day.0)) {
-                                    if selectedSeminarDays.contains(day.0) { selectedSeminarDays.remove(day.0) } else { selectedSeminarDays.insert(day.0) }
-                                }
-                            }
-                        }
-                    }
-                    DatePicker("Start Time", selection: $seminarStartTime, displayedComponents: .hourAndMinute)
-                    DatePicker("End Time", selection: $seminarEndTime, displayedComponents: .hourAndMinute)
-                }
-            }
-            .navigationTitle("Add Subject")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { dismiss() }.foregroundColor(.themeError) }
-                ToolbarItem(placement: .navigationBarTrailing) { Button("Save") { saveSubject() }.disabled(title.isEmpty).fontWeight(.semibold) }
-            }
-        }
-    }
-    
-    private func saveSubject() {
-        let newSubject = Subject(
-            title: title,
-            courseTeacher: courseTeacher, courseClassroom: courseClassroom, courseDate: courseDate,
-            courseStartTime: courseStartTime, courseEndTime: courseEndTime, courseDays: Array(selectedCourseDays).sorted(), courseFrequency: courseFrequency,
-            seminarTeacher: seminarTeacher, seminarClassroom: seminarClassroom, seminarDate: seminarDate,
-            seminarStartTime: seminarStartTime, seminarEndTime: seminarEndTime, seminarDays: Array(selectedSeminarDays).sorted(), seminarFrequency: seminarFrequency
-        )
-        modelContext.insert(newSubject)
-        dismiss()
-    }
-}
-
-// MARK: - 🕹️ ARCADE ADD VIEW
-struct ArcadeAddSubjectView: View {
-    @Environment(\.dismiss) var dismiss
-    @Environment(\.modelContext) private var modelContext
-
-    @State private var title = ""
-    @State private var courseTeacher = ""
-    @State private var courseClassroom = ""
     @State private var courseStartTime = Date()
     @State private var courseEndTime = Date().addingTimeInterval(3600)
-    @State private var selectedCourseDays: Set<Int> = []
+    @State private var courseDays: Set<Int> = [] // Using Set for UI selection
     
+    // Seminar Info
+    @State private var hasSeminar = false
     @State private var seminarTeacher = ""
     @State private var seminarClassroom = ""
+    @State private var seminarFrequency: ClassFrequency = .weekly
     @State private var seminarStartTime = Date()
     @State private var seminarEndTime = Date().addingTimeInterval(3600)
-    @State private var selectedSeminarDays: Set<Int> = []
-    
-    private let daysOfWeek = [(1, "S"), (2, "M"), (3, "T"), (4, "W"), (5, "T"), (6, "F"), (7, "S")]
+    @State private var seminarDays: Set<Int> = []
+
+    let colors = ["007AFF", "FF3B30", "34C759", "FF9500", "AF52DE", "FF2D55", "5856D6", "5AC8FA"]
+    let daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
     var body: some View {
-        NavigationView {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                ScrollView {
-                    VStack(spacing: 24) {
+        NavigationStack {
+            Form {
+                Section("Basic Info") {
+                    TextField("Subject Name", text: $title)
+                    Stepper("ECTS Credits: \(ectsCredits)", value: $ectsCredits, in: 0...30)
+                    
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack {
+                            ForEach(colors, id: \.self) { hex in
+                                Circle()
+                                    .fill(Color(hex: hex) ?? .gray)
+                                    .frame(width: 30, height: 30)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.primary, lineWidth: colorHex == hex ? 2 : 0)
+                                    )
+                                    .onTapGesture {
+                                        colorHex = hex
+                                    }
+                            }
+                        }
+                        .padding(.vertical, 5)
+                    }
+                }
+                
+                Section("Course Details") {
+                    TextField("Teacher", text: $courseTeacher)
+                    TextField("Room", text: $courseClassroom)
+                    
+                    DatePicker("Start Time", selection: $courseStartTime, displayedComponents: .hourAndMinute)
+                    DatePicker("End Time", selection: $courseEndTime, displayedComponents: .hourAndMinute)
+                    
+                    Picker("Frequency", selection: $courseFrequency) {
+                        ForEach(ClassFrequency.allCases, id: \.self) { freq in
+                            Text(freq.rawValue).tag(freq)
+                        }
+                    }
+                    
+                    // Day Selector
+                    VStack(alignment: .leading) {
+                        Text("Days")
+                        HStack {
+                            ForEach(0..<7) { index in
+                                let dayNum = index + 1
+                                Text(daysOfWeek[index])
+                                    .font(.caption)
+                                    .padding(8)
+                                    .background(courseDays.contains(dayNum) ? Color.blue : Color.gray.opacity(0.2))
+                                    .foregroundStyle(courseDays.contains(dayNum) ? .white : .primary)
+                                    .clipShape(Circle())
+                                    .onTapGesture {
+                                        if courseDays.contains(dayNum) {
+                                            courseDays.remove(dayNum)
+                                        } else {
+                                            courseDays.insert(dayNum)
+                                        }
+                                    }
+                            }
+                        }
+                    }
+                }
+                
+                Section {
+                    Toggle("Add Seminar?", isOn: $hasSeminar)
+                }
+                
+                if hasSeminar {
+                    Section("Seminar Details") {
+                        TextField("Teacher", text: $seminarTeacher)
+                        TextField("Room", text: $seminarClassroom)
+                        
+                        DatePicker("Start Time", selection: $seminarStartTime, displayedComponents: .hourAndMinute)
+                        DatePicker("End Time", selection: $seminarEndTime, displayedComponents: .hourAndMinute)
+                        
+                        // Seminar Day Selector
                         VStack(alignment: .leading) {
-                            Text("SKILL TREE NAME").font(.caption).fontWeight(.black).foregroundColor(.cyan)
-                            TextField("Enter Subject...", text: $title)
-                                .padding().background(Color(white: 0.1)).cornerRadius(12).overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.cyan, lineWidth: 1)).foregroundColor(.white)
-                        }
-                        
-                        ArcadeSection(title: "MAIN QUEST (COURSE)", color: .purple) {
-                            ArcadeInput(icon: "person.fill", placeholder: "Instructor", text: $courseTeacher)
-                            ArcadeInput(icon: "mappin.and.ellipse", placeholder: "Location", text: $courseClassroom)
+                            Text("Days")
                             HStack {
-                                ForEach(daysOfWeek, id: \.0) { day in
-                                    ArcadeDayChip(label: day.1, isSelected: selectedCourseDays.contains(day.0), color: .purple) {
-                                        if selectedCourseDays.contains(day.0) { selectedCourseDays.remove(day.0) } else { selectedCourseDays.insert(day.0) }
-                                    }
+                                ForEach(0..<7) { index in
+                                    let dayNum = index + 1
+                                    Text(daysOfWeek[index])
+                                        .font(.caption)
+                                        .padding(8)
+                                        .background(seminarDays.contains(dayNum) ? Color.blue : Color.gray.opacity(0.2))
+                                        .foregroundStyle(seminarDays.contains(dayNum) ? .white : .primary)
+                                        .clipShape(Circle())
+                                        .onTapGesture {
+                                            if seminarDays.contains(dayNum) {
+                                                seminarDays.remove(dayNum)
+                                            } else {
+                                                seminarDays.insert(dayNum)
+                                            }
+                                        }
                                 }
                             }
-                            HStack {
-                                DatePicker("", selection: $courseStartTime, displayedComponents: .hourAndMinute).labelsHidden().colorScheme(.dark)
-                                Text("TO").font(.caption).fontWeight(.bold).foregroundColor(.gray)
-                                DatePicker("", selection: $courseEndTime, displayedComponents: .hourAndMinute).labelsHidden().colorScheme(.dark)
-                            }
                         }
-                        
-                        ArcadeSection(title: "SIDE QUEST (SEMINAR)", color: .orange) {
-                            ArcadeInput(icon: "person.fill", placeholder: "Instructor", text: $seminarTeacher)
-                            ArcadeInput(icon: "mappin.and.ellipse", placeholder: "Location", text: $seminarClassroom)
-                            HStack {
-                                ForEach(daysOfWeek, id: \.0) { day in
-                                    ArcadeDayChip(label: day.1, isSelected: selectedSeminarDays.contains(day.0), color: .orange) {
-                                        if selectedSeminarDays.contains(day.0) { selectedSeminarDays.remove(day.0) } else { selectedSeminarDays.insert(day.0) }
-                                    }
-                                }
-                            }
-                            HStack {
-                                DatePicker("", selection: $seminarStartTime, displayedComponents: .hourAndMinute).labelsHidden().colorScheme(.dark)
-                                Text("TO").font(.caption).fontWeight(.bold).foregroundColor(.gray)
-                                DatePicker("", selection: $seminarEndTime, displayedComponents: .hourAndMinute).labelsHidden().colorScheme(.dark)
-                            }
-                        }
-                    }.padding()
+                    }
                 }
             }
-            .navigationTitle("New Skill").navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("New Subject")
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) { Button("Abort") { dismiss() }.foregroundColor(.red) }
-                ToolbarItem(placement: .navigationBarTrailing) { Button("Initialize") { saveSubject() }.fontWeight(.black).foregroundColor(.cyan).disabled(title.isEmpty) }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        saveSubject()
+                    }
+                    .disabled(title.isEmpty)
+                }
             }
         }
     }
@@ -191,11 +148,23 @@ struct ArcadeAddSubjectView: View {
     private func saveSubject() {
         let newSubject = Subject(
             title: title,
-            courseTeacher: courseTeacher, courseClassroom: courseClassroom,
-            courseStartTime: courseStartTime, courseEndTime: courseEndTime, courseDays: Array(selectedCourseDays).sorted(),
-            seminarTeacher: seminarTeacher, seminarClassroom: seminarClassroom,
-            seminarStartTime: seminarStartTime, seminarEndTime: seminarEndTime, seminarDays: Array(selectedSeminarDays).sorted()
+            colorHex: colorHex,
+            ectsCredits: ectsCredits,
+            courseTeacher: courseTeacher,
+            courseClassroom: courseClassroom,
+            courseFrequency: courseFrequency,
+            courseStartTime: courseStartTime,
+            courseEndTime: courseEndTime,
+            courseDays: Array(courseDays),
+            hasSeminar: hasSeminar,
+            seminarTeacher: seminarTeacher,
+            seminarClassroom: seminarClassroom,
+            seminarFrequency: seminarFrequency,
+            seminarStartTime: seminarStartTime,
+            seminarEndTime: seminarEndTime,
+            seminarDays: Array(seminarDays)
         )
+        
         modelContext.insert(newSubject)
         dismiss()
     }

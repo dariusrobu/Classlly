@@ -1,328 +1,186 @@
 import SwiftUI
 
-// MARK: - Screen 1: The Hook
+// MARK: - Step 1: Hook
 struct StickyHookView: View {
-    var onNext: () -> Void
-    @State private var isPulsing = false
+    let onNext: () -> Void
+    @State private var isCompleted = false
+    @State private var showXP = false
+    
+    var body: some View {
+        VStack {
+            Spacer()
+            ZStack {
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(isCompleted ? Color.green : Color(white: 0.15))
+                    .frame(height: 80)
+                    .overlay(
+                        HStack {
+                            Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
+                                .font(.title)
+                                .foregroundColor(isCompleted ? .white : .gray)
+                            Text("Finish Onboarding")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .strikethrough(isCompleted)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 24)
+                    )
+                    .scaleEffect(isCompleted ? 1.05 : 1.0)
+                    .onTapGesture {
+                        if !isCompleted {
+                            let generator = UIImpactFeedbackGenerator(style: .medium)
+                            generator.impactOccurred()
+                            withAnimation(.spring()) { isCompleted = true }
+                            withAnimation(.easeOut(duration: 0.8)) { showXP = true }
+                        }
+                    }
+                
+                if showXP {
+                    Text("XP +50").font(.title3).fontWeight(.black).foregroundColor(.yellow)
+                        .offset(y: -60).transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .padding(.horizontal)
+            Spacer()
+            
+            if isCompleted {
+                Button(action: onNext) {
+                    Text("Next").font(.headline).fontWeight(.bold).foregroundColor(.black)
+                        .frame(maxWidth: .infinity).padding().background(Color.white).cornerRadius(12)
+                }
+                .padding(.horizontal).padding(.bottom, 80).transition(.opacity)
+            }
+        }
+    }
+}
+
+// MARK: - Step 2: University
+struct StickyUniversityView: View {
+    let onNext: () -> Void
+    @EnvironmentObject var calendarManager: AcademicCalendarManager
+    @State private var isConfigured = false
     
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
+            Text("Where do you study?").font(.largeTitle).fontWeight(.bold).foregroundColor(.white)
             
-            // "Chaos vs Order" Visual
-            ZStack {
-                // Background Chaos (Faded)
-                Image(systemName: "books.vertical.fill")
-                    .font(.system(size: 120))
-                    .foregroundColor(.gray.opacity(0.2))
-                    .rotationEffect(.degrees(-15))
-                    .offset(x: -40, y: -20)
-                
-                // Foreground Order (Bright)
-                Image(systemName: "calendar.badge.checkmark")
-                    .font(.system(size: 100))
-                    .foregroundColor(.green)
-                    .shadow(color: .green.opacity(0.5), radius: 20)
+            Button(action: {
+                // Use the static template we created earlier
+                calendarManager.generateAndSaveCalendar(from: AcademicCalendarManager.ubb2025Template)
+                withAnimation { isConfigured = true }
+            }) {
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text("Universitatea Babeș-Bolyai").fontWeight(.bold)
+                        Text("Cluj-Napoca").font(.caption).opacity(0.8)
+                    }
+                    Spacer()
+                    if isConfigured {
+                        Text("Configured!").font(.caption).fontWeight(.bold).padding(6).background(Color.white.opacity(0.2)).clipShape(Capsule())
+                        Image(systemName: "checkmark.circle.fill")
+                    } else { Image(systemName: "building.columns.fill") }
+                }
+                .foregroundColor(.white).padding().background(isConfigured ? Color.green : Color.blue).cornerRadius(16)
             }
-            .padding(.bottom, 40)
-            
-            Text("Stop guessing.\nStart passing.")
-                .font(.system(size: 32, weight: .black, design: .rounded))
-                .multilineTextAlignment(.center)
-                .foregroundColor(.white)
-            
-            Text("Set up your entire semester in 30 seconds.")
-                .font(.body)
-                .foregroundColor(.gray)
-                .multilineTextAlignment(.center)
-            
-            Spacer()
+            .disabled(isConfigured)
             
             Button(action: onNext) {
-                Text("Get Started")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(.black)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(Color.green)
-                    .cornerRadius(28)
-                    .scaleEffect(isPulsing ? 1.05 : 1.0)
-                    .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: isPulsing)
+                HStack { Text("Other University"); Spacer(); Image(systemName: "chevron.right") }
+                    .foregroundColor(.white).padding().background(Color(white: 0.15)).cornerRadius(16)
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 40)
+            Spacer()
+            
+            if isConfigured {
+                Button("Continue", action: onNext)
+                    .font(.headline).foregroundColor(.black).frame(maxWidth: .infinity).padding().background(Color.white).cornerRadius(12).padding(.bottom, 80)
+            }
         }
-        .onAppear { isPulsing = true }
+        .padding(.horizontal)
     }
 }
 
-// MARK: - Screen 2: The Input (Pain Points)
-struct StickyPainPointView: View {
-    @Binding var selected: OnboardingPainPoint?
-    var onNext: () -> Void
-    
-    var body: some View {
-        VStack(spacing: 32) {
-            Spacer()
-            
-            Text("What is your main pain?")
-                .font(.system(size: 28, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
-            
-            VStack(spacing: 16) {
-                ForEach(OnboardingPainPoint.allCases) { point in
-                    Button(action: {
-                        selected = point
-                        // Small delay to show selection before moving
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                            onNext()
-                        }
-                    }) {
-                        HStack {
-                            Image(systemName: point.icon)
-                            Text(point.rawValue)
-                            Spacer()
-                            if selected == point {
-                                Image(systemName: "checkmark.circle.fill")
-                            }
-                        }
-                        .font(.headline)
-                        .padding()
-                        .frame(height: 64)
-                        .background(selected == point ? Color.blue : Color(white: 0.15))
-                        .foregroundColor(selected == point ? .white : .gray)
-                        .cornerRadius(16)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(selected == point ? Color.blue : Color.clear, lineWidth: 2)
-                        )
-                    }
-                }
-            }
-            .padding(.horizontal, 24)
-            
-            Spacer()
-        }
-    }
-}
-
-// MARK: - Screen 3: The Setup (Magic Trick)
+// MARK: - Step 3: Setup
 struct StickySetupView: View {
-    @Binding var endDate: Date
-    @Binding var subjectCount: Double
-    var onGenerate: () -> Void
-    
-    var body: some View {
-        VStack(spacing: 32) {
-            Spacer()
-            
-            Text("Let's build your base.")
-                .font(.system(size: 28, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
-            
-            // Semester End
-            VStack(alignment: .leading, spacing: 12) {
-                Text("When does your semester end?")
-                    .font(.caption).fontWeight(.bold).foregroundColor(.gray)
-                
-                DatePicker("", selection: $endDate, displayedComponents: .date)
-                    .datePickerStyle(.compact)
-                    .labelsHidden()
-                    .colorScheme(.dark)
-                    .padding()
-                    .background(Color(white: 0.15))
-                    .cornerRadius(12)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 24)
-            
-            // Subject Count
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("How many subjects?")
-                        .font(.caption).fontWeight(.bold).foregroundColor(.gray)
-                    Spacer()
-                    Text("\(Int(subjectCount))")
-                        .font(.title3).fontWeight(.bold).foregroundColor(.cyan)
-                }
-                
-                Slider(value: $subjectCount, in: 1...10, step: 1)
-                    .tint(.cyan)
-            }
-            .padding(.horizontal, 24)
-            
-            Spacer()
-            
-            Button(action: onGenerate) {
-                HStack {
-                    Image(systemName: "wand.and.stars")
-                    Text("Generate Study Plan")
-                }
-                .font(.headline)
-                .fontWeight(.bold)
-                .foregroundColor(.black)
-                .frame(maxWidth: .infinity)
-                .frame(height: 56)
-                .background(Color.cyan)
-                .cornerRadius(28)
-            }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 40)
-        }
-    }
-}
-
-// MARK: - Screen 4: The Payoff (Visual Confirmation)
-struct StickyPayoffView: View {
-    @Binding var showConfetti: Bool
-    @Binding var showPopup: Bool
-    var onNext: () -> Void
-    
-    // Mock data for visual preview
-    let mockDays = ["Mon", "Tue", "Wed", "Thu", "Fri"]
-    
-    var body: some View {
-        ZStack {
-            // Background Dashboard Preview
-            VStack(spacing: 16) {
-                // Mock Header
-                HStack {
-                    Circle().fill(Color.gray.opacity(0.3)).frame(width: 40, height: 40)
-                    VStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 4).fill(Color.gray.opacity(0.3)).frame(width: 100, height: 10)
-                        RoundedRectangle(cornerRadius: 4).fill(Color.gray.opacity(0.3)).frame(width: 60, height: 10)
-                    }
-                    Spacer()
-                }
-                .padding(.top, 60)
-                .padding(.horizontal)
-                
-                // Mock Calendar
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 8) {
-                    ForEach(mockDays, id: \.self) { day in
-                        Text(day).font(.caption).foregroundColor(.gray)
-                    }
-                    ForEach(0..<20) { i in
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(i % 3 == 0 ? Color.blue.opacity(0.6) : (i % 2 == 0 ? Color.purple.opacity(0.6) : Color(white: 0.1)))
-                            .frame(height: 40)
-                    }
-                }
-                .padding()
-                
-                Spacer()
-            }
-            .blur(radius: showPopup ? 3 : 0) // Blur when popup is active
-            
-            // Continue Button (Only appears after popup is dismissed, handled by main view logic or user tap)
-            if !showPopup {
-                VStack {
-                    Spacer()
-                    Button(action: onNext) {
-                        Text("Continue")
-                            .font(.headline)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(Color.blue)
-                            .cornerRadius(28)
-                    }
-                    .padding(24)
-                    .transition(.move(edge: .bottom))
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Screen 5: The "Hard Ask"
-struct StickyNotificationView: View {
-    var onFinish: () -> Void
-    @State private var showingAlert = false
+    let onNext: () -> Void
+    let onGenerateDemo: () -> Void
     
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
-            
-            Image(systemName: "bell.badge.fill")
-                .font(.system(size: 80))
-                .foregroundColor(.yellow)
-                .padding()
-                .background(
-                    Circle()
-                        .fill(Color.yellow.opacity(0.2))
-                        .frame(width: 150, height: 150)
-                )
-            
-            Text("One last thing...")
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-            
-            Text("We can't force you to study,\nbut we can annoy you until you do.")
-                .font(.body)
-                .multilineTextAlignment(.center)
-                .foregroundColor(.gray)
-                .padding(.horizontal)
-            
-            Spacer()
-            
-            VStack(spacing: 16) {
-                Button(action: {
-                    NotificationManager.shared.requestPermission()
-                    // Finish after short delay to allow system prompt
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                        onFinish()
+            Text("Build your Schedule").font(.largeTitle).fontWeight(.bold).foregroundColor(.white)
+            HStack(spacing: 16) {
+                Button(action: onNext) {
+                    VStack(spacing: 12) {
+                        Image(systemName: "camera.fill").font(.largeTitle)
+                        Text("Scan\nTimetable").multilineTextAlignment(.center)
                     }
-                }) {
-                    Text("Turn on 'Annoy Me' Mode")
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundColor(.black)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(Color.yellow)
-                        .cornerRadius(28)
+                    .font(.headline).foregroundColor(.white).frame(maxWidth: .infinity).frame(height: 160).background(Color(white: 0.15)).cornerRadius(20)
                 }
-                
-                Button("Maybe later") {
-                    onFinish()
+                Button(action: onGenerateDemo) {
+                    VStack(spacing: 12) {
+                        Image(systemName: "square.grid.2x2.fill").font(.largeTitle)
+                        Text("Use Demo\nTemplate").multilineTextAlignment(.center)
+                    }
+                    .font(.headline).foregroundColor(.black).frame(maxWidth: .infinity).frame(height: 160).background(Color.yellow).cornerRadius(20)
                 }
-                .font(.subheadline)
-                .foregroundColor(.gray)
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 40)
-        }
+            Spacer()
+        }.padding(.horizontal)
     }
 }
 
-// Simple Confetti View
-struct ConfettiView: View {
-    @State private var animate = false
+// MARK: - Step 4: Vibe
+struct StickyVibeView: View {
+    let onFinish: () -> Void
+    @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
+        VStack(spacing: 24) {
+            Spacer()
+            Text("Vibe Check").font(.largeTitle).fontWeight(.bold).foregroundColor(.white)
+            HStack(spacing: 16) {
+                Button(action: { withAnimation { themeManager.selectedGameMode = .none } }) {
+                    VStack { Image(systemName: "book.closed.fill").font(.system(size: 40)); Text("Focus").font(.headline).padding(.top, 8) }
+                        .foregroundColor(themeManager.selectedGameMode == .none ? .black : .white)
+                        .frame(maxWidth: .infinity).frame(height: 200)
+                        .background(themeManager.selectedGameMode == .none ? Color.white : Color(white: 0.15))
+                        .cornerRadius(20)
+                }
+                Button(action: { withAnimation { themeManager.selectedGameMode = .arcade } }) {
+                    VStack { Image(systemName: "gamecontroller.fill").font(.system(size: 40)); Text("Arcade").font(.headline).padding(.top, 8) }
+                        .foregroundColor(themeManager.selectedGameMode == .arcade ? .black : .white)
+                        .frame(maxWidth: .infinity).frame(height: 200)
+                        .background(themeManager.selectedGameMode == .arcade ? Color.cyan : Color(white: 0.15))
+                        .cornerRadius(20)
+                }
+            }
+            Spacer()
+            Button(action: onFinish) {
+                Text("Start Semester").font(.title3).fontWeight(.bold).foregroundColor(.white).frame(maxWidth: .infinity).padding().background(Color.blue).cornerRadius(16)
+            }.padding(.bottom, 50)
+        }.padding(.horizontal)
+    }
+}
+
+// MARK: - Confetti
+struct ConfettiView: View {
+    @State private var animate = false
+    var body: some View {
         ZStack {
-            ForEach(0..<50) { i in
+            ForEach(0..<50) { _ in
                 Circle()
                     .fill(Color(
-                        hue: Double.random(in: 0...1),
-                        saturation: 0.8,
-                        brightness: 1
+                        red: .random(in: 0...1),
+                        green: .random(in: 0...1),
+                        blue: .random(in: 0...1)
                     ))
                     .frame(width: 8, height: 8)
-                    .offset(x: CGFloat.random(in: -200...200), y: animate ? 400 : -400)
-                    .animation(
-                        .linear(duration: Double.random(in: 2...4))
-                        .repeatForever(autoreverses: false)
-                        .delay(Double.random(in: 0...1)),
-                        value: animate
-                    )
+                    .offset(x: animate ? .random(in: -200...200) : 0, y: animate ? .random(in: -200...200) : 0)
+                    .opacity(animate ? 0 : 1)
             }
         }
-        .onAppear { animate = true }
-        .allowsHitTesting(false)
+        .onAppear { withAnimation(.easeOut(duration: 1.5)) { animate = true } }
     }
 }

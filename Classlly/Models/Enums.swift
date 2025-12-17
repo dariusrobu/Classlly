@@ -1,19 +1,13 @@
 import SwiftUI
+import Foundation
 
-enum ClassFrequency: String, CaseIterable, Codable {
+enum ClassFrequency: String, Codable, CaseIterable {
+    case daily = "Daily"
     case weekly = "Weekly"
-    case biweeklyOdd = "Bi-Weekly (Odd Weeks)"
-    case biweeklyEven = "Bi-Weekly (Even Weeks)"
-    
-    var description: String { return self.rawValue }
-    
-    var iconName: String {
-        switch self {
-        case .weekly: return "repeat"
-        case .biweeklyOdd: return "arrow.2.squarepath"
-        case .biweeklyEven: return "arrow.2.squarepath"
-        }
-    }
+    case biweeklyOdd = "Bi-weekly (Odd Weeks)"   // Added
+    case biweeklyEven = "Bi-weekly (Even Weeks)" // Added
+    case oneTime = "One Time"
+    case custom = "Custom"
 }
 
 enum TaskPriority: String, CaseIterable, Codable {

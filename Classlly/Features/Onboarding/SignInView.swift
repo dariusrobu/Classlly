@@ -61,17 +61,16 @@ struct SignInView: View {
                     Spacer()
                     
                     // Sign in button area
-                    VStack(spacing: 16) {
+                    VStack(spacing: 12) {
                         SignInWithAppleButton(.signIn) { request in
                             let nonce = authManager.randomNonceString()
                             authManager.currentNonce = nonce
                             request.requestedScopes = [.fullName, .email]
-                            // request.nonce = authManager.sha256(nonce) // Uncomment if using CryptoKit
                         } onCompletion: { result in
                             authManager.handleSignInWithApple(result: result, modelContext: modelContext)
                         }
                         .signInWithAppleButtonStyle(.white)
-                        .frame(height: 55)
+                        .frame(height: 50)
                         .cornerRadius(10)
                         
                         // Demo User Button
@@ -83,9 +82,22 @@ struct SignInView: View {
                             Text("Continue as Demo User")
                                 .font(.headline)
                                 .foregroundColor(.blue)
-                                .frame(height: 55)
+                                .frame(height: 50)
                                 .frame(maxWidth: .infinity)
                                 .background(Color.white)
+                                .cornerRadius(10)
+                        }
+                        
+                        // 🆕 New User Test Button
+                        Button(action: {
+                            authManager.startNewUserOnboarding()
+                        }) {
+                            Text("Start as New User")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(height: 50)
+                                .frame(maxWidth: .infinity)
+                                .background(Color.blue)
                                 .cornerRadius(10)
                         }
                         
@@ -93,6 +105,7 @@ struct SignInView: View {
                             .font(.caption2)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
+                            .padding(.top, 8)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
@@ -101,18 +114,22 @@ struct SignInView: View {
                 }
             }
             .navigationBarHidden(true)
+            // Profile Setup Sheet
             .onChange(of: authManager.currentUser) { oldValue, newValue in
-                // Only show setup if we have a user but auth is NOT fully complete (handled by AuthManager logic)
                 if newValue != nil && !authManager.isAuthenticated {
                     showingProfileSetup = true
                 }
             }
             .sheet(isPresented: $showingProfileSetup) {
                 if let user = authManager.currentUser {
-                    // FIX: This now correctly passes StudentProfile
                     ProfileSetupView(user: user)
                 }
             }
+            // Onboarding Cover
+            .fullScreenCover(isPresented: $authManager.showingOnboarding) {
+                StickyOnboardingView()
+            }
+            // Loading Overlay
             .overlay {
                 if authManager.isLoading {
                     LoadingOverlay()

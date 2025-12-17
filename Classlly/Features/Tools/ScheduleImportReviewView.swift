@@ -1,183 +1,99 @@
 import SwiftUI
 import SwiftData
 
+// Mock model for the import process (intermediate step)
+struct ImportedCourse: Identifiable {
+    let id = UUID()
+    var title: String
+    var teacher: String
+    var room: String
+    var dayOfWeek: Int // 1-7
+    var startTime: Date
+    var endTime: Date
+    var isOddWeek: Bool? // nil = every week, true = odd, false = even
+    var type: String // "Course" or "Seminar"
+}
+
 struct ScheduleImportReviewView: View {
-    @State var candidates: [ScannedClassCandidate]
-    @Environment(\.dismiss) var dismiss
-    @Environment(\.modelContext) var modelContext
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    
+    // In a real app, this would be passed from the parser
+    // Here is mock data for demonstration
+    @State private var importedCourses: [ImportedCourse] = [
+        ImportedCourse(title: "Mathematics", teacher: "Dr. Smith", room: "A101", dayOfWeek: 2, startTime: Date(), endTime: Date().addingTimeInterval(5400), isOddWeek: nil, type: "Course"),
+        ImportedCourse(title: "Physics", teacher: "Prof. Doe", room: "Lab 3", dayOfWeek: 3, startTime: Date(), endTime: Date().addingTimeInterval(7200), isOddWeek: true, type: "Course")
+    ]
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             List {
-                if candidates.isEmpty {
-                    Text("No classes detected. Please try a clearer image.")
-                        .foregroundColor(.secondary)
-                        .padding()
-                } else {
-                    ForEach($candidates) { $candidate in
-                        ClassEditorRow(candidate: $candidate)
-                    }
-                    .onDelete { indexSet in
-                        candidates.remove(atOffsets: indexSet)
+                Section {
+                    Text("Review the courses found in your schedule. Uncheck any you don't want to import.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                ForEach($importedCourses) { $course in
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(course.title)
+                                .font(.headline)
+                            Text("\(course.type) • \(course.teacher) • \(course.room)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if let isOdd = course.isOddWeek {
+                            Text(isOdd ? "Odd Wks" : "Even Wks")
+                                .font(.caption2)
+                                .padding(4)
+                                .background(Color.orange.opacity(0.2))
+                                .cornerRadius(4)
+                        }
                     }
                 }
             }
-            .navigationTitle("Review Classes")
+            .navigationTitle("Import Review")
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Import \(candidates.filter{$0.isSelected}.count)") {
-                        saveToSchedule()
-                    }
-                    .fontWeight(.bold)
-                    .disabled(candidates.filter{$0.isSelected}.isEmpty)
+                Button("Import All") {
+                    saveAll()
                 }
             }
         }
     }
     
-    private func saveToSchedule() {
-        let selected = candidates.filter { $0.isSelected }
-        
-        for item in selected {
-            // Convert 'Day String' to weekday Int (1=Sun, 2=Mon...)
-            let weekday = dayStringToInt(item.day)
-            
-            // Parse frequency logic based on weekRestriction string
-            var cFreq: ClassFrequency = .weekly
-            var sFreq: ClassFrequency = .weekly
-            
-            let restriction = item.weekRestriction.lowercased()
-            if restriction.contains("odd") || restriction.contains("impar") {
-                cFreq = .biweeklyOdd; sFreq = .biweeklyOdd
-            } else if restriction.contains("even") || restriction.contains("par") {
-                cFreq = .biweeklyEven; sFreq = .biweeklyEven
+    private func saveAll() {
+        for course in importedCourses {
+            // Determine Frequency
+            let frequency: ClassFrequency
+            if let isOdd = course.isOddWeek {
+                frequency = isOdd ? .biweeklyOdd : .biweeklyEven
+            } else {
+                frequency = .weekly
             }
             
+            // Create the Subject
+            // FIX: Ensure arguments match the definition order in Subject.swift
             let newSubject = Subject(
-                title: item.title,
-                courseTeacher: item.type == .course ? item.teacher : "",
-                courseClassroom: item.type == .course ? item.room : "",
-                courseStartTime: item.startTime,
-                courseEndTime: item.endTime,
-                courseDays: item.type == .course ? [weekday] : [],
-                courseFrequency: cFreq,
-                seminarTeacher: item.type != .course ? item.teacher : "",
-                seminarClassroom: item.type != .course ? item.room : "",
-                seminarStartTime: item.type != .course ? item.startTime : Date(),
-                seminarEndTime: item.type != .course ? item.endTime : Date(),
-                seminarDays: item.type != .course ? [weekday] : [],
-                seminarFrequency: sFreq
+                title: course.title,
+                colorHex: "007AFF", // Default color
+                ectsCredits: 0,
+                
+                // Course Details
+                courseTeacher: course.teacher,
+                courseClassroom: course.room,
+                courseFrequency: frequency, // Frequency comes BEFORE StartTime
+                courseStartTime: course.startTime,
+                courseEndTime: course.endTime,
+                courseDays: [course.dayOfWeek],
+                
+                // Seminar Details (Default to empty)
+                hasSeminar: false
             )
             
             modelContext.insert(newSubject)
         }
-        
         dismiss()
-    }
-    
-    private func dayStringToInt(_ day: String) -> Int {
-        let d = day.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        // English Checks
-        if d.starts(with: "mon") { return 2 }
-        if d.starts(with: "tue") { return 3 }
-        if d.starts(with: "wed") { return 4 }
-        if d.starts(with: "thu") { return 5 }
-        if d.starts(with: "fri") { return 6 }
-        if d.starts(with: "sat") { return 7 }
-        if d.starts(with: "sun") { return 1 }
-        
-        // Romanian Checks
-        if d.starts(with: "lun") { return 2 } // Luni
-        if d.starts(with: "mar") { return 3 } // Marti
-        if d.starts(with: "mie") { return 4 } // Miercuri
-        if d.starts(with: "joi") { return 5 } // Joi
-        if d.starts(with: "vin") { return 6 } // Vineri
-        if d.starts(with: "sam") { return 7 } // Sambata
-        if d.starts(with: "dum") { return 1 } // Duminica
-        
-        return 2 // Default to Monday if unknown
-    }
-}
-
-// MARK: - Editor Row
-struct ClassEditorRow: View {
-    @Binding var candidate: ScannedClassCandidate
-    @State private var isExpanded = false
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Header Row (Always Visible)
-            HStack {
-                Toggle("", isOn: $candidate.isSelected)
-                    .labelsHidden()
-                
-                VStack(alignment: .leading) {
-                    TextField("Subject Name", text: $candidate.title)
-                        .font(.headline)
-                    
-                    HStack {
-                        Text(candidate.day)
-                            .foregroundColor(.blue)
-                            .fontWeight(.medium)
-                        Text("•")
-                        Text(candidate.timeString)
-                    }
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-                
-                Spacer()
-                
-                // Type Badge
-                Text(candidate.type.rawValue.prefix(1))
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .frame(width: 24, height: 24)
-                    .background(candidate.type.color)
-                    .clipShape(Circle())
-                
-                Button(action: { withAnimation { isExpanded.toggle() }}) {
-                    Image(systemName: "chevron.down")
-                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                }
-            }
-            
-            // Expanded Details
-            if isExpanded {
-                Divider()
-                
-                Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 12) {
-                    GridRow {
-                        Text("Room").font(.caption).foregroundColor(.gray)
-                        TextField("Room", text: $candidate.room)
-                    }
-                    GridRow {
-                        Text("Teacher").font(.caption).foregroundColor(.gray)
-                        TextField("Teacher Name", text: $candidate.teacher)
-                    }
-                    GridRow {
-                        Text("Type").font(.caption).foregroundColor(.gray)
-                        Picker("Type", selection: $candidate.type) {
-                            ForEach(ClassType.allCases, id: \.self) { type in
-                                Text(type.rawValue).tag(type)
-                            }
-                        }
-                        .labelsHidden()
-                    }
-                    GridRow {
-                        Text("Weeks").font(.caption).foregroundColor(.gray)
-                        TextField("e.g. Odd, Even", text: $candidate.weekRestriction)
-                    }
-                }
-                .font(.subheadline)
-            }
-        }
-        .padding(.vertical, 8)
-        .opacity(candidate.isSelected ? 1.0 : 0.5)
     }
 }

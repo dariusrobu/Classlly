@@ -11,6 +11,9 @@ class AuthenticationManager: ObservableObject {
     @Published var universityNameForOnboarding = ""
     @Published var requiresOnboarding = false
     
+    // New state for driving the UI
+    @Published var showingOnboarding = false
+    
     var currentNonce: String?
     static let shared = AuthenticationManager()
     private init() {}
@@ -27,8 +30,38 @@ class AuthenticationManager: ObservableObject {
         }
     }
     
+    func startNewUserOnboarding() {
+        // Trigger the full screen cover in SignInView
+        DispatchQueue.main.async {
+            self.showingOnboarding = true
+        }
+    }
+    
+    func completeStickyOnboarding(modelContext: ModelContext) {
+        // 1. Create a fresh user profile for the new user
+        let newUser = StudentProfile(
+            id: UUID().uuidString,
+            email: "newuser@test.com",
+            firstName: "Fresh",
+            lastName: "Student",
+            schoolName: "My School",
+            gradeLevel: "Freshman",
+            academicYear: "2024-2025"
+        )
+        
+        // 2. Insert into database
+        modelContext.insert(newUser)
+        
+        // 3. Update State to Log In and Dismiss Onboarding
+        DispatchQueue.main.async {
+            self.currentUser = newUser
+            self.isAuthenticated = true
+            self.showingOnboarding = false
+        }
+    }
+    
     func handleSignInWithApple(result: Result<ASAuthorization, Error>, modelContext: ModelContext) {
-        // (Add Apple Sign In Logic here if needed, or keep empty for now to fix compile errors)
+        // Placeholder for Apple Sign In
     }
     
     func signOut(modelContext: ModelContext) {
@@ -42,5 +75,4 @@ class AuthenticationManager: ObservableObject {
     
     func randomNonceString(length: Int = 32) -> String { return "nonce" }
     func sha256(_ input: String) -> String { return input }
-    func completeStickyOnboarding() {}
 }

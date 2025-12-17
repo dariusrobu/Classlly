@@ -9,13 +9,11 @@ struct SubjectsView: View {
         Group {
             switch themeManager.selectedGameMode {
             case .rainbow:
-                RainbowSubjectsView(embedInNavigationStack: embedInNavigationStack)
+                AnyView(RainbowSubjectsView(embedInNavigationStack: embedInNavigationStack))
             case .arcade:
-                ArcadeSubjectsView()
-            case .retro:
-                RetroSubjectsView()
+                AnyView(ArcadeSubjectsView())
             case .none:
-                StandardSubjectsView()
+                AnyView(StandardSubjectsView())
             }
         }
     }
@@ -307,64 +305,6 @@ struct ArcadeSubjectsView: View {
             .navigationTitle("Skill Trees").navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) { Button(action: { showingAddSubject = true }) { Image(systemName: "plus.circle.fill").foregroundColor(.cyan) } }
-            }
-            .sheet(isPresented: $showingAddSubject) { AddSubjectView() }
-            .sheet(isPresented: $showingScanner) { DocumentScannerView(didFinishScanning: processScannedImage, didCancel: {}).ignoresSafeArea() }
-            .sheet(isPresented: $showingImagePicker) { ImagePicker(didFinishPicking: processScannedImage).ignoresSafeArea() }
-            .sheet(isPresented: $showingScanReview) { ScheduleImportReviewView(candidates: scannedCandidates) }
-        }.preferredColorScheme(.dark)
-    }
-    
-    private func processScannedImage(_ image: UIImage) {
-        isProcessingScan = true
-        Task {
-            do {
-                let candidates = try await ScheduleScannerService.shared.scanImage(image)
-                await MainActor.run { self.scannedCandidates = candidates; self.isProcessingScan = false; if !candidates.isEmpty { self.showingScanReview = true } }
-            } catch { await MainActor.run { self.isProcessingScan = false } }
-        }
-    }
-}
-
-// MARK: - 👾 RETRO SUBJECTS
-struct RetroSubjectsView: View {
-    @Query(sort: \Subject.title) var subjects: [Subject]
-    @State private var showingAddSubject = false
-    @State private var showingScanner = false
-    @State private var showingImagePicker = false
-    @State private var showingScanReview = false
-    @State private var isProcessingScan = false
-    @State private var scannedCandidates: [ScannedClassCandidate] = []
-    
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Color(red: 0.05, green: 0.05, blue: 0.05).ignoresSafeArea()
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("> DATABASE_ACCESS").font(.caption).fontDesign(.monospaced).foregroundColor(.green)
-                            HStack {
-                                Text("ROOT/SUBJECTS").font(.system(.title3, design: .monospaced)).bold().foregroundColor(.green)
-                                Spacer()
-                                Button(action: { showingScanner = true }) { Text("[ SCAN ]").font(.caption).fontDesign(.monospaced).foregroundColor(.green).padding(4).border(Color.green, width: 1) }
-                                Button(action: { showingImagePicker = true }) { Text("[ FILE ]").font(.caption).fontDesign(.monospaced).foregroundColor(.yellow).padding(4).border(Color.yellow, width: 1) }
-                            }
-                            Rectangle().frame(height: 1).foregroundColor(.green)
-                        }.padding()
-                        
-                        LazyVStack(spacing: 0) {
-                            ForEach(subjects) { subject in
-                                NavigationLink(destination: SubjectDetailView(subject: subject)) { RetroSubjectRow(subject: subject) }
-                            }
-                        }.padding(.horizontal)
-                    }
-                }
-                if isProcessingScan { Color.black.ignoresSafeArea(); Text("DECODING_IMAGE_DATA...").fontDesign(.monospaced).foregroundColor(.green).blinking() }
-            }
-            .navigationTitle("Database").navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) { Button(action: { showingAddSubject = true }) { Text("[ NEW ]").font(.caption).fontDesign(.monospaced).foregroundColor(.green) } }
             }
             .sheet(isPresented: $showingAddSubject) { AddSubjectView() }
             .sheet(isPresented: $showingScanner) { DocumentScannerView(didFinishScanning: processScannedImage, didCancel: {}).ignoresSafeArea() }
