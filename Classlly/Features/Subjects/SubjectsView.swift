@@ -149,7 +149,9 @@ struct RainbowSubjectsView: View {
         }
         .background(Color.black.ignoresSafeArea())
         .navigationBarHidden(true)
-        .sheet(isPresented: $showingAddSubject) { AddSubjectView() }
+        .sheet(isPresented: $showingAddSubject) {
+            AddSubjectView()
+        }
         .sheet(isPresented: $showingScanner) {
             DocumentScannerView(didFinishScanning: processScannedImage, didCancel: {}).ignoresSafeArea()
         }
@@ -157,7 +159,7 @@ struct RainbowSubjectsView: View {
             ImagePicker(didFinishPicking: processScannedImage).ignoresSafeArea()
         }
         .sheet(isPresented: $showingScanReview) {
-            ScheduleImportReviewView(candidates: scannedCandidates)
+            ScheduleImportReviewView()
         }
     }
     
@@ -237,10 +239,12 @@ struct StandardSubjectsView: View {
                     Button(action: { showingAddSubject = true }) { Image(systemName: "plus.circle.fill").font(.system(size: 20)).foregroundColor(.themePrimary) }
                 }
             }
-            .sheet(isPresented: $showingAddSubject) { AddSubjectView() }
+            .sheet(isPresented: $showingAddSubject) {
+                AddSubjectView()
+            }
             .sheet(isPresented: $showingScanner) { DocumentScannerView(didFinishScanning: processScannedImage, didCancel: {}).ignoresSafeArea() }
             .sheet(isPresented: $showingImagePicker) { ImagePicker(didFinishPicking: processScannedImage).ignoresSafeArea() }
-            .sheet(isPresented: $showingScanReview) { ScheduleImportReviewView(candidates: scannedCandidates) }
+            .sheet(isPresented: $showingScanReview) { ScheduleImportReviewView() }
         }
     }
     
@@ -306,10 +310,12 @@ struct ArcadeSubjectsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) { Button(action: { showingAddSubject = true }) { Image(systemName: "plus.circle.fill").foregroundColor(.cyan) } }
             }
-            .sheet(isPresented: $showingAddSubject) { AddSubjectView() }
+            .sheet(isPresented: $showingAddSubject) {
+                AddSubjectView()
+            }
             .sheet(isPresented: $showingScanner) { DocumentScannerView(didFinishScanning: processScannedImage, didCancel: {}).ignoresSafeArea() }
             .sheet(isPresented: $showingImagePicker) { ImagePicker(didFinishPicking: processScannedImage).ignoresSafeArea() }
-            .sheet(isPresented: $showingScanReview) { ScheduleImportReviewView(candidates: scannedCandidates) }
+            .sheet(isPresented: $showingScanReview) { ScheduleImportReviewView() }
         }.preferredColorScheme(.dark)
     }
     
@@ -323,3 +329,4 @@ struct ArcadeSubjectsView: View {
         }
     }
 }
+

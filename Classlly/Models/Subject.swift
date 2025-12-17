@@ -15,7 +15,7 @@ final class Subject {
     var courseFrequency: ClassFrequency
     var courseStartTime: Date
     var courseEndTime: Date
-    var courseDays: [Int] // 1=Mon, 2=Tue...
+    var courseDays: [Int] // 1=Sun, 2=Mon... (Standard Calendar)
     
     // MARK: - Seminar Details
     var hasSeminar: Bool
@@ -74,9 +74,64 @@ final class Subject {
         self.seminarDays = seminarDays
     }
     
-    // Universal Fix: We cast to 'Color?' first.
-    // This works whether Color(hex:) returns 'Color' or 'Color?'.
+    // MARK: - Computed Properties
+    
     var color: Color {
         return (Color(hex: colorHex) as Color?) ?? .blue
+    }
+    
+    var currentGrade: Double? {
+        guard !grades.isEmpty else { return nil }
+        
+        let validGrades = grades
+        let totalWeight = validGrades.reduce(0.0) { $0 + $1.weight }
+        
+        guard totalWeight > 0 else { return nil }
+        
+        let weightedSum = validGrades.reduce(0.0) { $0 + ($1.score * $1.weight) }
+        return weightedSum / totalWeight
+    }
+    
+    // MARK: - UI Helpers (Fix for SharedComponents)
+    
+    var courseDaysString: String {
+        let days = courseDays.sorted()
+        let symbols = Calendar.current.shortWeekdaySymbols
+        // Calendar.component(.weekday) returns 1 for Sunday.
+        // Symbols array is 0-indexed: 0=Sun, 1=Mon, etc.
+        return days.map { day in
+            let index = (day - 1) % 7
+            return symbols[safe: index] ?? "?"
+        }.joined(separator: ", ")
+    }
+    
+    var courseTimeString: String {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        return "\(f.string(from: courseStartTime)) - \(f.string(from: courseEndTime))"
+    }
+    
+    var attendedClasses: Int {
+        return attendance.filter { $0.status == .present || $0.status == .late }.count
+    }
+    
+    var totalClasses: Int {
+        return attendance.count
+    }
+    
+    var attendanceRate: Double {
+        guard totalClasses > 0 else { return 0.0 }
+        return Double(attendedClasses) / Double(totalClasses)
+    }
+    
+    var gradeHistory: [GradeEntry]? {
+        return grades.sorted { $0.date > $1.date }
+    }
+}
+
+// Safe index extension to prevent crashes
+extension Array {
+    subscript(safe index: Int) -> Element? {
+        return indices.contains(index) ? self[index] : nil
     }
 }

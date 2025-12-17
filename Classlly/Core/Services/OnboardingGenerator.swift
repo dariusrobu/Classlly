@@ -30,6 +30,7 @@ class OnboardingGenerator {
         modelContext.insert(sampleSubject)
         
         // Add a sample grade
+        // Using the standard initializer that defaults weight to 100%
         let sampleGrade = GradeEntry(title: "Midterm Exam", score: 85, maxScore: 100, date: Date())
         sampleSubject.grades.append(sampleGrade)
     }
@@ -48,12 +49,14 @@ class OnboardingGenerator {
                 courseStartTime: Date(),
                 courseEndTime: Date().addingTimeInterval(5400),
                 courseDays: [2 + ((i-1) % 5)],
+                
                 hasSeminar: false,
-                seminarTeacher: nil,
-                seminarClassroom: nil,
+                // Fix: Replaced 'nil' with empty strings and dates because Subject expects non-optionals
+                seminarTeacher: "",
+                seminarClassroom: "",
                 seminarFrequency: .weekly,
-                seminarStartTime: nil,
-                seminarEndTime: nil,
+                seminarStartTime: Date(),
+                seminarEndTime: Date().addingTimeInterval(3600),
                 seminarDays: []
             )
 

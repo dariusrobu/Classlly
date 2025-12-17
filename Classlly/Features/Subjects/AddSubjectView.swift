@@ -29,6 +29,9 @@ struct AddSubjectView: View {
 
     let colors = ["007AFF", "FF3B30", "34C759", "FF9500", "AF52DE", "FF2D55", "5856D6", "5AC8FA"]
     let daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    
+    // Explicit initializer to resolve 'Argument passed to call that takes no arguments' error
+    public init() {}
 
     var body: some View {
         NavigationStack {
@@ -41,7 +44,8 @@ struct AddSubjectView: View {
                         HStack {
                             ForEach(colors, id: \.self) { hex in
                                 Circle()
-                                    .fill(Color(hex: hex) ?? .gray)
+                                    // Fix: Removed '?? .gray' because Color(hex:) returns a non-optional Color
+                                    .fill(Color(hex: hex))
                                     .frame(width: 30, height: 30)
                                     .overlay(
                                         Circle()

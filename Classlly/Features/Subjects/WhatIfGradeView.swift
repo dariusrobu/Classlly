@@ -104,8 +104,8 @@ struct StandardWhatIfView: View {
     private func calculate() {
         guard let target = Double(targetGrade),
               let weight = Double(examWeight) else { return }
-        
-        resultGrade = subject.calculateRequiredGrade(targetGrade: target, newItemWeight: weight)
+        let needed = subject.scoreNeeded(forTarget: target * 10, nextAssignmentMax: 10.0 * (weight / 100.0))
+        resultGrade = needed / (10.0 * (weight / 100.0)) * 10.0
     }
     
     private func resultColor(_ grade: Double) -> Color {
@@ -147,7 +147,7 @@ struct RainbowWhatIfView: View {
                                 Text("Current Average")
                                     .foregroundColor(.gray)
                                     .font(.headline)
-                                Text(String(format: "%.2f", subject.weightedAverage ?? 0.0))
+                                Text(String(format: "%.2f", subject.currentGrade ?? 0.0))
                                     .font(.system(size: 48, weight: .bold))
                                     .foregroundColor(.white)
                             }
@@ -234,7 +234,8 @@ struct RainbowWhatIfView: View {
         withAnimation(.spring()) {
             guard let target = Double(targetGrade),
                   let weight = Double(examWeight) else { return }
-            resultGrade = subject.calculateRequiredGrade(targetGrade: target, newItemWeight: weight)
+            let needed = subject.scoreNeeded(forTarget: target * 10, nextAssignmentMax: 10.0 * (weight / 100.0))
+            resultGrade = needed / (10.0 * (weight / 100.0)) * 10.0
         }
     }
     
@@ -265,7 +266,7 @@ struct ArcadeWhatIfView: View {
                     HStack {
                         VStack(alignment: .leading) {
                             Text("CURRENT XP").font(.caption).fontWeight(.black).foregroundColor(.gray)
-                            Text(String(format: "%.2f", subject.weightedAverage ?? 0.0))
+                            Text(String(format: "%.2f", subject.currentGrade ?? 0.0))
                                 .font(.system(size: 40, design: .rounded))
                                 .fontWeight(.black)
                                 .foregroundColor(.white)
@@ -358,7 +359,9 @@ struct ArcadeWhatIfView: View {
         withAnimation {
             guard let target = Double(targetGrade),
                   let weight = Double(examWeight) else { return }
-            resultGrade = subject.calculateRequiredGrade(targetGrade: target, newItemWeight: weight)
+            let needed = subject.scoreNeeded(forTarget: target * 10, nextAssignmentMax: 10.0 * (weight / 100.0))
+            resultGrade = needed / (10.0 * (weight / 100.0)) * 10.0
         }
     }
 }
+

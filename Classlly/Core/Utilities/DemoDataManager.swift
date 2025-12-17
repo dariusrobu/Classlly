@@ -105,4 +105,37 @@ class DemoDataManager {
             }
         }
     }
+    
+    // MARK: - Destructive Actions
+    
+    func deleteAllData(modelContext: ModelContext) {
+        do {
+            // 1. Delete all Subjects (Cascades to Grades & Attendance usually)
+            let subjects = try modelContext.fetch(FetchDescriptor<Subject>())
+            for subject in subjects {
+                modelContext.delete(subject)
+            }
+            
+            // 2. Delete all Tasks
+            let tasks = try modelContext.fetch(FetchDescriptor<StudyTask>())
+            for task in tasks {
+                modelContext.delete(task)
+            }
+            
+            // 3. Cleanup loose records (if any remain)
+            let grades = try modelContext.fetch(FetchDescriptor<GradeEntry>())
+            for grade in grades {
+                modelContext.delete(grade)
+            }
+            
+            let attendance = try modelContext.fetch(FetchDescriptor<AttendanceEntry>())
+            for entry in attendance {
+                modelContext.delete(entry)
+            }
+            
+            print("Successfully deleted all data.")
+        } catch {
+            print("Failed to delete data: \(error.localizedDescription)")
+        }
+    }
 }

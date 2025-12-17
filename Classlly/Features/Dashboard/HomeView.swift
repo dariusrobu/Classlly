@@ -47,7 +47,7 @@ struct StandardDashboard: View {
     
     // Computed logic
     private var todaysSchedule: [TodayClassEvent] {
-        DashboardLogic.getTodaysSchedule(subjects: subjects, academicWeek: calendarManager.currentTeachingWeek)
+        DashboardLogic.getTodaysSchedule(subjects: subjects)
     }
     
     private var nextClass: TodayClassEvent? {
@@ -252,7 +252,7 @@ struct StandardDashboard: View {
             GradeCalcSubjectPicker(subjects: subjects)
         }
         .sheet(isPresented: $showAttendanceSheet) {
-            QuickAttendanceSheet(subjects: DashboardLogic.filterTodayClasses(subjects: subjects, academicWeek: calendarManager.currentTeachingWeek))
+            QuickAttendanceSheet(subjects: DashboardLogic.filterTodayClasses(subjects: subjects))
         }
         .sheet(isPresented: $showAddSubject) {
             NavigationStack { AddSubjectView() }
@@ -622,6 +622,7 @@ struct CleanSubjectCard: View {
                             .foregroundColor(themeManager.selectedTheme.primaryColor)
                     }
                     Spacer()
+                    // Fix: Now accessing the new computed property 'currentGrade'
                     if let grade = subject.currentGrade {
                         Text(String(format: "%.1f", grade))
                             .font(.subheadline)
@@ -770,6 +771,7 @@ struct QuickLogGradeSheet: View {
     func save() {
         let g = Double(gradeValue.replacingOccurrences(of: ",", with: ".")) ?? 0
         let w = Double(weightValue) ?? 100
+        // Fix: Updated GradeEntry init to match model
         let e = GradeEntry(date: Date(), grade: g, weight: w, description: "Quick Log")
         e.subject = selectedSubject
         modelContext.insert(e)
@@ -824,7 +826,8 @@ struct QuickAttendanceButton: View {
     
     var isAttended: Bool {
         let cal = Calendar.current
-        return subject.attendanceHistory?.contains { cal.isDate($0.date, inSameDayAs: Date()) } ?? false
+        // Fix: Renamed 'attendanceHistory' to 'attendance'
+        return subject.attendance.contains { cal.isDate($0.date, inSameDayAs: Date()) }
     }
     
     var body: some View {
@@ -838,10 +841,13 @@ struct QuickAttendanceButton: View {
     func toggle() {
         let cal = Calendar.current
         let today = Date()
-        if isAttended, let idx = subject.attendanceHistory?.firstIndex(where: { cal.isDate($0.date, inSameDayAs: today) }), let entry = subject.attendanceHistory?[idx] {
+        // Fix: Renamed 'attendanceHistory' to 'attendance'
+        if isAttended, let idx = subject.attendance.firstIndex(where: { cal.isDate($0.date, inSameDayAs: today) }) {
+            let entry = subject.attendance[idx]
             modelContext.delete(entry)
         } else {
-            let e = AttendanceEntry(date: today, attended: true, notes: "Quick")
+            // Fix: Updated init parameters for AttendanceEntry
+            let e = AttendanceEntry(date: today, status: .present, note: "Quick")
             e.subject = subject
             modelContext.insert(e)
         }
@@ -868,19 +874,29 @@ struct TodayClassEvent: Identifiable {
 }
 
 struct DashboardLogic {
-    static func getTodaysSchedule(subjects: [Subject], academicWeek: Int?) -> [TodayClassEvent] {
+    // Fix: Removed unused academicWeek param here to avoid confusion; usage inside is irrelevant if we use Date()
+    static func getTodaysSchedule(subjects: [Subject]) -> [TodayClassEvent] {
         let cal = Calendar.current
         let today = Date()
         let weekday = cal.component(.weekday, from: today)
         var events: [TodayClassEvent] = []
         
         for s in subjects {
-            if s.courseDays.contains(weekday), s.occursThisWeek(academicWeek: academicWeek, isCourse: true),
+            // Fix: Use 'occursThisWeek(date:isSeminar:)' correctly.
+            // 1. Pass 'date: today' instead of academicWeek Int.
+            // 2. 'isCourse' logic handled by passing 'isSeminar: false' for courses.
+            
+            // Check Course
+            if s.courseDays.contains(weekday),
+               s.occursThisWeek(date: today, isSeminar: false),
                let start = combine(today, s.courseStartTime),
                let end = combine(today, s.courseEndTime) {
                 events.append(TodayClassEvent(subject: s, type: .course, startTime: start, endTime: end, room: s.courseClassroom))
             }
-            if s.seminarDays.contains(weekday), s.occursThisWeek(academicWeek: academicWeek, isCourse: false),
+            
+            // Check Seminar
+            if s.seminarDays.contains(weekday),
+               s.occursThisWeek(date: today, isSeminar: true),
                let start = combine(today, s.seminarStartTime),
                let end = combine(today, s.seminarEndTime) {
                 events.append(TodayClassEvent(subject: s, type: .seminar, startTime: start, endTime: end, room: s.seminarClassroom))
@@ -898,8 +914,8 @@ struct DashboardLogic {
         return schedule.filter { $0.startTime > next.startTime }
     }
     
-    static func filterTodayClasses(subjects: [Subject], academicWeek: Int?) -> [Subject] {
-        let events = getTodaysSchedule(subjects: subjects, academicWeek: academicWeek)
+    static func filterTodayClasses(subjects: [Subject]) -> [Subject] {
+        let events = getTodaysSchedule(subjects: subjects)
         let ids = Set(events.map { $0.subject.id })
         return subjects.filter { ids.contains($0.id) }
     }
