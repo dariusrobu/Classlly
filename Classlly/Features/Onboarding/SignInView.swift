@@ -8,6 +8,7 @@ struct SignInView: View {
     @Environment(\.modelContext) var modelContext
     
     @State private var showingProfileSetup = false
+    @State private var isGeneratingData = false
     
     var body: some View {
         NavigationView {
@@ -75,20 +76,24 @@ struct SignInView: View {
                         
                         // Demo User Button
                         Button(action: {
-                            authManager.signInAsDemoUser()
-                            calendarManager.loadDemoData()
-                            DemoDataManager.shared.createHeavyStressData(modelContext: modelContext)
+                            generateDemoDataAndLogin()
                         }) {
-                            Text("Continue as Demo User")
-                                .font(.headline)
-                                .foregroundColor(.blue)
-                                .frame(height: 50)
-                                .frame(maxWidth: .infinity)
-                                .background(Color.white)
-                                .cornerRadius(10)
+                            HStack {
+                                if isGeneratingData {
+                                    ProgressView().padding(.trailing, 8)
+                                }
+                                Text("Continue as Demo User")
+                                    .font(.headline)
+                                    .foregroundColor(.blue)
+                            }
+                            .frame(height: 50)
+                            .frame(maxWidth: .infinity)
+                            .background(Color.white)
+                            .cornerRadius(10)
                         }
+                        .disabled(isGeneratingData)
                         
-                        // 🆕 New User Test Button
+                        // New User Test Button
                         Button(action: {
                             authManager.startNewUserOnboarding()
                         }) {
@@ -114,22 +119,14 @@ struct SignInView: View {
                 }
             }
             .navigationBarHidden(true)
-            // Profile Setup Sheet
-            .onChange(of: authManager.currentUser) { oldValue, newValue in
-                if newValue != nil && !authManager.isAuthenticated {
-                    showingProfileSetup = true
-                }
-            }
             .sheet(isPresented: $showingProfileSetup) {
                 if let user = authManager.currentUser {
                     ProfileSetupView(user: user)
                 }
             }
-            // Onboarding Cover
             .fullScreenCover(isPresented: $authManager.showingOnboarding) {
                 StickyOnboardingView()
             }
-            // Loading Overlay
             .overlay {
                 if authManager.isLoading {
                     LoadingOverlay()
@@ -137,6 +134,27 @@ struct SignInView: View {
             }
         }
         .navigationViewStyle(.stack)
+    }
+    
+    // Logic to ensure data is created BEFORE login transition
+    func generateDemoDataAndLogin() {
+        isGeneratingData = true
+        
+        // Perform data generation
+        // We use a short delay to allow UI to update to "Loading" state if needed,
+        // but primarily to ensure the operations run cleanly.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // 1. Load Calendar
+            calendarManager.loadDemoData()
+            
+            // 2. Generate Heavy Data
+            DemoDataManager.shared.createHeavyStressData(modelContext: modelContext)
+            
+            // 3. Authenticate (this triggers the view switch)
+            authManager.signInAsDemoUser()
+            
+            isGeneratingData = false
+        }
     }
     
     struct FeatureRow: View {

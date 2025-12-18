@@ -4,958 +4,657 @@ import SwiftData
 struct SubjectDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var themeManager: AppTheme
     
-    // 1. Pass the object as a plain constant
-    let subject: Subject
+    @Bindable var subject: Subject
     
     @State private var showingAddGrade = false
     @State private var showingAddAttendance = false
+    @State private var showingAddTask = false
+    @State private var showingEditSubject = false
+    @State private var showingWhatIf = false
+    @State private var showingDeleteAlert = false
     
+    // For editing items
+    @State private var editingGrade: GradeEntry?
+    @State private var editingAttendance: AttendanceEntry?
+    
+    @Query private var tasks: [StudyTask]
+    private var subjectTasks: [StudyTask] {
+        tasks.filter { $0.subject == subject && !$0.isCompleted }
+    }
+    
+    // Computed Lists
+    private var exams: [GradeEntry] {
+        (subject.grades ?? []).filter { $0.isExam }.sorted(by: { $0.date > $1.date })
+    }
+    
+    private var regularGrades: [GradeEntry] {
+        (subject.grades ?? []).filter { !$0.isExam }.sorted(by: { $0.date > $1.date })
+    }
+    
+    private var attendanceHistory: [AttendanceEntry] {
+        (subject.attendance ?? []).sorted(by: { $0.date > $1.date })
+    }
+
     var body: some View {
-        // 2. Create the Bindable wrapper HERE to allow editing
-        @Bindable var bindableSubject = subject
-        
-        ScrollView {
-            VStack(spacing: 20) {
-                // Header
-                VStack(alignment: .leading) {
-                    TextField("Subject Name", text: $bindableSubject.name)
-                        .font(.largeTitle)
-                        .bold()
+        ZStack {
+            Color(uiColor: .systemGroupedBackground)
+                .ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 24) {
+                    // 1. HERO SECTION
+                    HeroSection(subject: subject)
                     
-                    HStack {
-                        TextField("Room", text: $bindableSubject.room)
-                        Divider()
-                        TextField("Teacher", text: $bindableSubject.teacher)
-                    }
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                }
-                .padding()
-                .background(Color(hex: subject.colorHex)?.opacity(0.1) ?? Color.gray.opacity(0.1))
-                .cornerRadius(12)
-                
-                // Grades Section
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text("Grades")
-                            .font(.headline)
-                        Spacer()
-                        Button(action: { showingAddGrade = true }) {
-                            Image(systemName: "plus.circle.fill")
-                        }
-                    }
+                    // 2. QUICK ACTIONS (Centered)
+                    QuickActionsRow(
+                        onAddGrade: { showingAddGrade = true },
+                        onAddAttendance: { showingAddAttendance = true },
+                        onAddTask: { showingAddTask = true },
+                        onEdit: { showingEditSubject = true },
+                        onWhatIf: { showingWhatIf = true }
+                    )
                     
-                    if subject.grades.isEmpty {
-                        Text("No grades recorded")
-                            .italic()
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(subject.grades) { grade in
-                            HStack {
-                                Text(grade.title)
-                                Spacer()
-                                Text(String(format: "%.1f/%.1f", grade.score, grade.maxScore))
+                    // 3. SUBJECT INFO CARD (Course + Seminar)
+                    SubjectInfoCard(subject: subject)
+                    
+                    // 4. EXAMS SECTION
+                    if !exams.isEmpty {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Exams")
+                                .font(.headline)
+                                .padding(.horizontal)
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(exams) { exam in
+                                        ExamCard(exam: exam)
+                                            .onTapGesture { editingGrade = exam }
+                                    }
+                                }
+                                .padding(.horizontal)
                             }
-                            .padding(.vertical, 4)
-                        }
-                        .onDelete(perform: deleteGrade)
-                    }
-                }
-                .padding()
-                .background(Color(.secondarySystemBackground))
-                .cornerRadius(12)
-                
-                // Attendance Section
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text("Attendance")
-                            .font(.headline)
-                        Spacer()
-                        Button(action: { showingAddAttendance = true }) {
-                            Image(systemName: "plus.circle.fill")
                         }
                     }
                     
-                    if subject.attendance.isEmpty {
-                        Text("No attendance recorded")
-                            .italic()
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(subject.attendance) { entry in
-                            HStack {
-                                Text(entry.date.formatted(date: .abbreviated, time: .omitted))
-                                Spacer()
-                                Text(entry.status.rawValue)
-                                    .foregroundStyle(entry.status == .present ? .green : .red)
+                    // 5. PERFORMANCE RINGS
+                    PerformanceRingsSection(subject: subject)
+                    
+                    // 6. SCROLLABLE HISTORY CARDS
+                    VStack(spacing: 20) {
+                        // Grade History
+                        ScrollableHistoryCard(title: "Grade History", icon: "chart.bar.fill", height: 200) {
+                            if regularGrades.isEmpty {
+                                ContentUnavailableView("No grades", systemImage: "chart.bar")
+                            } else {
+                                LazyVStack(spacing: 0) {
+                                    ForEach(regularGrades) { grade in
+                                        GradeRow(grade: grade)
+                                            .onTapGesture { editingGrade = grade }
+                                        Divider()
+                                    }
+                                }
                             }
-                            .padding(.vertical, 4)
                         }
-                        .onDelete(perform: deleteAttendance)
+                        
+                        // Attendance History
+                        ScrollableHistoryCard(title: "Attendance History", icon: "calendar", height: 200) {
+                            if attendanceHistory.isEmpty {
+                                ContentUnavailableView("No records", systemImage: "calendar.badge.exclamationmark")
+                            } else {
+                                LazyVStack(spacing: 0) {
+                                    ForEach(attendanceHistory) { entry in
+                                        AttendanceRow(entry: entry)
+                                            .onTapGesture { editingAttendance = entry }
+                                        Divider()
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Tasks History
+                        ScrollableHistoryCard(title: "Active Tasks", icon: "checklist", height: 200) {
+                            if subjectTasks.isEmpty {
+                                ContentUnavailableView("No active tasks", systemImage: "checkmark.circle")
+                            } else {
+                                LazyVStack(spacing: 0) {
+                                    ForEach(subjectTasks) { task in
+                                        TaskRow(task: task)
+                                        Divider()
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
-                .padding()
-                .background(Color(.secondarySystemBackground))
-                .cornerRadius(12)
-                
-                // Settings / Meta
-                Section("Settings") {
-                    DatePicker("Start Time", selection: $bindableSubject.startTime, displayedComponents: .hourAndMinute)
-                    DatePicker("End Time", selection: $bindableSubject.endTime, displayedComponents: .hourAndMinute)
+                    .padding(.horizontal)
                     
-                    Picker("Frequency", selection: $bindableSubject.frequency) {
-                        ForEach(ClassFrequency.allCases, id: \.self) { freq in
-                            Text(freq.rawValue).tag(freq)
-                        }
-                    }
+                    Spacer(minLength: 50)
                 }
-                .padding()
-                .background(Color(.secondarySystemBackground))
-                .cornerRadius(12)
+                .padding(.bottom)
             }
-            .padding()
         }
-        .navigationTitle(subject.name)
         .navigationBarTitleDisplayMode(.inline)
-        // Sheets for adding data
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button(role: .destructive) { showingDeleteAlert = true } label: {
+                    Image(systemName: "trash").foregroundColor(.red)
+                }
+            }
+        }
+        // SHEETS
         .sheet(isPresented: $showingAddGrade) {
-            AddGradeView(subject: subject)
+            AddGradeSheet(isPresented: $showingAddGrade, accentColor: subject.color) { d, g, w, desc, isExam in
+                let new = GradeEntry(date: d, grade: g, weight: w, description: desc, isExam: isExam)
+                new.subject = subject
+                modelContext.insert(new)
+            }
         }
         .sheet(isPresented: $showingAddAttendance) {
-            AddAttendanceView(subject: subject)
+            MarkAttendanceSheet(isPresented: $showingAddAttendance) { d, status, n in
+                let new = AttendanceEntry(date: d, status: status, note: n)
+                new.subject = subject
+                modelContext.insert(new)
+            }
         }
-    }
-    
-    // Logic Functions
-    private func deleteGrade(at offsets: IndexSet) {
-        for index in offsets {
-            let grade = subject.grades[index]
-            modelContext.delete(grade)
+        .sheet(isPresented: $showingAddTask) { AddTaskView(preSelectedSubject: subject) }
+        .sheet(isPresented: $showingEditSubject) { EditSubjectView(subject: subject) }
+        .sheet(isPresented: $showingWhatIf) { WhatIfGradeView(subject: subject) }
+        
+        // EDIT SHEETS
+        .sheet(item: $editingGrade) { grade in
+            EditGradeSheet(gradeEntry: grade, accentColor: subject.color) { updated in
+                grade.date = updated.date
+                grade.score = updated.score
+                grade.weight = updated.weight
+                grade.title = updated.title
+                grade.isExam = updated.isExam
+                try? modelContext.save()
+            }
         }
-    }
-    
-    private func deleteAttendance(at offsets: IndexSet) {
-        for index in offsets {
-            let entry = subject.attendance[index]
-            modelContext.delete(entry)
+        .sheet(item: $editingAttendance) { entry in
+            EditAttendanceSheet(attendanceEntry: entry) { updated in
+                entry.date = updated.date
+                entry.statusRaw = updated.statusRaw
+                entry.note = updated.note
+                try? modelContext.save()
+            }
+        }
+        .alert("Delete Subject", isPresented: $showingDeleteAlert) {
+            Button("Delete", role: .destructive) {
+                modelContext.delete(subject)
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Are you sure? All grades, attendance, and tasks for this subject will be deleted.")
         }
     }
 }
 
-// MARK: - Subviews for adding data (Minimal implementation to fix scope errors)
+// MARK: - 1. HERO SECTION
+struct HeroSection: View {
+    let subject: Subject
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .fill(subject.color.opacity(0.1))
+                    .frame(width: 80, height: 80)
+                
+                Image(systemName: "book.fill")
+                    .font(.system(size: 32))
+                    .foregroundColor(subject.color)
+            }
+            .padding(.top, 20)
+            
+            Text(subject.title)
+                .font(.system(size: 24, weight: .bold)) // ✅ Fixed Font Syntax
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            
+            Text(subject.courseTeacher)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+    }
+}
 
-struct AddGradeView: View {
-    @Environment(\.dismiss) var dismiss
-    var subject: Subject
-    @State private var title = ""
-    @State private var score = 0.0
-    @State private var maxScore = 100.0
+// MARK: - 2. QUICK ACTIONS (CENTERED)
+struct QuickActionsRow: View {
+    let onAddGrade: () -> Void
+    let onAddAttendance: () -> Void
+    let onAddTask: () -> Void
+    let onEdit: () -> Void
+    let onWhatIf: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 20) {
+            Spacer()
+            ActionButton(icon: "graduationcap.fill", label: "Grade", color: .blue, action: onAddGrade)
+            ActionButton(icon: "hand.raised.fill", label: "Attend", color: .green, action: onAddAttendance)
+            ActionButton(icon: "checklist", label: "Task", color: .orange, action: onAddTask)
+            ActionButton(icon: "function", label: "Calc", color: .purple, action: onWhatIf)
+            ActionButton(icon: "pencil", label: "Edit", color: .gray, action: onEdit)
+            Spacer()
+        }
+        .padding(.horizontal)
+    }
+    
+    struct ActionButton: View {
+        let icon: String
+        let label: String
+        let color: Color
+        let action: () -> Void
+        
+        var body: some View {
+            Button(action: action) {
+                VStack(spacing: 8) {
+                    Circle()
+                        .fill(color.opacity(0.1))
+                        .frame(width: 50, height: 50)
+                        .overlay(
+                            Image(systemName: icon)
+                                .foregroundColor(color)
+                                .font(.headline)
+                        )
+                    
+                    Text(label)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - 3. INFO CARD (COURSE & SEMINAR)
+struct SubjectInfoCard: View {
+    let subject: Subject
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Course Info
+            InfoRow(
+                icon: "studentdesk",
+                title: "Course",
+                time: subject.courseTimeString,
+                day: subject.courseDaysString,
+                room: subject.courseClassroom,
+                teacher: subject.courseTeacher,
+                color: subject.color
+            )
+            
+            // ✅ Seminar Info (Always shown if hasSeminar is true)
+            if subject.hasSeminar {
+                Divider().padding(.leading, 50)
+                
+                InfoRow(
+                    icon: "person.2.fill",
+                    title: "Seminar",
+                    time: subject.seminarTimeString,
+                    day: subject.seminarDaysString,
+                    room: subject.seminarClassroom,
+                    teacher: subject.seminarTeacher,
+                    color: .orange
+                )
+            }
+        }
+        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        .cornerRadius(16)
+        .padding(.horizontal)
+        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+    }
+    
+    struct InfoRow: View {
+        let icon: String
+        let title: String
+        let time: String
+        let day: String
+        let room: String
+        let teacher: String
+        let color: Color
+        
+        var body: some View {
+            HStack(alignment: .top, spacing: 16) {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundColor(color)
+                    .frame(width: 32)
+                    .padding(.top, 4)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title).font(.headline)
+                    
+                    HStack {
+                        Label(day, systemImage: "calendar")
+                        Spacer()
+                        Label(time, systemImage: "clock")
+                    }
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    
+                    HStack {
+                        Label(room, systemImage: "mappin.and.ellipse")
+                        Spacer()
+                        Label(teacher, systemImage: "person.fill")
+                    }
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                }
+            }
+            .padding()
+        }
+    }
+}
+
+// MARK: - 4. EXAM CARD
+struct ExamCard: View {
+    let exam: GradeEntry
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "doc.text.fill")
+                    .foregroundColor(.white)
+                Spacer()
+                Text("\(Int(exam.score))/10")
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+            }
+            
+            Text(exam.title)
+                .font(.headline)
+                .foregroundColor(.white)
+                .lineLimit(2)
+            
+            Text(exam.date.formatted(date: .abbreviated, time: .omitted))
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.8))
+        }
+        .padding()
+        .frame(width: 140, height: 100)
+        .background(
+            LinearGradient(colors: [.red, .orange], startPoint: .topLeading, endPoint: .bottomTrailing)
+        )
+        .cornerRadius(12)
+        .shadow(radius: 3)
+    }
+}
+
+// MARK: - 5. PERFORMANCE RINGS
+struct PerformanceRingsSection: View {
+    let subject: Subject
+    
+    var body: some View {
+        HStack(spacing: 20) {
+            PerformanceRing(
+                title: "Average",
+                value: String(format: "%.1f", subject.currentGrade ?? 0),
+                progress: (subject.currentGrade ?? 0) / 10.0,
+                color: .blue
+            )
+            
+            PerformanceRing(
+                title: "Attendance",
+                value: "\(Int(subject.attendanceRate * 100))%",
+                progress: subject.attendanceRate,
+                color: .green
+            )
+        }
+        .padding(.horizontal)
+    }
+    
+    struct PerformanceRing: View {
+        let title: String
+        let value: String
+        let progress: Double
+        let color: Color
+        
+        var body: some View {
+            HStack {
+                ZStack {
+                    Circle().stroke(color.opacity(0.2), lineWidth: 8)
+                    Circle().trim(from: 0, to: progress)
+                        .stroke(color, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                    Text(value).font(.headline).fontWeight(.bold)
+                }
+                .frame(width: 60, height: 60)
+                
+                Text(title).font(.subheadline).foregroundColor(.secondary)
+                Spacer()
+            }
+            .padding()
+            .background(Color(uiColor: .secondarySystemGroupedBackground))
+            .cornerRadius(16)
+        }
+    }
+}
+
+// MARK: - 6. SCROLLABLE HISTORY
+struct ScrollableHistoryCard<Content: View>: View {
+    let title: String
+    let icon: String
+    let height: CGFloat
+    @ViewBuilder let content: () -> Content
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Image(systemName: icon).foregroundColor(.secondary)
+                Text(title).font(.headline)
+                Spacer()
+            }
+            .padding()
+            .background(Color(uiColor: .secondarySystemGroupedBackground))
+            
+            Divider()
+            
+            ScrollView {
+                content().padding(.vertical, 8)
+            }
+            .frame(height: height)
+            .background(Color(uiColor: .secondarySystemGroupedBackground))
+        }
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+    }
+}
+
+// Rows
+struct GradeRow: View {
+    let grade: GradeEntry
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading) {
+                Text(grade.title).font(.body)
+                Text(grade.date.formatted(date: .abbreviated, time: .omitted))
+                    .font(.caption).foregroundColor(.secondary)
+            }
+            Spacer()
+            VStack(alignment: .trailing) {
+                Text(String(format: "%.1f", grade.score))
+                    .font(.headline).foregroundColor(grade.score >= 5 ? .green : .red)
+                Text("\(Int(grade.weight))% wgt").font(.caption2).foregroundColor(.secondary)
+            }
+        }
+        .padding(.horizontal).padding(.vertical, 8)
+    }
+}
+
+struct AttendanceRow: View {
+    let entry: AttendanceEntry
+    var body: some View {
+        HStack {
+            Image(systemName: entry.status == .present ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .foregroundColor(entry.status == .present ? .green : .red)
+            VStack(alignment: .leading) {
+                Text(entry.status.rawValue).font(.body)
+                if let note = entry.note, !note.isEmpty {
+                    Text(note).font(.caption).foregroundColor(.gray)
+                }
+            }
+            Spacer()
+            Text(entry.date.formatted(date: .abbreviated, time: .shortened))
+                .font(.caption).foregroundColor(.secondary)
+        }
+        .padding(.horizontal).padding(.vertical, 8)
+    }
+}
+
+struct TaskRow: View {
+    let task: StudyTask
+    var body: some View {
+        HStack {
+            Image(systemName: task.isCompleted ? "circle.inset.filled" : "circle")
+                .foregroundColor(task.isCompleted ? .green : .blue)
+            Text(task.title).strikethrough(task.isCompleted)
+            Spacer()
+            if let due = task.dueDate {
+                Text(due.formatted(date: .abbreviated, time: .omitted))
+                    .font(.caption).foregroundColor(.red)
+            }
+        }
+        .padding(.horizontal).padding(.vertical, 8)
+    }
+}
+
+// MARK: - SHEETS & HELPERS
+
+struct AddGradeSheet: View {
+    @Binding var isPresented: Bool; var accentColor: Color; let onSave: (Date, Double, Double, String, Bool) -> Void
+    @State private var grade = ""; @State private var weight = "100"; @State private var description = ""; @State private var date = Date(); @State private var isExam = false
     
     var body: some View {
         NavigationStack {
             Form {
-                TextField("Assignment Name", text: $title)
-                
+                Section("Details") {
+                    TextField("Title (e.g. Midterm)", text: $description)
+                    Toggle("Is Exam?", isOn: $isExam).tint(accentColor)
+                    DatePicker("Date", selection: $date, displayedComponents: .date)
+                }
                 Section("Score") {
-                    HStack {
-                        TextField("Score", value: $score, format: .number)
-                        Text("/")
-                        TextField("Max", value: $maxScore, format: .number)
-                    }
+                    HStack { TextField("Score", text: $grade).keyboardType(.decimalPad); Text("/ 10") }
+                    HStack { TextField("Weight %", text: $weight).keyboardType(.numberPad); Text("%") }
                 }
             }
             .navigationTitle("Add Grade")
             .toolbar {
                 Button("Save") {
-                    let newGrade = GradeEntry(title: title, score: score, maxScore: maxScore)
-                    // Link relationship
-                    subject.grades.append(newGrade)
-                    dismiss()
+                    if let g = Double(grade.replacingOccurrences(of: ",", with: ".")),
+                       let w = Double(weight) {
+                        onSave(date, g, w, description, isExam)
+                        isPresented = false
+                    }
+                }.fontWeight(.bold)
+            }
+        }
+    }
+}
+
+struct EditGradeSheet: View {
+    let gradeEntry: GradeEntry; var accentColor: Color; let onSave: (GradeEntry) -> Void
+    @Environment(\.dismiss) var dismiss
+    
+    @State private var grade: String
+    @State private var weight: String
+    @State private var description: String
+    @State private var date: Date
+    @State private var isExam: Bool
+    
+    init(gradeEntry: GradeEntry, accentColor: Color, onSave: @escaping (GradeEntry) -> Void) {
+        self.gradeEntry = gradeEntry
+        self.accentColor = accentColor
+        self.onSave = onSave
+        _grade = State(initialValue: String(format: "%.1f", gradeEntry.score))
+        _weight = State(initialValue: String(format: "%.0f", gradeEntry.weight))
+        _description = State(initialValue: gradeEntry.title)
+        _date = State(initialValue: gradeEntry.date)
+        _isExam = State(initialValue: gradeEntry.isExam)
+    }
+    
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Details") {
+                    TextField("Title", text: $description)
+                    Toggle("Is Exam?", isOn: $isExam).tint(accentColor)
+                    DatePicker("Date", selection: $date, displayedComponents: .date)
+                }
+                Section("Score") {
+                    HStack { TextField("Score", text: $grade).keyboardType(.decimalPad); Text("/ 10") }
+                    HStack { TextField("Weight %", text: $weight).keyboardType(.numberPad); Text("%") }
+                }
+            }
+            .navigationTitle("Edit Grade")
+            .toolbar {
+                Button("Save") {
+                    if let g = Double(grade.replacingOccurrences(of: ",", with: ".")),
+                       let w = Double(weight) {
+                        let updated = GradeEntry(date: date, grade: g, weight: w, description: description, isExam: isExam)
+                        onSave(updated)
+                        dismiss()
+                    }
                 }
             }
         }
     }
 }
 
-struct AddAttendanceView: View {
-    @Environment(\.dismiss) var dismiss
-    var subject: Subject
-    @State private var status: AttendanceStatus = .present
-    @State private var date = Date()
+struct MarkAttendanceSheet: View {
+    @Binding var isPresented: Bool; let onSave: (Date, AttendanceStatus, String) -> Void
+    @State private var status: AttendanceStatus = .present; @State private var notes = ""; @State private var date = Date()
     
     var body: some View {
         NavigationStack {
             Form {
                 DatePicker("Date", selection: $date, displayedComponents: .date)
                 Picker("Status", selection: $status) {
-                    ForEach(AttendanceStatus.allCases, id: \.self) { status in
-                        Text(status.rawValue).tag(status)
-                    }
+                    ForEach(AttendanceStatus.allCases, id: \.self) { Text($0.rawValue).tag($0) }
                 }
+                TextField("Notes", text: $notes)
             }
             .navigationTitle("Add Attendance")
+            .toolbar { Button("Save") { onSave(date, status, notes); isPresented = false } }
+        }
+    }
+}
+
+struct EditAttendanceSheet: View {
+    let attendanceEntry: AttendanceEntry; let onSave: (AttendanceEntry) -> Void
+    @Environment(\.dismiss) var dismiss
+    @State private var status: AttendanceStatus
+    @State private var notes: String
+    @State private var date: Date
+    
+    init(attendanceEntry: AttendanceEntry, onSave: @escaping (AttendanceEntry) -> Void) {
+        self.attendanceEntry = attendanceEntry
+        self.onSave = onSave
+        _status = State(initialValue: attendanceEntry.status)
+        _notes = State(initialValue: attendanceEntry.note ?? "")
+        _date = State(initialValue: attendanceEntry.date)
+    }
+    
+    var body: some View {
+        NavigationStack {
+            Form {
+                DatePicker("Date", selection: $date, displayedComponents: .date)
+                Picker("Status", selection: $status) {
+                    ForEach(AttendanceStatus.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                }
+                TextField("Notes", text: $notes)
+            }
+            .navigationTitle("Edit Attendance")
             .toolbar {
                 Button("Save") {
-                    let newEntry = AttendanceEntry(date: date, status: status)
-                    // Link relationship
-                    subject.attendance.append(newEntry)
+                    let updated = AttendanceEntry(date: date, status: status, note: notes)
+                    onSave(updated)
                     dismiss()
                 }
             }
         }
     }
-}
-
-// MARK: - 🌈 RAINBOW DETAIL VIEW
-struct RainbowSubjectDetailView: View {
-    @Bindable var subject: Subject
-    @EnvironmentObject var themeManager: AppTheme
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) var dismiss
-    
-    // State for sheets
-    @State private var showingAddGrade = false
-    @State private var showingMarkAttendance = false
-    @State private var showingAddTask = false
-    @State private var showingEditSubject = false
-    @State private var showingDeleteAlert = false
-    @State private var showingWhatIf = false
-    
-    @State private var editingGrade: GradeEntry?
-    @State private var editingAttendance: AttendanceEntry?
-    
-    @Query private var tasks: [StudyTask]
-    private var subjectTasks: [StudyTask] { tasks.filter { $0.subject == subject } }
-    
-    // Filtered Grades
-    private var exams: [GradeEntry] {
-        (subject.gradeHistory ?? []).filter { $0.isExam }.sorted(by: { $0.date > $1.date })
-    }
-    
-    private var regularGrades: [GradeEntry] {
-        (subject.gradeHistory ?? []).filter { !$0.isExam }.sorted(by: { $0.date > $1.date })
-    }
-    
-    init(subject: Subject) {
-        self.subject = subject
-        let subjectID = subject.id
-        _tasks = Query(filter: #Predicate { $0.subject?.id == subjectID })
-    }
-    
-    // Computed Helpers
-    private var formattedAverageGrade: String {
-        if let grade = subject.weightedAverage {
-            return String(format: "%.1f", grade)
-        }
-        return "N/A"
-    }
-    
-    var body: some View {
-        let accentColor = themeManager.selectedTheme.primaryColor
-        
-        ZStack {
-            Color.black.ignoresSafeArea()
-            
-            ScrollView {
-                VStack(spacing: 24) {
-                    // 1. HEADER
-                    RainbowContainer {
-                        HStack(spacing: 20) {
-                            ZStack {
-                                Circle()
-                                    .fill(accentColor.opacity(0.15))
-                                    .frame(width: 64, height: 64)
-                                Image(systemName: "book.fill")
-                                    .font(.title)
-                                    .foregroundColor(accentColor)
-                            }
-                            
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(subject.title)
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.white)
-                                
-                                Text(subject.courseTeacher)
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.gray)
-                            }
-                            
-                            Spacer()
-                        }
-                    }
-                    
-                    // 2. STATS
-                    HStack(spacing: 12) {
-                        RainbowStatBox(
-                            title: "Average",
-                            value: formattedAverageGrade,
-                            icon: "star.fill",
-                            color: RainbowColors.orange
-                        )
-                        
-                        // ✅ ECTS Display
-                        RainbowStatBox(
-                            title: "ECTS",
-                            value: "\(subject.ectsCredits)",
-                            icon: "trophy.fill",
-                            color: RainbowColors.blue
-                        )
-                        
-                        RainbowStatBox(
-                            title: "Attendance",
-                            value: "\(Int(subject.attendanceRate * 100))%",
-                            icon: "person.3.fill",
-                            color: RainbowColors.green
-                        )
-                    }
-                    
-                    // 3. ACTIONS
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            RainbowActionButton(icon: "plus", label: "Grade", color: accentColor) { showingAddGrade = true }
-                            RainbowActionButton(icon: "checkmark", label: "Attend", color: RainbowColors.green) { showingMarkAttendance = true }
-                            RainbowActionButton(icon: "list.bullet", label: "Task", color: RainbowColors.blue) { showingAddTask = true }
-                            RainbowActionButton(icon: "function", label: "What If", color: RainbowColors.orange) { showingWhatIf = true }
-                            RainbowActionButton(icon: "pencil", label: "Edit", color: .gray) { showingEditSubject = true }
-                        }
-                    }
-                    
-                    // 4. INFO CARDS
-                    VStack(spacing: 12) {
-                        RainbowInfoCard(
-                            title: "Course Details",
-                            icon: "clock.fill",
-                            lines: [
-                                (subject.courseDaysString, subject.courseTimeString),
-                                (subject.courseClassroom, subject.courseFrequency.rawValue)
-                            ],
-                            color: accentColor
-                        )
-                        
-                        if !subject.seminarTeacher.isEmpty || !subject.seminarClassroom.isEmpty {
-                            RainbowInfoCard(
-                                title: "Seminar Details",
-                                icon: "person.2.fill",
-                                lines: [
-                                    (subject.seminarDaysString, subject.seminarTimeString),
-                                    (subject.seminarClassroom, subject.seminarFrequency.rawValue)
-                                ],
-                                color: RainbowColors.purple
-                            )
-                        }
-                    }
-                    
-                    // 5. SECTIONS (Scrollable)
-                    VStack(spacing: 32) {
-                        
-                        // EXAMS SECTION
-                        VStack(alignment: .leading, spacing: 16) {
-                            RainbowSectionHeader(title: "Exams", icon: "star.fill", color: .yellow)
-                            
-                            if exams.isEmpty {
-                                EmptyRainbowState(icon: "star.slash", text: "No exams recorded")
-                            } else {
-                                LazyVStack(spacing: 12) {
-                                    ForEach(exams) { grade in
-                                        RainbowGradeRow(grade: grade)
-                                            .onTapGesture { editingGrade = grade }
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // GRADES SECTION
-                        VStack(alignment: .leading, spacing: 16) {
-                            RainbowSectionHeader(title: "Grades", icon: "chart.bar.fill", color: RainbowColors.orange)
-                            
-                            if regularGrades.isEmpty {
-                                EmptyRainbowState(icon: "chart.bar", text: "No regular grades")
-                            } else {
-                                LazyVStack(spacing: 12) {
-                                    ForEach(regularGrades) { grade in
-                                        RainbowGradeRow(grade: grade)
-                                            .onTapGesture { editingGrade = grade }
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // ATTENDANCE SECTION
-                        VStack(alignment: .leading, spacing: 16) {
-                            RainbowSectionHeader(title: "Attendance", icon: "calendar", color: RainbowColors.green)
-                            
-                            if (subject.attendanceHistory ?? []).isEmpty {
-                                EmptyRainbowState(icon: "calendar", text: "No attendance records")
-                            } else {
-                                LazyVStack(spacing: 12) {
-                                    ForEach((subject.attendanceHistory ?? []).sorted(by: { $0.date > $1.date })) { att in
-                                        RainbowAttendanceRow(attendance: att)
-                                            .onTapGesture { editingAttendance = att }
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // TASKS SECTION
-                        VStack(alignment: .leading, spacing: 16) {
-                            RainbowSectionHeader(title: "Tasks", icon: "checklist", color: RainbowColors.blue)
-                            
-                            if subjectTasks.isEmpty {
-                                EmptyRainbowState(icon: "checklist", text: "No tasks for this subject")
-                            } else {
-                                LazyVStack(spacing: 12) {
-                                    ForEach(subjectTasks) { task in
-                                        RainbowTaskRowPreview(task: task, color: accentColor)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                .padding()
-                .padding(.bottom, 40)
-            }
-        }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button(role: .destructive) { showingDeleteAlert = true } label: { Image(systemName: "trash").foregroundColor(.red) } } }
-        .sheet(isPresented: $showingAddGrade) {
-            AddGradeSheet(isPresented: $showingAddGrade, accentColor: accentColor) { d, g, w, desc, isExam in
-                let new = GradeEntry(date: d, grade: g, weight: w, description: desc, isExam: isExam)
-                new.subject = subject
-                modelContext.insert(new)
-            }
-        }
-        .sheet(isPresented: $showingMarkAttendance) { MarkAttendanceSheet(isPresented: $showingMarkAttendance) { d, a, n in let new = AttendanceEntry(date: d, attended: a, notes: n); new.subject = subject; modelContext.insert(new) } }
-        .sheet(isPresented: $showingAddTask) { AddTaskView(preSelectedSubject: subject) }
-        .sheet(isPresented: $showingEditSubject) { EditSubjectView(subject: subject) }
-        .sheet(isPresented: $showingWhatIf) { WhatIfGradeView(subject: subject) }
-        .sheet(item: $editingGrade) { grade in
-            EditGradeSheet(gradeEntry: grade, accentColor: accentColor) { updated in
-                if let idx = subject.gradeHistory?.firstIndex(where: { $0.id == updated.id }) {
-                    subject.gradeHistory?[idx].date = updated.date
-                    subject.gradeHistory?[idx].grade = updated.grade
-                    subject.gradeHistory?[idx].weight = updated.weight
-                    subject.gradeHistory?[idx].descriptionText = updated.descriptionText
-                    subject.gradeHistory?[idx].isExam = updated.isExam
-                }
-            }
-        }
-        .sheet(item: $editingAttendance) { attendance in EditAttendanceSheet(attendanceEntry: attendance) { updated in if let idx = subject.attendanceHistory?.firstIndex(where: { $0.id == updated.id }) { subject.attendanceHistory?[idx].date = updated.date; subject.attendanceHistory?[idx].attended = updated.attended; subject.attendanceHistory?[idx].notes = updated.notes } } }
-        .alert("Delete", isPresented: $showingDeleteAlert) { Button("Delete", role: .destructive) { modelContext.delete(subject); dismiss() }; Button("Cancel", role: .cancel) { } }
-    }
-}
-
-// MARK: - 👔 STANDARD DETAIL VIEW
-struct StandardSubjectDetailView: View {
-    @Bindable var subject: Subject
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) var dismiss
-    @Environment(\.colorScheme) private var colorScheme
-    @EnvironmentObject var themeManager: AppTheme
-    
-    @State private var showingAddGrade = false
-    @State private var showingMarkAttendance = false
-    @State private var showingAddTask = false
-    @State private var showingEditSubject = false
-    @State private var showingDeleteAlert = false
-    @State private var showingWhatIf = false
-    
-    @State private var editingGrade: GradeEntry?
-    @State private var editingAttendance: AttendanceEntry?
-    
-    @Query private var tasks: [StudyTask]
-    private var subjectTasks: [StudyTask] { tasks.filter { $0.subject == subject } }
-    
-    private var exams: [GradeEntry] {
-        (subject.gradeHistory ?? []).filter { $0.isExam }.sorted(by: { $0.date > $1.date })
-    }
-    
-    private var regularGrades: [GradeEntry] {
-        (subject.gradeHistory ?? []).filter { !$0.isExam }.sorted(by: { $0.date > $1.date })
-    }
-    
-    private var averageGrade: Double? { subject.weightedAverage }
-    
-    private var formattedAverageGrade: String {
-        if let grade = averageGrade { return String(format: "%.1f", grade) }
-        return "N/A"
-    }
-    
-    private var gradeTrend: (icon: String, color: Color, description: String) {
-        let grades = subject.gradeHistory ?? []
-        guard grades.count >= 2 else { return ("minus.circle", .gray, "No trend data") }
-        let sortedGrades = grades.sorted { $0.date > $1.date }
-        guard sortedGrades.count >= 2, let first = sortedGrades.first?.grade, let second = sortedGrades.dropFirst().first?.grade else { return ("minus.circle", .gray, "No trend data") }
-        let diff = first - second
-        if diff > 0.3 { return ("arrow.up.circle.fill", .themeSuccess, "Improving") }
-        else if diff < -0.3 { return ("arrow.down.circle.fill", .themeError, "Declining") }
-        else { return ("minus.circle", .themeTextSecondary, "Stable") }
-    }
-    
-    init(subject: Subject) {
-        self.subject = subject
-        let subjectID = subject.id
-        _tasks = Query(filter: #Predicate { $0.subject?.id == subjectID })
-    }
-    
-    var body: some View {
-        let accentColor = themeManager.selectedGameMode == .rainbow ? themeManager.selectedTheme.primaryColor : Color.themePrimary
-        
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                headerView(accentColor: accentColor)
-                courseInfoSection
-                if hasSeminar { seminarInfoSection }
-                quickActionsSection(accentColor: accentColor)
-                performanceSection
-                examHistorySection
-                gradeHistorySection
-                attendanceHistorySection
-                tasksSection
-            }
-            .padding(.bottom, 40)
-        }
-        .background(Color.themeBackground)
-        .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button(role: .destructive) { showingDeleteAlert = true } label: { Image(systemName: "trash") } } }
-        .sheet(isPresented: $showingAddGrade) {
-            AddGradeSheet(isPresented: $showingAddGrade, accentColor: accentColor) { d, g, w, desc, isExam in
-                let new = GradeEntry(date: d, grade: g, weight: w, description: desc, isExam: isExam)
-                new.subject = subject
-                modelContext.insert(new)
-            }
-        }
-        .sheet(isPresented: $showingMarkAttendance) { MarkAttendanceSheet(isPresented: $showingMarkAttendance) { d, a, n in let new = AttendanceEntry(date: d, attended: a, notes: n); new.subject = subject; modelContext.insert(new) } }
-        .sheet(isPresented: $showingAddTask) { AddTaskView(preSelectedSubject: subject) }
-        .sheet(isPresented: $showingEditSubject) { EditSubjectView(subject: subject) }
-        .sheet(isPresented: $showingWhatIf) { WhatIfGradeView(subject: subject) }
-        .sheet(item: $editingGrade) { grade in
-            EditGradeSheet(gradeEntry: grade, accentColor: accentColor) { updated in
-                if let idx = subject.gradeHistory?.firstIndex(where: { $0.id == updated.id }) {
-                    subject.gradeHistory?[idx].date = updated.date
-                    subject.gradeHistory?[idx].grade = updated.grade
-                    subject.gradeHistory?[idx].weight = updated.weight
-                    subject.gradeHistory?[idx].descriptionText = updated.descriptionText
-                    subject.gradeHistory?[idx].isExam = updated.isExam
-                }
-            }
-        }
-        .sheet(item: $editingAttendance) { attendance in EditAttendanceSheet(attendanceEntry: attendance) { updated in if let idx = subject.attendanceHistory?.firstIndex(where: { $0.id == updated.id }) { subject.attendanceHistory?[idx].date = updated.date; subject.attendanceHistory?[idx].attended = updated.attended; subject.attendanceHistory?[idx].notes = updated.notes } } }
-        .alert("Delete", isPresented: $showingDeleteAlert) { Button("Delete", role: .destructive) { modelContext.delete(subject); dismiss() }; Button("Cancel", role: .cancel) { } }
-    }
-    
-    private var hasSeminar: Bool { !subject.seminarTeacher.isEmpty || !subject.seminarClassroom.isEmpty }
-    
-    private func headerView(accentColor: Color) -> some View {
-        VStack(spacing: 20) {
-            VStack(spacing: 16) {
-                ZStack {
-                    Circle().fill(LinearGradient(gradient: Gradient(colors: [accentColor, accentColor.opacity(0.6)]), startPoint: .topLeading, endPoint: .bottomTrailing)).frame(width: 100, height: 100).shadow(color: accentColor.opacity(0.3), radius: 8, x: 0, y: 4)
-                    Image(systemName: "book.fill").font(.system(size: 40, weight: .medium)).foregroundColor(.white)
-                }
-                VStack(spacing: 8) {
-                    Text(subject.title).font(.title2).fontWeight(.bold).foregroundColor(.themeTextPrimary).multilineTextAlignment(.center)
-                    Text("Course: \(subject.courseTeacher)").font(.subheadline).foregroundColor(.themeTextSecondary).multilineTextAlignment(.center)
-                    if !subject.courseDaysString.isEmpty {
-                        HStack(spacing: 8) {
-                            Image(systemName: "calendar").font(.caption2).foregroundColor(accentColor)
-                            Text(subject.courseDaysString).font(.caption).foregroundColor(.themeTextSecondary)
-                            Image(systemName: "clock").font(.caption2).foregroundColor(accentColor)
-                            Text(subject.courseTimeString).font(.caption).foregroundColor(.themeTextSecondary)
-                        }
-                    }
-                }
-            }
-        }
-        .padding(.vertical, 24).padding(.horizontal, 20).frame(maxWidth: .infinity).background(Color.themeSurface)
-        .cornerRadius(20).overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.adaptiveBorder.opacity(0.3), lineWidth: 1)).padding(16)
-    }
-    
-    private var courseInfoSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            SectionHeader(title: "Course Details", icon: "book.closed.fill").padding(.horizontal)
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                DetailInfoCard(icon: "person.fill", title: "Teacher", value: subject.courseTeacher)
-                DetailInfoCard(icon: "mappin.circle.fill", title: "Room", value: subject.courseClassroom)
-                DetailInfoCard(icon: "clock.fill", title: "Time", value: subject.courseTimeString)
-                // ✅ ECTS Card
-                DetailInfoCard(icon: "trophy.fill", title: "Credits", value: "\(subject.ectsCredits) ECTS")
-            }
-            .padding(.horizontal)
-        }.padding(.vertical)
-    }
-    
-    private var seminarInfoSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            SectionHeader(title: "Seminar Details", icon: "person.2.fill").padding(.horizontal)
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                DetailInfoCard(icon: "person.fill", title: "Teacher", value: subject.seminarTeacher)
-                DetailInfoCard(icon: "mappin.circle.fill", title: "Room", value: subject.seminarClassroom)
-                DetailInfoCard(icon: "clock.fill", title: "Time", value: subject.seminarTimeString)
-                DetailInfoCard(icon: "calendar", title: "Days", value: subject.seminarDaysString)
-            }
-            .padding(.horizontal)
-        }.padding(.vertical)
-    }
-    
-    private func quickActionsSection(accentColor: Color) -> some View { ScrollView(.horizontal, showsIndicators: false) { HStack(spacing: 12) { ActionButton(icon: "plus.circle.fill", title: "Grade", subtitle: "Add", color: accentColor) { showingAddGrade = true }; ActionButton(icon: "checkmark.circle.fill", title: "Attend", subtitle: "Mark", color: .themeSuccess) { showingMarkAttendance = true }; ActionButton(icon: "plus.circle.fill", title: "Task", subtitle: "Add", color: .themeWarning) { showingAddTask = true }; ActionButton(icon: "function", title: "What If", subtitle: "Calc", color: .themeSecondary) { showingWhatIf = true }; ActionButton(icon: "pencil", title: "Edit", subtitle: "Details", color: .themeSecondary) { showingEditSubject = true } }.padding(.horizontal) }.padding(.vertical) }
-    
-    private var performanceSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Performance Overview").font(.headline).padding(.horizontal)
-            HStack(spacing: 12) {
-                PerformanceCard(title: "Average Grade", value: formattedAverageGrade, subtitle: averageGrade != nil ? "/10 • \(subject.gradeHistory?.count ?? 0) grades" : "No grades", color: .themePrimary, icon: "star.fill", progress: (averageGrade ?? 0) / 10, trendIcon: gradeTrend.icon, trendColor: gradeTrend.color)
-                PerformanceCard(title: "Attendance", value: "\(Int(subject.attendanceRate * 100))%", subtitle: "\(subject.attendedClasses)/\(subject.totalClasses) classes", color: .themeSuccess, icon: "person.2.fill", progress: subject.attendanceRate)
-            }
-            .padding(.horizontal)
-        }.padding(.vertical)
-    }
-    
-    private var examHistorySection: some View {
-        HistorySectionView(title: "Exams", icon: "star.fill", isEmpty: exams.isEmpty, emptyIcon: "star.slash", emptyMessage: "No exam grades recorded yet.") {
-            ForEach(exams) { grade in
-                VStack(spacing: 0) {
-                    GradeHistoryRow(grade: grade, averageGrade: averageGrade).padding().contentShape(Rectangle()).onTapGesture { editingGrade = grade }
-                    if grade.id != exams.last?.id { Divider().padding(.leading, 60) }
-                }
-            }
-        }
-    }
-    
-    private var gradeHistorySection: some View {
-        HistorySectionView(title: "Grades", icon: "chart.bar.fill", isEmpty: regularGrades.isEmpty, emptyIcon: "chart.xyaxis.line", emptyMessage: "No grades recorded yet.") {
-            ForEach(regularGrades) { grade in
-                VStack(spacing: 0) {
-                    GradeHistoryRow(grade: grade, averageGrade: averageGrade).padding().contentShape(Rectangle()).onTapGesture { editingGrade = grade }
-                    if grade.id != regularGrades.last?.id { Divider().padding(.leading, 60) }
-                }
-            }
-        }
-    }
-    
-    private var attendanceHistorySection: some View {
-        HistorySectionView(title: "Attendance History", icon: "calendar", isEmpty: (subject.attendanceHistory ?? []).isEmpty, emptyIcon: "calendar.badge.exclamationmark", emptyMessage: "No attendance records found.") {
-            let sortedHistory = (subject.attendanceHistory ?? []).sorted(by: { $0.date > $1.date })
-            ForEach(sortedHistory) { attendance in
-                VStack(spacing: 0) {
-                    AttendanceHistoryRow(attendance: attendance).padding().contentShape(Rectangle()).onTapGesture { editingAttendance = attendance }
-                    if attendance.id != sortedHistory.last?.id { Divider().padding(.leading, 60) }
-                }
-            }
-        }
-    }
-    
-    private var tasksSection: some View {
-        HistorySectionView(title: "Subject Tasks", icon: "checklist", isEmpty: subjectTasks.isEmpty, emptyIcon: "checkmark.circle.badge.questionmark", emptyMessage: "No tasks for this subject.") {
-            ForEach(subjectTasks) { task in
-                VStack(spacing: 0) {
-                    NavigationLink(destination: EditTaskView(task: task)) {
-                        TaskRowPreview(title: task.title, subject: task.subject?.title ?? "General", dueDate: task.dueDate != nil ? formatDate(task.dueDate!) : "No date", isCompleted: task.isCompleted).padding()
-                    }.buttonStyle(PlainButtonStyle())
-                    if task.id != subjectTasks.last?.id { Divider().padding(.leading, 36) }
-                }
-            }
-        }
-    }
-    
-    private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateStyle = .medium; return f.string(from: date) }
-}
-
-// MARK: - 🕹️ ARCADE DETAIL VIEW
-struct ArcadeSubjectDetailView: View {
-    @Bindable var subject: Subject
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) var dismiss
-    @Query private var tasks: [StudyTask]
-    @State private var showingAddGrade = false
-    @State private var showingMarkAttendance = false
-    @State private var showingAddTask = false
-    @State private var showingEditSubject = false
-    @State private var showingDeleteAlert = false
-    @State private var showingWhatIf = false
-    
-    @State private var editingGrade: GradeEntry?
-    @State private var editingAttendance: AttendanceEntry?
-    @State private var selectedTab = 0
-    
-    init(subject: Subject) {
-        self.subject = subject
-        let subjectID = subject.id
-        _tasks = Query(filter: #Predicate { $0.subject?.id == subjectID })
-    }
-    
-    var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Header
-                    ZStack {
-                        LinearGradient(colors: [.indigo, .purple], startPoint: .topLeading, endPoint: .bottomTrailing).mask(RoundedRectangle(cornerRadius: 24)).shadow(color: .purple.opacity(0.4), radius: 10)
-                        VStack(spacing: 8) {
-                            Text(subject.title.uppercased()).font(.system(.title, design: .rounded)).fontWeight(.black).foregroundColor(.white).multilineTextAlignment(.center)
-                            Text("INSTRUCTOR: \(subject.courseTeacher.uppercased())").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundColor(.white.opacity(0.8)).padding(4).background(Color.black.opacity(0.3)).cornerRadius(4)
-                        }.padding(24)
-                    }.padding(.horizontal)
-                    
-                    // Stats
-                    HStack(spacing: 12) {
-                        ArcadeStatPill(icon: "bolt.fill", value: String(format: "%.1f", subject.weightedAverage ?? 0), label: "SCORE", gradient: Gradient(colors: [.yellow, .orange]))
-                        // ✅ Arcade ECTS Pill
-                        ArcadeStatPill(icon: "star.circle.fill", value: "\(subject.ectsCredits)", label: "XP / ECTS", gradient: Gradient(colors: [.purple, .pink]))
-                        ArcadeStatPill(icon: "shield.fill", value: "\(Int(subject.attendanceRate * 100))%", label: "PRESENCE", gradient: Gradient(colors: [.blue, .cyan]))
-                    }.padding(.horizontal)
-                    
-                    // Actions
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ArcadeActionButton(icon: "plus", label: "LOG SCORE", color: .yellow) { showingAddGrade = true }
-                            ArcadeActionButton(icon: "checkmark", label: "CHECK IN", color: .cyan) { showingMarkAttendance = true }
-                            ArcadeActionButton(icon: "flame", label: "NEW QUEST", color: .red) { showingAddTask = true }
-                            ArcadeActionButton(icon: "brain", label: "SIMULATE", color: .purple) { showingWhatIf = true }
-                            ArcadeActionButton(icon: "gearshape", label: "CONFIG", color: .gray) { showingEditSubject = true }
-                        }
-                        .padding(.horizontal)
-                    }
-                    
-                    // Info
-                    VStack(spacing: 12) {
-                        ArcadeInfoCell(label: "MAIN QUEST (COURSE)", value: "\(subject.courseDaysString) • \(subject.courseTimeString) @ \(subject.courseClassroom)", icon: "map.fill")
-                        if !subject.seminarTeacher.isEmpty { ArcadeInfoCell(label: "SIDE QUEST (SEMINAR)", value: "\(subject.seminarDaysString) • \(subject.seminarTimeString) @ \(subject.seminarClassroom)", icon: "map.fill") }
-                    }.padding(.horizontal)
-                    
-                    // Tabs
-                    HStack(spacing: 0) {
-                        ArcadeTabButton(title: "SCORES", index: 0, selectedTab: $selectedTab)
-                        ArcadeTabButton(title: "LOGS", index: 1, selectedTab: $selectedTab)
-                        ArcadeTabButton(title: "QUESTS", index: 2, selectedTab: $selectedTab)
-                        ArcadeTabButton(title: "BOSSES", index: 3, selectedTab: $selectedTab) // Exams
-                    }.padding(4).background(Color(white: 0.1)).cornerRadius(12).padding(.horizontal)
-                    
-                    // Content
-                    VStack(spacing: 12) {
-                        if selectedTab == 0 {
-                            if (subject.gradeHistory ?? []).filter({ !$0.isExam }).isEmpty {
-                                Text("NO SCORES LOGGED").font(.system(.body, design: .rounded)).foregroundColor(.gray)
-                            } else {
-                                ForEach((subject.gradeHistory ?? []).filter({ !$0.isExam }).sorted(by: { $0.date > $1.date })) { grade in
-                                    ArcadeGradeRow(grade: grade).onTapGesture { editingGrade = grade }
-                                }
-                            }
-                        } else if selectedTab == 1 {
-                            if (subject.attendanceHistory ?? []).isEmpty {
-                                Text("NO LOGS FOUND").font(.system(.body, design: .rounded)).foregroundColor(.gray)
-                            } else {
-                                ForEach((subject.attendanceHistory ?? []).sorted(by: { $0.date > $1.date })) { att in
-                                    HStack {
-                                        Text(att.attended ? "PRESENT" : "ABSENT").font(.system(.caption, design: .rounded)).fontWeight(.black).foregroundColor(att.attended ? .green : .red)
-                                        Spacer()
-                                        Text(formatDate(att.date)).font(.system(.caption, design: .rounded)).foregroundColor(.gray)
-                                    }.padding().background(Color(white: 0.1)).cornerRadius(8).onTapGesture { editingAttendance = att }
-                                }
-                            }
-                        } else if selectedTab == 2 {
-                            if tasks.filter({ $0.subject == subject }).isEmpty {
-                                Text("NO QUESTS ACTIVE").font(.system(.body, design: .rounded)).foregroundColor(.gray)
-                            } else {
-                                ForEach(tasks.filter({ $0.subject == subject })) { task in
-                                    HStack {
-                                        Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle").foregroundColor(task.isCompleted ? .green : .cyan)
-                                        Text(task.title).font(.system(.caption, design: .rounded)).fontWeight(.bold).foregroundColor(.white)
-                                        Spacer()
-                                    }.padding().background(Color(white: 0.1)).cornerRadius(8)
-                                }
-                            }
-                        } else {
-                            if (subject.gradeHistory ?? []).filter({ $0.isExam }).isEmpty {
-                                Text("NO BOSSES DEFEATED").font(.system(.body, design: .rounded)).foregroundColor(.gray)
-                            } else {
-                                ForEach((subject.gradeHistory ?? []).filter({ $0.isExam }).sorted(by: { $0.date > $1.date })) { grade in
-                                    ArcadeGradeRow(grade: grade).onTapGesture { editingGrade = grade }
-                                }
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-                }
-            }
-        }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button { showingDeleteAlert = true } label: { Image(systemName: "trash").foregroundColor(.red) } } }
-        .sheet(isPresented: $showingAddGrade) {
-            AddGradeSheet(isPresented: $showingAddGrade, accentColor: .yellow) { d, g, w, desc, isExam in
-                let new = GradeEntry(date: d, grade: g, weight: w, description: desc, isExam: isExam)
-                new.subject = subject
-                modelContext.insert(new)
-            }
-        }
-        .sheet(isPresented: $showingMarkAttendance) { MarkAttendanceSheet(isPresented: $showingMarkAttendance) { d, a, n in let new = AttendanceEntry(date: d, attended: a, notes: n); new.subject = subject; modelContext.insert(new) } }
-        .sheet(isPresented: $showingAddTask) { AddTaskView(preSelectedSubject: subject) }
-        .sheet(isPresented: $showingEditSubject) { EditSubjectView(subject: subject) }
-        .sheet(isPresented: $showingWhatIf) { WhatIfGradeView(subject: subject) }
-        .sheet(item: $editingGrade) { grade in
-            EditGradeSheet(gradeEntry: grade, accentColor: .yellow) { updated in
-                if let idx = subject.gradeHistory?.firstIndex(where: { $0.id == updated.id }) {
-                    subject.gradeHistory?[idx].date = updated.date
-                    subject.gradeHistory?[idx].grade = updated.grade
-                    subject.gradeHistory?[idx].weight = updated.weight
-                    subject.gradeHistory?[idx].descriptionText = updated.descriptionText
-                    subject.gradeHistory?[idx].isExam = updated.isExam
-                }
-            }
-        }
-        .sheet(item: $editingAttendance) { attendance in EditAttendanceSheet(attendanceEntry: attendance) { updated in if let idx = subject.attendanceHistory?.firstIndex(where: { $0.id == updated.id }) { subject.attendanceHistory?[idx].date = updated.date; subject.attendanceHistory?[idx].attended = updated.attended; subject.attendanceHistory?[idx].notes = updated.notes } } }
-        .alert("DELETE SKILL?", isPresented: $showingDeleteAlert) { Button("CONFIRM", role: .destructive) { modelContext.delete(subject); dismiss() }; Button("CANCEL", role: .cancel) { } }
-    }
-    private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateStyle = .medium; return f.string(from: date) }
-}
-
-// MARK: - SHARED COMPONENTS & HELPERS
-
-struct HistorySectionView<Content: View>: View {
-    let title: String
-    let icon: String
-    let isEmpty: Bool
-    let emptyIcon: String
-    let emptyMessage: String
-    @ViewBuilder let content: () -> Content
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: icon).font(.subheadline).foregroundColor(.themePrimary).padding(6).background(Color.themePrimary.opacity(0.1)).clipShape(Circle())
-                Text(title).font(.headline).foregroundColor(.themeTextPrimary)
-                Spacer()
-            }
-            .padding(.horizontal).padding(.top, 4)
-            Group {
-                if isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: emptyIcon).font(.system(size: 32)).foregroundColor(.themeTextSecondary.opacity(0.4))
-                        Text(emptyMessage).font(.subheadline).foregroundColor(.themeTextSecondary)
-                    }.frame(maxWidth: .infinity).frame(height: 140)
-                } else {
-                    ScrollView { LazyVStack(spacing: 0) { content() } }.frame(height: 240)
-                }
-            }
-            .background(Color.themeSurface).cornerRadius(16).overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.adaptiveBorder.opacity(0.5), lineWidth: 1)).padding(.horizontal)
-        }.padding(.vertical, 8)
-    }
-}
-
-struct RainbowSectionHeader: View {
-    let title: String; let icon: String; let color: Color
-    var body: some View { HStack { Image(systemName: icon).foregroundColor(color); Text(title).font(.title3).fontWeight(.bold).foregroundColor(.white); Spacer() } }
-}
-
-struct RainbowActionButton: View {
-    let icon: String; let label: String; let color: Color; let action: () -> Void
-    var body: some View { Button(action: action) { VStack(spacing: 8) { Image(systemName: icon).font(.headline).foregroundColor(.white).frame(width: 50, height: 50).background(color).clipShape(Circle()); Text(label).font(.caption).fontWeight(.bold).foregroundColor(.white) }.frame(width: 70) } }
-}
-
-struct RainbowInfoCard: View {
-    let title: String; let icon: String; let lines: [(String, String)]; let color: Color
-    var body: some View { RainbowContainer { VStack(alignment: .leading, spacing: 12) { HStack { Image(systemName: icon).foregroundColor(color); Text(title).font(.headline).foregroundColor(.white); Spacer() }; ForEach(lines.indices, id: \.self) { i in HStack { Text(lines[i].0).foregroundColor(.gray).font(.subheadline); Spacer(); Text(lines[i].1).foregroundColor(.white).font(.subheadline).fontWeight(.medium) }; if i < lines.count - 1 { Divider().background(Color.gray.opacity(0.3)) } } } } }
-}
-
-struct RainbowGradeRow: View {
-    let grade: GradeEntry
-    var body: some View {
-        RainbowContainer {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack { if grade.isExam { Image(systemName: "star.fill").font(.caption).foregroundColor(.yellow) }; Text(grade.descriptionText.isEmpty ? (grade.isExam ? "Exam Grade" : "Grade") : grade.descriptionText).font(.body).fontWeight(.medium).foregroundColor(.white) }
-                    Text(formatDate(grade.date)).font(.caption).foregroundColor(.gray)
-                }
-                Spacer()
-                VStack(alignment: .trailing, spacing: 4) { Text(String(format: "%.1f", grade.grade)).font(.title3).fontWeight(.bold).foregroundColor(gradeColor); Text("\(Int(grade.weight))%").font(.caption2).fontWeight(.bold).foregroundColor(.gray) }
-            }
-        }
-    }
-    private var gradeColor: Color { switch grade.grade { case 8.5...10: return RainbowColors.green; case 7...8.4: return RainbowColors.blue; case 5.5...6.9: return RainbowColors.orange; default: return .red } }
-    private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateStyle = .medium; return f.string(from: date) }
-}
-
-struct RainbowAttendanceRow: View {
-    let attendance: AttendanceEntry
-    var body: some View { RainbowContainer { HStack { Image(systemName: attendance.attended ? "checkmark.circle.fill" : "xmark.circle.fill").font(.title2).foregroundColor(attendance.attended ? RainbowColors.green : .red); VStack(alignment: .leading, spacing: 4) { Text(attendance.attended ? "Present" : "Absent").font(.body).fontWeight(.medium).foregroundColor(.white); if !attendance.notes.isEmpty { Text(attendance.notes).font(.caption).foregroundColor(.gray) } }; Spacer(); Text(formatDate(attendance.date)).font(.caption).foregroundColor(.gray) } } }
-    private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateStyle = .medium; return f.string(from: date) }
-}
-
-struct RainbowTaskRowPreview: View {
-    let task: StudyTask; let color: Color
-    var body: some View { RainbowContainer { HStack { Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle").foregroundColor(task.isCompleted ? RainbowColors.green : color); Text(task.title).foregroundColor(.white).strikethrough(task.isCompleted); Spacer(); if let d = task.dueDate { Text(formatDate(d)).font(.caption).foregroundColor(.gray) } } } }
-    private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateStyle = .medium; return f.string(from: date) }
-}
-
-struct EmptyRainbowState: View {
-    let icon: String; let text: String
-    var body: some View { VStack(spacing: 16) { Image(systemName: icon).font(.system(size: 40)).foregroundColor(RainbowColors.darkCard.opacity(2)); Text(text).font(.headline).foregroundColor(.gray) }.frame(maxWidth: .infinity).padding(.vertical, 30) }
-}
-
-struct GradeHistoryRow: View {
-    let grade: GradeEntry; let averageGrade: Double?
-    var body: some View {
-        HStack(spacing: 16) {
-            ZStack { Circle().fill(gradeColor).frame(width: 44, height: 44); Text(String(format: "%.1f", grade.grade)).font(.system(size: 14, weight: .bold)).foregroundColor(.white) }
-            VStack(alignment: .leading, spacing: 4) { HStack { if grade.isExam { Image(systemName: "star.fill").font(.caption).foregroundColor(.themeWarning) }; Text(grade.descriptionText.isEmpty ? (grade.isExam ? "Exam Grade" : "Grade") : grade.descriptionText).font(.body).foregroundColor(.themeTextPrimary) }; HStack(spacing: 8) { Text(formatDate(grade.date)).font(.caption).foregroundColor(.themeTextSecondary); Text("• \(Int(grade.weight))%").font(.caption).foregroundColor(.themePrimary) } }
-            Spacer()
-            if let avg = averageGrade { let diff = grade.grade - avg; VStack(alignment: .trailing, spacing: 4) { Image(systemName: diff >= 0 ? "arrow.up" : "arrow.down").font(.caption).foregroundColor(diff >= 0 ? .themeSuccess : .themeError); Text(String(format: "%+.1f", diff)).font(.caption).foregroundColor(diff >= 0 ? .themeSuccess : .themeError) } }
-        }
-    }
-    private var gradeColor: Color { switch grade.grade { case 8.5...10: return .themeSuccess; case 7...8.4: return .themePrimary; case 5.5...6.9: return .themeWarning; default: return .themeError } }
-    private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateStyle = .medium; return f.string(from: date) }
-}
-
-struct AttendanceHistoryRow: View {
-    let attendance: AttendanceEntry
-    var body: some View { HStack(spacing: 16) { ZStack { Circle().fill(attendance.attended ? Color.themeSuccess : Color.themeError).frame(width: 44, height: 44); Image(systemName: attendance.attended ? "checkmark" : "xmark").font(.system(size: 16, weight: .bold)).foregroundColor(.white) }; VStack(alignment: .leading, spacing: 4) { Text(attendance.attended ? "Present" : "Absent").font(.body).foregroundColor(.themeTextPrimary); Text(formatDate(attendance.date)).font(.caption).foregroundColor(.themeTextSecondary); if !attendance.notes.isEmpty { Text(attendance.notes).font(.caption2).foregroundColor(.themeTextSecondary).lineLimit(1) } }; Spacer(); Image(systemName: "chevron.right").font(.system(size: 14, weight: .medium)).foregroundColor(.themeTextSecondary) } }
-    private func formatDate(_ date: Date) -> String { let f = DateFormatter(); f.dateStyle = .medium; return f.string(from: date) }
-}
-
-struct TaskRowPreview: View {
-    let title: String; let subject: String; let dueDate: String; let isCompleted: Bool
-    var body: some View { HStack(spacing: 12) { Circle().fill(isCompleted ? Color.themeSuccess : Color.adaptiveTertiary).frame(width: 12, height: 12); VStack(alignment: .leading, spacing: 4) { Text(title).font(.body).foregroundColor(isCompleted ? .themeTextSecondary : .themeTextPrimary).strikethrough(isCompleted); HStack(spacing: 8) { Text(subject).font(.caption).foregroundColor(.themeTextSecondary); Text("•").font(.caption).foregroundColor(.themeTextSecondary); Text(dueDate).font(.caption).foregroundColor(.themeTextSecondary) } }; Spacer(); Image(systemName: "chevron.right").font(.system(size: 14, weight: .medium)).foregroundColor(.themeTextSecondary) } }
-}
-
-struct ArcadeGradeRow: View {
-    let grade: GradeEntry
-    var body: some View {
-        HStack {
-            Text(String(format: "%.1f", grade.grade)).font(.system(.title3, design: .rounded)).fontWeight(.black).foregroundColor(.yellow)
-            VStack(alignment: .leading) { Text(grade.descriptionText.isEmpty ? "GRADE" : grade.descriptionText).font(.system(.caption, design: .rounded)).fontWeight(.bold).foregroundColor(.white); Text("\(Int(grade.weight))% WEIGHT").font(.system(size: 8, weight: .bold)).foregroundColor(.gray) }
-            Spacer()
-        }.padding().background(Color(white: 0.1)).cornerRadius(8)
-    }
-}
-
-struct ArcadeTabButton: View {
-    let title: String; let index: Int; @Binding var selectedTab: Int
-    var body: some View { Button(action: { withAnimation { selectedTab = index } }) { Text(title).font(.system(size: 10, weight: .black)).padding(.vertical, 8).frame(maxWidth: .infinity).background(selectedTab == index ? Color.purple : Color.clear).foregroundColor(selectedTab == index ? .white : .gray).cornerRadius(8) } }
-}
-
-// MARK: - SHEET VIEWS
-
-struct AddGradeSheet: View {
-    @Binding var isPresented: Bool; var accentColor: Color = .themePrimary; let onSave: (Date, Double, Double, String, Bool) -> Void
-    @State private var grade = ""; @State private var weight = "20"; @State private var description = ""; @State private var date = Date(); @State private var isExam = false
-    @Environment(\.colorScheme) private var colorScheme
-    var body: some View { NavigationView { Form { Section(header: Text("Grade Details")) { DatePicker("Date", selection: $date, displayedComponents: .date); HStack { Text("Grade"); Spacer(); TextField("1-10", text: $grade).keyboardType(.decimalPad).multilineTextAlignment(.trailing); Text("/10") }; HStack { Text("Weight"); Spacer(); TextField("Percentage", text: $weight).keyboardType(.numberPad).multilineTextAlignment(.trailing); Text("%") }; TextField("Description", text: $description); Toggle("Is Exam", isOn: $isExam).tint(accentColor) } }.navigationTitle("Add Grade").toolbar { ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { isPresented = false } }; ToolbarItem(placement: .navigationBarTrailing) { Button("Save") { if let g = Double(grade), let w = Double(weight), g >= 1 && g <= 10 { onSave(date, g, w, description, isExam); isPresented = false } }.disabled(grade.isEmpty || weight.isEmpty).fontWeight(.bold).foregroundColor(accentColor) } } }.preferredColorScheme(colorScheme) }
-}
-
-struct EditGradeSheet: View {
-    let gradeEntry: GradeEntry; var accentColor: Color = .themePrimary; let onSave: (GradeEntry) -> Void; @Environment(\.dismiss) var dismiss
-    @State private var grade: String; @State private var weight: String; @State private var description: String; @State private var date: Date; @State private var isExam: Bool
-    @Environment(\.colorScheme) private var colorScheme
-    init(gradeEntry: GradeEntry, accentColor: Color = .themePrimary, onSave: @escaping (GradeEntry) -> Void) { self.gradeEntry = gradeEntry; self.accentColor = accentColor; self.onSave = onSave; _grade = State(initialValue: String(format: "%.1f", gradeEntry.grade)); _weight = State(initialValue: String(format: "%.0f", gradeEntry.weight)); _description = State(initialValue: gradeEntry.descriptionText); _date = State(initialValue: gradeEntry.date); _isExam = State(initialValue: gradeEntry.isExam) }
-    var body: some View { NavigationView { Form { Section(header: Text("Grade Details")) { DatePicker("Date", selection: $date, displayedComponents: .date); HStack { Text("Grade"); Spacer(); TextField("1-10", text: $grade).keyboardType(.decimalPad).multilineTextAlignment(.trailing); Text("/10") }; HStack { Text("Weight"); Spacer(); TextField("Percentage", text: $weight).keyboardType(.numberPad).multilineTextAlignment(.trailing); Text("%") }; TextField("Description", text: $description); Toggle("Is Exam", isOn: $isExam).tint(accentColor) } }.navigationTitle("Edit Grade").toolbar { ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { dismiss() } }; ToolbarItem(placement: .navigationBarTrailing) { Button("Save") { if let g = Double(grade), let w = Double(weight), g >= 1 && g <= 10 { let updated = GradeEntry(id: gradeEntry.id, date: date, grade: g, weight: w, description: description, isExam: isExam); onSave(updated); dismiss() } }.fontWeight(.bold).foregroundColor(accentColor) } } }.preferredColorScheme(colorScheme) }
-}
-
-struct MarkAttendanceSheet: View {
-    @Binding var isPresented: Bool; let onSave: (Date, Bool, String) -> Void; @State private var status = true; @State private var notes = ""; @State private var date = Date(); @Environment(\.colorScheme) private var colorScheme; var body: some View { NavigationView { Form { Section(header: Text("Attendance")) { DatePicker("Date", selection: $date, displayedComponents: .date); Toggle("Attended Class", isOn: $status); TextField("Notes", text: $notes) } }.navigationTitle("Mark Attendance").toolbar { ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { isPresented = false } }; ToolbarItem(placement: .navigationBarTrailing) { Button("Save") { onSave(date, status, notes); isPresented = false } } } }.preferredColorScheme(colorScheme) }
-}
-
-struct EditAttendanceSheet: View {
-    let attendanceEntry: AttendanceEntry; let onSave: (AttendanceEntry) -> Void; @Environment(\.dismiss) var dismiss; @State private var status: Bool; @State private var notes: String; @State private var date: Date; @Environment(\.colorScheme) private var colorScheme; init(attendanceEntry: AttendanceEntry, onSave: @escaping (AttendanceEntry) -> Void) { self.attendanceEntry = attendanceEntry; self.onSave = onSave; _status = State(initialValue: attendanceEntry.attended); _notes = State(initialValue: attendanceEntry.notes); _date = State(initialValue: attendanceEntry.date) }; var body: some View { NavigationView { Form { Section(header: Text("Attendance")) { DatePicker("Date", selection: $date, displayedComponents: .date); Toggle("Attended Class", isOn: $status); TextField("Notes", text: $notes) } }.navigationTitle("Edit Attendance").toolbar { ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { dismiss() } }; ToolbarItem(placement: .navigationBarTrailing) { Button("Save") { let updated = AttendanceEntry(id: attendanceEntry.id, date: date, attended: status, notes: notes); onSave(updated); dismiss() } } } }.preferredColorScheme(colorScheme) }
 }

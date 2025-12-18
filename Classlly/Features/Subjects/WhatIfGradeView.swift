@@ -34,7 +34,7 @@ struct StandardWhatIfView: View {
                     HStack {
                         Text("Current Average")
                         Spacer()
-                        Text(String(format: "%.2f", subject.weightedAverage ?? 0.0))
+                        Text(String(format: "%.2f", subject.currentGrade ?? 0.0))
                             .fontWeight(.bold)
                             .foregroundColor(.themePrimary)
                     }

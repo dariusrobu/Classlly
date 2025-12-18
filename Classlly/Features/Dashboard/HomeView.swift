@@ -826,8 +826,9 @@ struct QuickAttendanceButton: View {
     
     var isAttended: Bool {
         let cal = Calendar.current
-        // Fix: Renamed 'attendanceHistory' to 'attendance'
-        return subject.attendance.contains { cal.isDate($0.date, inSameDayAs: Date()) }
+        // Fix: Unwrapped safely using '?? []'
+        let attendance = subject.attendance ?? []
+        return attendance.contains { cal.isDate($0.date, inSameDayAs: Date()) }
     }
     
     var body: some View {
@@ -841,9 +842,12 @@ struct QuickAttendanceButton: View {
     func toggle() {
         let cal = Calendar.current
         let today = Date()
-        // Fix: Renamed 'attendanceHistory' to 'attendance'
-        if isAttended, let idx = subject.attendance.firstIndex(where: { cal.isDate($0.date, inSameDayAs: today) }) {
-            let entry = subject.attendance[idx]
+        // Fix: Unwrapped safely using '?? []'
+        let attendance = subject.attendance ?? []
+        
+        if isAttended, let idx = attendance.firstIndex(where: { cal.isDate($0.date, inSameDayAs: today) }) {
+            // Note: We use the index from the safe array to get the object, but delete logic is fine
+            let entry = attendance[idx]
             modelContext.delete(entry)
         } else {
             // Fix: Updated init parameters for AttendanceEntry

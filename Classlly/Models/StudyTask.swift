@@ -29,27 +29,29 @@ enum TaskReminderTime: String, CaseIterable, Codable, Hashable {
 
 @Model
 final class StudyTask {
+    // CloudKit: Defaults required
     var id: UUID = UUID()
     var title: String = ""
     var isCompleted: Bool = false
     var dueDate: Date? = nil
-    var notes: String = "" // Added notes field
-    
+    var notes: String = ""
     var priorityRaw: String = TaskPriority.medium.rawValue
+    var reminderTimeRaw: String = TaskReminderTime.hourBefore1.rawValue
+    var isFlagged: Bool = false
+    
+    // Relationship (Must be optional and match Subject's inverse)
+    var subject: Subject?
+
     @Transient var priority: TaskPriority {
         get { TaskPriority(rawValue: priorityRaw) ?? .medium }
         set { priorityRaw = newValue.rawValue }
     }
     
-    var reminderTimeRaw: String = TaskReminderTime.hourBefore1.rawValue
     @Transient var reminderTime: TaskReminderTime {
         get { TaskReminderTime(rawValue: reminderTimeRaw) ?? .hourBefore1 }
         set { reminderTimeRaw = newValue.rawValue }
     }
     
-    var isFlagged: Bool = false
-    var subject: Subject?
-
     init(id: UUID = UUID(),
          title: String,
          isCompleted: Bool = false,

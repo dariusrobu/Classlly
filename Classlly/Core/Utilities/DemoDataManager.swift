@@ -4,70 +4,24 @@ import SwiftData
 class DemoDataManager {
     static let shared = DemoDataManager()
     
-    // Standard Demo Data
-    func createDemoData(modelContext: ModelContext) {
-        // 1. Math
-        let math = Subject(
-            title: "Advanced Calculus",
-            colorHex: "FF3B30",
-            ectsCredits: 5,
-            courseTeacher: "Dr. Newton",
-            courseClassroom: "Hall A",
-            courseFrequency: .weekly,
-            courseStartTime: Date(),
-            courseEndTime: Date().addingTimeInterval(7200),
-            courseDays: [1, 3] // Mon, Wed
-        )
-        
-        // 2. Physics
-        let physics = Subject(
-            title: "Quantum Physics",
-            colorHex: "5856D6",
-            ectsCredits: 6,
-            courseTeacher: "Dr. Bohr",
-            courseClassroom: "Lab 4",
-            courseFrequency: .weekly,
-            courseStartTime: Date(),
-            courseEndTime: Date().addingTimeInterval(5400),
-            courseDays: [2, 4] // Tue, Thu
-        )
-        
-        modelContext.insert(math)
-        modelContext.insert(physics)
-        
-        // Add Grades
-        let mathGrade1 = GradeEntry(title: "Quiz 1", score: 18, maxScore: 20, date: Date().addingTimeInterval(-86400 * 10))
-        let mathGrade2 = GradeEntry(title: "Midterm", score: 88, maxScore: 100, date: Date().addingTimeInterval(-86400 * 5))
-        
-        math.grades.append(mathGrade1)
-        math.grades.append(mathGrade2)
-        
-        // Add Attendance
-        for i in 1...5 {
-            let entryDate = Date().addingTimeInterval(Double(-i * 86400 * 7))
-            let status: AttendanceStatus = (i % 4 == 0) ? .absent : .present
-            let note: String? = (status == .absent) ? "Sick leave" : nil
-            
-            let entry = AttendanceEntry(date: entryDate, status: status, note: note)
-            math.attendance.append(entry)
-        }
-    }
-    
     // MARK: - Stress Test Data
-    // Creates a "Heavy" schedule with many subjects and entries
     func createHeavyStressData(modelContext: ModelContext) {
-        let subjects = [
-            ("Data Structures", "007AFF", [1, 3]),
-            ("Algorithms", "5856D6", [2, 4]),
-            ("Operating Systems", "FF9500", [1, 5]),
-            ("Linear Algebra", "FF2D55", [2]),
-            ("Software Engineering", "34C759", [3, 5]),
-            ("Databases", "AF52DE", [4]),
-            ("Web Development", "5AC8FA", [1]),
-            ("Mobile Computing", "FFCC00", [5])
+        print("⚡️ Starting Stress Data Generation...")
+        deleteAllData(modelContext: modelContext)
+        
+        let subjectsData = [
+            ("Data Structures", "007AFF", [1, 3], true),
+            ("Algorithms", "5856D6", [2, 4], false),
+            ("Operating Systems", "FF9500", [1, 5], true),
+            ("Linear Algebra", "FF2D55", [2], false),
+            ("Software Engineering", "34C759", [3, 5], true),
+            ("Databases", "AF52DE", [4], true),
+            ("Web Development", "5AC8FA", [1], false),
+            ("Mobile Computing", "FFCC00", [5], true)
         ]
         
-        for (name, color, days) in subjects {
+        for (name, color, days, hasSeminar) in subjectsData {
+            // 2. Create Subject
             let subject = Subject(
                 title: name,
                 colorHex: color,
@@ -75,65 +29,94 @@ class DemoDataManager {
                 courseTeacher: "Prof. Simulator",
                 courseClassroom: "Room \(Int.random(in: 100...400))",
                 courseFrequency: .weekly,
-                courseStartTime: Date(), // Times would ideally be staggered
+                courseStartTime: Date(),
                 courseEndTime: Date().addingTimeInterval(5400),
-                courseDays: days
+                courseDays: days,
+                
+                // Set Seminar Data
+                hasSeminar: hasSeminar,
+                seminarTeacher: hasSeminar ? "Dr. Assistant" : "",
+                seminarClassroom: hasSeminar ? "Lab \(Int.random(in: 1...10))" : "",
+                seminarFrequency: .weekly,
+                seminarStartTime: Date().addingTimeInterval(7200),
+                seminarEndTime: Date().addingTimeInterval(9000),
+                seminarDays: hasSeminar ? [days.first! + 1] : []
             )
             
             modelContext.insert(subject)
             
-            // Add 10 random grades per subject
-            for j in 1...10 {
-                let score = Double.random(in: 50...100)
+            // 3. Add Grades (Past)
+            for j in 1...8 {
+                let score = Double.random(in: 5...10)
+                // ✅ Fix: Removed 'description', passed 'isExam: false'
                 let grade = GradeEntry(
                     title: "Assignment \(j)",
                     score: score,
-                    maxScore: 100,
-                    date: Date().addingTimeInterval(Double(-j * 86400 * 3))
+                    maxScore: 10.0,
+                    date: Date().addingTimeInterval(Double(-j * 86400 * 3)),
+                    isExam: false
                 )
-                subject.grades.append(grade)
+                grade.subject = subject
+                modelContext.insert(grade)
             }
             
-            // Add 20 attendance records
-            for k in 1...20 {
+            // Add Exams
+            // ✅ Fix: Removed 'description', passed 'isExam: true'
+            let exam = GradeEntry(
+                title: "Midterm Exam",
+                score: 8.5,
+                maxScore: 10.0,
+                date: Date().addingTimeInterval(-86400 * 20),
+                isExam: true
+            )
+            exam.subject = subject
+            modelContext.insert(exam)
+            
+            // 4. Add Attendance (Past)
+            for k in 1...15 {
                 let status: AttendanceStatus = Bool.random() ? .present : .absent
                 let att = AttendanceEntry(
                     date: Date().addingTimeInterval(Double(-k * 86400 * 2)),
-                    status: status
+                    status: status,
+                    note: status == .absent ? "Sick" : nil
                 )
-                subject.attendance.append(att)
+                att.subject = subject
+                modelContext.insert(att)
+            }
+            
+            // 5. 🔥 Add STRESS TASKS
+            for t in 1...10 {
+                let isExam = (t % 3 == 0)
+                let dayOffset = isExam ? Double.random(in: 0...14) : Double.random(in: -5 ... -1)
+                let dueDate = Date().addingTimeInterval(dayOffset * 86400)
+                
+                let task = StudyTask(
+                    title: isExam ? "EXAM: \(name) - Unit \(t)" : "Homework: \(name) - Unit \(t)",
+                    isCompleted: false,
+                    dueDate: dueDate,
+                    priority: isExam ? .high : .medium,
+                    subject: subject,
+                    reminderTime: isExam ? .dayBefore1 : .hourBefore1,
+                    isFlagged: isExam,
+                    notes: "Generated stress task."
+                )
+                modelContext.insert(task)
             }
         }
+        
+        try? modelContext.save()
+        print("✅ Heavy Stress Data Loaded")
     }
     
     // MARK: - Destructive Actions
     
     func deleteAllData(modelContext: ModelContext) {
         do {
-            // 1. Delete all Subjects (Cascades to Grades & Attendance usually)
-            let subjects = try modelContext.fetch(FetchDescriptor<Subject>())
-            for subject in subjects {
-                modelContext.delete(subject)
-            }
-            
-            // 2. Delete all Tasks
-            let tasks = try modelContext.fetch(FetchDescriptor<StudyTask>())
-            for task in tasks {
-                modelContext.delete(task)
-            }
-            
-            // 3. Cleanup loose records (if any remain)
-            let grades = try modelContext.fetch(FetchDescriptor<GradeEntry>())
-            for grade in grades {
-                modelContext.delete(grade)
-            }
-            
-            let attendance = try modelContext.fetch(FetchDescriptor<AttendanceEntry>())
-            for entry in attendance {
-                modelContext.delete(entry)
-            }
-            
-            print("Successfully deleted all data.")
+            try modelContext.delete(model: Subject.self)
+            try modelContext.delete(model: StudyTask.self)
+            try modelContext.delete(model: GradeEntry.self)
+            try modelContext.delete(model: AttendanceEntry.self)
+            try? modelContext.save()
         } catch {
             print("Failed to delete data: \(error.localizedDescription)")
         }

@@ -1,43 +1,40 @@
-//
-//  GradeEntry.swift
-//  Classlly
-//
-//  Created by Robu Darius on 17.12.2025.
-//
-
 import Foundation
 import SwiftData
 
 @Model
 final class GradeEntry {
-    var id: UUID
-    var title: String      // "Description" in the UI
-    var score: Double      // "Grade" in the UI
-    var weight: Double     // New: Weight percentage (e.g., 100 for 100%, 50 for 50%)
-    var maxScore: Double   // Standard max score (usually 10)
-    var date: Date
+    var id: UUID = UUID()
+    var title: String = ""
+    var score: Double = 0.0
+    var weight: Double = 100.0
+    var maxScore: Double = 10.0
+    var date: Date = Date()
+    var isExam: Bool = false
     
     // Inverse relationship
     var subject: Subject?
 
-    // Designated Initializer matching HomeView usage
-    init(date: Date = Date(), grade: Double, weight: Double = 100.0, description: String) {
+    // Initializer 1: Full (Used by UI Sheets)
+    init(date: Date = Date(), grade: Double, weight: Double = 100.0, description: String, isExam: Bool = false) {
         self.id = UUID()
         self.date = date
         self.score = grade
         self.weight = weight
         self.title = description
-        self.maxScore = 10.0 // Default to 10 if not specified
+        self.maxScore = 10.0
+        self.isExam = isExam
     }
 
-    // Standard Initializer
-    init(title: String, score: Double, maxScore: Double, date: Date = Date()) {
+    // Initializer 2: Standard (Used by DemoData)
+    // ✅ Fix: Added isExam parameter
+    init(title: String, score: Double, maxScore: Double, date: Date = Date(), isExam: Bool = false) {
         self.id = UUID()
         self.title = title
         self.score = score
         self.maxScore = maxScore
         self.date = date
-        self.weight = 100.0 // Default weight
+        self.weight = 100.0
+        self.isExam = isExam
     }
     
     var percentage: Double {
