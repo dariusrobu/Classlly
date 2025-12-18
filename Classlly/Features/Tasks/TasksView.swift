@@ -2,197 +2,244 @@ import SwiftUI
 import SwiftData
 
 struct TasksView: View {
-    @EnvironmentObject var themeManager: AppTheme
-    
-    var body: some View {
-        Group {
-            switch themeManager.selectedGameMode {
-            case .rainbow:
-                RainbowTasksView()
-            case .arcade:
-                ArcadeTasksView()
-            case .none:
-                StandardTasksView()
-            }
-        }
-    }
-}
-
-// MARK: - 🌈 RAINBOW TASKS
-struct RainbowTasksView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var themeManager: AppTheme
     
-    @Query(sort: \StudyTask.dueDate, order: .forward)
-    var tasks: [StudyTask]
+    // Fetch all tasks for local filtering
+    @Query(sort: \StudyTask.dueDate, order: .forward) private var allTasks: [StudyTask]
     
-    @State private var showAddTask = false
-    @State private var taskToEdit: StudyTask? // Tracks task for sheet
-    @State private var selectedFilter: TaskFilter = .active
+    @State private var selectedFilter: TaskFilter = .all
+    @State private var showingAddTask = false
     
-    enum TaskFilter: String, CaseIterable {
-        case active = "Active"
-        case today = "Today"
-        case completed = "Done"
-    }
-    
-    var filteredTasks: [StudyTask] {
-        let calendar = Calendar.current
-        let filtered = tasks.filter { task in
-            switch selectedFilter {
-            case .active: return !task.isCompleted
-            case .today: return !task.isCompleted && calendar.isDateInToday(task.dueDate ?? Date.distantPast)
-            case .completed: return task.isCompleted
-            }
-        }
-        return filtered.sorted { t1, t2 in
-            if selectedFilter != .completed && t1.priority != t2.priority { return t1.priority == .high }
-            return (t1.dueDate ?? Date.distantFuture) < (t2.dueDate ?? Date.distantFuture)
-        }
+    enum TaskFilter {
+        case today, all, flagged, completed
     }
     
     var body: some View {
-        let accent = themeManager.selectedTheme.primaryColor
-        
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                // Background adaptation based on GameMode
+                if themeManager.selectedGameMode != .none {
+                    Color.black.ignoresSafeArea()
+                } else {
+                    Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
+                }
                 
                 VStack(spacing: 0) {
-                    // Header
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("MISSION LOG").font(.system(size: 10, weight: .black)).foregroundColor(accent).tracking(2)
-                            Text("TASKS").font(.system(size: 34, weight: .black)).foregroundColor(.white)
-                        }
-                        Spacer()
-                        Button(action: { showAddTask = true }) {
-                            Image(systemName: "plus").font(.title2).fontWeight(.bold).foregroundColor(.black)
-                                .padding(12).background(accent).clipShape(Circle()).shadow(color: accent.opacity(0.6), radius: 10)
-                        }
-                    }.padding(.horizontal).padding(.top, 10)
-                    
-                    // Filter Tabs
-                    HStack(spacing: 0) {
-                        ForEach(TaskFilter.allCases, id: \.self) { filter in
-                            Button(action: { withAnimation { selectedFilter = filter } }) {
-                                VStack(spacing: 8) {
-                                    Text(filter.rawValue.uppercased()).font(.system(size: 12, weight: .bold))
-                                        .foregroundColor(selectedFilter == filter ? .white : .gray)
-                                    Rectangle().fill(selectedFilter == filter ? accent : Color.clear).frame(height: 2).shadow(color: accent.opacity(0.8), radius: 4)
-                                }
-                            }.frame(maxWidth: .infinity)
-                        }
-                    }.padding(.top, 20).padding(.bottom, 10).background(Color.black)
-                    
-                    // List
-                    if filteredTasks.isEmpty {
-                        VStack(spacing: 20) {
-                            Spacer()
-                            Image(systemName: selectedFilter == .completed ? "checkmark.circle.fill" : "checklist")
-                                .font(.system(size: 60))
-                                .foregroundStyle(LinearGradient(colors: [accent, accent.opacity(0.3)], startPoint: .top, endPoint: .bottom))
-                            Text("NO TASKS").font(.headline).fontWeight(.black).foregroundColor(.gray)
-                            Spacer()
-                        }
-                    } else {
-                        ScrollView {
-                            LazyVStack(spacing: 16) {
-                                ForEach(filteredTasks) { task in
-                                    RainbowTaskFullRow(task: task, accentColor: accent)
-                                        .onTapGesture { taskToEdit = task }
-                                        .contextMenu {
-                                            Button { taskToEdit = task } label: { Label("Edit", systemImage: "pencil") }
-                                            Button(role: .destructive) { withAnimation { modelContext.delete(task) } } label: { Label("Delete", systemImage: "trash") }
-                                        }
-                                }
-                            }.padding(.horizontal).padding(.top, 10).padding(.bottom, 100)
-                        }
+                    // --- 1. Compact Smart List Grid (Apple Reminders Style) ---
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                        FilterCard(
+                            title: "Today",
+                            icon: "calendar",
+                            count: tasksForFilter(.today).count,
+                            color: .blue,
+                            isSelected: selectedFilter == .today
+                        ) { selectedFilter = .today }
+                        
+                        FilterCard(
+                            title: "All",
+                            icon: "tray.fill",
+                            count: allTasks.count,
+                            color: .gray,
+                            isSelected: selectedFilter == .all
+                        ) { selectedFilter = .all }
+                        
+                        FilterCard(
+                            title: "Flagged",
+                            icon: "flag.fill",
+                            count: tasksForFilter(.flagged).count,
+                            color: .orange,
+                            isSelected: selectedFilter == .flagged
+                        ) { selectedFilter = .flagged }
+                        
+                        FilterCard(
+                            title: "Completed",
+                            icon: "checkmark",
+                            count: tasksForFilter(.completed).count,
+                            color: .green,
+                            isSelected: selectedFilter == .completed
+                        ) { selectedFilter = .completed }
                     }
-                }
-            }
-            .navigationBarHidden(true)
-            .sheet(isPresented: $showAddTask) { AddTaskView() }
-            .sheet(item: $taskToEdit) { task in AddTaskView(taskToEdit: task) } // ✅ Now works
-        }
-    }
-}
-
-struct RainbowTaskFullRow: View {
-    @Bindable var task: StudyTask
-    let accentColor: Color
-    var body: some View {
-        HStack(spacing: 16) {
-            Button(action: { withAnimation(.spring) { task.isCompleted.toggle() } }) {
-                ZStack {
-                    Circle().stroke(task.isCompleted ? RainbowColors.green : Color.gray, lineWidth: 2).frame(width: 24, height: 24)
-                    if task.isCompleted { Circle().fill(RainbowColors.green).frame(width: 14, height: 14) }
-                }
-            }.buttonStyle(PlainButtonStyle())
-            VStack(alignment: .leading, spacing: 6) {
-                Text(task.title).font(.headline).fontWeight(.bold).strikethrough(task.isCompleted).foregroundColor(task.isCompleted ? .gray : .white)
-                HStack(spacing: 8) {
-                    if let subject = task.subject { Text(subject.title.uppercased()).font(.system(size: 8, weight: .black)).padding(.horizontal, 6).padding(.vertical, 3).background(subject.color.opacity(0.2)).foregroundColor(subject.color).cornerRadius(4) }
-                    if let due = task.dueDate { HStack(spacing: 4) { Image(systemName: "calendar"); Text(due.formatted(date: .numeric, time: .omitted)) }.font(.caption2).fontWeight(.bold).foregroundColor(due < Date() && !task.isCompleted ? RainbowColors.red : .gray) }
-                }
-            }
-            Spacer()
-            if task.priority == .high && !task.isCompleted { Image(systemName: "exclamationmark.triangle.fill").foregroundColor(RainbowColors.red).shadow(color: RainbowColors.red.opacity(0.5), radius: 5) }
-            Image(systemName: "chevron.right").font(.caption).foregroundColor(.gray.opacity(0.5))
-        }.padding().background(Color(white: 0.1)).cornerRadius(16)
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(task.isCompleted ? Color.clear : (task.priority == .high ? RainbowColors.red.opacity(0.3) : Color(white: 0.2)), lineWidth: 1))
-        .opacity(task.isCompleted ? 0.6 : 1.0).contentShape(Rectangle())
-    }
-}
-
-// MARK: - 🏠 STANDARD TASKS
-struct StandardTasksView: View {
-    @EnvironmentObject var themeManager: AppTheme
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \StudyTask.dueDate, order: .forward) var tasks: [StudyTask]
-    @State private var showAddTask = false
-    @State private var taskToEdit: StudyTask?
-    @State private var filter: FilterOption = .active
-    
-    enum FilterOption: String, CaseIterable { case active = "To Do"; case completed = "Done" }
-    var filteredTasks: [StudyTask] { tasks.filter { filter == .active ? !$0.isCompleted : $0.isCompleted } }
-    
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                Picker("Filter", selection: $filter) { ForEach(FilterOption.allCases, id: \.self) { option in Text(option.rawValue).tag(option) } }.pickerStyle(.segmented).padding()
-                List {
-                    if filteredTasks.isEmpty { ContentUnavailableView("No Tasks", systemImage: "checklist") } else {
-                        ForEach(filteredTasks) { task in
-                            StandardTaskRowView(task: task).onTapGesture { taskToEdit = task }
-                        }.onDelete(perform: deleteTask)
+                    .padding(.horizontal)
+                    .padding(.top, 12)
+                    
+                    // --- 2. Task List Section ---
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(filterTitle)
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .foregroundColor(themeManager.selectedGameMode == .none ? .primary : .white)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 15)
+                        
+                        List {
+                            let tasks = tasksForFilter(selectedFilter)
+                            if tasks.isEmpty {
+                                ContentUnavailableView("No Tasks", systemImage: "checklist")
+                                    .listRowBackground(Color.clear)
+                            } else {
+                                ForEach(tasks) { task in
+                                    // ✅ TaskRowView is now defined within this file scope
+                                    TaskRowView(task: task)
+                                        .listRowBackground(themeManager.selectedGameMode == .none ? Color(uiColor: .secondarySystemGroupedBackground) : Color(white: 0.1))
+                                }
+                                .onDelete(perform: deleteTasks)
+                            }
+                        }
+                        .listStyle(.insetGrouped)
+                        .scrollContentBackground(.hidden)
                     }
                 }
             }
             .navigationTitle("Tasks")
-            .toolbar { ToolbarItem(placement: .primaryAction) { Button(action: { showAddTask = true }) { Image(systemName: "plus.circle.fill").font(.system(size: 22)) } } }
-            .sheet(isPresented: $showAddTask) { AddTaskView() }
-            .sheet(item: $taskToEdit) { task in AddTaskView(taskToEdit: task) } // ✅ Now works
+            .navigationBarTitleDisplayMode(.inline) // Centralized title like Subjects tab
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showingAddTask = true }) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.headline)
+                            .foregroundColor(themeManager.selectedTheme.primaryColor)
+                    }
+                }
+            }
+            .sheet(isPresented: $showingAddTask) {
+                AddTaskView()
+            }
         }
     }
-    private func deleteTask(at offsets: IndexSet) { for index in offsets { modelContext.delete(filteredTasks[index]) } }
-}
-
-struct StandardTaskRowView: View {
-    @Bindable var task: StudyTask
-    var body: some View {
-        HStack {
-            Button(action: { withAnimation { task.isCompleted.toggle() } }) { Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle").foregroundColor(task.isCompleted ? .green : .secondary).font(.title3) }.buttonStyle(PlainButtonStyle())
-            VStack(alignment: .leading) { Text(task.title).strikethrough(task.isCompleted).foregroundColor(task.isCompleted ? .secondary : .primary); if let due = task.dueDate { Text(due.formatted(date: .abbreviated, time: .shortened)).font(.caption).foregroundColor(due < Date() && !task.isCompleted ? .red : .secondary) } }
-            Spacer()
-            if task.priority == .high { Image(systemName: "exclamationmark").foregroundColor(.red).font(.caption) }
-        }.contentShape(Rectangle())
+    
+    // MARK: - Logic Helpers
+    
+    private var filterTitle: String {
+        switch selectedFilter {
+        case .today: return "Today"
+        case .all: return "All Tasks"
+        case .flagged: return "Flagged"
+        case .completed: return "Completed"
+        }
+    }
+    
+    private func tasksForFilter(_ filter: TaskFilter) -> [StudyTask] {
+        switch filter {
+        case .today:
+            return allTasks.filter { task in
+                guard let date = task.dueDate else { return false }
+                return Calendar.current.isDateInToday(date) && !task.isCompleted
+            }
+        case .all:
+            return allTasks.filter { !$0.isCompleted }
+        case .flagged:
+            return allTasks.filter { $0.isFlagged && !$0.isCompleted }
+        case .completed:
+            return allTasks.filter { $0.isCompleted }
+        }
+    }
+    
+    private func deleteTasks(offsets: IndexSet) {
+        let filteredTasks = tasksForFilter(selectedFilter)
+        for index in offsets {
+            modelContext.delete(filteredTasks[index])
+        }
     }
 }
 
-// MARK: - 🕹️ ARCADE TASKS (Stub)
-struct ArcadeTasksView: View {
+// MARK: - Filter Card Component
+struct FilterCard: View {
+    let title: String
+    let icon: String
+    let count: Int
+    let color: Color
+    let isSelected: Bool
+    let action: () -> Void
+    
+    @EnvironmentObject var themeManager: AppTheme
+    
     var body: some View {
-        ZStack { Color.black.ignoresSafeArea(); Text("Arcade Tasks").font(.system(.title, design: .monospaced)).foregroundColor(.cyan) }
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Image(systemName: icon)
+                        .font(.caption)
+                        .foregroundColor(.white)
+                        .frame(width: 28, height: 28)
+                        .background(color)
+                        .clipShape(Circle())
+                    
+                    Spacer()
+                    
+                    Text("\(count)")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(themeManager.selectedGameMode == .none ? .primary : .white)
+                }
+                
+                Text(title)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.secondary)
+            }
+            .padding(10)
+            .background(themeManager.selectedGameMode == .none ? Color(uiColor: .secondarySystemGroupedBackground) : Color(white: 0.15))
+            .cornerRadius(10)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(isSelected ? color : Color.clear, lineWidth: 2)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - ✅ Task Row Component
+struct TaskRowView: View {
+    @Bindable var task: StudyTask
+    @EnvironmentObject var themeManager: AppTheme
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Button(action: { task.isCompleted.toggle() }) {
+                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundColor(task.isCompleted ? .green : .secondary)
+            }
+            .buttonStyle(.plain)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(task.title)
+                    .font(.body)
+                    .strikethrough(task.isCompleted)
+                    .foregroundColor(task.isCompleted ? .secondary : (themeManager.selectedGameMode == .none ? .primary : .white))
+                
+                if let dueDate = task.dueDate {
+                    Text(dueDate.formatted(date: .abbreviated, time: .shortened))
+                        .font(.caption)
+                        .foregroundColor(isOverdue ? .red : .secondary)
+                }
+                
+                if let subject = task.subject {
+                    Text(subject.title)
+                        .font(.caption2)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(subject.color.opacity(0.2))
+                        .foregroundColor(subject.color)
+                        .cornerRadius(4)
+                }
+            }
+            
+            Spacer()
+            
+            if task.isFlagged {
+                Image(systemName: "flag.fill")
+                    .foregroundColor(.orange)
+                    .font(.caption)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+    
+    private var isOverdue: Bool {
+        guard let date = task.dueDate, !task.isCompleted else { return false }
+        return date < Date()
     }
 }
