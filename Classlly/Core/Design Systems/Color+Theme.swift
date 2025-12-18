@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit // Needed for UIColor
 
 // MARK: - Rainbow Colors
 struct RainbowColors {
@@ -10,8 +11,9 @@ struct RainbowColors {
     static let darkCard = Color(red: 0.1, green: 0.1, blue: 0.12)
 }
 
-// Helper for Hex
+// MARK: - Color Extensions
 extension Color {
+    // 1. Hex Initializer
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0
@@ -36,14 +38,23 @@ extension Color {
             opacity: Double(a) / 255
         )
     }
-}
 
-// Helper extension for Adaptive Colors (Dark/Light mode)
-extension Color {
+    // 2. Adaptive Colors (Dark/Light mode)
     init(light: UIColor, dark: UIColor) {
         self.init(uiColor: UIColor { traits in
             return traits.userInterfaceStyle == .dark ? dark : light
         })
+    }
+    
+    // 3. Components Extraction (Used for Rainbow Theme Blending)
+    var components: (red: Double, green: Double, blue: Double, opacity: Double) {
+        let uiColor = UIColor(self)
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var a: CGFloat = 0
+        uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+        return (Double(r), Double(g), Double(b), Double(a))
     }
 }
 

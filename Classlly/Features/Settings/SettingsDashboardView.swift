@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 struct SettingsDashboardView: View {
     @EnvironmentObject var themeManager: AppTheme
@@ -22,11 +23,9 @@ struct SettingsDashboardView: View {
 // MARK: - 決 RAINBOW SETTINGS
 struct RainbowSettingsView: View {
     @EnvironmentObject var themeManager: AppTheme
+    // ✅ Add Query to fetch the profile
+    @Query private var profiles: [StudentProfile]
     @State private var showThemeSheet = false
-    
-    // Define RainbowColors locally if not available globally, or rely on global definition.
-    // Assuming RainbowColors is defined in your Color extensions.
-    // If not, we can use standard Colors as fallbacks.
     
     var body: some View {
         let accent = themeManager.selectedTheme.primaryColor
@@ -49,29 +48,48 @@ struct RainbowSettingsView: View {
                         .padding(.horizontal).padding(.top, 10)
                         
                         // 2. Profile Card
-                        NavigationLink(destination: ProfileView()) {
+                        // ✅ Only show link if profile exists and pass it to ProfileView
+                        if let profile = profiles.first {
+                            NavigationLink(destination: ProfileView(profile: profile)) {
+                                HStack(spacing: 16) {
+                                    ZStack {
+                                        Circle().fill(accent.opacity(0.2)).frame(width: 60, height: 60)
+                                        Image(systemName: "person.fill").font(.title2).foregroundColor(accent)
+                                    }
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(profile.name.isEmpty ? "USER PROFILE" : profile.name.uppercased())
+                                            .font(.headline).fontWeight(.black).foregroundColor(.white)
+                                        Text("Edit details & preferences").font(.caption).foregroundColor(.gray)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right").foregroundColor(.gray)
+                                }
+                                .padding()
+                                .background(Color(white: 0.1))
+                                .cornerRadius(20)
+                                .overlay(RoundedRectangle(cornerRadius: 20).stroke(accent.opacity(0.3), lineWidth: 1))
+                            }
+                            .padding(.horizontal)
+                        } else {
+                            // Fallback UI if no profile is found (prevents crash)
                             HStack(spacing: 16) {
                                 ZStack {
-                                    Circle().fill(accent.opacity(0.2)).frame(width: 60, height: 60)
-                                    Image(systemName: "person.fill").font(.title2).foregroundColor(accent)
+                                    Circle().fill(Color.gray.opacity(0.2)).frame(width: 60, height: 60)
+                                    Image(systemName: "person.slash.fill").font(.title2).foregroundColor(.gray)
                                 }
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("USER PROFILE").font(.headline).fontWeight(.black).foregroundColor(.white)
-                                    Text("Edit details & preferences").font(.caption).foregroundColor(.gray)
+                                    Text("NO PROFILE").font(.headline).fontWeight(.black).foregroundColor(.white)
+                                    Text("Please sign in again").font(.caption).foregroundColor(.gray)
                                 }
                                 Spacer()
-                                Image(systemName: "chevron.right").foregroundColor(.gray)
                             }
                             .padding()
                             .background(Color(white: 0.1))
                             .cornerRadius(20)
-                            .overlay(RoundedRectangle(cornerRadius: 20).stroke(accent.opacity(0.3), lineWidth: 1))
+                            .padding(.horizontal)
                         }
-                        .padding(.horizontal)
                         
                         // 3. Settings Sections
-                        // Note: Ensure RainbowColors struct exists in your project.
-                        // If these throw errors, change 'RainbowColors.blue' to 'Color.blue', etc.
                         VStack(spacing: 16) {
                             RainbowSectionHeader(title: "INTERFACE", color: .blue)
                             RainbowSettingRow(icon: "paintpalette.fill", title: "Theme Color", color: .blue) { showThemeSheet = true }
@@ -154,12 +172,11 @@ struct RainbowGameModePicker: View {
     }
 }
 
-// MARK: - 耳 THEME SELECTION SHEET (FIXED)
+// MARK: - 耳 THEME SELECTION SHEET
 struct ThemeSelectionSheet: View {
     @EnvironmentObject var themeManager: AppTheme
     @Environment(\.dismiss) var dismiss
     
-    // Fix: Use the Enum cases directly instead of a raw Color array
     let themes = Theme.allCases
     
     var body: some View {
@@ -177,7 +194,6 @@ struct ThemeSelectionSheet: View {
                                     .opacity(themeManager.selectedTheme == theme ? 1 : 0)
                             )
                             .onTapGesture {
-                                // Fix: Directly assign the Enum case
                                 themeManager.selectedTheme = theme
                             }
                     }

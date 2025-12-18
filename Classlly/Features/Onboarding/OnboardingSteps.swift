@@ -67,6 +67,7 @@ struct StickyUniversityView: View {
             Text("Where do you study?").font(.largeTitle).fontWeight(.bold).foregroundColor(.white)
             
             Button(action: {
+                // ✅ This now works because we added loadDemoData() back to the manager
                 calendarManager.loadDemoData()
                 withAnimation { isConfigured = true }
             }) {
@@ -183,4 +184,3 @@ struct ConfettiView: View {
         .onAppear { withAnimation(.easeOut(duration: 1.5)) { animate = true } }
     }
 }
-

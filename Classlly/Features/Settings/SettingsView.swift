@@ -10,8 +10,8 @@ struct SettingsView: View {
             case .arcade:
                 ArcadeSettingsView()
             case .rainbow:
+                // Removing the forced .dark scheme so you can test your toggle
                 StandardSettingsView()
-                    .preferredColorScheme(.dark)
             case .none:
                 StandardSettingsView()
             }
@@ -24,8 +24,8 @@ struct StandardSettingsView: View {
     @EnvironmentObject var themeManager: AppTheme
     @Environment(\.modelContext) var modelContext
     
+    // Notifications and Sync can stay local for now unless you want them global too
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
-    @AppStorage("darkModeEnabled") private var darkModeEnabled = false
     @AppStorage("autoSyncEnabled") private var autoSyncEnabled = true
     
     @State private var showingDataAlert = false
@@ -45,7 +45,8 @@ struct StandardSettingsView: View {
             }
             
             Section(header: Text("Appearance")) {
-                Toggle("Dark Mode", isOn: $darkModeEnabled)
+                // ✅ FIXED: Binds directly to the global manager
+                Toggle("Dark Mode", isOn: $themeManager.darkModeEnabled)
                 
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Accent Color").font(.caption).foregroundColor(.secondary).textCase(.uppercase)
@@ -97,7 +98,6 @@ struct StandardSettingsView: View {
 struct ArcadeSettingsView: View {
     @EnvironmentObject var themeManager: AppTheme
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
-    @AppStorage("darkModeEnabled") private var darkModeEnabled = false
     @AppStorage("autoSyncEnabled") private var autoSyncEnabled = true
     
     private let columns = [GridItem(.adaptive(minimum: 50, maximum: 60), spacing: 16)]
@@ -127,7 +127,8 @@ struct ArcadeSettingsView: View {
                     
                     ArcadeSection(title: "SYSTEM CONTROLS", color: .orange) {
                         ArcadeToggle(icon: "bell.fill", label: "NOTIFICATIONS", isOn: $notificationsEnabled)
-                        ArcadeToggle(icon: "moon.fill", label: "DARK MODE", isOn: $darkModeEnabled)
+                        // ✅ FIXED: Binds directly to global manager
+                        ArcadeToggle(icon: "moon.fill", label: "DARK MODE", isOn: $themeManager.darkModeEnabled)
                         ArcadeToggle(icon: "arrow.triangle.2.circlepath", label: "AUTO SYNC", isOn: $autoSyncEnabled)
                     }
                 }.padding()
@@ -138,7 +139,6 @@ struct ArcadeSettingsView: View {
 }
 
 // MARK: - Local Helpers
-// Note: ArcadeSection is used from SharedComponents to avoid redeclaration
 
 struct ArcadeToggle: View {
     let icon: String; let label: String; @Binding var isOn: Bool

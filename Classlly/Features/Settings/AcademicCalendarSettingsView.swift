@@ -10,149 +10,332 @@ struct AcademicCalendarSettingsView: View {
             case .rainbow:
                 RainbowCalendarSettingsView()
             case .arcade:
-                // Simple stub for arcade mode
-                ZStack {
-                    Color.black.ignoresSafeArea()
-                    Text("Arcade Calendar Config").foregroundColor(.cyan)
-                }
+                RainbowCalendarSettingsView() // Use Rainbow logic for Arcade too
             case .none:
-                StandardCalendarSettingsView()
+                RainbowCalendarSettingsView() // Upgrade standard to the better view too
             }
         }
     }
 }
 
-// MARK: - 🌈 RAINBOW CALENDAR SETTINGS
+// MARK: - 🌟 THE "BETTER" CALENDAR EDITOR
 struct RainbowCalendarSettingsView: View {
     @EnvironmentObject var calendarManager: AcademicCalendarManager
     @EnvironmentObject var themeManager: AppTheme
     @Environment(\.dismiss) private var dismiss
     
-    // Local State for Editing
-    @State private var startDate = Date()
-    @State private var endDate = Date()
+    @State private var selectedSemester: AcademicCalendarManager.SemesterType = .semester1
+    @State private var showingAddEvent = false
+    @State private var showingTemplateSheet = false
     
     var body: some View {
         let accent = themeManager.selectedTheme.primaryColor
+        let isDark = themeManager.selectedGameMode != .none
         
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                if isDark {
+                    Color.black.ignoresSafeArea()
+                } else {
+                    Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
+                }
                 
                 ScrollView {
                     VStack(spacing: 24) {
-                        // Header
-                        HStack {
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "chevron.left").foregroundColor(.white)
+                        // 1. Header Card with SWITCHER
+                        VStack(spacing: 8) {
+                            HStack {
+                                Image(systemName: "calendar.badge.clock")
+                                    .font(.title)
+                                    .foregroundColor(accent)
+                                Spacer()
+                                
+                                // ✅ Calendar Switcher Menu
+                                Menu {
+                                    Text("Switch Calendar")
+                                    ForEach(calendarManager.availableCalendars) { cal in
+                                        Button(action: {
+                                            calendarManager.setCurrentCalendar(cal)
+                                        }) {
+                                            HStack {
+                                                Text(cal.customName ?? cal.universityName ?? "Calendar")
+                                                if calendarManager.currentAcademicYear?.id == cal.id {
+                                                    Image(systemName: "checkmark")
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    Divider()
+                                    
+                                    Button(action: { showingTemplateSheet = true }) {
+                                        Label("Add New Calendar", systemImage: "plus")
+                                    }
+                                    
+                                    if let current = calendarManager.currentAcademicYear, calendarManager.availableCalendars.count > 1 {
+                                        Button(role: .destructive, action: {
+                                            calendarManager.deleteCalendar(current)
+                                        }) {
+                                            Label("Delete Current", systemImage: "trash")
+                                        }
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text(calendarManager.currentAcademicYear?.universityName ?? "Select Calendar")
+                                            .font(.headline)
+                                            .foregroundColor(isDark ? .white : .primary)
+                                        Image(systemName: "chevron.up.chevron.down")
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
+                                    .padding(.vertical, 4)
+                                    .padding(.horizontal, 8)
+                                    .background(Color.gray.opacity(0.15))
+                                    .cornerRadius(8)
+                                }
                             }
-                            Text("ACADEMIC CALENDAR")
-                                .font(.headline).fontWeight(.black).foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                            Spacer().frame(width: 20)
+                            
+                            Divider().background(Color.gray)
+                            
+                            HStack {
+                                VStack(alignment: .leading) {
+                                    Text("CURRENT STATUS")
+                                        .font(.caption).fontWeight(.bold).foregroundColor(.gray)
+                                    if let week = calendarManager.currentTeachingWeek {
+                                        Text("Teaching Week \(week)")
+                                            .font(.title2).fontWeight(.black).foregroundColor(accent)
+                                    } else {
+                                        Text("Break / Exam Session")
+                                            .font(.title2).fontWeight(.black).foregroundColor(.secondary)
+                                    }
+                                }
+                                Spacer()
+                            }
                         }
                         .padding()
+                        .background(isDark ? Color(white: 0.1) : Color(uiColor: .secondarySystemGroupedBackground))
+                        .cornerRadius(16)
+                        .padding(.horizontal)
                         
-                        // Semester Config
+                        // 2. Semester Picker
+                        Picker("Semester", selection: $selectedSemester) {
+                            Text("Semester 1").tag(AcademicCalendarManager.SemesterType.semester1)
+                            Text("Semester 2").tag(AcademicCalendarManager.SemesterType.semester2)
+                        }
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal)
+                        
+                        // 3. Timeline Editor
                         VStack(alignment: .leading, spacing: 16) {
-                            RainbowSectionHeader(title: "CURRENT SEMESTER", color: accent)
-                            
-                            VStack(spacing: 12) {
-                                DateRow(title: "Start Date", date: $startDate, color: accent)
-                                Divider().background(Color(white: 0.2))
-                                DateRow(title: "End Date", date: $endDate, color: accent)
-                            }
-                            .padding()
-                            .background(Color(white: 0.1))
-                            .cornerRadius(16)
-                            
-                            RainbowSectionHeader(title: "BREAKS", color: RainbowColors.orange)
-                            
-                            Button(action: {}) {
-                                HStack {
-                                    Image(systemName: "plus.circle.fill").foregroundColor(RainbowColors.orange)
-                                    Text("Add Holiday / Break").fontWeight(.bold).foregroundColor(.white)
-                                    Spacer()
+                            HStack {
+                                Text("TIMELINE")
+                                    .font(.caption).fontWeight(.black).foregroundColor(.gray)
+                                Spacer()
+                                Button(action: { showingAddEvent = true }) {
+                                    Label("Add Event", systemImage: "plus")
+                                        .font(.caption).fontWeight(.bold)
+                                        .padding(.vertical, 6)
+                                        .padding(.horizontal, 12)
+                                        .background(accent.opacity(0.2))
+                                        .foregroundColor(accent)
+                                        .cornerRadius(20)
                                 }
-                                .padding()
-                                .background(Color(white: 0.1))
+                            }
+                            .padding(.horizontal)
+                            
+                            let events = calendarManager.getSemesterEvents(selectedSemester)
+                            
+                            if events.isEmpty {
+                                ContentUnavailableView("No Events", systemImage: "calendar.badge.exclamationmark")
+                            } else {
+                                VStack(spacing: 0) {
+                                    ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
+                                        TimelineEventRow(event: event, isLast: index == events.count - 1)
+                                            .contextMenu {
+                                                Button(role: .destructive) {
+                                                    calendarManager.removeEvent(from: selectedSemester, eventId: event.id)
+                                                } label: {
+                                                    Label("Delete", systemImage: "trash")
+                                                }
+                                            }
+                                    }
+                                }
+                                .background(isDark ? Color(white: 0.1) : Color(uiColor: .secondarySystemGroupedBackground))
                                 .cornerRadius(16)
+                                .padding(.horizontal)
                             }
                         }
-                        .padding(.horizontal)
                         
-                        // Save Button
-                        Button(action: saveDates) {
-                            Text("Update Calendar")
-                                .fontWeight(.bold)
-                                .foregroundColor(.black)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(accent)
-                                .cornerRadius(12)
-                        }
-                        .padding(.horizontal)
-                        .padding(.top, 20)
+                        Spacer(minLength: 50)
                     }
+                    .padding(.top)
                 }
             }
-            .navigationBarHidden(true)
-            .onAppear(perform: loadDates)
-        }
-    }
-    
-    // ✅ Load from Manager
-    private func loadDates() {
-        startDate = calendarManager.startDate
-        endDate = calendarManager.endDate
-    }
-    
-    // ✅ Save back to Manager
-    private func saveDates() {
-        calendarManager.startDate = startDate
-        calendarManager.endDate = endDate
-        dismiss()
-    }
-    
-    struct DateRow: View {
-        let title: String
-        @Binding var date: Date
-        let color: Color
-        
-        var body: some View {
-            HStack {
-                Text(title).fontWeight(.bold).foregroundColor(.gray)
-                Spacer()
-                DatePicker("", selection: $date, displayedComponents: .date)
-                    .labelsHidden()
-                    .colorScheme(.dark)
+            .navigationTitle("Academic Structure")
+            .navigationBarTitleDisplayMode(.inline)
+            // ✅ Removed "Close" button here to fix navigation issue
+            .sheet(isPresented: $showingAddEvent) {
+                AddAcademicEventSheet(semester: selectedSemester)
+            }
+            .sheet(isPresented: $showingTemplateSheet) {
+                TemplateSelectionSheet()
             }
         }
     }
 }
 
-// MARK: - 🏠 STANDARD CALENDAR SETTINGS
-struct StandardCalendarSettingsView: View {
-    @EnvironmentObject var calendarManager: AcademicCalendarManager
+// MARK: - 🧩 TIMELINE ROW COMPONENT
+struct TimelineEventRow: View {
+    let event: AcademicEventData
+    let isLast: Bool
+    @EnvironmentObject var themeManager: AppTheme
     
-    // Use binding directly to manager properties for standard view
     var body: some View {
-        Form {
-            Section("Current Semester") {
-                DatePicker("Start Date", selection: $calendarManager.startDate, displayedComponents: .date)
-                DatePicker("End Date", selection: $calendarManager.endDate, displayedComponents: .date)
+        let isDark = themeManager.selectedGameMode != .none
+        
+        HStack(spacing: 16) {
+            // Left Track
+            VStack(spacing: 0) {
+                Rectangle()
+                    .fill(isLast ? Color.clear : Color.gray.opacity(0.3))
+                    .frame(width: 2)
             }
+            .overlay(
+                Circle()
+                    .fill(event.type.color)
+                    .frame(width: 12, height: 12)
+                    .background(Circle().stroke(isDark ? Color.black : Color.white, lineWidth: 2))
+            )
+            .frame(width: 20)
             
-            Section("Calculated Info") {
+            // Content
+            VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text("Total Weeks")
+                    Text(event.customName ?? event.type.displayName)
+                        .font(.headline)
+                        .foregroundColor(isDark ? .white : .primary)
+                    
                     Spacer()
-                    // Safe unwrap or calculation
-                    Text("\(calendarManager.currentTeachingWeek ?? 0)")
-                        .foregroundColor(.secondary)
+                    
+                    Text("\(event.weeks) wks")
+                        .font(.caption).fontWeight(.bold)
+                        .padding(4)
+                        .background(event.type.color.opacity(0.2))
+                        .foregroundColor(event.type.color)
+                        .cornerRadius(4)
+                }
+                
+                HStack {
+                    Text(formatDate(event.start))
+                    Image(systemName: "arrow.right")
+                        .font(.caption2)
+                    Text(formatDate(event.end))
+                }
+                .font(.subheadline)
+                .foregroundColor(.gray)
+            }
+            .padding(.vertical, 16)
+        }
+        .padding(.horizontal, 16)
+    }
+    
+    private func formatDate(_ dateString: String) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        guard let date = formatter.date(from: dateString) else { return dateString }
+        return date.formatted(.dateTime.day().month(.abbreviated))
+    }
+}
+
+// MARK: - ➕ ADD EVENT SHEET
+struct AddAcademicEventSheet: View {
+    let semester: AcademicCalendarManager.SemesterType
+    @EnvironmentObject var calendarManager: AcademicCalendarManager
+    @Environment(\.dismiss) var dismiss
+    
+    @State private var name: String = ""
+    @State private var type: EventType = .teaching
+    @State private var startDate = Date()
+    @State private var endDate = Date().addingTimeInterval(86400 * 7 * 2) // +2 weeks
+    
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Event Details") {
+                    TextField("Event Name (e.g. Exam Session)", text: $name)
+                    Picker("Type", selection: $type) {
+                        ForEach(EventType.allCases) { type in
+                            Label(type.displayName, systemImage: type.iconName).tag(type)
+                        }
+                    }
+                }
+                
+                Section("Duration") {
+                    DatePicker("Start Date", selection: $startDate, displayedComponents: .date)
+                    DatePicker("End Date", selection: $endDate, displayedComponents: .date)
+                }
+            }
+            .navigationTitle("Add to \(semester.displayName)")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") {
+                        saveEvent()
+                    }
                 }
             }
         }
-        .navigationTitle("Academic Calendar")
+    }
+    
+    private func saveEvent() {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        
+        let diffComponents = Calendar.current.dateComponents([.weekOfYear], from: startDate, to: endDate)
+        let weeks = max(1, diffComponents.weekOfYear ?? 1)
+        
+        let newEvent = AcademicEventData(
+            start: formatter.string(from: startDate),
+            end: formatter.string(from: endDate),
+            type: type,
+            weeks: weeks,
+            customName: name.isEmpty ? type.displayName : name
+        )
+        
+        calendarManager.addEvent(to: semester, event: newEvent)
+        dismiss()
+    }
+}
+
+// MARK: - 📄 TEMPLATE SELECTION SHEET
+struct TemplateSelectionSheet: View {
+    @EnvironmentObject var calendarManager: AcademicCalendarManager
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            List(calendarManager.availableTemplates) { template in
+                Button(action: {
+                    calendarManager.generateAndSaveCalendar(from: template)
+                    dismiss()
+                }) {
+                    VStack(alignment: .leading) {
+                        Text(template.universityName)
+                            .font(.headline)
+                        Text(template.academicYear)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+            .navigationTitle("Choose Template")
+            .toolbar {
+                Button("Cancel") { dismiss() }
+            }
+        }
     }
 }

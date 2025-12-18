@@ -29,7 +29,6 @@ enum Theme: String, CaseIterable, Identifiable, Codable {
     }
 }
 
-// MARK: - Game Mode Options (Retro Removed)
 enum GameMode: String, CaseIterable, Identifiable, Codable {
     case none = "Standard"
     case arcade = "Arcade"
@@ -54,9 +53,15 @@ enum GameMode: String, CaseIterable, Identifiable, Codable {
     }
 }
 
-// MARK: - App Theme Manager
 class AppTheme: ObservableObject {
     static let shared = AppTheme()
+    
+    // ✅ Centralized Dark Mode state
+    @Published var darkModeEnabled: Bool = UserDefaults.standard.bool(forKey: "darkModeEnabled") {
+        didSet {
+            UserDefaults.standard.set(darkModeEnabled, forKey: "darkModeEnabled")
+        }
+    }
     
     @Published var selectedTheme: Theme = .classicBlue {
         didSet {
@@ -71,11 +76,12 @@ class AppTheme: ObservableObject {
     }
     
     init() {
+        self.darkModeEnabled = UserDefaults.standard.bool(forKey: "darkModeEnabled")
+        
         let storedTheme = UserDefaults.standard.string(forKey: "selectedTheme") ?? Theme.classicBlue.rawValue
         self.selectedTheme = Theme(rawValue: storedTheme) ?? .classicBlue
         
         let storedMode = UserDefaults.standard.string(forKey: "selectedGameMode") ?? GameMode.none.rawValue
-        // Fallback if 'Retro' was previously selected
         if storedMode == "Retro" {
             self.selectedGameMode = .none
         } else {

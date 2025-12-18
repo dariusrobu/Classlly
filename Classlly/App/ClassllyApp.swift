@@ -14,8 +14,6 @@ struct ClassllyApp: App {
     @StateObject private var calendarManager = AcademicCalendarManager.shared
     @StateObject private var studyTimerManager = StudyTimerManager.shared
     
-    @AppStorage("darkModeEnabled") private var darkModeEnabled = false
-    
     var body: some Scene {
         WindowGroup {
             Group {
@@ -25,14 +23,16 @@ struct ClassllyApp: App {
                         .environmentObject(authManager)
                         .environmentObject(calendarManager)
                         .environmentObject(studyTimerManager)
+                        // ✅ Global Dark Mode application
+                        .preferredColorScheme(themeManager.darkModeEnabled ? .dark : .light)
                 } else {
                     SignInView()
                         .environmentObject(authManager)
                         .environmentObject(calendarManager)
                         .environmentObject(themeManager)
+                        .preferredColorScheme(themeManager.darkModeEnabled ? .dark : .light)
                 }
             }
-            .preferredColorScheme(darkModeEnabled ? .dark : nil)
             .tint(themeManager.selectedTheme.primaryColor)
             .modelContainer(for: [
                 Subject.self,

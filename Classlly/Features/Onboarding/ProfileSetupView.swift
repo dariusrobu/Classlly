@@ -9,10 +9,10 @@ struct ProfileSetupView: View {
     // Changed from UserProfile to StudentProfile
     let user: StudentProfile
     
-    @State private var firstName: String
-    @State private var lastName: String
-    @State private var schoolName: String = ""
-    @State private var educationLevel: String = ""
+    // ✅ Updated to match StudentProfile (single name field)
+    @State private var name: String
+    @State private var university: String = ""
+    @State private var gradeLevel: String = "" // Was educationLevel
     @State private var major: String = ""
     @State private var academicYear: String = ""
     
@@ -31,12 +31,13 @@ struct ProfileSetupView: View {
     
     init(user: StudentProfile) {
         self.user = user
-        _firstName = State(initialValue: user.firstName)
-        _lastName = State(initialValue: user.lastName)
+        // ✅ Initialize with single name
+        _name = State(initialValue: user.name)
+        _university = State(initialValue: user.university)
     }
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 // Profile Picture Section
                 Section {
@@ -67,7 +68,7 @@ struct ProfileSetupView: View {
                                         Spacer()
                                         Image(systemName: "pencil.circle.fill")
                                             .font(.title2)
-                                            .foregroundColor(.blue) // Fixed hardcoded color
+                                            .foregroundColor(.blue)
                                             .background(Circle().fill(Color.white))
                                     }
                                 }
@@ -82,17 +83,18 @@ struct ProfileSetupView: View {
                 .listRowBackground(Color.clear)
                 
                 Section(header: Text("Personal Information")) {
-                    HStack {
-                        TextField("First Name", text: $firstName)
-                        TextField("Last Name", text: $lastName)
-                    }
+                    // ✅ Single Full Name Field
+                    TextField("Full Name", text: $name)
+                        .textContentType(.name)
                 }
                 
                 Section(header: Text("Academic Information")) {
-                    TextField("School/University Name", text: $schoolName)
+                    // ✅ Mapped to university
+                    TextField("School/University Name", text: $university)
                         .textInputAutocapitalization(.words)
                     
-                    Picker("Education Level", selection: $educationLevel) {
+                    // ✅ Mapped to gradeLevel
+                    Picker("Education Level", selection: $gradeLevel) {
                         Text("Select Education Level").tag("")
                         ForEach(educationLevels, id: \.self) { Text($0).tag($0) }
                     }
@@ -117,7 +119,8 @@ struct ProfileSetupView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
-                        authManager.signOut(modelContext: modelContext)
+                        // ✅ FIX: signOut takes no arguments now
+                        authManager.signOut()
                         dismiss()
                     }
                     .foregroundColor(.red)
@@ -137,20 +140,19 @@ struct ProfileSetupView: View {
                 }
             }
         }
-        .navigationViewStyle(.stack)
     }
     
     private var isFormValid: Bool {
-        !firstName.isEmpty && !lastName.isEmpty && !schoolName.isEmpty && !educationLevel.isEmpty && !academicYear.isEmpty
+        !name.isEmpty && !university.isEmpty && !gradeLevel.isEmpty && !academicYear.isEmpty
     }
     
     private func completeProfile() {
-        // Update the existing user object properties
-        user.firstName = firstName
-        user.lastName = lastName
-        user.schoolName = schoolName
-        user.gradeLevel = educationLevel
-        user.major = major.isEmpty ? nil : major
+        // ✅ Update properties to match new StudentProfile model
+        user.name = name
+        user.university = university
+        user.gradeLevel = gradeLevel
+        // major is now a String, so we just assign it directly (no need for nil check if it defaults to empty string)
+        user.major = major
         user.academicYear = academicYear
         user.profileImageData = inputImage?.jpegData(compressionQuality: 0.8)
         

@@ -10,7 +10,7 @@ struct CalendarView: View {
             case .rainbow:
                 RainbowCalendarView()
             case .arcade:
-                ArcadeCalendarView()
+                RainbowCalendarView() // Shared for now
             case .none:
                 StandardCalendarView()
             }
@@ -23,24 +23,23 @@ struct RainbowCalendarView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var subjects: [Subject]
     @EnvironmentObject var themeManager: AppTheme
+    @EnvironmentObject var calendarManager: AcademicCalendarManager
     
     @State private var selectedDate = Date()
     @State private var selectedDayIndex: Int = Calendar.current.component(.weekday, from: Date())
     
     // Logic Helpers
-    private var startOfWeek: Date { Calendar.current.dateInterval(of: .weekOfYear, for: selectedDate)?.start ?? Date() }
     private var monthYearString: String { selectedDate.formatted(.dateTime.month(.wide).year()) }
     
     var body: some View {
-        // Retrieve the user's selected accent color
         let accent = themeManager.selectedTheme.primaryColor
         
         NavigationStack {
             ZStack {
                 Color.black.ignoresSafeArea()
                 
-                VStack(spacing: 24) {
-                    // 1. Header & Navigation
+                VStack(spacing: 16) {
+                    // 1. Month Header & Navigation
                     HStack {
                         Button(action: { changeWeek(by: -1) }) {
                             Image(systemName: "chevron.left.circle.fill")
@@ -63,10 +62,14 @@ struct RainbowCalendarView: View {
                     .padding(.horizontal)
                     .padding(.top, 10)
                     
-                    // 2. Rainbow Week Strip (Pass accent)
+                    // ✅ 2. Week Info Badge (New)
+                    WeekStatusBadge(date: selectedDate, accent: accent)
+                        .padding(.horizontal)
+                    
+                    // 3. Rainbow Week Strip
                     RainbowWeekStrip(selectedDate: $selectedDate, accentColor: accent)
                     
-                    // 3. Schedule List
+                    // 4. Schedule List
                     ScrollView {
                         VStack(spacing: 20) {
                             let classes = todaysClasses
@@ -75,7 +78,6 @@ struct RainbowCalendarView: View {
                                 VStack(spacing: 16) {
                                     Image(systemName: "moon.stars.fill")
                                         .font(.system(size: 60))
-                                        // Dynamic Gradient based on Accent
                                         .foregroundStyle(LinearGradient(
                                             colors: [accent, accent.opacity(0.5)],
                                             startPoint: .top,
@@ -140,9 +142,52 @@ struct RainbowCalendarView: View {
     }
 }
 
+// ✅ NEW COMPONENT: Week Status Badge
+struct WeekStatusBadge: View {
+    let date: Date
+    let accent: Color
+    @EnvironmentObject var calendarManager: AcademicCalendarManager
+    
+    var body: some View {
+        let weekNumber = calendarManager.getTeachingWeek(for: date)
+        
+        HStack {
+            if let week = weekNumber {
+                HStack(spacing: 8) {
+                    Text("WEEK \(week)")
+                        .font(.caption).fontWeight(.black)
+                        .foregroundColor(accent)
+                    
+                    Rectangle().fill(Color.gray.opacity(0.5)).frame(width: 1, height: 12)
+                    
+                    Text(week % 2 == 0 ? "EVEN WEEK" : "ODD WEEK")
+                        .font(.caption).fontWeight(.bold)
+                        .foregroundColor(.gray)
+                }
+            } else {
+                // If nil, likely a holiday or exam session
+                if let event = calendarManager.getCurrentEvent(for: date) {
+                    Text(event.customName?.uppercased() ?? event.type.displayName.uppercased())
+                        .font(.caption).fontWeight(.black)
+                        .foregroundColor(event.type == .holiday ? .green : .red)
+                } else {
+                    Text("NO ACTIVE SEMESTER")
+                        .font(.caption).fontWeight(.black)
+                        .foregroundColor(.gray)
+                }
+            }
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .background(Color(white: 0.1))
+        .cornerRadius(20)
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.1), lineWidth: 1))
+    }
+}
+
 struct RainbowWeekStrip: View {
     @Binding var selectedDate: Date
-    let accentColor: Color // ✅ Dynamic Accent
+    let accentColor: Color
     
     private let calendar = Calendar.current
     private let weekDays = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
@@ -170,7 +215,6 @@ struct RainbowWeekStrip: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 60)
                 .background(
-                    // ✅ Uses dynamic accent color for selection
                     isSelected ? AnyShapeStyle(accentColor) : AnyShapeStyle(Color(white: 0.1))
                 )
                 .cornerRadius(12)
@@ -206,11 +250,11 @@ struct RainbowClassCard: View {
                         .foregroundColor(.white)
                     
                     HStack {
-                        // Badge uses Accent Color mixed with subject info
+                        // Badge
                         Text(item.isSeminar ? "SEMINAR" : "COURSE")
                             .font(.system(size: 8, weight: .bold))
                             .padding(4)
-                            .background(accentColor.opacity(0.8)) // ✅ Dynamic Badge
+                            .background(accentColor.opacity(0.8))
                             .foregroundColor(.black)
                             .cornerRadius(4)
                         
@@ -232,18 +276,17 @@ struct RainbowClassCard: View {
             .cornerRadius(16)
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    // Highlighting stroke uses subject color (better for context),
-                    // or could use accentColor if you prefer uniform look.
                     .stroke(item.subject.color.opacity(0.5), lineWidth: 1)
             )
         }
     }
 }
 
-// MARK: - 🏠 STANDARD CALENDAR (Preserved)
+// MARK: - 🏠 STANDARD CALENDAR
 struct StandardCalendarView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var subjects: [Subject]
+    @EnvironmentObject var calendarManager: AcademicCalendarManager
     
     @State private var selectedDate = Date()
     @State private var selectedDayIndex: Int = Calendar.current.component(.weekday, from: Date())
@@ -257,7 +300,13 @@ struct StandardCalendarView: View {
                 HStack {
                     Button(action: { changeWeek(by: -1) }) { Image(systemName: "chevron.left").frame(width: 44, height: 44) }
                     Spacer()
-                    Text(monthYearString).font(.headline)
+                    VStack {
+                        Text(monthYearString).font(.headline)
+                        // Standard Week Indicator
+                        if let week = calendarManager.getTeachingWeek(for: selectedDate) {
+                            Text("Week \(week) • \(week % 2 == 0 ? "Even" : "Odd")").font(.caption).foregroundColor(.secondary)
+                        }
+                    }
                     Spacer()
                     Button(action: { changeWeek(by: 1) }) { Image(systemName: "chevron.right").frame(width: 44, height: 44) }
                 }
@@ -339,12 +388,5 @@ struct WeekStripView: View {
                     .onTapGesture { withAnimation { selectedDate = date } }
             }
         }.padding(.horizontal)
-    }
-}
-
-// MARK: - 🕹️ ARCADE CALENDAR (Stub)
-struct ArcadeCalendarView: View {
-    var body: some View {
-        ZStack { Color.black.ignoresSafeArea(); Text("Arcade Schedule").font(.system(.title, design: .monospaced)).foregroundColor(.cyan) }
     }
 }

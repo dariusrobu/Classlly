@@ -6,6 +6,10 @@ struct MoreView: View {
     @EnvironmentObject var themeManager: AppTheme
     @Environment(\.modelContext) var modelContext
     
+    // ✅ Fetch profile for editing
+    @Query private var profiles: [StudentProfile]
+    @State private var showingProfileEdit = false
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -18,13 +22,19 @@ struct MoreView: View {
                 
                 ScrollView {
                     VStack(spacing: 20) {
-                        // 1. Profile Card Header
-                        ProfileHeaderCard(user: authManager.currentUser)
-                            .padding(.top, 10)
+                        // 1. Profile Card Header (Now Tappable)
+                        Button(action: {
+                            if !profiles.isEmpty {
+                                showingProfileEdit = true
+                            }
+                        }) {
+                            ProfileHeaderCard(user: profiles.first) // Use Query result
+                                .padding(.top, 10)
+                        }
+                        .buttonStyle(PlainButtonStyle()) // Remove default button fade
                         
                         // 2. Navigation Group
                         VStack(spacing: 0) {
-                            // ✅ Navigation to Academic Calendar
                             MoreNavigationRow(
                                 title: "Academic Calendar",
                                 icon: "calendar",
@@ -36,7 +46,6 @@ struct MoreView: View {
                                 .padding(.leading, 56)
                                 .opacity(themeManager.selectedGameMode == .none ? 1 : 0.2)
                             
-                            // ✅ Navigation to Settings
                             MoreNavigationRow(
                                 title: "Settings",
                                 icon: "gearshape.fill",
@@ -49,7 +58,7 @@ struct MoreView: View {
                         .padding(.horizontal)
                         
                         // 3. Sign Out
-                        Button(role: .destructive, action: { authManager.signOut(modelContext: modelContext) }) {
+                        Button(role: .destructive, action: { authManager.signOut() }) {
                             Text("Sign Out")
                                 .fontWeight(.bold)
                                 .frame(maxWidth: .infinity)
@@ -64,6 +73,14 @@ struct MoreView: View {
             }
             .navigationTitle("More")
             .toolbarColorScheme(themeManager.selectedGameMode == .none ? nil : .dark, for: .navigationBar)
+            // ✅ Present Profile Edit Sheet
+            .sheet(isPresented: $showingProfileEdit) {
+                if let profile = profiles.first {
+                    NavigationStack {
+                        ProfileView(profile: profile)
+                    }
+                }
+            }
         }
     }
 }
@@ -90,11 +107,16 @@ struct ProfileHeaderCard: View {
             }
             
             VStack(spacing: 4) {
-                Text(user?.fullName ?? "Student")
-                    .font(.headline)
-                    .foregroundColor(themeManager.selectedGameMode == .none ? .primary : .white)
+                HStack(spacing: 4) {
+                    Text(user?.name ?? "Student")
+                        .font(.headline)
+                        .foregroundColor(themeManager.selectedGameMode == .none ? .primary : .white)
+                    Image(systemName: "pencil")
+                        .font(.caption)
+                        .foregroundColor(themeManager.selectedTheme.primaryColor)
+                }
                 
-                Text(user?.schoolName ?? "University Not Set")
+                Text(user?.university ?? "University Not Set")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }

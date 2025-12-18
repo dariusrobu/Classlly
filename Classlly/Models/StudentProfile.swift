@@ -3,39 +3,35 @@ import SwiftData
 
 @Model
 final class StudentProfile {
-    // 🔴 FIX: Removed @Attribute(.unique) to allow CloudKit sync
-    var id: String = ""
+    // ✅ FIX: CloudKit requires default values for ALL properties
+    var id: UUID = UUID()
+    var name: String = ""
     var email: String = ""
-    var firstName: String = ""
-    var lastName: String = ""
-    var schoolName: String = ""
+    var university: String = ""
+    var major: String = ""
     var gradeLevel: String = ""
-    var major: String? = nil
     var academicYear: String = ""
+    var joinedDate: Date = Date()
+    
     @Attribute(.externalStorage) var profileImageData: Data? = nil
     
-    init(id: String,
-         email: String,
-         firstName: String,
-         lastName: String,
-         schoolName: String = "",
-         gradeLevel: String = "",
-         major: String? = nil,
-         academicYear: String = "",
-         profileImageData: Data? = nil) {
-        
-        self.id = id
+    init(
+        name: String,
+        email: String,
+        university: String = "",
+        major: String = "",
+        gradeLevel: String = "",
+        academicYear: String = "",
+        profileImageData: Data? = nil
+    ) {
+        self.id = UUID()
+        self.name = name
         self.email = email
-        self.firstName = firstName
-        self.lastName = lastName
-        self.schoolName = schoolName
-        self.gradeLevel = gradeLevel
+        self.university = university
         self.major = major
+        self.gradeLevel = gradeLevel
         self.academicYear = academicYear
         self.profileImageData = profileImageData
-    }
-    
-    var fullName: String {
-        "\(firstName) \(lastName)"
+        self.joinedDate = Date()
     }
 }
