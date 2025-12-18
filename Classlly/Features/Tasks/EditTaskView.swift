@@ -52,7 +52,6 @@ struct RainbowEditTaskView: View {
         NavigationStack {
             ZStack {
                 Color.black.ignoresSafeArea()
-                
                 ScrollView {
                     VStack(spacing: 24) {
                         // 1. Task Info
@@ -61,99 +60,41 @@ struct RainbowEditTaskView: View {
                                 Text("Task Details").font(.headline).foregroundColor(.white)
                                 
                                 TextField("Enter task title", text: $title)
-                                    .padding()
-                                    .background(Color.black.opacity(0.3))
-                                    .cornerRadius(10)
-                                    .foregroundColor(.white)
+                                    .padding().background(Color.black.opacity(0.3)).cornerRadius(10).foregroundColor(.white)
+                                
+                                TextField("Notes", text: $notes, axis: .vertical)
+                                    .padding().background(Color.black.opacity(0.3)).cornerRadius(10).foregroundColor(.white).lineLimit(3...6)
                                 
                                 Menu {
                                     Button("No Subject") { selectedSubject = nil }
-                                    ForEach(subjects) { subject in
-                                        Button(subject.title) { selectedSubject = subject }
-                                    }
+                                    ForEach(subjects) { subject in Button(subject.title) { selectedSubject = subject } }
                                 } label: {
-                                    HStack {
-                                        Text("Subject").foregroundColor(.gray)
-                                        Spacer()
-                                        Text(selectedSubject?.title ?? "None").foregroundColor(RainbowColors.blue)
-                                    }
-                                    .padding()
-                                    .background(Color.black.opacity(0.3))
-                                    .cornerRadius(10)
+                                    HStack { Text("Subject").foregroundColor(.gray); Spacer(); Text(selectedSubject?.title ?? "None").foregroundColor(RainbowColors.blue) }
+                                    .padding().background(Color.black.opacity(0.3)).cornerRadius(10)
                                 }
                                 
-                                Toggle(isOn: $isFlagged) {
-                                    HStack {
-                                        Image(systemName: "flag.fill").foregroundColor(RainbowColors.orange)
-                                        Text("Flag Task").foregroundColor(.white)
-                                    }
-                                }
-                                .tint(RainbowColors.orange)
+                                Toggle(isOn: $isFlagged) { HStack { Image(systemName: "flag.fill").foregroundColor(RainbowColors.orange); Text("Flag Task").foregroundColor(.white) } }.tint(RainbowColors.orange)
                             }
                         }
                         
-                        // 2. Notes
-                        RainbowContainer {
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text("Notes").font(.headline).foregroundColor(.white)
-                                TextEditor(text: $notes)
-                                    .frame(minHeight: 100)
-                                    .scrollContentBackground(.hidden)
-                                    .background(Color.black.opacity(0.3))
-                                    .cornerRadius(10)
-                                    .foregroundColor(.white)
-                            }
-                        }
-                        
-                        // 3. Priority
-                        RainbowContainer {
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text("Priority").font(.headline).foregroundColor(.white)
-                                Picker("Priority", selection: $priority) {
-                                    ForEach(TaskPriority.allCases, id: \.self) { p in
-                                        Text(p.rawValue).tag(p)
-                                    }
-                                }
-                                .pickerStyle(.segmented)
-                                .colorScheme(.dark)
-                            }
-                        }
-                        
-                        // 4. Deadlines
+                        // 2. Deadlines & Priority
                         RainbowContainer {
                             VStack(alignment: .leading, spacing: 16) {
-                                Toggle(isOn: $hasDueDate) {
-                                    Text("Set Due Date").font(.headline).foregroundColor(.white)
-                                }
-                                .tint(RainbowColors.blue)
+                                Picker("Priority", selection: $priority) { ForEach(TaskPriority.allCases, id: \.self) { p in Text(p.rawValue).tag(p) } }.pickerStyle(.segmented).colorScheme(.dark)
                                 
+                                Toggle(isOn: $hasDueDate) { Text("Set Due Date").font(.headline).foregroundColor(.white) }.tint(RainbowColors.blue)
                                 if hasDueDate {
-                                    DatePicker("Select Date", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
-                                        .colorScheme(.dark)
-                                    
-                                    Picker("Reminder", selection: $reminderTime) {
-                                        ForEach(TaskReminderTime.allCases, id: \.self) { time in
-                                            Text(time.rawValue).tag(time)
-                                        }
-                                    }
-                                    .pickerStyle(.menu)
-                                    .accentColor(RainbowColors.blue)
+                                    DatePicker("Select Date", selection: $dueDate, displayedComponents: [.date, .hourAndMinute]).colorScheme(.dark)
+                                    Picker("Reminder", selection: $reminderTime) { ForEach(TaskReminderTime.allCases, id: \.self) { time in Text(time.rawValue).tag(time) } }.pickerStyle(.menu).accentColor(RainbowColors.blue)
                                 }
                             }
                         }
                         
-                        // 5. Delete
+                        // 3. Delete
                         Button(action: { showingDeleteAlert = true }) {
-                            Text("Delete Task")
-                                .font(.headline)
-                                .foregroundColor(.red)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(RainbowColors.darkCard)
-                                .cornerRadius(12)
+                            Text("Delete Task").font(.headline).foregroundColor(.red).frame(maxWidth: .infinity).padding().background(RainbowColors.darkCard).cornerRadius(12)
                         }
-                    }
-                    .padding()
+                    }.padding()
                 }
             }
             .navigationTitle("Edit Task")
@@ -162,29 +103,15 @@ struct RainbowEditTaskView: View {
                 ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { dismiss() }.foregroundColor(.gray) }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
-                        task.title = title
-                        task.notes = notes
-                        task.subject = selectedSubject
-                        task.priority = priority
-                        task.dueDate = hasDueDate ? dueDate : nil
-                        task.reminderTime = hasDueDate ? reminderTime : .none
-                        task.isFlagged = isFlagged
+                        task.title = title; task.notes = notes; task.subject = selectedSubject; task.priority = priority
+                        task.dueDate = hasDueDate ? dueDate : nil; task.reminderTime = hasDueDate ? reminderTime : .none; task.isFlagged = isFlagged
                         dismiss()
-                    }
-                    .disabled(title.isEmpty)
-                    .fontWeight(.bold)
-                    .foregroundColor(RainbowColors.blue)
+                    }.disabled(title.isEmpty).fontWeight(.bold).foregroundColor(RainbowColors.blue)
                 }
             }
             .alert("Delete Task", isPresented: $showingDeleteAlert) {
-                Button("Delete", role: .destructive) {
-                    modelContext.delete(task)
-                    dismiss()
-                }
-                Button("Cancel", role: .cancel) { }
-            } message: {
-                Text("Are you sure? This cannot be undone.")
-            }
+                Button("Delete", role: .destructive) { modelContext.delete(task); dismiss() }; Button("Cancel", role: .cancel) { }
+            } message: { Text("Are you sure? This cannot be undone.") }
         }
     }
 }
@@ -221,51 +148,35 @@ struct StandardEditTaskView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Task Details")) {
-                    TextField("Task title", text: $title)
-                    Picker("Subject", selection: $selectedSubject) {
-                        Text("No Subject").tag(nil as Subject?)
-                        ForEach(subjects) { subject in
-                            Text(subject.title).tag(subject as Subject?)
-                        }
-                    }
-                    Toggle(isOn: $isFlagged) {
-                        HStack {
-                            Image(systemName: "flag.fill")
-                                .foregroundColor(.themeWarning)
-                            Text("Flag task")
-                        }
-                    }
+                // Apple-style: Title & Notes grouped
+                Section {
+                    TextField("Title", text: $title)
+                    TextField("Notes", text: $notes, axis: .vertical)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(3...6)
                 }
                 
-                Section(header: Text("Notes")) {
-                    TextEditor(text: $notes)
-                        .frame(minHeight: 80)
+                Section {
+                    Picker("Subject", selection: $selectedSubject) {
+                        Text("No Subject").tag(nil as Subject?)
+                        ForEach(subjects) { subject in Text(subject.title).tag(subject as Subject?) }
+                    }
+                    Toggle(isOn: $isFlagged) { HStack { Image(systemName: "flag.fill").foregroundColor(.themeWarning); Text("Flag task") } }
                 }
                 
                 Section(header: Text("Priority")) {
-                    Picker("Priority", selection: $priority) {
-                        ForEach(TaskPriority.allCases, id: \.self) { p in
-                            Text(p.rawValue).tag(p)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+                    Picker("Priority", selection: $priority) { ForEach(TaskPriority.allCases, id: \.self) { p in Text(p.rawValue).tag(p) } }.pickerStyle(.segmented)
                 }
+                
                 Section(header: Text("Due Date")) {
                     Toggle("Add Due Date", isOn: $hasDueDate)
                     if hasDueDate {
-                        DatePicker("Due Date", selection: $dueDate, in: Date()..., displayedComponents: [.date, .hourAndMinute])
-                            .datePickerStyle(.graphical)
-                        Picker("Reminder", selection: $reminderTime) {
-                            ForEach(TaskReminderTime.allCases, id: \.self) { time in
-                                Text(time.rawValue).tag(time)
-                            }
-                        }
+                        DatePicker("Due Date", selection: $dueDate, in: Date()..., displayedComponents: [.date, .hourAndMinute]).datePickerStyle(.compact)
+                        Picker("Reminder", selection: $reminderTime) { ForEach(TaskReminderTime.allCases, id: \.self) { time in Text(time.rawValue).tag(time) } }
                     }
                 }
-                Section {
-                    Button("Delete Task", role: .destructive) { showingDeleteAlert = true }
-                }
+                
+                Section { Button("Delete Task", role: .destructive) { showingDeleteAlert = true } }
             }
             .navigationTitle("Edit Task")
             .navigationBarTitleDisplayMode(.inline)
@@ -273,27 +184,15 @@ struct StandardEditTaskView: View {
                 ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
-                        task.title = title
-                        task.notes = notes
-                        task.subject = selectedSubject
-                        task.priority = priority
-                        task.dueDate = hasDueDate ? dueDate : nil
-                        task.reminderTime = hasDueDate ? reminderTime : .none
-                        task.isFlagged = isFlagged
+                        task.title = title; task.notes = notes; task.subject = selectedSubject; task.priority = priority
+                        task.dueDate = hasDueDate ? dueDate : nil; task.reminderTime = hasDueDate ? reminderTime : .none; task.isFlagged = isFlagged
                         dismiss()
-                    }
-                    .disabled(title.isEmpty)
+                    }.disabled(title.isEmpty)
                 }
             }
             .alert("Delete Task", isPresented: $showingDeleteAlert) {
-                Button("Delete", role: .destructive) {
-                    modelContext.delete(task)
-                    dismiss()
-                }
-                Button("Cancel", role: .cancel) { }
-            } message: {
-                Text("Are you sure?")
-            }
+                Button("Delete", role: .destructive) { modelContext.delete(task); dismiss() }; Button("Cancel", role: .cancel) { }
+            } message: { Text("Are you sure?") }
         }
     }
 }
@@ -328,137 +227,52 @@ struct ArcadeEditTaskView: View {
         NavigationView {
             ZStack {
                 Color.black.ignoresSafeArea()
-                
                 ScrollView {
                     VStack(spacing: 24) {
-                        // Title
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("UPDATE MISSION PARAMETERS")
-                                .font(.system(size: 10, weight: .bold, design: .rounded))
-                                .foregroundColor(.cyan)
-                            
-                            TextField("Objective...", text: $title)
-                                .padding()
-                                .background(Color(white: 0.1))
-                                .cornerRadius(12)
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.cyan.opacity(0.5), lineWidth: 1))
-                                .foregroundColor(.white)
+                            Text("UPDATE MISSION PARAMETERS").font(.system(size: 10, weight: .bold, design: .rounded)).foregroundColor(.cyan)
+                            TextField("Objective...", text: $title).padding().background(Color(white: 0.1)).cornerRadius(12).overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.cyan.opacity(0.5), lineWidth: 1)).foregroundColor(.white)
                         }
                         
-                        // Notes
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("MISSION INTEL")
-                                .font(.system(size: 10, weight: .bold, design: .rounded))
-                                .foregroundColor(.green)
-                            
-                            TextEditor(text: $notes)
-                                .scrollContentBackground(.hidden)
-                                .frame(minHeight: 100)
-                                .padding(8)
-                                .background(Color(white: 0.1))
-                                .cornerRadius(12)
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.green.opacity(0.5), lineWidth: 1))
-                                .foregroundColor(.white)
+                            Text("MISSION INTEL").font(.system(size: 10, weight: .bold, design: .rounded)).foregroundColor(.green)
+                            TextField("Notes...", text: $notes, axis: .vertical).padding().background(Color(white: 0.1)).cornerRadius(12).overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.green.opacity(0.5), lineWidth: 1)).foregroundColor(.white).lineLimit(3...6)
                         }
                         
-                        // Controls
+                        // Controls...
                         HStack(spacing: 16) {
                             Menu {
                                 Button("None") { selectedSubject = nil }
-                                ForEach(subjects) { subject in
-                                    Button(subject.title) { selectedSubject = subject }
-                                }
+                                ForEach(subjects) { subject in Button(subject.title) { selectedSubject = subject } }
                             } label: {
-                                VStack(alignment: .leading) {
-                                    Text("SKILL TREE")
-                                        .font(.caption).fontWeight(.bold).foregroundColor(.purple)
-                                    Text(selectedSubject?.title ?? "Select...")
-                                        .foregroundColor(.white)
-                                }
-                                .padding()
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color(white: 0.1))
-                                .cornerRadius(12)
+                                VStack(alignment: .leading) { Text("SKILL TREE").font(.caption).fontWeight(.bold).foregroundColor(.purple); Text(selectedSubject?.title ?? "Select...").foregroundColor(.white) }.padding().frame(maxWidth: .infinity, alignment: .leading).background(Color(white: 0.1)).cornerRadius(12)
                             }
-                            
                             Button(action: { isFlagged.toggle() }) {
-                                VStack(alignment: .center) {
-                                    Text("FLAG")
-                                        .font(.caption).fontWeight(.bold).foregroundColor(.yellow)
-                                    Image(systemName: isFlagged ? "flag.fill" : "flag")
-                                        .foregroundColor(isFlagged ? .yellow : .gray)
-                                }
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color(white: 0.1))
-                                .cornerRadius(12)
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(isFlagged ? Color.yellow : Color.clear, lineWidth: 1))
+                                VStack { Text("FLAG").font(.caption).fontWeight(.bold).foregroundColor(.yellow); Image(systemName: isFlagged ? "flag.fill" : "flag").foregroundColor(isFlagged ? .yellow : .gray) }.padding().frame(maxWidth: .infinity).background(Color(white: 0.1)).cornerRadius(12).overlay(RoundedRectangle(cornerRadius: 12).stroke(isFlagged ? Color.yellow : Color.clear, lineWidth: 1))
                             }
                         }
-                        
-                        // Priority
+                        // Priority & Date...
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("DIFFICULTY")
-                                .font(.caption).fontWeight(.bold).foregroundColor(.gray)
-                            HStack(spacing: 12) {
-                                ForEach(TaskPriority.allCases, id: \.self) { p in
-                                    Button(action: { priority = p }) {
-                                        Text(p.rawValue.uppercased())
-                                            .font(.system(.caption, design: .rounded))
-                                            .fontWeight(.bold)
-                                            .frame(maxWidth: .infinity)
-                                            .padding(.vertical, 12)
-                                            .background(priority == p ? p.color : Color(white: 0.1))
-                                            .foregroundColor(priority == p ? .white : .gray)
-                                            .cornerRadius(8)
-                                            .shadow(color: priority == p ? p.color.opacity(0.5) : .clear, radius: 8)
-                                    }
-                                }
-                            }
+                            Text("DIFFICULTY").font(.caption).fontWeight(.bold).foregroundColor(.gray)
+                            HStack(spacing: 12) { ForEach(TaskPriority.allCases, id: \.self) { p in Button(action: { priority = p }) { Text(p.rawValue.uppercased()).font(.system(.caption, design: .rounded)).fontWeight(.bold).frame(maxWidth: .infinity).padding(.vertical, 12).background(priority == p ? p.color : Color(white: 0.1)).foregroundColor(priority == p ? .white : .gray).cornerRadius(8) } } }
                         }
-                        
-                        // Date
                         VStack(alignment: .leading, spacing: 12) {
                             Toggle("TIME LIMIT", isOn: $hasDueDate).tint(.pink).font(.headline).foregroundColor(.white)
-                            if hasDueDate {
-                                DatePicker("", selection: $dueDate).datePickerStyle(.graphical).colorScheme(.dark)
-                            }
-                        }
-                        .padding().background(Color(white: 0.1)).cornerRadius(16)
+                            if hasDueDate { DatePicker("", selection: $dueDate).datePickerStyle(.graphical).colorScheme(.dark) }
+                        }.padding().background(Color(white: 0.1)).cornerRadius(16)
                         
-                        // Delete Button
-                        Button(action: { modelContext.delete(task); dismiss() }) {
-                            Text("ABORT MISSION (DELETE)")
-                                .font(.system(.caption, design: .rounded))
-                                .fontWeight(.black)
-                                .foregroundColor(.red)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.red.opacity(0.1))
-                                .cornerRadius(12)
-                        }
-                    }
-                    .padding()
+                        Button(action: { modelContext.delete(task); dismiss() }) { Text("ABORT MISSION (DELETE)").font(.system(.caption, design: .rounded)).fontWeight(.black).foregroundColor(.red).padding().frame(maxWidth: .infinity).background(Color.red.opacity(0.1)).cornerRadius(12) }
+                    }.padding()
                 }
             }
-            .navigationTitle("Mission Control")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("Mission Control").navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") { dismiss() }.foregroundColor(.gray)
-                }
+                ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { dismiss() }.foregroundColor(.gray) }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save Changes") {
-                        task.title = title
-                        task.notes = notes
-                        task.subject = selectedSubject
-                        task.priority = priority
-                        task.dueDate = hasDueDate ? dueDate : nil
-                        task.isFlagged = isFlagged
-                        dismiss()
-                    }
-                    .fontWeight(.bold)
-                    .foregroundColor(.cyan)
+                        task.title = title; task.notes = notes; task.subject = selectedSubject; task.priority = priority
+                        task.dueDate = hasDueDate ? dueDate : nil; task.isFlagged = isFlagged; dismiss()
+                    }.fontWeight(.bold).foregroundColor(.cyan)
                 }
             }
         }

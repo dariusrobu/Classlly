@@ -416,18 +416,37 @@ struct SmartActionBelt: View {
 
 struct NextClassHero: View {
     let event: TodayClassEvent
+    // Used to refresh view periodically if needed, though Text(style: .timer) handles the ticking
+    @State private var now = Date()
     
     var body: some View {
         HStack(spacing: 20) {
             VStack(spacing: 4) {
-                Text(formatTime(event.startTime))
-                    .font(.title3)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                Text(formatTime(event.endTime))
-                    .font(.caption)
-                    .foregroundColor(.gray)
+                if event.startTime > Date() {
+                    // Future class: Show countdown
+                    Text(event.startTime, style: .timer)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .monospacedDigit()
+                        .multilineTextAlignment(.center)
+                    
+                    Text("until start")
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                } else {
+                    // Class has started
+                    Text("Now")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                    
+                    Text("ends \(formatTime(event.endTime))")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
             }
+            .frame(minWidth: 80) // Ensure enough width for timer to prevent jitter
             
             Rectangle()
                 .fill(Color.white.opacity(0.3))
@@ -826,7 +845,7 @@ struct QuickAttendanceButton: View {
     
     var isAttended: Bool {
         let cal = Calendar.current
-        // Fix: Unwrapped safely using '?? []'
+        // Fix: Safely unwrap attendance array
         let attendance = subject.attendance ?? []
         return attendance.contains { cal.isDate($0.date, inSameDayAs: Date()) }
     }
@@ -842,11 +861,10 @@ struct QuickAttendanceButton: View {
     func toggle() {
         let cal = Calendar.current
         let today = Date()
-        // Fix: Unwrapped safely using '?? []'
-        let attendance = subject.attendance ?? []
         
-        if isAttended, let idx = attendance.firstIndex(where: { cal.isDate($0.date, inSameDayAs: today) }) {
-            // Note: We use the index from the safe array to get the object, but delete logic is fine
+        // Fix: Safely unwrap attendance for modification
+        if isAttended, let attendance = subject.attendance,
+           let idx = attendance.firstIndex(where: { cal.isDate($0.date, inSameDayAs: today) }) {
             let entry = attendance[idx]
             modelContext.delete(entry)
         } else {

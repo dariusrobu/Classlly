@@ -12,13 +12,48 @@ struct CalendarView: View {
     private var startOfWeek: Date {
         Calendar.current.dateInterval(of: .weekOfYear, for: selectedDate)?.start ?? Date()
     }
+    
+    // Formatter for the header (e.g., "October 2025")
+    private var monthYearString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter.string(from: selectedDate)
+    }
 
     var body: some View {
         NavigationStack {
-            VStack {
+            VStack(spacing: 0) {
+                // MARK: - Week Navigation Header
+                HStack {
+                    Button(action: { changeWeek(by: -1) }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .bold))
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    
+                    Spacer()
+                    
+                    Text(monthYearString)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
+                    
+                    Spacer()
+                    
+                    Button(action: { changeWeek(by: 1) }) {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 16, weight: .bold))
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                }
+                .padding(.horizontal)
+                .background(Color(.secondarySystemBackground))
+                
                 // Custom Week Strip
                 WeekStripView(selectedDate: $selectedDate, selectedDayIndex: $selectedDayIndex)
-                    .padding(.vertical)
+                    .padding(.bottom)
                     .background(Color(.secondarySystemBackground))
                 
                 // Schedule List
@@ -45,11 +80,38 @@ struct CalendarView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Today") {
-                        let now = Date()
-                        selectedDate = now
-                        selectedDayIndex = Calendar.current.component(.weekday, from: now)
+                        withAnimation {
+                            let now = Date()
+                            selectedDate = now
+                            selectedDayIndex = Calendar.current.component(.weekday, from: now)
+                        }
                     }
                 }
+            }
+            // Optional: Add swipe gesture to the whole view to change weeks
+            .gesture(
+                DragGesture()
+                    .onEnded { value in
+                        if value.translation.width < -50 {
+                            // Swipe Left -> Next Week
+                            changeWeek(by: 1)
+                        } else if value.translation.width > 50 {
+                            // Swipe Right -> Prev Week
+                            changeWeek(by: -1)
+                        }
+                    }
+            )
+        }
+    }
+    
+    // MARK: - Logic
+    
+    private func changeWeek(by weeks: Int) {
+        if let newDate = Calendar.current.date(byAdding: .weekOfYear, value: weeks, to: selectedDate) {
+            withAnimation {
+                selectedDate = newDate
+                // Update selectedDayIndex to match the new date's weekday
+                selectedDayIndex = Calendar.current.component(.weekday, from: newDate)
             }
         }
     }
@@ -69,25 +131,22 @@ struct CalendarView: View {
     var todaysClasses: [ClassItem] {
         var items: [ClassItem] = []
         
-        // 1. Convert selectedDayIndex (Sunday=1) to Mon=1...Sun=7 if needed
-        // Assuming your app uses Monday=1...Sunday=7 logic for the models
         // Swift Calendar: Sun=1, Mon=2... Sat=7
         let weekday = Calendar.current.component(.weekday, from: selectedDate)
-        // Convert to Monday=1 standard
-        let dayModelIndex = weekday == 1 ? 7 : weekday - 1
+        // Convert to Monday=1 standard for Subject model if needed, or use standard
+        // Assuming subject.courseDays uses 1=Sun, 2=Mon... standard based on WeekStripView logic
         
         for subject in subjects {
             // Check Course
-            // Logic: Is it active this week? AND Is it active today?
             if subject.occursThisWeek(date: selectedDate, isSeminar: false) &&
-               subject.occursOnDay(day: dayModelIndex, isSeminar: false) {
+               subject.occursOnDay(day: weekday, isSeminar: false) {
                 items.append(ClassItem(subject: subject, isSeminar: false))
             }
             
             // Check Seminar
             if subject.hasSeminar {
                 if subject.occursThisWeek(date: selectedDate, isSeminar: true) &&
-                   subject.occursOnDay(day: dayModelIndex, isSeminar: true) {
+                   subject.occursOnDay(day: weekday, isSeminar: true) {
                     items.append(ClassItem(subject: subject, isSeminar: true))
                 }
             }
