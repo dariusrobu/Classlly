@@ -67,8 +67,7 @@ struct StickyUniversityView: View {
             Text("Where do you study?").font(.largeTitle).fontWeight(.bold).foregroundColor(.white)
             
             Button(action: {
-                // Use the static template we created earlier
-                calendarManager.generateAndSaveCalendar(from: AcademicCalendarManager.ubb2025Template)
+                calendarManager.loadDemoData()
                 withAnimation { isConfigured = true }
             }) {
                 HStack {
@@ -184,3 +183,4 @@ struct ConfettiView: View {
         .onAppear { withAnimation(.easeOut(duration: 1.5)) { animate = true } }
     }
 }
+

@@ -181,4 +181,4 @@ class AcademicCalendarManager: ObservableObject {
     // Specific helpers needed for Onboarding
     var semesterStartDate: Date { startDate }
     var semesterEndDate: Date { endDate }
-}
+} 
