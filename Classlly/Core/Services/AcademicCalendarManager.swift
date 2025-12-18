@@ -1,80 +1,36 @@
 import SwiftUI
 import Combine
 
-// MARK: - DATA MODELS
-struct AcademicEventData: Identifiable, Codable {
-    var id = UUID()
-    var start: String // Format: "yyyy-MM-dd"
-    var end: String
-    var type: EventType
-    var weeks: Int
-    var customName: String?
-    
-    // Teaching weeks specific
-    var teachingWeekIndexStart: Int?
-    var teachingWeekIndexEnd: Int?
-}
-
-enum EventType: String, Codable, CaseIterable {
-    case teaching = "Teaching"
-    case holiday = "Holiday"
-    case exam = "Exam"
-    case assessment = "Assessment"
-    case other = "Other"
-    
-    var iconName: String {
-        switch self {
-        case .teaching: return "book.fill"
-        case .holiday: return "sun.max.fill"
-        case .exam: return "doc.text.fill"
-        case .assessment: return "pencil.and.outline"
-        case .other: return "calendar"
-        }
-    }
-    
-    var color: Color {
-        switch self {
-        case .teaching: return .blue
-        case .holiday: return .green
-        case .exam: return .red
-        case .assessment: return .orange
-        case .other: return .gray
-        }
-    }
-}
-
-struct SemesterData: Codable {
-    var events: [AcademicEventData]
-}
-
-struct AcademicCalendarData: Identifiable, Codable {
-    var id = UUID()
-    var academicYear: String // e.g., "2024-2025"
-    var universityName: String?
-    var customName: String?
-    var semester1: SemesterData
-    var semester2: SemesterData
-}
-
-enum CalendarTemplate: String, CaseIterable, Identifiable {
-    case ukStandard = "UK Standard (Sep-Jun)"
-    case usStandard = "US Standard (Aug-May)"
-    case ausStandard = "Australian (Feb-Nov)"
-    case custom = "Empty Template"
-    
-    var id: String { self.rawValue }
-}
-
-// MARK: - MANAGER
 class AcademicCalendarManager: ObservableObject {
-    // ✅ Singleton Instance (Fixes ClassllyApp error)
     static let shared = AcademicCalendarManager()
     
     // Published Properties
     @Published var currentAcademicYear: AcademicCalendarData?
     @Published var availableCalendars: [AcademicCalendarData] = []
     
-    // Legacy support for older views using direct dates
+    // ✅ FIX: Added templates for OnboardingView
+    @Published var availableTemplates: [CalendarTemplate] = [
+        CalendarTemplate(
+            universityName: "University of Nottingham",
+            academicYear: "2024-2025",
+            sem1Start: "2024-09-23", sem1End: "2025-01-24",
+            sem2Start: "2025-01-27", sem2End: "2025-06-20"
+        ),
+        CalendarTemplate(
+            universityName: "University of Bristol",
+            academicYear: "2024-2025",
+            sem1Start: "2024-09-16", sem1End: "2025-01-17",
+            sem2Start: "2025-01-20", sem2End: "2025-06-06"
+        ),
+        CalendarTemplate(
+            universityName: "University of Manchester",
+            academicYear: "2024-2025",
+            sem1Start: "2024-09-16", sem1End: "2025-01-24",
+            sem2Start: "2025-01-27", sem2End: "2025-06-06"
+        )
+    ]
+    
+    // Legacy support
     @Published var startDate: Date = Date()
     @Published var endDate: Date = Date()
     @Published var currentSemester: SemesterType = .fall
@@ -88,13 +44,57 @@ class AcademicCalendarManager: ObservableObject {
     }
     
     init() {
-        // Load demo data if empty
         if availableCalendars.isEmpty {
             loadDemoData()
         }
     }
     
-    // ✅ HELPER FUNCTIONS
+    // MARK: - Template Generation (Onboarding Support)
+    
+    func generateAndSaveCalendar(from template: CalendarTemplate) {
+        let newCalendar = AcademicCalendarData(
+            academicYear: template.academicYear,
+            universityName: template.universityName,
+            customName: template.universityName,
+            semester1: createSemester(start: template.sem1Start, end: template.sem1End),
+            semester2: createSemester(start: template.sem2Start, end: template.sem2End)
+        )
+        addCustomCalendar(newCalendar)
+        setCurrentCalendar(newCalendar)
+    }
+    
+    func generateAndSaveCustomCalendar(year: String, universityName: String, sem1Start: Date, sem1End: Date, sem2Start: Date, sem2End: Date) {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        
+        let newCalendar = AcademicCalendarData(
+            academicYear: year,
+            universityName: universityName,
+            customName: "\(universityName) Custom",
+            semester1: createSemester(start: formatter.string(from: sem1Start), end: formatter.string(from: sem1End)),
+            semester2: createSemester(start: formatter.string(from: sem2Start), end: formatter.string(from: sem2End))
+        )
+        addCustomCalendar(newCalendar)
+        setCurrentCalendar(newCalendar)
+    }
+    
+    private func createSemester(start: String, end: String) -> SemesterData {
+        // Create a default teaching block for the semester
+        let events = [
+            AcademicEventData(
+                start: start,
+                end: end,
+                type: .teaching,
+                weeks: 12,
+                customName: "Teaching Term",
+                teachingWeekIndexStart: 1,
+                teachingWeekIndexEnd: 12
+            )
+        ]
+        return SemesterData(events: events)
+    }
+    
+    // MARK: - Basic Management
     
     func loadDemoData() {
         let demo = createNewCalendar(year: "2024-2025", universityName: "Demo Uni", customName: "Demo Calendar")
@@ -104,7 +104,6 @@ class AcademicCalendarManager: ObservableObject {
     }
     
     func createNewCalendar(year: String, universityName: String, customName: String) -> AcademicCalendarData {
-        // Create basic structure
         return AcademicCalendarData(
             academicYear: year,
             universityName: universityName,
@@ -139,15 +138,14 @@ class AcademicCalendarManager: ObservableObject {
         }
     }
     
-    // Legacy support updater
     private func updateLegacyDates() {
-        // Set generic dates based on current calendar or defaults
         let now = Date()
         self.startDate = Calendar.current.date(byAdding: .month, value: -2, to: now) ?? now
         self.endDate = Calendar.current.date(byAdding: .month, value: 4, to: now) ?? now
     }
     
-    // Helper to get events for specific semester enum
+    // MARK: - Helpers
+    
     func getSemesterEvents(_ type: SemesterType) -> [AcademicEventData] {
         guard let calendar = currentAcademicYear else { return [] }
         switch type {
@@ -156,9 +154,7 @@ class AcademicCalendarManager: ObservableObject {
         }
     }
     
-    // Helper to find which event is active today
     func getCurrentEvent(for date: Date) -> AcademicEventData? {
-        // Simplified logic: checks all events in current calendar
         guard let calendar = currentAcademicYear else { return nil }
         let allEvents = calendar.semester1.events + calendar.semester2.events
         let formatter = DateFormatter()
@@ -172,13 +168,10 @@ class AcademicCalendarManager: ObservableObject {
     }
     
     var currentTeachingWeek: Int? {
-        // Logic to calculate week based on current event
         guard let event = getCurrentEvent(for: Date()), event.type == .teaching, let startIdx = event.teachingWeekIndexStart else { return nil }
-        // Simple calculation for demo
         return startIdx
     }
     
-    // Specific helpers needed for Onboarding
     var semesterStartDate: Date { startDate }
     var semesterEndDate: Date { endDate }
-} 
+}

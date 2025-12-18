@@ -9,18 +9,24 @@ struct SettingsDashboardView: View {
             case .rainbow:
                 RainbowSettingsView()
             case .arcade:
+                // Uses the robust implementation from SettingsView.swift
                 ArcadeSettingsView()
             case .none:
+                // Uses the robust implementation from SettingsView.swift
                 StandardSettingsView()
             }
         }
     }
 }
 
-// MARK: - 🌈 RAINBOW SETTINGS
+// MARK: - 決 RAINBOW SETTINGS
 struct RainbowSettingsView: View {
     @EnvironmentObject var themeManager: AppTheme
     @State private var showThemeSheet = false
+    
+    // Define RainbowColors locally if not available globally, or rely on global definition.
+    // Assuming RainbowColors is defined in your Color extensions.
+    // If not, we can use standard Colors as fallbacks.
     
     var body: some View {
         let accent = themeManager.selectedTheme.primaryColor
@@ -64,18 +70,20 @@ struct RainbowSettingsView: View {
                         .padding(.horizontal)
                         
                         // 3. Settings Sections
+                        // Note: Ensure RainbowColors struct exists in your project.
+                        // If these throw errors, change 'RainbowColors.blue' to 'Color.blue', etc.
                         VStack(spacing: 16) {
-                            RainbowSectionHeader(title: "INTERFACE", color: RainbowColors.blue)
-                            RainbowSettingRow(icon: "paintpalette.fill", title: "Theme Color", color: RainbowColors.blue) { showThemeSheet = true }
+                            RainbowSectionHeader(title: "INTERFACE", color: .blue)
+                            RainbowSettingRow(icon: "paintpalette.fill", title: "Theme Color", color: .blue) { showThemeSheet = true }
                             RainbowGameModePicker()
                             
-                            RainbowSectionHeader(title: "ACADEMIC", color: RainbowColors.green)
+                            RainbowSectionHeader(title: "ACADEMIC", color: .green)
                             NavigationLink(destination: AcademicCalendarSettingsView()) {
-                                RainbowSettingRowContent(icon: "calendar", title: "Academic Calendar", color: RainbowColors.green)
+                                RainbowSettingRowContent(icon: "calendar", title: "Academic Calendar", color: .green)
                             }
                             
-                            RainbowSectionHeader(title: "DATA", color: RainbowColors.red)
-                            RainbowSettingRowContent(icon: "arrow.down.doc.fill", title: "Export Data", color: RainbowColors.red)
+                            RainbowSectionHeader(title: "DATA", color: .red)
+                            RainbowSettingRowContent(icon: "arrow.down.doc.fill", title: "Export Data", color: .red)
                         }
                         .padding(.horizontal)
                         
@@ -91,7 +99,7 @@ struct RainbowSettingsView: View {
     }
 }
 
-// MARK: - 🌈 RAINBOW COMPONENTS
+// MARK: - 決 RAINBOW COMPONENTS
 struct RainbowSectionHeader: View {
     let title: String; let color: Color
     var body: some View {
@@ -146,59 +154,31 @@ struct RainbowGameModePicker: View {
     }
 }
 
-// MARK: - 🏠 STANDARD SETTINGS
-struct StandardSettingsView: View {
-    @EnvironmentObject var themeManager: AppTheme
-    @State private var showThemeSheet = false
-    
-    var body: some View {
-        NavigationStack {
-            List {
-                Section { NavigationLink(destination: ProfileView()) { Label("Profile", systemImage: "person.circle") } }
-                Section("Appearance") {
-                    Button(action: { showThemeSheet = true }) { Label("Theme Color", systemImage: "paintpalette") }
-                    Picker("Interface Style", selection: $themeManager.selectedGameMode) {
-                        Text("Standard").tag(GameMode.none); Text("Rainbow").tag(GameMode.rainbow); Text("Arcade").tag(GameMode.arcade)
-                    }
-                }
-                Section("Academic") { NavigationLink(destination: AcademicCalendarSettingsView()) { Label("Academic Calendar", systemImage: "calendar") } }
-            }
-            .navigationTitle("Settings")
-            .sheet(isPresented: $showThemeSheet) { ThemeSelectionSheet() }
-        }
-    }
-}
-
-// MARK: - 🕹️ ARCADE SETTINGS (Stub)
-struct ArcadeSettingsView: View {
-    var body: some View { ZStack { Color.black.ignoresSafeArea(); Text("Arcade Config").font(.largeTitle).foregroundColor(.cyan) } }
-}
-
-// MARK: - 🎨 THEME SELECTION SHEET (Missing Component)
+// MARK: - 耳 THEME SELECTION SHEET (FIXED)
 struct ThemeSelectionSheet: View {
     @EnvironmentObject var themeManager: AppTheme
     @Environment(\.dismiss) var dismiss
     
-    let colors: [Color] = [.blue, .purple, .pink, .red, .orange, .yellow, .green, .mint, .teal, .cyan, .indigo]
+    // Fix: Use the Enum cases directly instead of a raw Color array
+    let themes = Theme.allCases
     
     var body: some View {
         NavigationStack {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 60))], spacing: 20) {
-                    ForEach(colors, id: \.self) { color in
+                    ForEach(themes) { theme in
                         Circle()
-                            .fill(color)
+                            .fill(theme.primaryColor)
                             .frame(width: 60, height: 60)
                             .overlay(
                                 Image(systemName: "checkmark")
                                     .font(.title2.bold())
                                     .foregroundColor(.white)
-                                    .opacity(themeManager.selectedTheme.primaryColor == color ? 1 : 0)
+                                    .opacity(themeManager.selectedTheme == theme ? 1 : 0)
                             )
                             .onTapGesture {
-                                // Update logic depends on how AppTheme is structured.
-                                // Assuming we can set the primary color or a theme struct.
-                                themeManager.selectedTheme = AppTheme.Theme(primaryColor: color, secondaryColor: .gray)
+                                // Fix: Directly assign the Enum case
+                                themeManager.selectedTheme = theme
                             }
                     }
                 }
@@ -210,4 +190,3 @@ struct ThemeSelectionSheet: View {
         .presentationDetents([.medium])
     }
 }
-

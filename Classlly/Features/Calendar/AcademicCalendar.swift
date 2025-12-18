@@ -37,54 +37,55 @@ struct StandardSemesterListView: View {
                             Text(calendar.customName ?? calendar.academicYear)
                                 .font(.title2)
                                 .fontWeight(.bold)
-                                .foregroundColor(.themeTextPrimary)
+                                .foregroundColor(.primary)
                             
                             if let university = calendar.universityName {
                                 Text(university)
                                     .font(.subheadline)
-                                    .foregroundColor(.themeTextSecondary)
+                                    .foregroundColor(.secondary)
                             }
                             
                             Text(calendar.academicYear)
                                 .font(.caption)
-                                .foregroundColor(.themeTextSecondary)
+                                .foregroundColor(.secondary)
                         } else {
                             Text("No Calendar Selected")
                                 .font(.headline)
-                                .foregroundColor(.themeTextSecondary)
+                                .foregroundColor(.secondary)
                         }
                     }
                     Spacer()
                     Button("Switch") { showingCalendarManagement = true }
                         .font(.subheadline)
-                        .foregroundColor(.themePrimary)
+                        .foregroundColor(.blue)
                 }
                 .padding()
-                .background(Color.themeSurface)
+                // Fallback colors used if .themeSurface not defined
+                .background(Color(UIColor.secondarySystemBackground))
                 .cornerRadius(12)
                 
                 // Current Status
                 VStack(spacing: 12) {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Current Academic Week").font(.headline).foregroundColor(.themeTextSecondary)
+                            Text("Current Academic Week").font(.headline).foregroundColor(.secondary)
                             if let currentWeek = calendarManager.currentTeachingWeek {
-                                Text("Week \(currentWeek)").font(.system(size: 32, weight: .bold)).foregroundColor(.themePrimary)
+                                Text("Week \(currentWeek)").font(.system(size: 32, weight: .bold)).foregroundColor(.blue)
                             } else {
-                                Text("Break Period").font(.system(size: 24, weight: .semibold)).foregroundColor(.themeWarning)
+                                Text("Break Period").font(.system(size: 24, weight: .semibold)).foregroundColor(.orange)
                             }
                         }
                         Spacer()
                         VStack(alignment: .trailing, spacing: 4) {
-                            Text(calendarManager.currentAcademicYear?.academicYear ?? "").font(.subheadline).foregroundColor(.themeTextSecondary)
-                            Text(calendarManager.currentSemester.displayName).font(.headline).foregroundColor(.themeTextPrimary)
+                            Text(calendarManager.currentAcademicYear?.academicYear ?? "").font(.subheadline).foregroundColor(.secondary)
+                            Text(calendarManager.currentSemester.displayName).font(.headline).foregroundColor(.primary)
                         }
                     }
                 }
                 .padding()
-                .background(Color.themeSurface)
+                .background(Color(UIColor.secondarySystemBackground))
                 .cornerRadius(12)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.separator), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.2), lineWidth: 1))
                 
                 // Semesters
                 SemesterSectionView(title: "Semester 1", events: calendarManager.getSemesterEvents(.semester1), calendarManager: calendarManager)
@@ -92,7 +93,7 @@ struct StandardSemesterListView: View {
             }
             .padding()
         }
-        .background(Color.themeBackground)
+        .background(Color(UIColor.systemBackground))
         .navigationTitle("Academic Calendar")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -253,16 +254,16 @@ struct AcademicEventRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(event.customName ?? event.type.displayName)
                     .font(.headline)
-                    .foregroundColor(.themeTextPrimary)
+                    .foregroundColor(.primary)
                 
                 Text("\(formatDate(event.start)) - \(formatDate(event.end))")
                     .font(.subheadline)
-                    .foregroundColor(.themeTextSecondary)
+                    .foregroundColor(.secondary)
                 
                 if event.type == .teaching, let start = event.teachingWeekIndexStart, let end = event.teachingWeekIndexEnd {
                     Text("Weeks \(start)-\(end)")
                         .font(.caption)
-                        .foregroundColor(.themePrimary)
+                        .foregroundColor(.blue)
                         .fontWeight(.medium)
                 }
             }
@@ -271,16 +272,16 @@ struct AcademicEventRow: View {
             
             if isCurrentEvent && !isEditing {
                 Circle()
-                    .fill(Color.themeSuccess)
+                    .fill(Color.green)
                     .frame(width: 8, height: 8)
             }
         }
         .padding()
-        .background(isCurrentEvent && !isEditing ? Color.themePrimary.opacity(0.05) : Color.themeSurface)
+        .background(isCurrentEvent && !isEditing ? Color.blue.opacity(0.05) : Color(UIColor.secondarySystemBackground))
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(isCurrentEvent && !isEditing ? Color.themePrimary.opacity(0.3) : Color.clear, lineWidth: 2)
+                .stroke(isCurrentEvent && !isEditing ? Color.blue.opacity(0.3) : Color.clear, lineWidth: 2)
         )
     }
     
@@ -318,17 +319,17 @@ struct CalendarManagementView: View {
                             onEdit: { },
                             onDelete: { calendarManager.deleteCalendar(calendar) }
                         )
-                        .listRowBackground(Color.themeSurface)
+                        .listRowBackground(Color(UIColor.secondarySystemBackground))
                     }
                 }
                 Section {
                     Button(action: { showingCreateCalendar = true }) {
-                        HStack { Image(systemName: "plus.circle.fill").foregroundColor(.themeSuccess); Text("Create New Calendar").foregroundColor(.themeTextPrimary) }
+                        HStack { Image(systemName: "plus.circle.fill").foregroundColor(.green); Text("Create New Calendar").foregroundColor(.primary) }
                     }
-                    .listRowBackground(Color.themeSurface)
+                    .listRowBackground(Color(UIColor.secondarySystemBackground))
                 }
             }
-            .scrollContentBackground(.hidden).background(Color.themeBackground)
+            .scrollContentBackground(.hidden).background(Color(UIColor.systemBackground))
             .navigationTitle("Manage Calendars").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
             .sheet(isPresented: $showingCreateCalendar) { CreateCalendarView(calendarManager: calendarManager) }
@@ -346,12 +347,12 @@ struct CalendarRow: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text(calendar.customName ?? calendar.academicYear).font(.headline).foregroundColor(.themeTextPrimary)
-                if let university = calendar.universityName { Text(university).font(.subheadline).foregroundColor(.themeTextSecondary) }
-                Text(calendar.academicYear).font(.caption).foregroundColor(.themeTextSecondary)
+                Text(calendar.customName ?? calendar.academicYear).font(.headline).foregroundColor(.primary)
+                if let university = calendar.universityName { Text(university).font(.subheadline).foregroundColor(.secondary) }
+                Text(calendar.academicYear).font(.caption).foregroundColor(.secondary)
             }
             Spacer()
-            if isCurrent { Image(systemName: "checkmark.circle.fill").foregroundColor(.themeSuccess) }
+            if isCurrent { Image(systemName: "checkmark.circle.fill").foregroundColor(.green) }
             Menu {
                 Button("Select", action: onSelect)
                 Button("Delete", role: .destructive, action: onDelete)
@@ -375,7 +376,7 @@ struct CreateCalendarView: View {
                     TextField("Academic Year (e.g., 2025-2026)", text: $academicYear)
                     TextField("University Name", text: $universityName)
                     TextField("Custom Calendar Name", text: $customName)
-                }.listRowBackground(Color.themeSurface)
+                }.listRowBackground(Color(UIColor.secondarySystemBackground))
                 
                 Section(footer: Text("You can add events after creation.")) {
                     Button("Create Calendar") {
@@ -388,9 +389,9 @@ struct CreateCalendarView: View {
                         calendarManager.setCurrentCalendar(newCalendar)
                         dismiss()
                     }.disabled(academicYear.isEmpty || universityName.isEmpty)
-                }.listRowBackground(Color.themeSurface)
+                }.listRowBackground(Color(UIColor.secondarySystemBackground))
             }
-            .scrollContentBackground(.hidden).background(Color.themeBackground)
+            .scrollContentBackground(.hidden).background(Color(UIColor.systemBackground))
             .navigationTitle("Create New Calendar").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { dismiss() } } }
         }.preferredColorScheme(colorScheme)
@@ -411,7 +412,7 @@ struct EditAcademicCalendarView: View {
                     TextField("Academic Year", text: $calendar.academicYear)
                     TextField("University Name", text: Binding(get: { calendar.universityName ?? "" }, set: { calendar.universityName = $0 }))
                     TextField("Custom Name", text: Binding(get: { calendar.customName ?? "" }, set: { calendar.customName = $0 }))
-                }.listRowBackground(Color.themeSurface)
+                }.listRowBackground(Color(UIColor.secondarySystemBackground))
                 
                 Section(header: Text("Semester 1")) {
                     ForEach($calendar.semester1.events) { $event in
@@ -421,7 +422,7 @@ struct EditAcademicCalendarView: View {
                         let newEvent = AcademicEventData(start: "2025-09-01", end: "2025-09-07", type: .teaching, weeks: 1, customName: "New Event")
                         calendar.semester1.events.append(newEvent); editingEvent = newEvent
                     }
-                }.listRowBackground(Color.themeSurface)
+                }.listRowBackground(Color(UIColor.secondarySystemBackground))
                 
                 Section(header: Text("Semester 2")) {
                     ForEach($calendar.semester2.events) { $event in
@@ -431,9 +432,9 @@ struct EditAcademicCalendarView: View {
                         let newEvent = AcademicEventData(start: "2026-02-01", end: "2026-02-07", type: .teaching, weeks: 1, customName: "New Event")
                         calendar.semester2.events.append(newEvent); editingEvent = newEvent
                     }
-                }.listRowBackground(Color.themeSurface)
+                }.listRowBackground(Color(UIColor.secondarySystemBackground))
             }
-            .scrollContentBackground(.hidden).background(Color.themeBackground)
+            .scrollContentBackground(.hidden).background(Color(UIColor.systemBackground))
             .navigationTitle("Edit Calendar").navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { dismiss() } }
@@ -473,16 +474,16 @@ struct EditEventView: View {
                     }
                     DatePicker("Start Date", selection: $startDate, displayedComponents: .date)
                     DatePicker("End Date", selection: $endDate, displayedComponents: .date)
-                }.listRowBackground(Color.themeSurface)
+                }.listRowBackground(Color(UIColor.secondarySystemBackground))
                 
                 if event.type == .teaching {
                     Section(header: Text("Teaching Weeks")) {
                         Stepper("Start Week: \(event.teachingWeekIndexStart ?? 1)", value: Binding(get: { event.teachingWeekIndexStart ?? 1 }, set: { event.teachingWeekIndexStart = $0 }), in: 1...52)
                         Stepper("End Week: \(event.teachingWeekIndexEnd ?? 1)", value: Binding(get: { event.teachingWeekIndexEnd ?? 1 }, set: { event.teachingWeekIndexEnd = $0 }), in: 1...52)
-                    }.listRowBackground(Color.themeSurface)
+                    }.listRowBackground(Color(UIColor.secondarySystemBackground))
                 }
             }
-            .scrollContentBackground(.hidden).background(Color.themeBackground)
+            .scrollContentBackground(.hidden).background(Color(UIColor.systemBackground))
             .navigationTitle("Edit Event").navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { dismiss() } }
@@ -498,7 +499,3 @@ struct EditEventView: View {
 }
 
 private let dateFormatter: DateFormatter = { let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f }()
-private func formatDate(_ dateString: String) -> String {
-    guard let date = dateFormatter.date(from: dateString) else { return dateString }
-    let out = DateFormatter(); out.dateFormat = "MMM d"; return out.string(from: date)
-}
