@@ -19,7 +19,7 @@ struct SubjectsView: View {
     }
 }
 
-// MARK: - 🌈 RAINBOW SUBJECTS (Centered Carousel)
+// MARK: - 🌈 RAINBOW SUBJECTS (Vertical List)
 struct RainbowSubjectsView: View {
     @Query(sort: \Subject.title) var subjects: [Subject]
     @EnvironmentObject var themeManager: AppTheme
@@ -90,33 +90,33 @@ struct RainbowSubjectsView: View {
                         }
                     }
                 } else {
-                    VStack(spacing: 20) {
-                        // Centered Carousel
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            LazyHStack(spacing: 20) {
-                                ForEach(Array(subjects.enumerated()), id: \.element.id) { index, subject in
-                                    let color = cardColors[index % cardColors.count]
-                                    
-                                    NavigationLink(destination: SubjectDetailView(subject: subject)) {
-                                        RainbowSubjectCard(subject: subject, color: color)
-                                            .frame(width: 320) // Fixed width for carousel items
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
-                                    .scrollTransition { content, phase in
-                                        content
-                                            .opacity(phase.isIdentity ? 1 : 0.6)
-                                            .scaleEffect(phase.isIdentity ? 1 : 0.9)
-                                            .blur(radius: phase.isIdentity ? 0 : 2)
-                                    }
+                    // ✅ VERTICAL LIST
+                    ScrollView(.vertical, showsIndicators: false) {
+                        LazyVStack(spacing: 16) {
+                            ForEach(Array(subjects.enumerated()), id: \.element.id) { index, subject in
+                                let color = cardColors[index % cardColors.count]
+                                
+                                NavigationLink(destination: SubjectDetailView(subject: subject)) {
+                                    // Uses the component from SharedComponents.swift
+                                    RainbowSubjectCard(subject: subject, color: color)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                // Subtle scroll animation
+                                .scrollTransition { content, phase in
+                                    content
+                                        .opacity(phase.isIdentity ? 1 : 0.8)
+                                        .scaleEffect(phase.isIdentity ? 1 : 0.95)
                                 }
                             }
-                            .scrollTargetLayout()
                         }
-                        .scrollTargetBehavior(.viewAligned)
-                        .safeAreaPadding(.horizontal, 40) // Centering padding
-                        .frame(maxHeight: .infinity)
-                        
-                        // Floating Action Bar (Bottom)
+                        .padding(.horizontal)
+                        .padding(.top, 10)
+                        .padding(.bottom, 100) // Space for floating buttons
+                    }
+                    
+                    // Floating Action Bar (Bottom)
+                    VStack {
+                        Spacer()
                         HStack(spacing: 12) {
                             Button(action: { showingScanner = true }) {
                                 Label("Scan", systemImage: "camera.fill")
@@ -181,16 +181,6 @@ struct RainbowSubjectsView: View {
     }
 }
 
-// Helper for Rainbow Button
-struct ScanButtonContent: View {
-    let icon: String; let text: String; let color: Color
-    var body: some View {
-        HStack { Image(systemName: icon); Text(text) }
-            .fontWeight(.bold).foregroundColor(.white)
-            .padding().frame(minWidth: 120).background(color).cornerRadius(12)
-    }
-}
-
 // MARK: - 👔 STANDARD SUBJECTS
 struct StandardSubjectsView: View {
     @Query(sort: \Subject.title) var subjects: [Subject]
@@ -207,7 +197,7 @@ struct StandardSubjectsView: View {
             ZStack {
                 Color.themeBackground.ignoresSafeArea()
                 ScrollView {
-                    LazyVStack(spacing: 20) { // Increased spacing for bigger cards
+                    LazyVStack(spacing: 20) {
                         // Action Bar
                         HStack(spacing: 12) {
                             Button(action: { showingScanner = true }) {
@@ -224,7 +214,6 @@ struct StandardSubjectsView: View {
                         .foregroundColor(.themePrimary)
                         .padding(.top, 8)
                         
-                        // ✅ Reverted to Big Cards
                         ForEach(subjects) { subject in
                             NavigationLink(destination: SubjectDetailView(subject: subject)) {
                                 BigDetailedSubjectCard(subject: subject)
@@ -294,7 +283,6 @@ struct ArcadeSubjectsView: View {
                                 Text("\(subjects.count)").font(.system(.title, design: .rounded)).fontWeight(.black).foregroundColor(.white)
                             }
                             Spacer()
-                            // Split Action Button
                             HStack(spacing: 8) {
                                 Button(action: { showingScanner = true }) {
                                     VStack { Image(systemName: "camera.fill"); Text("SCAN") }.font(.system(size: 8, weight: .black))
@@ -310,7 +298,10 @@ struct ArcadeSubjectsView: View {
                         
                         LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(subjects) { subject in
-                                NavigationLink(destination: SubjectDetailView(subject: subject)) { ArcadeSubjectCard(subject: subject) }
+                                NavigationLink(destination: SubjectDetailView(subject: subject)) {
+                                    // Uses the component from SharedComponents.swift
+                                    ArcadeSubjectCard(subject: subject)
+                                }
                             }
                         }
                     }.padding()
@@ -321,9 +312,7 @@ struct ArcadeSubjectsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) { Button(action: { showingAddSubject = true }) { Image(systemName: "plus.circle.fill").foregroundColor(.cyan) } }
             }
-            .sheet(isPresented: $showingAddSubject) {
-                AddSubjectView()
-            }
+            .sheet(isPresented: $showingAddSubject) { AddSubjectView() }
             .sheet(isPresented: $showingScanner) { DocumentScannerView(didFinishScanning: processScannedImage, didCancel: {}).ignoresSafeArea() }
             .sheet(isPresented: $showingImagePicker) { ImagePicker(didFinishPicking: processScannedImage).ignoresSafeArea() }
             .sheet(isPresented: $showingScanReview) { ScheduleImportReviewView() }
@@ -341,11 +330,11 @@ struct ArcadeSubjectsView: View {
     }
 }
 
-// MARK: - ✨ BIG DETAILED SUBJECT CARD
+// MARK: - ✨ UNIQUE COMPONENTS FOR THIS VIEW
+// (Only components NOT in SharedComponents are defined here)
+
 struct BigDetailedSubjectCard: View {
     let subject: Subject
-    
-    // Color Logic for Grade
     private var gradeColor: Color {
         guard let grade = subject.currentGrade else { return .secondary }
         if grade >= 9.0 { return .green }
@@ -353,8 +342,6 @@ struct BigDetailedSubjectCard: View {
         else if grade >= 5.0 { return .orange }
         else { return .red }
     }
-    
-    // Color Logic for Attendance
     private var attendanceColor: Color {
         let rate = subject.attendanceRate
         if rate >= 0.8 { return .green }
@@ -364,98 +351,41 @@ struct BigDetailedSubjectCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Header: Title & Icon
             HStack(alignment: .top) {
                 HStack(spacing: 12) {
-                    // Color Pill
-                    Capsule()
-                        .fill(subject.color)
-                        .frame(width: 4, height: 28)
-                    
+                    Capsule().fill(subject.color).frame(width: 4, height: 28)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(subject.title)
-                            .font(.title3)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
-                        
-                        Text(subject.courseTeacher)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
+                        Text(subject.title).font(.title3).fontWeight(.bold).foregroundColor(.primary).lineLimit(1)
+                        Text(subject.courseTeacher).font(.subheadline).foregroundColor(.secondary).lineLimit(1)
                     }
                 }
-                
                 Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 4)
+                Image(systemName: "chevron.right").font(.caption).foregroundColor(.secondary).padding(.top, 4)
             }
-            
-            // Middle: Info Grid
             HStack(spacing: 20) {
                 Label(subject.courseClassroom, systemImage: "mappin.and.ellipse")
                 Label(subject.courseDaysString, systemImage: "calendar")
-                if subject.hasSeminar {
-                    Label("Seminar", systemImage: "person.2.fill")
-                        .foregroundColor(.orange)
-                }
-            }
-            .font(.caption)
-            .foregroundColor(.secondary)
-            .lineLimit(1)
-            
+                if subject.hasSeminar { Label("Seminar", systemImage: "person.2.fill").foregroundColor(.orange) }
+            }.font(.caption).foregroundColor(.secondary).lineLimit(1)
             Divider()
-            
-            // Bottom: Colorful Status Badges
             HStack(spacing: 12) {
-                // Grade Badge
-                HStack(spacing: 8) {
-                    Image(systemName: "graduationcap.fill")
-                    if let grade = subject.currentGrade {
-                        Text(String(format: "%.1f", grade))
-                    } else {
-                        Text("-")
-                    }
-                }
-                .font(.subheadline)
-                .fontWeight(.bold)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(gradeColor.opacity(0.15))
-                .foregroundColor(gradeColor)
-                .cornerRadius(10)
-                
-                // Attendance Badge
-                HStack(spacing: 8) {
-                    Image(systemName: "person.3.fill")
-                    Text("\(Int(subject.attendanceRate * 100))%")
-                }
-                .font(.subheadline)
-                .fontWeight(.bold)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(attendanceColor.opacity(0.15))
-                .foregroundColor(attendanceColor)
-                .cornerRadius(10)
-                
+                HStack(spacing: 8) { Image(systemName: "graduationcap.fill"); if let grade = subject.currentGrade { Text(String(format: "%.1f", grade)) } else { Text("-") } }
+                    .font(.subheadline).fontWeight(.bold).padding(.horizontal, 16).padding(.vertical, 10).background(gradeColor.opacity(0.15)).foregroundColor(gradeColor).cornerRadius(10)
+                HStack(spacing: 8) { Image(systemName: "person.3.fill"); Text("\(Int(subject.attendanceRate * 100))%") }
+                    .font(.subheadline).fontWeight(.bold).padding(.horizontal, 16).padding(.vertical, 10).background(attendanceColor.opacity(0.15)).foregroundColor(attendanceColor).cornerRadius(10)
                 Spacer()
-                
-                // ECTS Badge (Optional small badge)
-                Text("\(subject.ectsCredits) ECTS")
-                    .font(.caption2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.secondary)
-                    .padding(6)
-                    .background(Color.secondary.opacity(0.1))
-                    .cornerRadius(6)
+                Text("\(subject.ectsCredits) ECTS").font(.caption2).fontWeight(.bold).foregroundColor(.secondary).padding(6).background(Color.secondary.opacity(0.1)).cornerRadius(6)
             }
-        }
-        .padding(20)
-        .background(Color.themeSurface)
-        .cornerRadius(20)
-        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
+        }.padding(20).background(Color.themeSurface).cornerRadius(20).shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
+    }
+}
+
+// Helper for Rainbow Button
+struct ScanButtonContent: View {
+    let icon: String; let text: String; let color: Color
+    var body: some View {
+        HStack { Image(systemName: icon); Text(text) }
+            .fontWeight(.bold).foregroundColor(.white)
+            .padding().frame(minWidth: 120).background(color).cornerRadius(12)
     }
 }

@@ -5,12 +5,15 @@ import SwiftData
 struct ClassllyApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
+    // ✅ Detect App Lifecycle
+    @Environment(\.scenePhase) var scenePhase
+    
     // Shared Managers
     @StateObject private var authManager = AuthenticationManager.shared
     @StateObject private var themeManager = AppTheme.shared
     @StateObject private var calendarManager = AcademicCalendarManager.shared
+    @StateObject private var studyTimerManager = StudyTimerManager.shared
     
-    // Listen to Settings
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
     
     var body: some Scene {
@@ -21,18 +24,16 @@ struct ClassllyApp: App {
                         .environmentObject(themeManager)
                         .environmentObject(authManager)
                         .environmentObject(calendarManager)
+                        .environmentObject(studyTimerManager)
                 } else {
                     SignInView()
                         .environmentObject(authManager)
                         .environmentObject(calendarManager)
-                        .environmentObject(themeManager) // ✅ FIXED: Injected here so Onboarding can see it
+                        .environmentObject(themeManager)
                 }
             }
-            // 1. Force Dark Mode based on settings
             .preferredColorScheme(darkModeEnabled ? .dark : nil)
-            // 2. Global Accent Color (buttons, tabs, links)
             .tint(themeManager.selectedTheme.primaryColor)
-            // Database
             .modelContainer(for: [
                 Subject.self,
                 StudyTask.self,
@@ -42,6 +43,14 @@ struct ClassllyApp: App {
                 StudentProfile.self,
                 ClassEvent.self
             ])
+            // ✅ Handle Background Timer Logic
+            .onChange(of: scenePhase) { oldPhase, newPhase in
+                if newPhase == .background {
+                    studyTimerManager.appDidEnterBackground()
+                } else if newPhase == .active {
+                    studyTimerManager.appWillEnterForeground()
+                }
+            }
         }
     }
 }
