@@ -139,3 +139,25 @@ enum OnboardingPainPoint: String, CaseIterable, Identifiable {
         }
     }
 }
+
+// MARK: - Confetti View
+// ✅ Added here to ensure visibility
+struct ConfettiView: View {
+    @State private var animate = false
+    var body: some View {
+        ZStack {
+            ForEach(0..<50) { _ in
+                Circle()
+                    .fill(Color(
+                        red: .random(in: 0...1),
+                        green: .random(in: 0...1),
+                        blue: .random(in: 0...1)
+                    ))
+                    .frame(width: 8, height: 8)
+                    .offset(x: animate ? .random(in: -200...200) : 0, y: animate ? .random(in: -200...200) : 0)
+                    .opacity(animate ? 0 : 1)
+            }
+        }
+        .onAppear { withAnimation(.easeOut(duration: 1.5)) { animate = true } }
+    }
+}

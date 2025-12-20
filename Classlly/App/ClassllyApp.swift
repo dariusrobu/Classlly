@@ -7,6 +7,8 @@ struct ClassllyApp: App {
     @StateObject private var authManager = AuthenticationManager.shared
     @StateObject private var themeManager = AppTheme.shared
     @StateObject private var notificationManager = NotificationManager.shared
+    // ✅ FIX: Initialize the Calendar Manager
+    @StateObject private var calendarManager = AcademicCalendarManager.shared
     
     // We use the shared container for Widget support
     let container = SharedModelContainer.shared
@@ -19,7 +21,7 @@ struct ClassllyApp: App {
                     .environmentObject(authManager)
                     .environmentObject(themeManager)
                     .environmentObject(notificationManager)
-                    // Inject the specific model context from the shared container
+                    .environmentObject(calendarManager) // 👈 Inject here
                     .modelContext(container.mainContext)
             } else {
                 // Onboarding Flow
@@ -29,6 +31,7 @@ struct ClassllyApp: App {
                 .environmentObject(authManager)
                 .environmentObject(themeManager)
                 .environmentObject(notificationManager)
+                .environmentObject(calendarManager) // 👈 Inject here too!
                 .modelContext(container.mainContext)
             }
         }

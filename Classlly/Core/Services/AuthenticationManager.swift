@@ -11,7 +11,8 @@ class AuthenticationManager: ObservableObject {
     private let userDefaults = UserDefaults.standard
     private let authKey = "isAuthenticated"
     
-    private init() {
+    // ✅ FIXED: Changed 'private init()' to 'init()' so it is accessible
+    init() {
         self.isAuthenticated = userDefaults.bool(forKey: authKey)
     }
     
@@ -45,7 +46,7 @@ class AuthenticationManager: ObservableObject {
         finalizeOnboarding(modelContext: modelContext)
     }
     
-    // ✅ NEW: Handle "Standard" Profile Setup Completion
+    // ✅ Handle "Standard" Profile Setup Completion
     func completeProfileSetup(modelContext: ModelContext) {
         print("✅ Completing Standard Profile Setup...")
         finalizeOnboarding(modelContext: modelContext)

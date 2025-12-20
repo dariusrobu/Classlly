@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 // MARK: - 🗓️ EVENT TYPE ENUM
+// This is the source of truth for event types across the app
 enum EventType: String, CaseIterable, Codable, Identifiable {
     case teaching = "Teaching"
     case holiday = "Holiday"
@@ -75,7 +76,6 @@ struct AcademicCalendarData: Identifiable, Codable {
     var semester2: SemesterData
 }
 
-// ✅ FIX: Changed from Enum to Struct to support OnboardingView requirements
 struct CalendarTemplate: Identifiable {
     let id: UUID = UUID()
     let universityName: String
@@ -95,8 +95,10 @@ final class StudyCalendarEvent {
     var location: String = ""
     var colorName: String = "blue"
     
+    // Stores the raw string value
     var eventTypeRaw: String = EventType.other.rawValue
     
+    // ✅ FIXED: Uses the GLOBAL EventType (teaching, holiday, etc.)
     @Transient var eventType: EventType {
         get { EventType(rawValue: eventTypeRaw) ?? .other }
         set { eventTypeRaw = newValue.rawValue }
@@ -105,10 +107,8 @@ final class StudyCalendarEvent {
     var taskId: UUID?
     var subjectId: UUID?
     
-    // Nested enum for internal use if needed, separate from global EventType
-    enum EventType: String, Codable {
-        case task, classEvent, exam, custom, other
-    }
+    // ✅ REMOVED: The conflicting nested 'enum EventType' was deleted.
+    // If you need a secondary type, name it 'SourceType' or similar, do not name it EventType.
     
     init(id: UUID = UUID(), title: String, time: String, location: String, colorName: String = "blue", eventType: EventType = .other, taskId: UUID? = nil, subjectId: UUID? = nil) {
         self.id = id

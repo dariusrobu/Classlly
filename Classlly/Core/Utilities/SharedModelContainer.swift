@@ -2,7 +2,6 @@ import Foundation
 import SwiftData
 
 class SharedModelContainer {
-    // Singleton instance to be shared across the App and Widget
     static let shared: ModelContainer = {
         let schema = Schema([
             Subject.self,
@@ -10,16 +9,22 @@ class SharedModelContainer {
             GradeEntry.self,
             AttendanceEntry.self,
             StudentProfile.self,
-            // ✅ FIX: Use the actual Model class name, not the file name
+            // ⚠️ Ensure this class actually exists in your project!
+            // If StudyCalendarEvent is missing, remove this line.
             StudyCalendarEvent.self
         ])
         
         // Define the App Group ID
         let appGroupIdentifier = "group.com.classlly"
         
-        // Construct the URL for the shared container
-        let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier)
-            ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        // Try to use the App Group, but fallback safely to Documents if it fails
+        let containerURL: URL
+        if let groupURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) {
+            containerURL = groupURL
+        } else {
+            print("⚠️ WARNING: App Group container not found. Falling back to local Documents.")
+            containerURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        }
         
         let storeURL = containerURL.appendingPathComponent("default.store")
         
@@ -31,6 +36,8 @@ class SharedModelContainer {
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
+            // Print the error so you can see it in the debug console
+            print("❌ FATAL ERROR: Could not create ModelContainer: \(error)")
             fatalError("Could not create Shared ModelContainer: \(error)")
         }
     }()

@@ -80,7 +80,8 @@ struct RainbowEditTaskView: View {
                         // 2. Deadlines & Priority
                         RainbowContainer {
                             VStack(alignment: .leading, spacing: 16) {
-                                Picker("Priority", selection: $priority) { ForEach(TaskPriority.allCases, id: \.self) { p in Text(p.rawValue).tag(p) } }.pickerStyle(.segmented).colorScheme(.dark)
+                                // FIXED: Use p.title instead of p.rawValue (which is Int)
+                                Picker("Priority", selection: $priority) { ForEach(TaskPriority.allCases, id: \.self) { p in Text(p.title).tag(p) } }.pickerStyle(.segmented).colorScheme(.dark)
                                 
                                 Toggle(isOn: $hasDueDate) { Text("Set Due Date").font(.headline).foregroundColor(.white) }.tint(RainbowColors.blue)
                                 if hasDueDate {
@@ -165,7 +166,8 @@ struct StandardEditTaskView: View {
                 }
                 
                 Section(header: Text("Priority")) {
-                    Picker("Priority", selection: $priority) { ForEach(TaskPriority.allCases, id: \.self) { p in Text(p.rawValue).tag(p) } }.pickerStyle(.segmented)
+                    // FIXED: Use p.title instead of p.rawValue
+                    Picker("Priority", selection: $priority) { ForEach(TaskPriority.allCases, id: \.self) { p in Text(p.title).tag(p) } }.pickerStyle(.segmented)
                 }
                 
                 Section(header: Text("Due Date")) {
@@ -257,7 +259,8 @@ struct ArcadeEditTaskView: View {
                         // Priority & Date...
                         VStack(alignment: .leading, spacing: 12) {
                             Text("DIFFICULTY").font(.caption).fontWeight(.bold).foregroundColor(.gray)
-                            HStack(spacing: 12) { ForEach(TaskPriority.allCases, id: \.self) { p in Button(action: { priority = p }) { Text(p.rawValue.uppercased()).font(.system(.caption, design: .rounded)).fontWeight(.bold).frame(maxWidth: .infinity).padding(.vertical, 12).background(priority == p ? p.color : Color(white: 0.1)).foregroundColor(priority == p ? .white : .gray).cornerRadius(8) } } }
+                            // FIXED: Use p.title.uppercased() instead of p.rawValue.uppercased()
+                            HStack(spacing: 12) { ForEach(TaskPriority.allCases, id: \.self) { p in Button(action: { priority = p }) { Text(p.title.uppercased()).font(.system(.caption, design: .rounded)).fontWeight(.bold).frame(maxWidth: .infinity).padding(.vertical, 12).background(priority == p ? p.color : Color(white: 0.1)).foregroundColor(priority == p ? .white : .gray).cornerRadius(8) } } }
                         }
                         VStack(alignment: .leading, spacing: 12) {
                             Toggle("TIME LIMIT", isOn: $hasDueDate).tint(.pink).font(.headline).foregroundColor(.white)
@@ -281,4 +284,3 @@ struct ArcadeEditTaskView: View {
         }
     }
 }
-

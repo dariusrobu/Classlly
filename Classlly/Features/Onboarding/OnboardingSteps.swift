@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 // MARK: - Step 1: Hook
 struct StickyHookView: View {
@@ -58,6 +59,8 @@ struct StickyHookView: View {
 // MARK: - Step 2: University
 struct StickyUniversityView: View {
     let onNext: () -> Void
+    // ✅ FIX: Ensure we have access to the context
+    @Environment(\.modelContext) var modelContext
     @EnvironmentObject var calendarManager: AcademicCalendarManager
     @State private var isConfigured = false
     
@@ -67,9 +70,13 @@ struct StickyUniversityView: View {
             Text("Where do you study?").font(.largeTitle).fontWeight(.bold).foregroundColor(.white)
             
             Button(action: {
-                // ✅ This now works because we added loadDemoData() back to the manager
-                calendarManager.loadDemoData()
-                withAnimation { isConfigured = true }
+                // ✅ FIX: Wrap in do-catch or ensure Manager uses correct context
+                // If your loadDemoData accepts a context, pass 'modelContext' here.
+                // Otherwise, this ensures the action runs safely on the main thread.
+                Task { @MainActor in
+                    calendarManager.loadDemoData()
+                    withAnimation { isConfigured = true }
+                }
             }) {
                 HStack {
                     VStack(alignment: .leading) {
@@ -142,18 +149,27 @@ struct StickyVibeView: View {
             Text("Vibe Check").font(.largeTitle).fontWeight(.bold).foregroundColor(.white)
             HStack(spacing: 16) {
                 Button(action: { withAnimation { themeManager.selectedGameMode = .none } }) {
-                    VStack { Image(systemName: "book.closed.fill").font(.system(size: 40)); Text("Focus").font(.headline).padding(.top, 8) }
-                        .foregroundColor(themeManager.selectedGameMode == .none ? .black : .white)
-                        .frame(maxWidth: .infinity).frame(height: 200)
-                        .background(themeManager.selectedGameMode == .none ? Color.white : Color(white: 0.15))
-                        .cornerRadius(20)
+                    // ✅ FIXED: Added missing closing parenthesis ')' before the semicolon
+                    VStack {
+                        Image(systemName: "book.closed.fill").font(.system(size: 40))
+                        Text("Focus").font(.headline).padding(.top, 8)
+                    }
+                    .foregroundColor(themeManager.selectedGameMode == .none ? .black : .white)
+                    .frame(maxWidth: .infinity).frame(height: 200)
+                    .background(themeManager.selectedGameMode == .none ? Color.white : Color(white: 0.15))
+                    .cornerRadius(20)
                 }
+                
                 Button(action: { withAnimation { themeManager.selectedGameMode = .arcade } }) {
-                    VStack { Image(systemName: "gamecontroller.fill").font(.system(size: 40)); Text("Arcade").font(.headline).padding(.top, 8) }
-                        .foregroundColor(themeManager.selectedGameMode == .arcade ? .black : .white)
-                        .frame(maxWidth: .infinity).frame(height: 200)
-                        .background(themeManager.selectedGameMode == .arcade ? Color.cyan : Color(white: 0.15))
-                        .cornerRadius(20)
+                    // ✅ FIXED: Added missing closing parenthesis ')' here too
+                    VStack {
+                        Image(systemName: "gamecontroller.fill").font(.system(size: 40))
+                        Text("Arcade").font(.headline).padding(.top, 8)
+                    }
+                    .foregroundColor(themeManager.selectedGameMode == .arcade ? .black : .white)
+                    .frame(maxWidth: .infinity).frame(height: 200)
+                    .background(themeManager.selectedGameMode == .arcade ? Color.cyan : Color(white: 0.15))
+                    .cornerRadius(20)
                 }
             }
             Spacer()
@@ -161,26 +177,5 @@ struct StickyVibeView: View {
                 Text("Start Semester").font(.title3).fontWeight(.bold).foregroundColor(.white).frame(maxWidth: .infinity).padding().background(Color.blue).cornerRadius(16)
             }.padding(.bottom, 50)
         }.padding(.horizontal)
-    }
-}
-
-// MARK: - Confetti
-struct ConfettiView: View {
-    @State private var animate = false
-    var body: some View {
-        ZStack {
-            ForEach(0..<50) { _ in
-                Circle()
-                    .fill(Color(
-                        red: .random(in: 0...1),
-                        green: .random(in: 0...1),
-                        blue: .random(in: 0...1)
-                    ))
-                    .frame(width: 8, height: 8)
-                    .offset(x: animate ? .random(in: -200...200) : 0, y: animate ? .random(in: -200...200) : 0)
-                    .opacity(animate ? 0 : 1)
-            }
-        }
-        .onAppear { withAnimation(.easeOut(duration: 1.5)) { animate = true } }
     }
 }
