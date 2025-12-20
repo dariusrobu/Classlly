@@ -4,10 +4,90 @@ import SwiftData
 class DemoDataManager {
     static let shared = DemoDataManager()
     
-    // MARK: - Stress Test Data
-    func createHeavyStressData(modelContext: ModelContext) {
+    // MARK: - 🧪 1. Perfect Gap Scenario (For Notification Testing)
+    func createPerfectGapScenario(modelContext: ModelContext) {
+        print("🧪 Injecting Perfect Gap Scenario...")
+        // We delete everything but KEEP the profile so you don't get logged out
+        deleteAllData(modelContext: modelContext, includeProfile: false)
+        
+        let calendar = Calendar.current
+        let today = Date()
+        let weekday = calendar.component(.weekday, from: today) // Get TODAY'S weekday index
+        
+        // 1. Create "Morning Class" (Starts 9 AM, Ends 10 AM)
+        let morningStart = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: today)!
+        let morningEnd = calendar.date(bySettingHour: 10, minute: 0, second: 0, of: today)!
+        
+        let subjectA = Subject(
+            title: "Morning Math",
+            colorHex: "007AFF",
+            ectsCredits: 5,
+            courseTeacher: "Prof. Early",
+            courseClassroom: "Room 101",
+            courseFrequency: .weekly,
+            courseStartTime: morningStart,
+            courseEndTime: morningEnd,
+            courseDays: [weekday], // ✅ Force it to occur TODAY
+            hasSeminar: false,
+            seminarTeacher: "",
+            seminarClassroom: "",
+            seminarFrequency: .weekly,
+            seminarStartTime: Date(),
+            seminarEndTime: Date(),
+            seminarDays: []
+        )
+        
+        // 2. Create "Afternoon Class" (Starts 2 PM, Ends 3 PM)
+        // Gap = 10 AM to 2 PM = 4 Hours ( > 2 hours )
+        let afternoonStart = calendar.date(bySettingHour: 14, minute: 0, second: 0, of: today)!
+        let afternoonEnd = calendar.date(bySettingHour: 15, minute: 0, second: 0, of: today)!
+        
+        let subjectB = Subject(
+            title: "Afternoon History",
+            colorHex: "FF9500",
+            ectsCredits: 5,
+            courseTeacher: "Prof. Late",
+            courseClassroom: "Room 202",
+            courseFrequency: .weekly,
+            courseStartTime: afternoonStart,
+            courseEndTime: afternoonEnd,
+            courseDays: [weekday], // ✅ Force it to occur TODAY
+            hasSeminar: false,
+            seminarTeacher: "",
+            seminarClassroom: "",
+            seminarFrequency: .weekly,
+            seminarStartTime: Date(),
+            seminarEndTime: Date(),
+            seminarDays: []
+        )
+        
+        // 3. Create a High Priority Task to be suggested
+        let task = StudyTask(
+            title: "Math Homework",
+            isCompleted: false,
+            dueDate: Date().addingTimeInterval(86400), // Due tomorrow
+            priority: .high,
+            subject: subjectA,
+            reminderTime: .hourBefore1,
+            isFlagged: true,
+            notes: "Finish this during the gap."
+        )
+        
+        modelContext.insert(subjectA)
+        modelContext.insert(subjectB)
+        modelContext.insert(task)
+        
+        try? modelContext.save()
+        print("✅ Data Injected: Morning Math (9-10) & Afternoon History (14-15) on Weekday \(weekday)")
+    }
+    
+    // MARK: - ⚡️ 2. Stress Test Data (For Dashboard Populating)
+    func createHeavyStressData(modelContext: ModelContext, cleanFirst: Bool = true, keepProfile: Bool = true) {
         print("⚡️ Starting Stress Data Generation...")
-        deleteAllData(modelContext: modelContext)
+        
+        if cleanFirst {
+            deleteAllData(modelContext: modelContext, includeProfile: !keepProfile)
+        }
         
         let subjectsData = [
             ("Data Structures", "007AFF", [1, 3], true),
@@ -21,7 +101,7 @@ class DemoDataManager {
         ]
         
         for (name, color, days, hasSeminar) in subjectsData {
-            // 2. Create Subject
+            // Subject
             let subject = Subject(
                 title: name,
                 colorHex: color,
@@ -32,8 +112,6 @@ class DemoDataManager {
                 courseStartTime: Date(),
                 courseEndTime: Date().addingTimeInterval(5400),
                 courseDays: days,
-                
-                // Set Seminar Data
                 hasSeminar: hasSeminar,
                 seminarTeacher: hasSeminar ? "Dr. Assistant" : "",
                 seminarClassroom: hasSeminar ? "Lab \(Int.random(in: 1...10))" : "",
@@ -42,16 +120,13 @@ class DemoDataManager {
                 seminarEndTime: Date().addingTimeInterval(9000),
                 seminarDays: hasSeminar ? [days.first! + 1] : []
             )
-            
             modelContext.insert(subject)
             
-            // 3. Add Grades (Past)
+            // Grades
             for j in 1...8 {
-                let score = Double.random(in: 5...10)
-                // ✅ Fix: Removed 'description', passed 'isExam: false'
                 let grade = GradeEntry(
                     title: "Assignment \(j)",
-                    score: score,
+                    score: Double.random(in: 5...10),
                     maxScore: 10.0,
                     date: Date().addingTimeInterval(Double(-j * 86400 * 3)),
                     isExam: false
@@ -60,8 +135,7 @@ class DemoDataManager {
                 modelContext.insert(grade)
             }
             
-            // Add Exams
-            // ✅ Fix: Removed 'description', passed 'isExam: true'
+            // Exams
             let exam = GradeEntry(
                 title: "Midterm Exam",
                 score: 8.5,
@@ -72,7 +146,7 @@ class DemoDataManager {
             exam.subject = subject
             modelContext.insert(exam)
             
-            // 4. Add Attendance (Past)
+            // Attendance
             for k in 1...15 {
                 let status: AttendanceStatus = Bool.random() ? .present : .absent
                 let att = AttendanceEntry(
@@ -84,16 +158,15 @@ class DemoDataManager {
                 modelContext.insert(att)
             }
             
-            // 5. 🔥 Add STRESS TASKS
+            // Tasks
             for t in 1...10 {
                 let isExam = (t % 3 == 0)
                 let dayOffset = isExam ? Double.random(in: 0...14) : Double.random(in: -5 ... -1)
-                let dueDate = Date().addingTimeInterval(dayOffset * 86400)
                 
                 let task = StudyTask(
                     title: isExam ? "EXAM: \(name) - Unit \(t)" : "Homework: \(name) - Unit \(t)",
                     isCompleted: false,
-                    dueDate: dueDate,
+                    dueDate: Date().addingTimeInterval(dayOffset * 86400),
                     priority: isExam ? .high : .medium,
                     subject: subject,
                     reminderTime: isExam ? .dayBefore1 : .hourBefore1,
@@ -108,15 +181,21 @@ class DemoDataManager {
         print("✅ Heavy Stress Data Loaded")
     }
     
-    // MARK: - Destructive Actions
-    
-    func deleteAllData(modelContext: ModelContext) {
+    // MARK: - 🗑️ 3. Destructive Actions
+    func deleteAllData(modelContext: ModelContext, includeProfile: Bool = false) {
         do {
             try modelContext.delete(model: Subject.self)
             try modelContext.delete(model: StudyTask.self)
             try modelContext.delete(model: GradeEntry.self)
             try modelContext.delete(model: AttendanceEntry.self)
-            try? modelContext.save()
+            
+            if includeProfile {
+                try modelContext.delete(model: StudentProfile.self)
+                print("🗑️ Student Profile Deleted")
+            }
+            
+            try modelContext.save()
+            print("🗑️ Academic Data Deleted")
         } catch {
             print("Failed to delete data: \(error.localizedDescription)")
         }

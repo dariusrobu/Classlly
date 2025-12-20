@@ -1,41 +1,59 @@
 import SwiftUI
-import Foundation
 
+// MARK: - Class Frequency
 enum ClassFrequency: String, Codable, CaseIterable {
-    case daily = "Daily"
     case weekly = "Weekly"
-    case biweeklyOdd = "Bi-weekly (Odd Weeks)"   // Added
-    case biweeklyEven = "Bi-weekly (Even Weeks)" // Added
-    case oneTime = "One Time"
-    case custom = "Custom"
+    case biweekly = "Bi-Weekly"
+    case oneTime = "One-Time"
 }
 
-enum TaskPriority: String, CaseIterable, Codable {
-    case low = "Low"
-    case medium = "Medium"
-    case high = "High"
+// MARK: - Task Priority
+enum TaskPriority: Int, Codable, CaseIterable {
+    case low = 0
+    case medium = 1
+    case high = 2
+    
+    var title: String {
+        switch self {
+        case .low: return "Low"
+        case .medium: return "Medium"
+        case .high: return "High"
+        }
+    }
     
     var color: Color {
+        // Safe colors that don't rely on external theme files if those aren't shared
         switch self {
-        case .low: return .themeSuccess
-        case .medium: return .themeAccent
-        case .high: return .themeError
+        case .low: return .green
+        case .medium: return .yellow
+        case .high: return .red
         }
     }
+}
+
+// MARK: - Reminder Time
+enum TaskReminderTime: String, CaseIterable, Codable {
+    case none = "No Reminder"
+    case onTime = "At time of event"
+    case minutesBefore5 = "5 minutes before"
+    case minutesBefore15 = "15 minutes before"
+    case minutesBefore30 = "30 minutes before"
+    case hourBefore1 = "1 hour before"
+    case hoursBefore2 = "2 hours before"
+    case dayBefore1 = "1 day before"
+    case weekBefore1 = "1 week before"
     
-    var iconName: String {
+    func reminderDate(from dueDate: Date) -> Date? {
         switch self {
-        case .low: return "arrow.down"
-        case .medium: return "minus"
-        case .high: return "exclamationmark"
-        }
-    }
-    
-    var systemIcon: String {
-        switch self {
-        case .low: return "arrow.down.circle.fill"
-        case .medium: return "minus.circle.fill"
-        case .high: return "exclamationmark.circle.fill"
+        case .none: return nil
+        case .onTime: return dueDate
+        case .minutesBefore5: return Calendar.current.date(byAdding: .minute, value: -5, to: dueDate)
+        case .minutesBefore15: return Calendar.current.date(byAdding: .minute, value: -15, to: dueDate)
+        case .minutesBefore30: return Calendar.current.date(byAdding: .minute, value: -30, to: dueDate)
+        case .hourBefore1: return Calendar.current.date(byAdding: .hour, value: -1, to: dueDate)
+        case .hoursBefore2: return Calendar.current.date(byAdding: .hour, value: -2, to: dueDate)
+        case .dayBefore1: return Calendar.current.date(byAdding: .day, value: -1, to: dueDate)
+        case .weekBefore1: return Calendar.current.date(byAdding: .weekOfYear, value: -1, to: dueDate)
         }
     }
 }

@@ -1,11 +1,3 @@
-//
-//  AppDelegate.swift
-//  Classlly
-//
-//  Created by Robu Darius on 01.11.2025.
-//
-
-
 import UIKit
 import UserNotifications
 
@@ -21,11 +13,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         return true
     }
     
-    // Handle remote notification registration
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         let token = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
         print("APNs token: \(token)")
-        // Send this token to your server for push notifications
     }
     
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
@@ -33,19 +23,41 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     }
 }
 
-// Handle notifications while app is in foreground
+// Handle notifications
 extension AppDelegate: UNUserNotificationCenterDelegate {
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        // Show notification even when app is in foreground
         completionHandler([.banner, .sound, .badge])
     }
     
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-        // Handle notification tap
         let userInfo = response.notification.request.content.userInfo
-        print("Notification tapped with info: \(userInfo)")
+        let actionIdentifier = response.actionIdentifier
         
-        // You can add deep linking here based on notification type
+        switch actionIdentifier {
+        case "START_FOCUS_ACTION":
+            print("▶️ ACTION: Start Focus Session")
+            
+        case "MARK_DONE_ACTION":
+            print("✅ ACTION: Mark Task Done")
+            
+        case "MARK_PRESENT_ACTION":
+            // 🚀 Logic Hook: Mark attendance as Present
+            print("👋 ACTION: Marked Present for subject ID: \(userInfo["subjectID"] ?? "unknown")")
+            
+        case "MARK_LATE_ACTION":
+            // 🚀 Logic Hook: Mark attendance as Late
+            print("🏃 ACTION: Marked Late for subject ID: \(userInfo["subjectID"] ?? "unknown")")
+            
+        case UNNotificationDefaultActionIdentifier:
+            print("Notification body tapped")
+            
+        case UNNotificationDismissActionIdentifier:
+            print("Notification dismissed")
+            
+        default:
+            break
+        }
+        
         completionHandler()
     }
 }

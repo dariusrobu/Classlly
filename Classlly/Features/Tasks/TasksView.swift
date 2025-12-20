@@ -100,6 +100,22 @@ struct TasksView: View {
     }
 }
 
+private extension Color {
+    func rgbaComponents() -> (red: CGFloat, green: CGFloat, blue: CGFloat, alpha: CGFloat)? {
+#if canImport(UIKit)
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        let uiColor = UIColor(self)
+        guard uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha) else { return nil }
+        return (red, green, blue, alpha)
+#else
+        return nil // Not implemented for macOS or watchOS
+#endif
+    }
+}
+
 struct FilterCard: View {
     let title: String; let icon: String; let count: Int; let color: Color; let isSelected: Bool; let action: () -> Void
     @EnvironmentObject var themeManager: AppTheme
@@ -107,10 +123,12 @@ struct FilterCard: View {
     private var displayColor: Color {
         if themeManager.selectedGameMode == .rainbow {
             let accent = themeManager.selectedTheme.primaryColor
+            guard let c1 = color.rgbaComponents(), let c2 = accent.rgbaComponents() else { return color }
             return Color(
-                red: (color.components.red * 0.6) + (accent.components.red * 0.4),
-                green: (color.components.green * 0.6) + (accent.components.green * 0.4),
-                blue: (color.components.blue * 0.6) + (accent.components.blue * 0.4)
+                red: (c1.red * 0.6) + (c2.red * 0.4),
+                green: (c1.green * 0.6) + (c2.green * 0.4),
+                blue: (c1.blue * 0.6) + (c2.blue * 0.4),
+                opacity: (c1.alpha * 0.6) + (c2.alpha * 0.4)
             )
         }
         return color

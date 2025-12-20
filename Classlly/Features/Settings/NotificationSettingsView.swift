@@ -21,7 +21,8 @@ struct NotificationSettingsView: View {
 
 // MARK: - 👔 STANDARD VIEW
 struct StandardNotificationSettingsView: View {
-    @StateObject private var notificationManager = NotificationManager.shared
+    // We observe the singleton instance here
+    @ObservedObject private var notificationManager = NotificationManager.shared
     @State private var pendingNotifications: [UNNotificationRequest] = []
     
     var body: some View {
@@ -78,7 +79,8 @@ struct StandardNotificationSettingsView: View {
     }
     
     private func loadPendingNotifications() {
-        notificationManager.getPendingNotifications { requests in
+        // Access shared instance directly
+        NotificationManager.shared.getPendingNotifications { requests in
             DispatchQueue.main.async {
                 self.pendingNotifications = requests
             }
@@ -86,7 +88,7 @@ struct StandardNotificationSettingsView: View {
     }
     
     private func removeAllNotifications() {
-        notificationManager.removeAllNotifications()
+        NotificationManager.shared.removeAllNotifications()
         loadPendingNotifications()
     }
     
@@ -103,7 +105,7 @@ struct StandardNotificationSettingsView: View {
 
 // MARK: - 🕹️ ARCADE VIEW
 struct ArcadeNotificationSettingsView: View {
-    @StateObject private var notificationManager = NotificationManager.shared
+    @ObservedObject private var notificationManager = NotificationManager.shared
     @State private var pendingNotifications: [UNNotificationRequest] = []
     
     var body: some View {
@@ -221,7 +223,7 @@ struct ArcadeNotificationSettingsView: View {
     }
     
     private func loadPendingNotifications() {
-        notificationManager.getPendingNotifications { requests in
+        NotificationManager.shared.getPendingNotifications { requests in
             DispatchQueue.main.async {
                 self.pendingNotifications = requests
             }
@@ -229,7 +231,7 @@ struct ArcadeNotificationSettingsView: View {
     }
     
     private func removeAllNotifications() {
-        notificationManager.removeAllNotifications()
+        NotificationManager.shared.removeAllNotifications()
         loadPendingNotifications()
     }
     

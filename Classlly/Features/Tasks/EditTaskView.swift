@@ -214,13 +214,16 @@ struct ArcadeEditTaskView: View {
     
     init(task: StudyTask) {
         self.task = task
+        let initialDueDate = task.dueDate ?? Date()
+        let initialHasDueDate = task.dueDate != nil
+        let initialIsFlagged = task.isFlagged
         _title = State(initialValue: task.title)
         _notes = State(initialValue: task.notes)
         _selectedSubject = State(initialValue: task.subject)
         _priority = State(initialValue: task.priority)
-        _dueDate = State(initialValue: task.dueDate ?? Date())
-        _hasDueDate = State(initialValue: task.dueDate != nil)
-        _isFlagged = State(initialValue: task.isFlagged)
+        _dueDate = State(initialValue: initialDueDate)
+        _hasDueDate = State(initialValue: initialHasDueDate)
+        _isFlagged = State(initialValue: initialIsFlagged)
     }
 
     var body: some View {
@@ -278,3 +281,4 @@ struct ArcadeEditTaskView: View {
         }
     }
 }
+

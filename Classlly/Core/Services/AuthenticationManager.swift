@@ -1,118 +1,83 @@
-import Foundation
 import SwiftUI
 import Combine
 import SwiftData
-import AuthenticationServices
 
 class AuthenticationManager: ObservableObject {
-    @Published var currentUser: StudentProfile?
-    @Published var isAuthenticated = false
-    @Published var isLoading = false
-    @Published var universityNameForOnboarding = ""
-    @Published var requiresOnboarding = false
-    
-    // New state for driving the UI
-    @Published var showingOnboarding = false
-    
-    var currentNonce: String?
     static let shared = AuthenticationManager()
-    private init() {}
     
-    func signInAsDemoUser() {
+    @Published var isAuthenticated: Bool = false
+    @Published var currentUser: StudentProfile?
+    
+    private let userDefaults = UserDefaults.standard
+    private let authKey = "isAuthenticated"
+    
+    private init() {
+        self.isAuthenticated = userDefaults.bool(forKey: authKey)
+    }
+    
+    func signIn() {
+        // Logic for real Apple/Google sign in would go here
+        isAuthenticated = true
+        userDefaults.set(true, forKey: authKey)
+    }
+    
+    func signInAsDemoUser() -> StudentProfile {
         let demoUser = StudentProfile(
-            name: "Demo Student",
-            email: "demo@classlly.com",
-            university: "Demo University",
+            id: "demo_user_123",
+            name: "Alex Carter",
+            email: "alex@classlly.demo",
+            university: "Tech University",
             major: "Computer Science",
-            gradeLevel: "12",
-            academicYear: "2025-2026"
-        )
-        DispatchQueue.main.async {
-            self.currentUser = demoUser
-            self.isAuthenticated = true
-        }
-    }
-    
-    func startNewUserOnboarding() {
-        // Trigger the full screen cover in SignInView
-        DispatchQueue.main.async {
-            self.showingOnboarding = true
-        }
-    }
-    
-    func completeStickyOnboarding(modelContext: ModelContext) {
-        // 1. Create a fresh user profile for the new user
-        let newUser = StudentProfile(
-            name: "Fresh Student",
-            email: "newuser@test.com",
-            university: "My School",
-            major: "Undeclared",
-            gradeLevel: "Freshman",
+            gradeLevel: "Sophomore",
             academicYear: "2024-2025"
         )
         
-        // 2. Insert into database
-        modelContext.insert(newUser)
+        self.currentUser = demoUser
+        self.isAuthenticated = true
+        userDefaults.set(true, forKey: authKey)
         
-        // 3. Update State to Log In and Dismiss Onboarding
-        DispatchQueue.main.async {
-            self.currentUser = newUser
-            self.isAuthenticated = true
-            self.showingOnboarding = false
-        }
+        return demoUser
     }
     
-    func handleSignInWithApple(result: Result<ASAuthorization, Error>, modelContext: ModelContext) {
-        // Placeholder for Apple Sign In logic
-        // This would typically involve decoding the result, finding/creating a user, and setting currentUser
+    // ✅ Handle "Sticky" Onboarding Completion
+    func completeStickyOnboarding(modelContext: ModelContext) {
+        print("🚀 Completing Sticky Onboarding...")
+        finalizeOnboarding(modelContext: modelContext)
+    }
+    
+    // ✅ NEW: Handle "Standard" Profile Setup Completion
+    func completeProfileSetup(modelContext: ModelContext) {
+        print("✅ Completing Standard Profile Setup...")
+        finalizeOnboarding(modelContext: modelContext)
+    }
+    
+    // Shared Logic to Save & Authenticate
+    private func finalizeOnboarding(modelContext: ModelContext) {
+        // 1. If no user exists yet (skipped sign in), create a default local profile
+        if currentUser == nil {
+            let defaultUser = StudentProfile(
+                id: UUID().uuidString,
+                name: "Student",
+                email: "",
+                university: "",
+                major: ""
+            )
+            modelContext.insert(defaultUser)
+            self.currentUser = defaultUser
+            print("👤 Default local user created.")
+        }
+        
+        // 2. Save any pending changes
+        try? modelContext.save()
+        
+        // 3. Mark as authenticated to transition to MainTabView
+        isAuthenticated = true
+        userDefaults.set(true, forKey: authKey)
     }
     
     func signOut() {
-        DispatchQueue.main.async {
-            self.currentUser = nil
-            self.isAuthenticated = false
-        }
-    }
-    
-    // Helper to insert a profile externally if needed
-    func completeProfileSetup(profile: StudentProfile, modelContext: ModelContext) {
-        modelContext.insert(profile)
-        DispatchQueue.main.async {
-            self.currentUser = profile
-            self.isAuthenticated = true
-        }
-    }
-    
-    // Apple Sign In Helpers
-    func randomNonceString(length: Int = 32) -> String {
-        precondition(length > 0)
-        var randomBytes = [UInt8](repeating: 0, count: length)
-        let errorCode = SecRandomCopyBytes(kSecRandomDefault, randomBytes.count, &randomBytes)
-        if errorCode != errSecSuccess {
-            fatalError("Unable to generate nonce. SecRandomCopyBytes failed with OSStatus \(errorCode)")
-        }
-        
-        let charset: [Character] =
-            Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
-        
-        let nonce = randomBytes.map { byte in
-            // Pick a random character from the set, wrapping around if needed.
-            charset[Int(byte) % charset.count]
-        }
-        
-        return String(nonce)
-    }
-    
-    func sha256(_ input: String) -> String {
-        let inputData = Data(input.utf8)
-        let hashedData = SHA256.hash(data: inputData)
-        let hashString = hashedData.compactMap {
-            return String(format: "%02x", $0)
-        }.joined()
-        
-        return hashString
+        isAuthenticated = false
+        currentUser = nil
+        userDefaults.set(false, forKey: authKey)
     }
 }
-
-// Add CryptoKit for SHA256
-import CryptoKit

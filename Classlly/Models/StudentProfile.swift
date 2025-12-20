@@ -3,8 +3,10 @@ import SwiftData
 
 @Model
 final class StudentProfile {
-    // ✅ FIX: CloudKit requires default values for ALL properties
-    var id: UUID = UUID()
+    // ✅ FIX: Removed @Attribute(.unique) which crashes CloudKit.
+    // CloudKit manages record uniqueness internally.
+    var id: String = UUID().uuidString
+    
     var name: String = ""
     var email: String = ""
     var university: String = ""
@@ -16,6 +18,7 @@ final class StudentProfile {
     @Attribute(.externalStorage) var profileImageData: Data? = nil
     
     init(
+        id: String = UUID().uuidString,
         name: String,
         email: String,
         university: String = "",
@@ -24,7 +27,7 @@ final class StudentProfile {
         academicYear: String = "",
         profileImageData: Data? = nil
     ) {
-        self.id = UUID()
+        self.id = id
         self.name = name
         self.email = email
         self.university = university

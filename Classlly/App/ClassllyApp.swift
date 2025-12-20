@@ -3,54 +3,36 @@ import SwiftData
 
 @main
 struct ClassllyApp: App {
-    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    
-    // ✅ Detect App Lifecycle
-    @Environment(\.scenePhase) var scenePhase
-    
-    // Shared Managers
+    // Initialize services
     @StateObject private var authManager = AuthenticationManager.shared
     @StateObject private var themeManager = AppTheme.shared
-    @StateObject private var calendarManager = AcademicCalendarManager.shared
-    @StateObject private var studyTimerManager = StudyTimerManager.shared
+    @StateObject private var notificationManager = NotificationManager.shared
+    
+    // We use the shared container for Widget support
+    let container = SharedModelContainer.shared
     
     var body: some Scene {
         WindowGroup {
-            Group {
-                if authManager.isAuthenticated {
-                    MainTabView()
-                        .environmentObject(themeManager)
-                        .environmentObject(authManager)
-                        .environmentObject(calendarManager)
-                        .environmentObject(studyTimerManager)
-                        // ✅ Global Dark Mode application
-                        .preferredColorScheme(themeManager.darkModeEnabled ? .dark : .light)
-                } else {
-                    SignInView()
-                        .environmentObject(authManager)
-                        .environmentObject(calendarManager)
-                        .environmentObject(themeManager)
-                        .preferredColorScheme(themeManager.darkModeEnabled ? .dark : .light)
+            if authManager.isAuthenticated {
+                // Main App Flow
+                MainTabView()
+                    .environmentObject(authManager)
+                    .environmentObject(themeManager)
+                    .environmentObject(notificationManager)
+                    // Inject the specific model context from the shared container
+                    .modelContext(container.mainContext)
+            } else {
+                // Onboarding Flow
+                NavigationStack {
+                    StickyOnboardingView()
                 }
-            }
-            .tint(themeManager.selectedTheme.primaryColor)
-            .modelContainer(for: [
-                Subject.self,
-                StudyTask.self,
-                GradeEntry.self,
-                AttendanceEntry.self,
-                StudyCalendarEvent.self,
-                StudentProfile.self,
-                ClassEvent.self
-            ])
-            // ✅ Handle Background Timer Logic
-            .onChange(of: scenePhase) { oldPhase, newPhase in
-                if newPhase == .background {
-                    studyTimerManager.appDidEnterBackground()
-                } else if newPhase == .active {
-                    studyTimerManager.appWillEnterForeground()
-                }
+                .environmentObject(authManager)
+                .environmentObject(themeManager)
+                .environmentObject(notificationManager)
+                .modelContext(container.mainContext)
             }
         }
+        // Attach the container to the entire WindowGroup
+        .modelContainer(container)
     }
 }

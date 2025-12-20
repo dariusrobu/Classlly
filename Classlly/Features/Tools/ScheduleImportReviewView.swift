@@ -44,8 +44,8 @@ struct ScheduleImportReviewView: View {
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        if let isOdd = course.isOddWeek {
-                            Text(isOdd ? "Odd Wks" : "Even Wks")
+                        if course.isOddWeek != nil {
+                            Text("Bi-Weekly")
                                 .font(.caption2)
                                 .padding(4)
                                 .background(Color.orange.opacity(0.2))
@@ -67,8 +67,8 @@ struct ScheduleImportReviewView: View {
         for course in importedCourses {
             // Determine Frequency
             let frequency: ClassFrequency
-            if let isOdd = course.isOddWeek {
-                frequency = isOdd ? .biweeklyOdd : .biweeklyEven
+            if course.isOddWeek != nil {
+                frequency = .biweekly
             } else {
                 frequency = .weekly
             }

@@ -35,17 +35,11 @@ extension Subject {
         }
         
         switch frequency {
-        case .daily, .weekly, .custom:
+        case .weekly:
             return true
-            
-        case .biweeklyOdd:
-            // Occurs only on Odd weeks (1, 3, 5...)
+        case .biweekly:
+            // Occurs every 2 weeks: treat odd weeks as true, even as false (or vice versa as per your original intent)
             return !weekOfYear.isMultiple(of: 2)
-            
-        case .biweeklyEven:
-            // Occurs only on Even weeks (2, 4, 6...)
-            return weekOfYear.isMultiple(of: 2)
-            
         case .oneTime:
             return false // Handled above
         }

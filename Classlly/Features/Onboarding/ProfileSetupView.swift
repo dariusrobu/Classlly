@@ -147,17 +147,17 @@ struct ProfileSetupView: View {
     }
     
     private func completeProfile() {
-        // ✅ Update properties to match new StudentProfile model
+        // ✅ Update properties directly on the object
         user.name = name
         user.university = university
         user.gradeLevel = gradeLevel
-        // major is now a String, so we just assign it directly (no need for nil check if it defaults to empty string)
         user.major = major
         user.academicYear = academicYear
         user.profileImageData = inputImage?.jpegData(compressionQuality: 0.8)
         
-        // Pass the updated StudentProfile object
-        authManager.completeProfileSetup(profile: user, modelContext: modelContext)
+        // ✅ FIX: Removed 'profile: user' argument
+        // The object is already updated, we just need to save context via the manager
+        authManager.completeProfileSetup(modelContext: modelContext)
         dismiss()
     }
 }

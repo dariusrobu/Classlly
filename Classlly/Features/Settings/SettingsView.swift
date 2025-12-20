@@ -3,14 +3,13 @@ import SwiftData
 
 struct SettingsView: View {
     @EnvironmentObject var themeManager: AppTheme
-    
+    // StandardSettingsView uses these, so we just pass themeManager down
     var body: some View {
         Group {
             switch themeManager.selectedGameMode {
             case .arcade:
                 ArcadeSettingsView()
             case .rainbow:
-                // Removing the forced .dark scheme so you can test your toggle
                 StandardSettingsView()
             case .none:
                 StandardSettingsView()
@@ -22,9 +21,9 @@ struct SettingsView: View {
 // MARK: - 👔 STANDARD SETTINGS
 struct StandardSettingsView: View {
     @EnvironmentObject var themeManager: AppTheme
+    @EnvironmentObject var authManager: AuthenticationManager
     @Environment(\.modelContext) var modelContext
     
-    // Notifications and Sync can stay local for now unless you want them global too
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
     @AppStorage("autoSyncEnabled") private var autoSyncEnabled = true
     
@@ -35,6 +34,21 @@ struct StandardSettingsView: View {
     
     var body: some View {
         Form {
+            if let student = authManager.currentUser {
+                Section(header: Text("Account")) {
+                    NavigationLink(destination: ProfileView(profile: student)) {
+                        Label("Edit Profile", systemImage: "person.circle")
+                    }
+                    
+                    Button(action: {
+                        authManager.signOut()
+                    }) {
+                        Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                            .foregroundColor(.red)
+                    }
+                }
+            }
+            
             Section(header: Text("Experience")) {
                 Picker("Interface Style", selection: $themeManager.selectedGameMode) {
                     ForEach(GameMode.allCases) { mode in
@@ -45,7 +59,6 @@ struct StandardSettingsView: View {
             }
             
             Section(header: Text("Appearance")) {
-                // ✅ FIXED: Binds directly to the global manager
                 Toggle("Dark Mode", isOn: $themeManager.darkModeEnabled)
                 
                 VStack(alignment: .leading, spacing: 16) {
@@ -64,6 +77,7 @@ struct StandardSettingsView: View {
             Section(header: Text("Notifications")) {
                 Toggle("Enable Notifications", isOn: $notificationsEnabled)
                 NavigationLink("Manage Notifications", destination: NotificationSettingsView())
+                NavigationLink("Academic Calendar", destination: AcademicCalendarSettingsView())
             }
             
             Section(header: Text("Data")) {
@@ -71,15 +85,30 @@ struct StandardSettingsView: View {
             }
             
             Section(header: Text("Developer Options")) {
+                NavigationLink(destination: NotificationDebugView()) {
+                    Label {
+                        Text("Notification Lab")
+                    } icon: {
+                        Image(systemName: "ant.fill")
+                            .foregroundColor(.purple)
+                    }
+                }
+                
+                // ✅ UPDATED: Keeps profile when reloading data
                 Button("Load Heavy Stress Data") {
-                    DemoDataManager.shared.createHeavyStressData(modelContext: modelContext)
-                    alertMessage = "Heavy stress test data loaded!"
+                    DemoDataManager.shared.createHeavyStressData(
+                        modelContext: modelContext,
+                        cleanFirst: true,
+                        keepProfile: true
+                    )
+                    alertMessage = "Heavy stress test data loaded! (Profile kept)"
                     showingDataAlert = true
                 }
                 .foregroundColor(.blue)
                 
                 Button("Clear All Data", role: .destructive) {
-                    DemoDataManager.shared.deleteAllData(modelContext: modelContext)
+                    DemoDataManager.shared.deleteAllData(modelContext: modelContext, includeProfile: true)
+                    authManager.signOut() // Sign out since we deleted the profile
                     alertMessage = "All data cleared."
                     showingDataAlert = true
                 }
@@ -95,6 +124,7 @@ struct StandardSettingsView: View {
 }
 
 // MARK: - 🕹️ ARCADE SETTINGS
+// (Ensure ArcadeSettingsView is also updated or just leave as is if you don't use it frequently)
 struct ArcadeSettingsView: View {
     @EnvironmentObject var themeManager: AppTheme
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
@@ -107,7 +137,6 @@ struct ArcadeSettingsView: View {
             Color.black.ignoresSafeArea()
             ScrollView {
                 VStack(spacing: 24) {
-                    // Uses ArcadeSection from SharedComponents
                     ArcadeSection(title: "SYSTEM INTERFACE", color: .cyan) {
                         Picker("", selection: $themeManager.selectedGameMode) {
                             ForEach(GameMode.allCases) { mode in Text(mode.rawValue).tag(mode) }
@@ -127,18 +156,28 @@ struct ArcadeSettingsView: View {
                     
                     ArcadeSection(title: "SYSTEM CONTROLS", color: .orange) {
                         ArcadeToggle(icon: "bell.fill", label: "NOTIFICATIONS", isOn: $notificationsEnabled)
-                        // ✅ FIXED: Binds directly to global manager
                         ArcadeToggle(icon: "moon.fill", label: "DARK MODE", isOn: $themeManager.darkModeEnabled)
                         ArcadeToggle(icon: "arrow.triangle.2.circlepath", label: "AUTO SYNC", isOn: $autoSyncEnabled)
                     }
+                    
+                    NavigationLink(destination: NotificationDebugView()) {
+                        HStack {
+                            Image(systemName: "ant.fill").foregroundColor(.red)
+                            Text("DEBUG PROTOCOL").font(.custom("Courier", size: 16)).fontWeight(.bold).foregroundColor(.red)
+                            Spacer()
+                            Image(systemName: "chevron.right").foregroundColor(.gray)
+                        }
+                        .padding()
+                        .background(Color.black)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red, lineWidth: 2))
+                    }
+                    
                 }.padding()
             }
         }
         .navigationTitle("System Config")
     }
 }
-
-// MARK: - Local Helpers
 
 struct ArcadeToggle: View {
     let icon: String; let label: String; @Binding var isOn: Bool
