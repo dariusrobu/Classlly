@@ -7,26 +7,28 @@ struct HomeView: View {
     @EnvironmentObject var calendarManager: AcademicCalendarManager
     @Query(sort: \Subject.title) var subjects: [Subject]
     @Query var tasks: [StudyTask]
-    @Query private var profiles: [StudentProfile]
     
-    public init() {}
+    // Accepts profile from MainTabView
+    let profile: StudentProfile?
+    
+    public init(profile: StudentProfile?) {
+        self.profile = profile
+    }
 
     var body: some View {
         NavigationView {
             Group {
                 switch themeManager.selectedGameMode {
                 case .rainbow:
-                    AnyView(RainbowDashboard(subjects: subjects, tasks: tasks, profile: profiles.first))
-                case .arcade:
-                    AnyView(ArcadeDashboard(subjects: subjects, tasks: tasks))
-                case .standard: // ✅ FIXED: .none -> .standard
-                    AnyView(StandardDashboard(subjects: subjects, tasks: tasks, profile: profiles.first))
+                    AnyView(RainbowDashboard(subjects: subjects, tasks: tasks, profile: profile))
+                case .standard:
+                    AnyView(StandardDashboard(subjects: subjects, tasks: tasks, profile: profile))
                 }
             }
             .navigationBarHidden(true)
         }
         .navigationViewStyle(.stack)
-        .preferredColorScheme((themeManager.selectedGameMode == .arcade || themeManager.selectedGameMode == .rainbow) ? .dark : nil)
+        .preferredColorScheme(themeManager.selectedGameMode == .rainbow ? .dark : nil)
     }
 }
 
@@ -51,10 +53,13 @@ struct RainbowDashboard: View {
     private var nextClass: TodayClassEvent? { DashboardLogic.getNextClass(from: todaysSchedule) }
     private var remainingClasses: [TodayClassEvent] { DashboardLogic.getRemainingClasses(from: todaysSchedule) }
     
+    // ✅ FIX: Filter based on TaskType (.exam or .quiz)
     private var examItems: [StudyTask] {
-        tasks.filter {
-            !$0.isCompleted && ($0.priority == .high || $0.title.localizedCaseInsensitiveContains("exam"))
-        }.sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+        tasks.filter { task in
+            guard !task.isCompleted else { return false }
+            return task.type == .exam || task.type == .quiz
+        }
+        .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
     }
     
     private var generalTasks: [StudyTask] {
@@ -183,11 +188,13 @@ struct StandardDashboard: View {
     private var nextClass: TodayClassEvent? { DashboardLogic.getNextClass(from: todaysSchedule) }
     private var remainingClasses: [TodayClassEvent] { DashboardLogic.getRemainingClasses(from: todaysSchedule) }
     
+    // ✅ FIX: Filter based on TaskType (.exam or .quiz)
     private var examItems: [StudyTask] {
-        tasks.filter {
-            !$0.isCompleted &&
-            ($0.priority == .high || $0.title.localizedCaseInsensitiveContains("exam") || $0.title.localizedCaseInsensitiveContains("test"))
-        }.sorted { ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture) }
+        tasks.filter { task in
+            guard !task.isCompleted else { return false }
+            return task.type == .exam || task.type == .quiz
+        }
+        .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
     }
     
     private var generalTasks: [StudyTask] {
@@ -278,7 +285,88 @@ struct StandardDashboard: View {
     }
 }
 
-// MARK: - COMPONENTS
+// MARK: - 🧩 DASHBOARD LOGIC & MODELS
+
+struct TodayClassEvent: Identifiable {
+    let id = UUID()
+    let subject: Subject
+    let type: ClassType
+    let startTime: Date
+    let endTime: Date
+    let room: String
+    
+    var timerPhraseShort: String {
+        let diff = startTime.timeIntervalSinceNow
+        if diff <= 0 { return Date() < endTime ? "NOW" : "DONE" }
+        let minutes = Int(diff / 60)
+        return "IN \(minutes) MIN"
+    }
+}
+
+struct DashboardLogic {
+    static func getTodaysSchedule(subjects: [Subject]) -> [TodayClassEvent] {
+        let cal = Calendar.current
+        let today = Date()
+        let weekday = cal.component(.weekday, from: today) // 1=Sun, 2=Mon...
+        
+        var events: [TodayClassEvent] = []
+        
+        for s in subjects {
+            // Check Course
+            if s.courseDays.contains(weekday) {
+                if let start = combine(today, s.courseStartTime),
+                   let end = combine(today, s.courseEndTime) {
+                    events.append(TodayClassEvent(subject: s, type: .course, startTime: start, endTime: end, room: s.courseClassroom))
+                }
+            }
+            // Check Seminar
+            if s.hasSeminar && s.seminarDays.contains(weekday) {
+                if let start = combine(today, s.seminarStartTime),
+                   let end = combine(today, s.seminarEndTime) {
+                    events.append(TodayClassEvent(subject: s, type: .seminar, startTime: start, endTime: end, room: s.seminarClassroom))
+                }
+            }
+        }
+        return events.sorted { $0.startTime < $1.startTime }
+    }
+    
+    static func getNextClass(from schedule: [TodayClassEvent]) -> TodayClassEvent? {
+        return schedule.first { $0.endTime > Date() }
+    }
+    
+    static func getRemainingClasses(from schedule: [TodayClassEvent]) -> [TodayClassEvent] {
+        guard let next = getNextClass(from: schedule) else { return [] }
+        return schedule.filter { $0.startTime > next.startTime }
+    }
+    
+    static func filterTodayClasses(subjects: [Subject]) -> [Subject] {
+        let events = getTodaysSchedule(subjects: subjects)
+        let ids = Set(events.map { $0.subject.id })
+        return subjects.filter { ids.contains($0.id) }
+    }
+    
+    static func combine(_ d: Date, _ t: Date) -> Date? {
+        let c = Calendar.current
+        let tc = c.dateComponents([.hour, .minute], from: t)
+        return c.date(bySettingHour: tc.hour ?? 0, minute: tc.minute ?? 0, second: 0, of: d)
+    }
+}
+
+// MARK: - 🌈 RAINBOW COMPONENTS
+
+struct RainbowHeaderView: View {
+    let profile: StudentProfile?
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(profile?.name.uppercased() ?? "STUDENT").font(.system(size: 10, weight: .black)).foregroundColor(.gray)
+                Text(Date().formatted(date: .complete, time: .omitted).uppercased()).font(.title3).fontWeight(.black).foregroundColor(.white)
+            }
+            Spacer()
+            NavigationLink(destination: SettingsDashboardView()) { Image(systemName: "gearshape.fill").font(.title2).foregroundColor(.white).padding(10).background(Color(white: 0.15)).clipShape(Circle()) }
+        }
+    }
+}
 
 struct RainbowSemesterStatus: View {
     let weekProgress: Int
@@ -316,6 +404,173 @@ struct RainbowSemesterStatus: View {
     }
 }
 
+struct RainbowActionButton: View {
+    let icon: String
+    let label: String
+    let color: Color
+    let action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            HStack { Image(systemName: icon); Text(label) }
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(.black)
+                .padding(.vertical, 12)
+                .padding(.horizontal, 20)
+                .background(color)
+                .cornerRadius(30)
+        }
+    }
+}
+
+struct RainbowNextClassCard: View {
+    let event: TodayClassEvent
+    let accentColor: Color
+    var body: some View {
+        HStack(spacing: 20) {
+            VStack(alignment: .center, spacing: 4) {
+                if event.startTime > Date() {
+                    Text(event.startTime, style: .timer).font(.title3).fontWeight(.black).foregroundColor(.white).monospacedDigit()
+                    Text("STARTS IN").font(.system(size: 8, weight: .bold)).foregroundColor(accentColor)
+                } else {
+                    Text("NOW").font(.title3).fontWeight(.black).foregroundColor(.white)
+                    Text("HAPPENING").font(.system(size: 8, weight: .bold)).foregroundColor(RainbowColors.orange)
+                }
+            }.frame(minWidth: 80)
+            Rectangle().fill(Color(white: 0.2)).frame(width: 1, height: 40)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(event.subject.title).font(.headline).fontWeight(.bold).foregroundColor(.white)
+                HStack { Image(systemName: "mappin.circle.fill").foregroundColor(.gray); Text(event.room).font(.subheadline).foregroundColor(.gray) }
+            }
+            Spacer()
+            Image(systemName: event.type == .course ? "book.fill" : "person.2.fill").font(.title).foregroundColor(event.subject.color).opacity(0.8)
+        }
+        .padding(24).background(Color(white: 0.1)).cornerRadius(24)
+        .overlay(RoundedRectangle(cornerRadius: 24).stroke(LinearGradient(colors: [accentColor.opacity(0.6), accentColor.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 2))
+    }
+}
+
+struct RainbowRemainingRow: View {
+    let event: TodayClassEvent
+    var body: some View {
+        HStack(spacing: 16) {
+            Text(formatTime(event.startTime)).font(.subheadline).fontWeight(.bold).foregroundColor(.gray).frame(width: 60, alignment: .leading)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(event.subject.title).font(.body).fontWeight(.bold).foregroundColor(.white)
+                Text(event.room).font(.caption).foregroundColor(.gray)
+            }
+            Spacer()
+            Image(systemName: event.type == .course ? "book.fill" : "person.2.fill").foregroundColor(event.subject.color)
+        }
+        .padding().background(Color(white: 0.1)).cornerRadius(16)
+    }
+    private func formatTime(_ date: Date) -> String {
+        let f = DateFormatter(); f.timeStyle = .short; return f.string(from: date)
+    }
+}
+
+struct RainbowStatusCard: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let color: Color
+    var body: some View {
+        HStack(spacing: 16) {
+            Image(systemName: icon).font(.largeTitle).foregroundColor(color)
+            VStack(alignment: .leading) {
+                Text(title).font(.headline).fontWeight(.bold).foregroundColor(.white)
+                Text(subtitle).font(.caption).foregroundColor(.gray)
+            }
+            Spacer()
+        }.padding(20).background(Color(white: 0.1)).cornerRadius(20)
+    }
+}
+
+struct RainbowExamCard: View {
+    let task: StudyTask
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.black)
+                Spacer()
+                if let due = task.dueDate { Text(due.formatted(.dateTime.day().month())).font(.caption).fontWeight(.bold).foregroundColor(.black) }
+            }
+            Text(task.title).font(.headline).fontWeight(.black).foregroundColor(.black).lineLimit(2)
+            Text(task.subject?.title ?? "General").font(.caption).fontWeight(.bold).foregroundColor(.black.opacity(0.7))
+        }
+        .padding(16).frame(width: 160, height: 120)
+        .background(LinearGradient(colors: [RainbowColors.orange, RainbowColors.red], startPoint: .topLeading, endPoint: .bottomTrailing))
+        .cornerRadius(20)
+    }
+}
+
+struct RainbowTaskRow: View {
+    let task: StudyTask
+    let accentColor: Color
+    var body: some View {
+        HStack(spacing: 12) {
+            Button(action: { }) { Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle").font(.title2).foregroundColor(task.isCompleted ? accentColor : .gray) }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(task.title).font(.body).fontWeight(.medium).strikethrough(task.isCompleted).foregroundColor(task.isCompleted ? .gray : .white)
+                HStack {
+                    if let subject = task.subject { Text(subject.title).font(.caption2).fontWeight(.bold).foregroundColor(subject.color) }
+                    if task.priority == .high { Text("HIGH").font(.caption2).fontWeight(.black).foregroundColor(RainbowColors.red) }
+                }
+            }
+            Spacer()
+        }
+        .padding().background(Color(white: 0.1)).cornerRadius(16).opacity(task.isCompleted ? 0.6 : 1.0)
+    }
+}
+
+struct RainbowSubjectStatsCard: View {
+    let subject: Subject
+    var body: some View {
+        NavigationLink(destination: SubjectDetailView(subject: subject)) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    ZStack { Circle().fill(subject.color.opacity(0.2)).frame(width: 40, height: 40); Image(systemName: "book.fill").font(.caption).foregroundColor(subject.color) }
+                    Spacer()
+                    if let grade = subject.currentGrade { Text(String(format: "%.1f", grade)).font(.title3).fontWeight(.black).foregroundColor(grade >= 5 ? RainbowColors.green : RainbowColors.red) }
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(subject.title).font(.headline).fontWeight(.bold).foregroundColor(.white).lineLimit(1)
+                    Text("Attd: \(Int(subject.attendanceRate * 100))%").font(.caption).fontWeight(.bold).foregroundColor(.gray)
+                }
+            }
+            .padding(16).frame(width: 150, height: 130).background(Color(white: 0.1)).cornerRadius(20)
+            .overlay(RoundedRectangle(cornerRadius: 20).stroke(subject.color.opacity(0.3), lineWidth: 1))
+        }
+    }
+}
+
+// MARK: - 👔 STANDARD COMPONENTS
+
+struct CleanHeader: View {
+    @EnvironmentObject var themeManager: AppTheme
+    let profile: StudentProfile?
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(greetingMessage).font(.largeTitle).fontWeight(.bold).foregroundColor(.primary)
+                Text(Date().formatted(date: .complete, time: .omitted)).font(.subheadline).foregroundColor(.secondary)
+            }
+            Spacer()
+            NavigationLink(destination: SettingsDashboardView()) {
+                Image(systemName: "gearshape").font(.system(size: 20)).foregroundColor(.primary)
+                    .padding(10).background(Color.themeSurface).clipShape(Circle())
+                    .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
+            }
+        }
+    }
+    private var greetingMessage: String {
+        let h = Calendar.current.component(.hour, from: Date())
+        if let name = profile?.name.components(separatedBy: " ").first, !name.isEmpty {
+            return "Hi, \(name)"
+        }
+        return h < 12 ? "Good Morning" : h < 17 ? "Good Afternoon" : "Good Evening"
+    }
+}
+
 struct SemesterStatusCard: View {
     let weekNumber: Int
     let totalWeeks: Int
@@ -341,46 +596,49 @@ struct SemesterStatusCard: View {
                 Text(semesterName).font(.subheadline).fontWeight(.semibold)
                 HStack {
                     Text(isEven ? "Even Week" : "Odd Week").font(.caption).padding(.horizontal, 8).padding(.vertical, 4).background(accent.opacity(0.1)).foregroundColor(accent).cornerRadius(6)
-                    Text("\(Int((Double(weekNumber) / Double(max(1, totalWeeks))) * 100))% Complete").font(.caption).foregroundColor(.secondary)
+                    Text("\(Int((Double(weekNumber) / Double(max(1, totalWeeks))) * 100))%").font(.caption).foregroundColor(.secondary)
                 }
             }
             Spacer()
         }
-        .padding(16)
-        .background(Color.themeSurface)
-        .cornerRadius(16)
+        .padding(16).background(Color.themeSurface).cornerRadius(16)
         .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 4)
     }
 }
 
-// ... (Rest of component definitions remain mostly as they were, ensuring @Bindable is only used where intended or switched to `let`) ...
-
-struct RainbowHeaderView: View {
-    let profile: StudentProfile?
+struct SmartActionBelt: View {
+    var onAddTask: () -> Void
+    var onLogGrade: () -> Void
+    var onFastAttendance: () -> Void
+    var onFocus: () -> Void
+    
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(profile?.name.uppercased() ?? "STUDENT").font(.system(size: 10, weight: .black)).foregroundColor(.gray)
-                Text(Date().formatted(date: .complete, time: .omitted).uppercased()).font(.title3).fontWeight(.black).foregroundColor(.white)
-            }
+        HStack(spacing: 0) {
+            BeltButton(icon: "plus", label: "Task", color: .blue, action: onAddTask)
             Spacer()
-            NavigationLink(destination: SettingsDashboardView()) { Image(systemName: "gearshape.fill").font(.title2).foregroundColor(.white).padding(10).background(Color(white: 0.15)).clipShape(Circle()) }
+            BeltButton(icon: "doc.badge.plus", label: "Grade", color: .orange, action: onLogGrade)
+            Spacer()
+            BeltButton(icon: "hand.raised.fill", label: "Attend", color: .green, action: onFastAttendance)
+            Spacer()
+            BeltButton(icon: "hourglass", label: "Focus", color: .indigo, action: onFocus)
+        }
+    }
+    
+    struct BeltButton: View {
+        let icon: String; let label: String; let color: Color; let action: () -> Void
+        var body: some View {
+            Button(action: action) {
+                VStack(spacing: 8) {
+                    ZStack { Circle().fill(color.opacity(0.1)).frame(width: 56, height: 56); Image(systemName: icon).font(.system(size: 22, weight: .semibold)).foregroundColor(color) }
+                    Text(label).font(.caption).fontWeight(.medium).foregroundColor(.primary)
+                }
+            }
         }
     }
 }
-struct RainbowNextClassCard: View { let event: TodayClassEvent; let accentColor: Color; var body: some View { HStack(spacing: 20) { VStack(alignment: .center, spacing: 4) { if event.startTime > Date() { Text(event.startTime, style: .timer).font(.title3).fontWeight(.black).foregroundColor(.white).monospacedDigit(); Text("STARTS IN").font(.system(size: 8, weight: .bold)).foregroundColor(accentColor) } else { Text("NOW").font(.title3).fontWeight(.black).foregroundColor(.white); Text("HAPPENING").font(.system(size: 8, weight: .bold)).foregroundColor(RainbowColors.orange) } }.frame(minWidth: 80); Rectangle().fill(Color(white: 0.2)).frame(width: 1, height: 40); VStack(alignment: .leading, spacing: 4) { Text(event.subject.title).font(.headline).fontWeight(.bold).foregroundColor(.white); HStack { Image(systemName: "mappin.circle.fill").foregroundColor(.gray); Text(event.room).font(.subheadline).foregroundColor(.gray) } }; Spacer(); Image(systemName: event.type == .course ? "book.fill" : "person.2.fill").font(.title).foregroundColor(event.subject.color).opacity(0.8) }.padding(24).background(Color(white: 0.1)).cornerRadius(24).overlay(RoundedRectangle(cornerRadius: 24).stroke(LinearGradient(colors: [accentColor.opacity(0.6), accentColor.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 2)) } }
-// Use `let task` here if not editing in place, or ensure `EditTaskView` handles changes
-struct RainbowTaskRow: View { let task: StudyTask; let accentColor: Color; var body: some View { HStack(spacing: 12) { Button(action: { /* Logic moved to view model or parent */ }) { Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle").font(.title2).foregroundColor(task.isCompleted ? accentColor : .gray) }; VStack(alignment: .leading, spacing: 4) { Text(task.title).font(.body).fontWeight(.medium).strikethrough(task.isCompleted).foregroundColor(task.isCompleted ? .gray : .white); HStack { if let subject = task.subject { Text(subject.title).font(.caption2).fontWeight(.bold).foregroundColor(subject.color) }; if task.priority == .high { Text("HIGH").font(.caption2).fontWeight(.black).foregroundColor(RainbowColors.red) } } }; Spacer() }.padding().background(Color(white: 0.1)).cornerRadius(16).opacity(task.isCompleted ? 0.6 : 1.0) } }
-struct RainbowActionButton: View { let icon: String; let label: String; let color: Color; let action: () -> Void; var body: some View { Button(action: action) { HStack { Image(systemName: icon); Text(label) }.font(.system(size: 14, weight: .bold)).foregroundColor(.black).padding(.vertical, 12).padding(.horizontal, 20).background(color).cornerRadius(30) } } }
-struct RainbowRemainingRow: View { let event: TodayClassEvent; var body: some View { HStack(spacing: 16) { Text(formatTime(event.startTime)).font(.subheadline).fontWeight(.bold).foregroundColor(.gray).frame(width: 60, alignment: .leading); VStack(alignment: .leading, spacing: 2) { Text(event.subject.title).font(.body).fontWeight(.bold).foregroundColor(.white); Text(event.room).font(.caption).foregroundColor(.gray) }; Spacer(); Image(systemName: event.type == .course ? "book.fill" : "person.2.fill").foregroundColor(event.subject.color) }.padding().background(Color(white: 0.1)).cornerRadius(16) }; private func formatTime(_ date: Date) -> String { let f = DateFormatter(); f.timeStyle = .short; return f.string(from: date) } }
-struct RainbowSubjectStatsCard: View { let subject: Subject; var body: some View { NavigationLink(destination: SubjectDetailView(subject: subject)) { VStack(alignment: .leading, spacing: 12) { HStack { ZStack { Circle().fill(subject.color.opacity(0.2)).frame(width: 40, height: 40); Image(systemName: "book.fill").font(.caption).foregroundColor(subject.color) }; Spacer(); if let grade = subject.currentGrade { Text(String(format: "%.1f", grade)).font(.title3).fontWeight(.black).foregroundColor(grade >= 5 ? RainbowColors.green : RainbowColors.red) } }; VStack(alignment: .leading, spacing: 4) { Text(subject.title).font(.headline).fontWeight(.bold).foregroundColor(.white).lineLimit(1); Text("Attd: \(Int(subject.attendanceRate * 100))%").font(.caption).fontWeight(.bold).foregroundColor(.gray) } }.padding(16).frame(width: 150, height: 130).background(Color(white: 0.1)).cornerRadius(20).overlay(RoundedRectangle(cornerRadius: 20).stroke(subject.color.opacity(0.3), lineWidth: 1)) } } }
-struct RainbowStatusCard: View { let icon: String; let title: String; let subtitle: String; let color: Color; var body: some View { HStack(spacing: 16) { Image(systemName: icon).font(.largeTitle).foregroundColor(color); VStack(alignment: .leading) { Text(title).font(.headline).fontWeight(.bold).foregroundColor(.white); Text(subtitle).font(.caption).foregroundColor(.gray) }; Spacer() }.padding(20).background(Color(white: 0.1)).cornerRadius(20) } }
-struct RainbowExamCard: View { let task: StudyTask; var body: some View { VStack(alignment: .leading, spacing: 12) { HStack { Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.black); Spacer(); if let due = task.dueDate { Text(due.formatted(.dateTime.day().month())).font(.caption).fontWeight(.bold).foregroundColor(.black) } }; Text(task.title).font(.headline).fontWeight(.black).foregroundColor(.black).lineLimit(2); Text(task.subject?.title ?? "General").font(.caption).fontWeight(.bold).foregroundColor(.black.opacity(0.7)) }.padding(16).frame(width: 160, height: 120).background(LinearGradient(colors: [RainbowColors.orange, RainbowColors.red], startPoint: .topLeading, endPoint: .bottomTrailing)).cornerRadius(20) } }
-struct CleanHeader: View { @EnvironmentObject var themeManager: AppTheme; let profile: StudentProfile?; var body: some View { HStack { VStack(alignment: .leading, spacing: 4) { Text(greetingMessage).font(.largeTitle).fontWeight(.bold).foregroundColor(.primary); Text(Date().formatted(date: .complete, time: .omitted)).font(.subheadline).foregroundColor(.secondary) }; Spacer(); NavigationLink(destination: SettingsDashboardView()) { Image(systemName: "gearshape").font(.system(size: 20)).foregroundColor(.primary).padding(10).background(Color.themeSurface).clipShape(Circle()).shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2) } } }; private var greetingMessage: String { let h = Calendar.current.component(.hour, from: Date()); return h < 12 ? "Good Morning" : h < 17 ? "Good Afternoon" : "Good Evening" } }
-struct SmartActionBelt: View { var onAddTask: () -> Void; var onLogGrade: () -> Void; var onFastAttendance: () -> Void; var onFocus: () -> Void; var body: some View { HStack(spacing: 0) { BeltButton(icon: "plus", label: "Task", color: .blue, action: onAddTask); Spacer(); BeltButton(icon: "doc.badge.plus", label: "Grade", color: .orange, action: onLogGrade); Spacer(); BeltButton(icon: "hand.raised.fill", label: "Attend", color: .green, action: onFastAttendance); Spacer(); BeltButton(icon: "hourglass", label: "Focus", color: .indigo, action: onFocus) } }; struct BeltButton: View { let icon: String; let label: String; let color: Color; let action: () -> Void; var body: some View { Button(action: action) { VStack(spacing: 8) { ZStack { Circle().fill(color.opacity(0.1)).frame(width: 56, height: 56); Image(systemName: icon).font(.system(size: 22, weight: .semibold)).foregroundColor(color) }; Text(label).font(.caption).fontWeight(.medium).foregroundColor(.primary) } } } } }
+
 struct NextClassHero: View {
     let event: TodayClassEvent
-    
     var body: some View {
         HStack(spacing: 20) {
             VStack(spacing: 4) {
@@ -391,8 +649,7 @@ struct NextClassHero: View {
                     Text("Now").font(.title3).fontWeight(.bold).foregroundColor(.primary)
                     Text("ends \(formatTime(event.endTime))").font(.caption).foregroundColor(.secondary)
                 }
-            }
-            .frame(minWidth: 80)
+            }.frame(minWidth: 80)
             Rectangle().fill(Color.primary.opacity(0.1)).frame(width: 1, height: 40)
             VStack(alignment: .leading, spacing: 4) {
                 Text(event.subject.title).font(.headline).foregroundColor(.primary).lineLimit(1)
@@ -406,24 +663,243 @@ struct NextClassHero: View {
         }
         .padding(20).background(Color.themeSurface).cornerRadius(20).shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 5)
     }
-    
-    private func formatTime(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.timeStyle = .short
-        return f.string(from: date)
+    private func formatTime(_ date: Date) -> String { let f = DateFormatter(); f.timeStyle = .short; return f.string(from: date) }
+}
+
+struct AllDoneCard: View {
+    var body: some View {
+        HStack {
+            Image(systemName: "moon.stars.fill").font(.title).foregroundColor(.indigo)
+            VStack(alignment: .leading) { Text("All Clear").font(.headline).foregroundColor(.primary); Text("No more classes today.").font(.caption).foregroundColor(.secondary) }
+            Spacer()
+        }.padding().background(Color.themeSurface).cornerRadius(16)
     }
 }
-struct RemainingClassRow: View { let event: TodayClassEvent; var body: some View { HStack(spacing: 16) { Text(formatTime(event.startTime)).font(.subheadline).fontWeight(.medium).foregroundColor(.secondary).frame(width: 60, alignment: .leading); VStack(alignment: .leading, spacing: 2) { Text(event.subject.title).font(.body).fontWeight(.semibold).foregroundColor(.primary); Text(event.room).font(.caption).foregroundColor(.secondary) }; Spacer(); Image(systemName: event.type.icon).foregroundColor(event.type.color) }.padding().background(Color.themeSurface).cornerRadius(12) }; private func formatTime(_ date: Date) -> String { let f = DateFormatter(); f.timeStyle = .short; return f.string(from: date) } }
-struct CleanExamCard: View { let task: StudyTask; var daysLeft: Int { guard let due = task.dueDate else { return 0 }; return Calendar.current.dateComponents([.day], from: Date(), to: due).day ?? 0 }; var body: some View { VStack(alignment: .leading, spacing: 10) { HStack { Text(daysLeft <= 1 ? "URGENT" : "\(daysLeft) DAYS").font(.system(size: 10, weight: .black)).foregroundColor(.white).padding(.horizontal, 8).padding(.vertical, 4).background(Color.red).cornerRadius(8); Spacer() }; Text(task.title).font(.headline).foregroundColor(.primary).lineLimit(2); if let subject = task.subject { Text(subject.title).font(.caption).foregroundColor(.secondary) } }.padding(16).frame(width: 160, height: 120).background(Color.themeSurface).cornerRadius(16).overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.red.opacity(0.1), lineWidth: 1)).shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2) } }
-struct CleanTaskRow: View { let task: StudyTask; @EnvironmentObject var themeManager: AppTheme; var body: some View { HStack(spacing: 12) { Button(action: { /* toggle */ }) { Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle").font(.title2).foregroundColor(task.isCompleted ? .green : .secondary) }.buttonStyle(PlainButtonStyle()); VStack(alignment: .leading, spacing: 4) { Text(task.title).font(.subheadline).fontWeight(.medium).strikethrough(task.isCompleted).foregroundColor(task.isCompleted ? .secondary : .primary); HStack { if let subject = task.subject { Text(subject.title).font(.caption2).padding(.horizontal, 6).padding(.vertical, 2).background(themeManager.selectedTheme.primaryColor.opacity(0.1)).foregroundColor(themeManager.selectedTheme.primaryColor).cornerRadius(4) }; if task.priority == .high { Text("High Priority").font(.caption2).foregroundColor(.red) } } }; Spacer() }.padding().background(Color.themeSurface).cornerRadius(12).opacity(task.isCompleted ? 0.6 : 1.0) } }
-struct CleanSubjectCard: View { let subject: Subject; @EnvironmentObject var themeManager: AppTheme; var body: some View { NavigationLink(destination: SubjectDetailView(subject: subject)) { VStack(alignment: .leading, spacing: 12) { HStack { ZStack { Circle().fill(themeManager.selectedTheme.primaryColor.opacity(0.1)).frame(width: 36, height: 36); Image(systemName: "book.fill").font(.caption).foregroundColor(themeManager.selectedTheme.primaryColor) }; Spacer(); if let grade = subject.currentGrade { Text(String(format: "%.1f", grade)).font(.subheadline).fontWeight(.bold).foregroundColor(grade >= 5 ? .green : .red) } }; VStack(alignment: .leading, spacing: 4) { Text(subject.title).font(.headline).foregroundColor(.primary).lineLimit(1); Text(subject.courseTeacher).font(.caption).foregroundColor(.secondary).lineLimit(1) } }.padding(16).frame(width: 150, height: 120).background(Color.themeSurface).cornerRadius(16).shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 2) }.buttonStyle(PlainButtonStyle()) } }
-struct FreeDayCard: View { var body: some View { HStack { Image(systemName: "sun.max.fill").font(.title).foregroundColor(.orange); VStack(alignment: .leading) { Text("Free Day").font(.headline).foregroundColor(.primary); Text("No classes today.").font(.caption).foregroundColor(.secondary) }; Spacer() }.padding().background(Color.themeSurface).cornerRadius(16) } }
-struct HomeEmptyStateView: View { let icon: String; let title: String; let message: String; var body: some View { HStack { Image(systemName: icon).font(.title2).foregroundColor(.secondary); VStack(alignment: .leading) { Text(title).font(.headline).foregroundColor(.primary); Text(message).font(.caption).foregroundColor(.secondary) }; Spacer() }.padding().background(Color.themeSurface).cornerRadius(12) } }
-struct AllDoneCard: View { var body: some View { HStack { Image(systemName: "moon.stars.fill").font(.title).foregroundColor(.indigo); VStack(alignment: .leading) { Text("All Clear").font(.headline).foregroundColor(.primary); Text("No more classes today.").font(.caption).foregroundColor(.secondary) }; Spacer() }.padding().background(Color.themeSurface).cornerRadius(16) } }
-struct StudySessionView: View { @Environment(\.dismiss) var dismiss; @EnvironmentObject var timerManager: StudyTimerManager; var body: some View { NavigationStack { VStack(spacing: 40) { Picker("Mode", selection: Binding(get: { timerManager.selectedMode }, set: { timerManager.setMode($0) })) { Text("Focus").tag(0); Text("Short Break").tag(1); Text("Long Break").tag(2) }.pickerStyle(.segmented).padding(.horizontal).disabled(timerManager.isRunning); ZStack { Circle().stroke(Color.gray.opacity(0.2), lineWidth: 20); Circle().trim(from: 0, to: timerManager.progress).stroke(Color.indigo, style: StrokeStyle(lineWidth: 20, lineCap: .round)).rotationEffect(.degrees(-90)).animation(.linear(duration: 1), value: timerManager.timeRemaining); VStack { Text(timeString(time: timerManager.timeRemaining)).font(.system(size: 60, weight: .bold, design: .monospaced)); Text(timerManager.isRunning ? "STAY FOCUSED" : "PAUSED").font(.caption).fontWeight(.bold).foregroundColor(.secondary) } }.padding(40); HStack(spacing: 30) { Button(action: { if timerManager.isRunning { timerManager.pause() } else { timerManager.start() } }) { Image(systemName: timerManager.isRunning ? "pause.fill" : "play.fill").font(.title).foregroundColor(.white).frame(width: 70, height: 70).background(Color.indigo).clipShape(Circle()).shadow(radius: 5) }; Button(action: { timerManager.reset() }) { Image(systemName: "arrow.counterclockwise").font(.title).foregroundColor(.indigo).frame(width: 70, height: 70).background(Color.indigo.opacity(0.1)).clipShape(Circle()) } }; Spacer(); if timerManager.isRunning { Button("Continue in Background") { dismiss() }.font(.subheadline).foregroundColor(.secondary).padding(.bottom) } }.navigationTitle("Study Timer").navigationBarTitleDisplayMode(.inline).toolbar { ToolbarItem(placement: .topBarLeading) { Button("Close") { dismiss() } } } } }; private func timeString(time: TimeInterval) -> String { let minutes = Int(time) / 60; let seconds = Int(time) % 60; return String(format: "%02d:%02d", minutes, seconds) } }
-struct QuickLogGradeSheet: View { let subjects: [Subject]; @Environment(\.dismiss) var dismiss; @Environment(\.modelContext) var modelContext; @State private var selectedSubject: Subject?; @State private var gradeValue = ""; @State private var weightValue = "100"; var body: some View { NavigationStack { Form { Section("Subject") { Picker("Select", selection: $selectedSubject) { Text("None").tag(nil as Subject?); ForEach(subjects) { Text($0.title).tag($0 as Subject?) } } }; if selectedSubject != nil { Section("Grade") { TextField("Value", text: $gradeValue).keyboardType(.decimalPad); TextField("Weight %", text: $weightValue).keyboardType(.numberPad) }; Button("Save") { save() }.disabled(gradeValue.isEmpty) } }.navigationTitle("Log Grade").toolbar { Button("Cancel") { dismiss() } } } }; func save() { let g = Double(gradeValue.replacingOccurrences(of: ",", with: ".")) ?? 0; let w = Double(weightValue) ?? 100; let e = GradeEntry(date: Date(), grade: g, weight: w, description: "Quick Log"); e.subject = selectedSubject; modelContext.insert(e); dismiss() } }
-struct QuickAttendanceSheet: View { let subjects: [Subject]; @Environment(\.dismiss) var dismiss; var body: some View { NavigationStack { List(subjects) { sub in HStack { Text(sub.title); Spacer(); QuickAttendanceButton(subject: sub) } }.navigationTitle("Attendance").toolbar { Button("Done") { dismiss() } } }.presentationDetents([.medium]) } }
-struct QuickAttendanceButton: View { @Bindable var subject: Subject; @Environment(\.modelContext) var modelContext; var isAttended: Bool { let cal = Calendar.current; let att = subject.attendance ?? []; return att.contains { cal.isDate($0.date, inSameDayAs: Date()) } }; var body: some View { Button(action: toggle) { Image(systemName: isAttended ? "checkmark.circle.fill" : "plus.circle").font(.title2).foregroundColor(isAttended ? .green : .blue) } }; func toggle() { let cal = Calendar.current; let today = Date(); if isAttended, let att = subject.attendance, let idx = att.firstIndex(where: { cal.isDate($0.date, inSameDayAs: today) }) { modelContext.delete(att[idx]) } else { let e = AttendanceEntry(date: today, status: .present, note: "Quick"); e.subject = subject; modelContext.insert(e) } } }
-struct TodayClassEvent: Identifiable { let id = UUID(); let subject: Subject; let type: ClassType; let startTime: Date; let endTime: Date; let room: String; var timerPhraseShort: String { let diff = startTime.timeIntervalSinceNow; if diff <= 0 { return Date() < endTime ? "NOW" : "DONE" }; let minutes = Int(diff / 60); return "IN \(minutes) MIN" } }
-struct DashboardLogic { static func getTodaysSchedule(subjects: [Subject]) -> [TodayClassEvent] { let cal = Calendar.current; let today = Date(); let weekday = cal.component(.weekday, from: today); var events: [TodayClassEvent] = []; for s in subjects { if s.courseDays.contains(weekday), s.occursThisWeek(date: today, isSeminar: false), let start = combine(today, s.courseStartTime), let end = combine(today, s.courseEndTime) { events.append(TodayClassEvent(subject: s, type: .course, startTime: start, endTime: end, room: s.courseClassroom)) }; if s.seminarDays.contains(weekday), s.occursThisWeek(date: today, isSeminar: true), let start = combine(today, s.seminarStartTime), let end = combine(today, s.seminarEndTime) { events.append(TodayClassEvent(subject: s, type: .seminar, startTime: start, endTime: end, room: s.seminarClassroom)) } }; return events.sorted { $0.startTime < $1.startTime } }; static func getNextClass(from schedule: [TodayClassEvent]) -> TodayClassEvent? { return schedule.first { $0.endTime > Date() } }; static func getRemainingClasses(from schedule: [TodayClassEvent]) -> [TodayClassEvent] { guard let next = getNextClass(from: schedule) else { return [] }; return schedule.filter { $0.startTime > next.startTime } }; static func filterTodayClasses(subjects: [Subject]) -> [Subject] { let events = getTodaysSchedule(subjects: subjects); let ids = Set(events.map { $0.subject.id }); return subjects.filter { ids.contains($0.id) } }; static func combine(_ d: Date, _ t: Date) -> Date? { let c = Calendar.current; let tc = c.dateComponents([.hour, .minute], from: t); return c.date(bySettingHour: tc.hour ?? 0, minute: tc.minute ?? 0, second: 0, of: d) } }
-struct ArcadeDashboard: View { let subjects: [Subject]; let tasks: [StudyTask]; var body: some View { Text("Arcade Mode Active").foregroundColor(.cyan).padding().background(Color.black) } }
+
+struct FreeDayCard: View {
+    var body: some View {
+        HStack {
+            Image(systemName: "sun.max.fill").font(.title).foregroundColor(.orange)
+            VStack(alignment: .leading) { Text("Free Day").font(.headline).foregroundColor(.primary); Text("No classes today.").font(.caption).foregroundColor(.secondary) }
+            Spacer()
+        }.padding().background(Color.themeSurface).cornerRadius(16)
+    }
+}
+
+struct RemainingClassRow: View {
+    let event: TodayClassEvent
+    var body: some View {
+        HStack(spacing: 16) {
+            Text(formatTime(event.startTime)).font(.subheadline).fontWeight(.medium).foregroundColor(.secondary).frame(width: 60, alignment: .leading)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(event.subject.title).font(.body).fontWeight(.semibold).foregroundColor(.primary)
+                Text(event.room).font(.caption).foregroundColor(.secondary)
+            }
+            Spacer()
+            Image(systemName: event.type.icon).foregroundColor(event.type.color)
+        }.padding().background(Color.themeSurface).cornerRadius(12)
+    }
+    private func formatTime(_ date: Date) -> String { let f = DateFormatter(); f.timeStyle = .short; return f.string(from: date) }
+}
+
+struct CleanExamCard: View {
+    let task: StudyTask
+    var daysLeft: Int { guard let due = task.dueDate else { return 0 }; return Calendar.current.dateComponents([.day], from: Date(), to: due).day ?? 0 }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(daysLeft <= 1 ? "URGENT" : "\(daysLeft) DAYS").font(.system(size: 10, weight: .black)).foregroundColor(.white).padding(.horizontal, 8).padding(.vertical, 4).background(Color.red).cornerRadius(8)
+                Spacer()
+            }
+            Text(task.title).font(.headline).foregroundColor(.primary).lineLimit(2)
+            if let subject = task.subject { Text(subject.title).font(.caption).foregroundColor(.secondary) }
+        }
+        .padding(16).frame(width: 160, height: 120).background(Color.themeSurface).cornerRadius(16)
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.red.opacity(0.1), lineWidth: 1))
+        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+    }
+}
+
+struct CleanTaskRow: View {
+    let task: StudyTask
+    @EnvironmentObject var themeManager: AppTheme
+    var body: some View {
+        HStack(spacing: 12) {
+            Button(action: { }) { Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle").font(.title2).foregroundColor(task.isCompleted ? .green : .secondary) }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(task.title).font(.subheadline).fontWeight(.medium).strikethrough(task.isCompleted).foregroundColor(task.isCompleted ? .secondary : .primary)
+                HStack {
+                    if let subject = task.subject { Text(subject.title).font(.caption2).padding(.horizontal, 6).padding(.vertical, 2).background(themeManager.selectedTheme.primaryColor.opacity(0.1)).foregroundColor(themeManager.selectedTheme.primaryColor).cornerRadius(4) }
+                    
+                    // ✅ NEW: Show Type Badge
+                    Text(task.type.rawValue.uppercased())
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(4)
+                        .foregroundColor(.secondary)
+                    
+                    if task.priority == .high { Text("High Priority").font(.caption2).foregroundColor(.red) }
+                }
+            }
+            Spacer()
+        }.padding().background(Color.themeSurface).cornerRadius(12).opacity(task.isCompleted ? 0.6 : 1.0)
+    }
+}
+
+struct CleanSubjectCard: View {
+    let subject: Subject
+    @EnvironmentObject var themeManager: AppTheme
+    var body: some View {
+        NavigationLink(destination: SubjectDetailView(subject: subject)) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    ZStack { Circle().fill(themeManager.selectedTheme.primaryColor.opacity(0.1)).frame(width: 36, height: 36); Image(systemName: "book.fill").font(.caption).foregroundColor(themeManager.selectedTheme.primaryColor) }
+                    Spacer()
+                    if let grade = subject.currentGrade { Text(String(format: "%.1f", grade)).font(.subheadline).fontWeight(.bold).foregroundColor(grade >= 5 ? .green : .red) }
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(subject.title).font(.headline).foregroundColor(.primary).lineLimit(1)
+                    Text(subject.courseTeacher).font(.caption).foregroundColor(.secondary).lineLimit(1)
+                }
+            }.padding(16).frame(width: 150, height: 120).background(Color.themeSurface).cornerRadius(16).shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 2)
+        }.buttonStyle(PlainButtonStyle())
+    }
+}
+
+struct HomeEmptyStateView: View {
+    let icon: String; let title: String; let message: String
+    var body: some View {
+        HStack {
+            Image(systemName: icon).font(.title2).foregroundColor(.secondary)
+            VStack(alignment: .leading) { Text(title).font(.headline).foregroundColor(.primary); Text(message).font(.caption).foregroundColor(.secondary) }
+            Spacer()
+        }.padding().background(Color.themeSurface).cornerRadius(12)
+    }
+}
+
+// MARK: - 🔌 SHEETS
+
+struct StudySessionView: View {
+    @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var timerManager: StudyTimerManager
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 40) {
+                Picker("Mode", selection: Binding(get: { timerManager.selectedMode }, set: { timerManager.setMode($0) })) {
+                    Text("Focus").tag(0); Text("Short Break").tag(1); Text("Long Break").tag(2)
+                }.pickerStyle(.segmented).padding(.horizontal).disabled(timerManager.isRunning)
+                ZStack {
+                    Circle().stroke(Color.gray.opacity(0.2), lineWidth: 20)
+                    Circle().trim(from: 0, to: timerManager.progress)
+                        .stroke(Color.indigo, style: StrokeStyle(lineWidth: 20, lineCap: .round))
+                        .rotationEffect(.degrees(-90)).animation(.linear(duration: 1), value: timerManager.timeRemaining)
+                    VStack {
+                        Text(timeString(time: timerManager.timeRemaining)).font(.system(size: 60, weight: .bold, design: .monospaced))
+                        Text(timerManager.isRunning ? "STAY FOCUSED" : "PAUSED").font(.caption).fontWeight(.bold).foregroundColor(.secondary)
+                    }
+                }.padding(40)
+                HStack(spacing: 30) {
+                    Button(action: { if timerManager.isRunning { timerManager.pause() } else { timerManager.start() } }) {
+                        Image(systemName: timerManager.isRunning ? "pause.fill" : "play.fill").font(.title).foregroundColor(.white).frame(width: 70, height: 70).background(Color.indigo).clipShape(Circle()).shadow(radius: 5)
+                    }
+                    Button(action: { timerManager.reset() }) {
+                        Image(systemName: "arrow.counterclockwise").font(.title).foregroundColor(.indigo).frame(width: 70, height: 70).background(Color.indigo.opacity(0.1)).clipShape(Circle())
+                    }
+                }
+                Spacer()
+                if timerManager.isRunning { Button("Continue in Background") { dismiss() }.font(.subheadline).foregroundColor(.secondary).padding(.bottom) }
+            }
+            .navigationTitle("Study Timer").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Close") { dismiss() } } }
+        }
+    }
+    private func timeString(time: TimeInterval) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+}
+
+struct QuickLogGradeSheet: View {
+    let subjects: [Subject]
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.modelContext) var modelContext
+    @State private var selectedSubject: Subject?
+    @State private var gradeValue = ""
+    @State private var weightValue = "100"
+    
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Subject") {
+                    Picker("Select", selection: $selectedSubject) {
+                        Text("None").tag(nil as Subject?)
+                        ForEach(subjects) { Text($0.title).tag($0 as Subject?) }
+                    }
+                }
+                if selectedSubject != nil {
+                    Section("Grade") {
+                        TextField("Value", text: $gradeValue).keyboardType(.decimalPad)
+                        TextField("Weight %", text: $weightValue).keyboardType(.numberPad)
+                    }
+                    Button("Save") { save() }.disabled(gradeValue.isEmpty)
+                }
+            }
+            .navigationTitle("Log Grade")
+            .toolbar { Button("Cancel") { dismiss() } }
+        }
+    }
+    func save() {
+        let g = Double(gradeValue.replacingOccurrences(of: ",", with: ".")) ?? 0
+        let w = Double(weightValue) ?? 100
+        let e = GradeEntry(date: Date(), grade: g, weight: w, description: "Quick Log")
+        e.subject = selectedSubject
+        modelContext.insert(e)
+        dismiss()
+    }
+}
+
+struct QuickAttendanceSheet: View {
+    let subjects: [Subject]
+    @Environment(\.dismiss) var dismiss
+    var body: some View {
+        NavigationStack {
+            List(subjects) { sub in
+                HStack { Text(sub.title); Spacer(); QuickAttendanceButton(subject: sub) }
+            }
+            .navigationTitle("Attendance")
+            .toolbar { Button("Done") { dismiss() } }
+        }
+        .presentationDetents([.medium])
+    }
+}
+
+struct QuickAttendanceButton: View {
+    @Bindable var subject: Subject
+    @Environment(\.modelContext) var modelContext
+    var isAttended: Bool {
+        let cal = Calendar.current
+        let att = subject.attendance ?? []
+        return att.contains { cal.isDate($0.date, inSameDayAs: Date()) }
+    }
+    var body: some View {
+        Button(action: toggle) {
+            Image(systemName: isAttended ? "checkmark.circle.fill" : "plus.circle")
+                .font(.title2).foregroundColor(isAttended ? .green : .blue)
+        }
+    }
+    func toggle() {
+        let cal = Calendar.current
+        let today = Date()
+        if isAttended, let att = subject.attendance, let idx = att.firstIndex(where: { cal.isDate($0.date, inSameDayAs: today) }) {
+            modelContext.delete(att[idx])
+        } else {
+            let e = AttendanceEntry(date: today, status: .present, note: "Quick")
+            e.subject = subject
+            modelContext.insert(e)
+        }
+    }
+}

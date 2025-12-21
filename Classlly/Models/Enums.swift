@@ -57,3 +57,59 @@ enum TaskReminderTime: String, CaseIterable, Codable {
         }
     }
 }
+
+// MARK: - Class Type
+// ✅ FIX: Centralized definition to prevent ambiguity
+enum ClassType: String, Codable, CaseIterable {
+    case course = "Course"
+    case seminar = "Seminar"
+    case lab = "Lab"
+    case online = "Online"
+    
+    var displayName: String {
+        return self.rawValue
+    }
+    
+    var color: Color {
+        switch self {
+        case .course: return .blue
+        case .seminar: return .orange // Changed from green to match HomeView logic
+        case .lab: return .green
+        case .online: return .purple
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .course: return "book.fill"
+        case .seminar: return "person.2.fill"
+        case .lab: return "flask.fill"
+        case .online: return "laptopcomputer"
+        }
+    }
+}
+
+enum TaskType: String, Codable, CaseIterable {
+    case task = "Task"
+    case homework = "Homework"
+    case project = "Project"
+    case quiz = "Quiz"
+    case exam = "Exam"
+    case presentation = "Presentation"
+    
+    var icon: String {
+        switch self {
+        case .task: return "checklist"
+        case .homework: return "doc.text.fill"
+        case .project: return "folder.fill"
+        case .quiz: return "pencil.and.outline"
+        case .exam: return "graduationcap.fill"
+        case .presentation: return "person.wave.2.fill"
+        }
+    }
+    
+    // Logic for what appears in Exam Radar
+    var isExamRadar: Bool {
+        return self == .exam || self == .quiz
+    }
+}

@@ -9,8 +9,6 @@ struct AcademicCalendarSettingsView: View {
             switch themeManager.selectedGameMode {
             case .rainbow:
                 RainbowCalendarSettingsView()
-            case .arcade:
-                RainbowCalendarSettingsView()
             case .standard: // ✅ UPDATED: .none -> .standard
                 RainbowCalendarSettingsView()
             }

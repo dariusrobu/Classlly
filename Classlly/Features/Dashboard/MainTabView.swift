@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct MainTabView: View {
+    @EnvironmentObject var authManager: AuthenticationManager
     @EnvironmentObject var themeManager: AppTheme
     @State private var selectedTab = 0
     
@@ -19,10 +20,12 @@ struct MainTabView: View {
 struct StandardTabBarView: View {
     @Binding var selectedTab: Int
     @EnvironmentObject var themeManager: AppTheme
+    @EnvironmentObject var authManager: AuthenticationManager
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            HomeView()
+            // ✅ FIX: Pass profile to HomeView
+            HomeView(profile: authManager.currentUser)
                 .tabItem { Label("Home", systemImage: "house.fill") }
                 .tag(0)
             
@@ -38,7 +41,7 @@ struct StandardTabBarView: View {
                 .tabItem { Label("Tasks", systemImage: "checklist") }
                 .tag(3)
             
-            MoreView() // ✅ Connected hub
+            MoreView()
                 .tabItem { Label("More", systemImage: "ellipsis") }
                 .tag(4)
         }
@@ -50,21 +53,23 @@ struct StandardTabBarView: View {
 struct RainbowTabBarView: View {
     @Binding var selectedTab: Int
     @EnvironmentObject var themeManager: AppTheme
+    @EnvironmentObject var authManager: AuthenticationManager
     
     var body: some View {
         ZStack(alignment: .bottom) {
             Group {
                 switch selectedTab {
-                case 0: HomeView()
+                case 0: HomeView(profile: authManager.currentUser) // ✅ FIX: Pass profile
                 case 1: CalendarView()
                 case 2: SubjectsView(embedInNavigationStack: true)
                 case 3: TasksView()
-                case 4: MoreView() // ✅ Connected hub
-                default: HomeView()
+                case 4: MoreView()
+                default: HomeView(profile: authManager.currentUser)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             
+            // Custom Tab Bar
             HStack(spacing: 0) {
                 RainbowTabButton(icon: "house.fill", label: "Home", isSelected: selectedTab == 0, color: .blue) { selectedTab = 0 }
                 Spacer()
@@ -93,7 +98,6 @@ struct RainbowTabBarView: View {
     }
 }
 
-// ✅ FIXED: RainbowTabButton definition included in scope
 struct RainbowTabButton: View {
     let icon: String
     let label: String

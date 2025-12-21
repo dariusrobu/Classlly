@@ -19,9 +19,8 @@ struct MoreView: View {
                     Color.black.ignoresSafeArea()
                     RadialGradient(colors: [accent.opacity(0.3), .black], center: .topTrailing, startRadius: 0, endRadius: 600)
                         .ignoresSafeArea()
-                } else if themeManager.selectedGameMode == .arcade {
-                    Color.black.ignoresSafeArea()
                 } else {
+                    // Standard Background
                     Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
                 }
                 
@@ -155,7 +154,6 @@ struct RainbowNavigationCard<Destination: View>: View {
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        // ✅ FIXED: .none -> .standard
                         .font(.headline).fontWeight(.bold)
                         .foregroundColor(themeManager.selectedGameMode == .standard ? .primary : .white)
                     Text(subtitle)
@@ -165,7 +163,6 @@ struct RainbowNavigationCard<Destination: View>: View {
                 Image(systemName: "chevron.right").font(.caption).foregroundColor(.gray)
             }
             .padding(16)
-            // ✅ FIXED: .none -> .standard
             .background(themeManager.selectedGameMode == .standard ? Color(uiColor: .secondarySystemGroupedBackground) : Color(white: 0.1))
             .cornerRadius(20)
         }

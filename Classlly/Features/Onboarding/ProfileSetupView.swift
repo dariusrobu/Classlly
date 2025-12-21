@@ -1,18 +1,19 @@
 import SwiftUI
 import SwiftData
 
+@MainActor
 struct ProfileSetupView: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var authManager: AuthenticationManager
     @Environment(\.modelContext) private var modelContext
     
-    // Changed from UserProfile to StudentProfile
+    // The user object we are editing
     let user: StudentProfile
     
-    // ✅ Updated to match StudentProfile (single name field)
+    // Local State for Form Fields
     @State private var name: String
     @State private var university: String = ""
-    @State private var gradeLevel: String = "" // Was educationLevel
+    @State private var gradeLevel: String = ""
     @State private var major: String = ""
     @State private var academicYear: String = ""
     
@@ -21,7 +22,10 @@ struct ProfileSetupView: View {
     @State private var inputImage: UIImage?
     
     private let educationLevels = ["High School", "Bachelor's Degree", "Master's Degree", "PhD", "Other"]
-    private let academicYears = ["2023-2024", "2024-2025", "2025-2026", "2026-2027", "2027-2028"]
+    
+    // ✅ FIX: changed from calendar years to "Year 1" - "Year 7"
+    private let academicYears = (1...7).map { "Year \($0)" }
+    
     private let popularMajors = [
         "Computer Science", "Engineering", "Business", "Medicine", "Law",
         "Psychology", "Biology", "Chemistry", "Physics", "Mathematics",
@@ -31,9 +35,11 @@ struct ProfileSetupView: View {
     
     init(user: StudentProfile) {
         self.user = user
-        // ✅ Initialize with single name
         _name = State(initialValue: user.name)
         _university = State(initialValue: user.university)
+        _gradeLevel = State(initialValue: user.gradeLevel)
+        _major = State(initialValue: user.major)
+        _academicYear = State(initialValue: user.academicYear)
     }
     
     var body: some View {
@@ -46,33 +52,14 @@ struct ProfileSetupView: View {
                         Button(action: { showingImagePicker = true }) {
                             ZStack {
                                 if let inputImage = inputImage {
-                                    Image(uiImage: inputImage)
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 100, height: 100)
-                                        .clipShape(Circle())
+                                    Image(uiImage: inputImage).resizable().scaledToFill().frame(width: 100, height: 100).clipShape(Circle())
+                                } else if let data = user.profileImageData, let uiImage = UIImage(data: data) {
+                                    Image(uiImage: uiImage).resizable().scaledToFill().frame(width: 100, height: 100).clipShape(Circle())
                                 } else {
-                                    Circle()
-                                        .fill(Color.gray.opacity(0.2))
-                                        .frame(width: 100, height: 100)
-                                    
-                                    Image(systemName: "camera.fill")
-                                        .font(.title)
-                                        .foregroundColor(.gray)
+                                    Circle().fill(Color.gray.opacity(0.2)).frame(width: 100, height: 100)
+                                    Image(systemName: "camera.fill").font(.title).foregroundColor(.gray)
                                 }
-                                
-                                // Edit badge
-                                VStack {
-                                    Spacer()
-                                    HStack {
-                                        Spacer()
-                                        Image(systemName: "pencil.circle.fill")
-                                            .font(.title2)
-                                            .foregroundColor(.blue)
-                                            .background(Circle().fill(Color.white))
-                                    }
-                                }
-                                .frame(width: 100, height: 100)
+                                VStack { Spacer(); HStack { Spacer(); Image(systemName: "pencil.circle.fill").font(.title2).foregroundColor(.blue).background(Circle().fill(Color.white)) } }.frame(width: 100, height: 100)
                             }
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -83,17 +70,12 @@ struct ProfileSetupView: View {
                 .listRowBackground(Color.clear)
                 
                 Section(header: Text("Personal Information")) {
-                    // ✅ Single Full Name Field
-                    TextField("Full Name", text: $name)
-                        .textContentType(.name)
+                    TextField("Full Name", text: $name).textContentType(.name)
                 }
                 
                 Section(header: Text("Academic Information")) {
-                    // ✅ Mapped to university
-                    TextField("School/University Name", text: $university)
-                        .textInputAutocapitalization(.words)
+                    TextField("School/University Name", text: $university).textInputAutocapitalization(.words)
                     
-                    // ✅ Mapped to gradeLevel
                     Picker("Education Level", selection: $gradeLevel) {
                         Text("Select Education Level").tag("")
                         ForEach(educationLevels, id: \.self) { Text($0).tag($0) }
@@ -105,7 +87,7 @@ struct ProfileSetupView: View {
                     }
                     
                     Picker("Academic Year", selection: $academicYear) {
-                        Text("Select Academic Year").tag("")
+                        Text("Select Year").tag("")
                         ForEach(academicYears, id: \.self) { Text($0).tag($0) }
                     }
                 }
@@ -118,45 +100,34 @@ struct ProfileSetupView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        // ✅ FIX: signOut takes no arguments now
-                        authManager.signOut()
-                        dismiss()
-                    }
-                    .foregroundColor(.red)
+                    Button("Sign Out") { authManager.signOut() }.foregroundColor(.red)
                 }
-                
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Continue") {
-                        completeProfile()
-                    }
-                    .disabled(!isFormValid)
-                    .fontWeight(.semibold)
+                    Button("Continue") { completeProfile() }.disabled(!isFormValid).fontWeight(.semibold)
                 }
             }
             .sheet(isPresented: $showingImagePicker) {
-                ImagePicker { image in
-                    self.inputImage = image
-                }
+                ImagePicker { image in self.inputImage = image }
             }
         }
     }
     
     private var isFormValid: Bool {
-        !name.isEmpty && !university.isEmpty && !gradeLevel.isEmpty && !academicYear.isEmpty
+        !name.isEmpty && !university.isEmpty && !gradeLevel.isEmpty
     }
     
     private func completeProfile() {
-        // ✅ Update properties directly on the object
+        // 1. Update the User Model
         user.name = name
         user.university = university
         user.gradeLevel = gradeLevel
         user.major = major
         user.academicYear = academicYear
-        user.profileImageData = inputImage?.jpegData(compressionQuality: 0.8)
+        if let img = inputImage {
+            user.profileImageData = img.jpegData(compressionQuality: 0.8)
+        }
         
-        // ✅ FIX: Removed 'profile: user' argument
-        // The object is already updated, we just need to save context via the manager
+        // 2. Finalize via AuthenticationManager (which will save the context)
         authManager.completeProfileSetup(modelContext: modelContext)
         dismiss()
     }

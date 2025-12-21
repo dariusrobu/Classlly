@@ -4,6 +4,7 @@ import SwiftUI
 @main
 struct WidgetsBundle: WidgetBundle {
     var body: some Widget {
-        UpNextWidget()   // 👈 Add your new widget here
+        // Standard Widgets (iOS 17+)
+        UpNextWidget()
+        }
     }
-}

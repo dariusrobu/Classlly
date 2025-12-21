@@ -4,15 +4,16 @@ struct AcademicCalendarView: View {
     @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
-        Group {
-            switch themeManager.selectedGameMode {
-            case .rainbow:
-                AnyView(RainbowSemesterListView())
-            case .arcade:
-                AnyView(ArcadeSemesterListView())
-            case .standard:
-                AnyView(StandardSemesterListView())
-            }
+        // Delegate to a helper function to prevent type-inference crashes
+        content
+    }
+    
+    @ViewBuilder
+    private var content: some View {
+        if themeManager.selectedGameMode == .rainbow {
+            RainbowSemesterListView()
+        } else {
+            StandardSemesterListView()
         }
     }
 }
@@ -99,7 +100,6 @@ struct RainbowSemesterCard: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         if let date = formatter.date(from: dateString) {
-            // ✅ FIXED: Changed .medium to .abbreviated
             return date.formatted(date: .abbreviated, time: .omitted)
         }
         return dateString
@@ -149,61 +149,8 @@ struct StandardSemesterListView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         if let date = formatter.date(from: dateString) {
-            // ✅ FIXED: Changed .medium to .abbreviated
             return date.formatted(date: .abbreviated, time: .omitted)
         }
         return dateString
-    }
-}
-
-// MARK: - 🕹️ ARCADE VIEW
-struct ArcadeSemesterListView: View {
-    @EnvironmentObject var calendarManager: AcademicCalendarManager
-    
-    var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            ScrollView {
-                VStack(spacing: 24) {
-                    HStack {
-                        Text("TIMELINE").font(.system(size: 30, weight: .black, design: .rounded)).foregroundColor(.cyan)
-                        Spacer()
-                    }.padding()
-                    
-                    if let currentYear = calendarManager.currentAcademicYear {
-                        ArcadeSemesterBlock(title: "SEMESTER 1", events: currentYear.semester1.events)
-                        ArcadeSemesterBlock(title: "SEMESTER 2", events: currentYear.semester2.events)
-                    }
-                }
-            }
-        }
-    }
-}
-
-struct ArcadeSemesterBlock: View {
-    let title: String
-    let events: [AcademicEventData]
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title).font(.headline).fontWeight(.black).foregroundColor(.purple)
-            
-            ForEach(events) { event in
-                HStack {
-                    Image(systemName: "circle.fill").font(.caption2).foregroundColor(.cyan)
-                    Text(event.customName ?? event.type.displayName).font(.custom("Courier", size: 14)).foregroundColor(.white)
-                    Spacer()
-                    Text("[\(event.weeks) WEEKS]").font(.caption).foregroundColor(.gray)
-                }
-                .padding(10)
-                .background(Color(white: 0.1))
-                .cornerRadius(8)
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.cyan.opacity(0.3), lineWidth: 1))
-            }
-        }
-        .padding()
-        .background(Color.black)
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.purple, lineWidth: 2))
-        .padding(.horizontal)
     }
 }

@@ -9,8 +9,7 @@ class SharedModelContainer {
             GradeEntry.self,
             AttendanceEntry.self,
             StudentProfile.self,
-            // ⚠️ Ensure this class actually exists in your project!
-            // If StudyCalendarEvent is missing, remove this line.
+            // Ensure StudyCalendarEvent exists in your project, otherwise remove this line
             StudyCalendarEvent.self
         ])
         
@@ -26,7 +25,9 @@ class SharedModelContainer {
             containerURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         }
         
-        let storeURL = containerURL.appendingPathComponent("default.store")
+        // ✅ FIX: Renamed store to 'classlly.store' to force a fresh database creation.
+        // This resolves the "CloudKit unique constraint" crash by abandoning the old, incompatible 'default.store'.
+        let storeURL = containerURL.appendingPathComponent("classlly.store")
         
         let modelConfiguration = ModelConfiguration(
             url: storeURL,
@@ -36,9 +37,15 @@ class SharedModelContainer {
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
-            // Print the error so you can see it in the debug console
             print("❌ FATAL ERROR: Could not create ModelContainer: \(error)")
-            fatalError("Could not create Shared ModelContainer: \(error)")
+            // Fallback for extreme cases (prevents crash loops)
+            do {
+                print("🔄 Attempting fallback to local temporary store...")
+                let fallbackConfig = ModelConfiguration(isStoredInMemoryOnly: false)
+                return try ModelContainer(for: schema, configurations: [fallbackConfig])
+            } catch {
+                fatalError("Could not create Shared ModelContainer even with fallback: \(error)")
+            }
         }
     }()
 }

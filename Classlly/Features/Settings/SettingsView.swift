@@ -9,8 +9,6 @@ struct SettingsView: View {
             switch themeManager.selectedGameMode {
             case .rainbow:
                 AnyView(RainbowInAppSettingsView())
-            case .arcade:
-                AnyView(ArcadeSettingsView())
             case .standard:
                 AnyView(StandardSettingsView())
             }
@@ -126,17 +124,11 @@ struct StandardSettingsView: View {
     
     var body: some View {
         Form {
-            if let student = authManager.currentUser {
-                Section(header: Text("Account")) {
-                    NavigationLink(destination: ProfileView(profile: student)) { Label("Edit Profile", systemImage: "person.circle") }
-                    Button(action: { authManager.signOut() }) { Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right").foregroundColor(.red) }
-                }
-            }
+            // ✅ Removed Account Section
             
             Section(header: Text("Experience")) {
                 Picker("Interface Style", selection: $themeManager.selectedGameMode) {
                     ForEach(GameMode.allCases) { mode in
-                        // ✅ FIX: .tag() applied to the container (HStack), not the Text
                         HStack {
                             Image(systemName: mode.iconName)
                             Text(mode.rawValue)
@@ -182,48 +174,7 @@ struct StandardSettingsView: View {
     }
 }
 
-// MARK: - 🕹️ ARCADE SETTINGS
-struct ArcadeSettingsView: View {
-    @EnvironmentObject var themeManager: AppTheme
-    @AppStorage("notificationsEnabled") private var notificationsEnabled = true
-    @AppStorage("autoSyncEnabled") private var autoSyncEnabled = true
-    
-    private let columns = [GridItem(.adaptive(minimum: 50, maximum: 60), spacing: 16)]
-    
-    var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            ScrollView {
-                VStack(spacing: 24) {
-                    SettingsArcadeSection(title: "SYSTEM INTERFACE", color: .cyan) {
-                        Picker("", selection: $themeManager.selectedGameMode) {
-                            ForEach(GameMode.allCases) { mode in
-                                Text(mode.rawValue).tag(mode) // Text is direct child here, so this is valid
-                            }
-                        }
-                        .pickerStyle(.segmented).colorScheme(.dark)
-                    }
-                    
-                    SettingsArcadeSection(title: "VISUAL CORE", color: .purple) {
-                        LazyVGrid(columns: columns, spacing: 16) {
-                            ForEach(Theme.allCases) { theme in
-                                ThemeCircle(theme: theme, isSelected: themeManager.selectedTheme == theme) { themeManager.setTheme(theme) }
-                            }
-                        }
-                    }
-                    
-                    SettingsArcadeSection(title: "SYSTEM CONTROLS", color: .orange) {
-                        ArcadeToggle(icon: "bell.fill", label: "NOTIFICATIONS", isOn: $notificationsEnabled)
-                        ArcadeToggle(icon: "moon.fill", label: "DARK MODE", isOn: $themeManager.darkModeEnabled)
-                    }
-                }.padding()
-            }
-        }
-        .navigationTitle("System Config")
-    }
-}
-
-// Shared Helpers (Re-declared locally to ensure safety)
+// Shared Helpers
 struct RainbowSettingsSection<Content: View>: View {
     let title: String; let content: Content
     init(title: String, @ViewBuilder content: () -> Content) { self.title = title; self.content = content() }
@@ -233,17 +184,6 @@ struct RainbowSettingsSection<Content: View>: View {
             VStack(alignment: .leading, spacing: 20) { content }
                 .padding(20).background(Color(white: 0.1)).cornerRadius(24).padding(.horizontal)
         }
-    }
-}
-
-struct SettingsArcadeSection<Content: View>: View {
-    let title: String; let color: Color; let content: Content
-    init(title: String, color: Color, @ViewBuilder content: () -> Content) { self.title = title; self.color = color; self.content = content() }
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(title).font(.custom("Courier", size: 14)).fontWeight(.black).foregroundColor(color)
-            content
-        }.padding().background(Color.black).overlay(RoundedRectangle(cornerRadius: 16).stroke(color.opacity(0.5), lineWidth: 2))
     }
 }
 
@@ -258,13 +198,6 @@ struct RainbowRowLabel: View {
     let text: String; let icon: String; let color: Color
     var body: some View {
         HStack { Image(systemName: icon).foregroundColor(color).frame(width: 24); Text(text).fontWeight(.bold).foregroundColor(.white); Spacer(); Image(systemName: "chevron.right").font(.caption).foregroundColor(.gray) }
-    }
-}
-
-struct ArcadeToggle: View {
-    let icon: String; let label: String; @Binding var isOn: Bool
-    var body: some View {
-        HStack { Image(systemName: icon).foregroundColor(isOn ? .yellow : .gray); Text(label).font(.caption).fontWeight(.black).foregroundColor(.white); Spacer(); Toggle("", isOn: $isOn).labelsHidden().tint(.yellow) }.padding(8).background(Color.black).cornerRadius(8)
     }
 }
 

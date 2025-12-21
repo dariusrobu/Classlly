@@ -6,11 +6,13 @@ struct AddTaskView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var themeManager: AppTheme
     
-    // Optional: Pass a task to edit
     var taskToEdit: StudyTask?
     
-    // Optional: Pre-select subject (for Subject Detail view)
+    // Configuration
     var preSelectedSubject: Subject?
+    var initialTitle: String?
+    var initialPriority: TaskPriority?
+    var initialType: TaskType? // ✅ NEW
     
     @Query(sort: \Subject.title) var subjects: [Subject]
     
@@ -18,13 +20,23 @@ struct AddTaskView: View {
     @State private var dueDate = Date()
     @State private var hasDueDate = true
     @State private var priority: TaskPriority = .medium
+    @State private var selectedType: TaskType = .task // ✅ NEW
     @State private var selectedSubject: Subject?
     @State private var notes = ""
+    @State private var isFlagged = false
     
-    // Initialize for Edit Mode
-    init(taskToEdit: StudyTask? = nil, preSelectedSubject: Subject? = nil) {
+    init(
+        taskToEdit: StudyTask? = nil,
+        preSelectedSubject: Subject? = nil,
+        initialTitle: String? = nil,
+        initialPriority: TaskPriority? = nil,
+        initialType: TaskType? = nil // ✅ Updated Init
+    ) {
         self.taskToEdit = taskToEdit
         self.preSelectedSubject = preSelectedSubject
+        self.initialTitle = initialTitle
+        self.initialPriority = initialPriority
+        self.initialType = initialType
     }
     
     var body: some View {
@@ -32,6 +44,17 @@ struct AddTaskView: View {
             Form {
                 Section("Task Details") {
                     TextField("Title", text: $title)
+                    
+                    // ✅ NEW: Type Selector
+                    Picker("Type", selection: $selectedType) {
+                        ForEach(TaskType.allCases, id: \.self) { type in
+                            HStack {
+                                Image(systemName: type.icon)
+                                Text(type.rawValue)
+                            }
+                            .tag(type)
+                        }
+                    }
                     
                     Picker("Subject", selection: $selectedSubject) {
                         Text("None").tag(nil as Subject?)
@@ -46,6 +69,9 @@ struct AddTaskView: View {
                         Text("High").tag(TaskPriority.high)
                     }
                     .pickerStyle(.segmented)
+                    
+                    Toggle("Flag Important", isOn: $isFlagged)
+                        .tint(themeManager.selectedTheme.primaryColor)
                 }
                 
                 Section("Due Date") {
@@ -73,20 +99,18 @@ struct AddTaskView: View {
                         .fontWeight(.bold)
                 }
             }
-            .onAppear {
-                setupInitialValues()
-            }
+            .onAppear { setupInitialValues() }
         }
     }
     
     private func setupInitialValues() {
-        // If editing an existing task
         if let task = taskToEdit {
             title = task.title
             priority = task.priority
+            selectedType = task.type // ✅ Load Type
             selectedSubject = task.subject
-            // ✅ Fix: notes is non-optional String
             notes = task.notes
+            isFlagged = task.isFlagged
             
             if let due = task.dueDate {
                 dueDate = due
@@ -94,36 +118,37 @@ struct AddTaskView: View {
             } else {
                 hasDueDate = false
             }
-        }
-        // If creating new with pre-selected subject
-        else if let subject = preSelectedSubject {
-            selectedSubject = subject
+        } else {
+            // Pre-fill logic
+            if let subject = preSelectedSubject { selectedSubject = subject }
+            if let initTitle = initialTitle { title = initTitle }
+            if let initPriority = initialPriority { priority = initPriority }
+            if let initType = initialType { selectedType = initType } // ✅ Pre-fill Type
         }
     }
     
     private func save() {
         if let task = taskToEdit {
-            // Update Existing
             task.title = title
             task.priority = priority
+            task.type = selectedType // ✅ Save Type
             task.subject = selectedSubject
-            // ✅ Fix: Assign String directly (no nil)
             task.notes = notes
             task.dueDate = hasDueDate ? dueDate : nil
+            task.isFlagged = isFlagged
         } else {
-            // Create New
-            // ✅ Fix: Correct Argument Order & Non-optional notes
             let newTask = StudyTask(
                 title: title,
-                isCompleted: false, // Must come before dueDate
+                isCompleted: false,
                 dueDate: hasDueDate ? dueDate : nil,
                 priority: priority,
-                notes: notes // Must be String
+                type: selectedType, // ✅ Save Type
+                subject: selectedSubject,
+                isFlagged: isFlagged,
+                notes: notes
             )
-            newTask.subject = selectedSubject
             modelContext.insert(newTask)
         }
-        
         dismiss()
     }
 }

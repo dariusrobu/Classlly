@@ -9,9 +9,6 @@ struct SettingsDashboardView: View {
             switch themeManager.selectedGameMode {
             case .rainbow:
                 RainbowSettingsView()
-            case .arcade:
-                // Uses the robust implementation from SettingsView.swift
-                ArcadeSettingsView()
             case .standard:
                 // Uses the robust implementation from SettingsView.swift
                 StandardSettingsView()
@@ -169,7 +166,6 @@ struct RainbowGameModePicker: View {
             HStack(spacing: 12) {
                 ModeButton(mode: .standard, label: "Std", icon: "iphone") // Updated .none -> .standard
                 ModeButton(mode: .rainbow, label: "Neon", icon: "paintpalette.fill")
-                ModeButton(mode: .arcade, label: "Game", icon: "gamecontroller.fill")
             }
         }.padding().background(Color(white: 0.08)).cornerRadius(16)
     }

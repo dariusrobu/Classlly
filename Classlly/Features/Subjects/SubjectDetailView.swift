@@ -10,9 +10,7 @@ struct SubjectDetailView: View {
             switch themeManager.selectedGameMode {
             case .rainbow:
                 RainbowSubjectDetailView(subject: subject)
-            case .arcade:
-                ArcadeSubjectDetailView(subject: subject)
-            case .standard: // ✅ FIXED: .none -> .standard
+            case .standard:
                 StandardSubjectDetailView(subject: subject)
             }
         }
@@ -28,6 +26,7 @@ struct RainbowSubjectDetailView: View {
     @Bindable var subject: Subject
     
     // Sheets State
+    @State private var showingAddExam = false // ✅ NEW
     @State private var showingAddGrade = false
     @State private var showingAddAttendance = false
     @State private var showingAddTask = false
@@ -42,6 +41,7 @@ struct RainbowSubjectDetailView: View {
     @Query private var tasks: [StudyTask]
     private var subjectTasks: [StudyTask] {
         tasks.filter { $0.subject == subject && !$0.isCompleted }
+             .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
     }
     
     private var exams: [GradeEntry] {
@@ -70,6 +70,9 @@ struct RainbowSubjectDetailView: View {
                     // 2. Actions
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
+                            // ✅ NEW: Exam Button (Red)
+                            RainbowActionButton(icon: "exclamationmark.triangle.fill", label: "Exam", color: RainbowColors.red) { showingAddExam = true }
+                            
                             RainbowActionButton(icon: "graduationcap.fill", label: "Grade", color: RainbowColors.blue) { showingAddGrade = true }
                             RainbowActionButton(icon: "hand.raised.fill", label: "Attend", color: RainbowColors.green) { showingAddAttendance = true }
                             RainbowActionButton(icon: "checklist", label: "Task", color: RainbowColors.orange) { showingAddTask = true }
@@ -173,7 +176,19 @@ struct RainbowSubjectDetailView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
-        // Sheets
+        
+        // MARK: - Sheets
+        
+        // ✅ NEW: Add Exam Sheet
+        .sheet(isPresented: $showingAddExam) {
+            AddTaskView(
+                preSelectedSubject: subject,
+                initialTitle: "Exam",
+                initialPriority: .high,
+                initialType: .exam // ✅ Sets TaskType.exam
+            )
+        }
+        
         .sheet(isPresented: $showingAddGrade) {
             AddGradeSheet(isPresented: $showingAddGrade, accentColor: accent) { d, g, w, desc, isExam in
                 let new = GradeEntry(date: d, grade: g, weight: w, description: desc, isExam: isExam)
@@ -188,9 +203,13 @@ struct RainbowSubjectDetailView: View {
                 modelContext.insert(new)
             }
         }
-        .sheet(isPresented: $showingAddTask) { AddTaskView(preSelectedSubject: subject) }
+        .sheet(isPresented: $showingAddTask) {
+            AddTaskView(preSelectedSubject: subject)
+        }
         .sheet(isPresented: $showingEditSubject) { EditSubjectView(subject: subject) }
         .sheet(isPresented: $showingWhatIf) { WhatIfGradeView(subject: subject) }
+        
+        // Edit Sheets
         .sheet(item: $editingGrade) { grade in
             EditGradeSheet(gradeEntry: grade, accentColor: accent) { updated in
                 grade.date = updated.date; grade.score = updated.score; grade.weight = updated.weight; grade.title = updated.title; grade.isExam = updated.isExam
@@ -217,6 +236,7 @@ struct StandardSubjectDetailView: View {
     @EnvironmentObject var themeManager: AppTheme
     @Bindable var subject: Subject
     
+    @State private var showingAddExam = false // ✅ NEW
     @State private var showingAddGrade = false
     @State private var showingAddAttendance = false
     @State private var showingAddTask = false
@@ -228,7 +248,12 @@ struct StandardSubjectDetailView: View {
     @State private var editingAttendance: AttendanceEntry?
     
     @Query private var tasks: [StudyTask]
-    private var subjectTasks: [StudyTask] { tasks.filter { $0.subject == subject && !$0.isCompleted } }
+    
+    private var subjectTasks: [StudyTask] {
+        tasks.filter { $0.subject == subject && !$0.isCompleted }
+             .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+    }
+    
     private var exams: [GradeEntry] { (subject.grades ?? []).filter { $0.isExam }.sorted(by: { $0.date > $1.date }) }
     private var regularGrades: [GradeEntry] { (subject.grades ?? []).filter { !$0.isExam }.sorted(by: { $0.date > $1.date }) }
     private var attendanceHistory: [AttendanceEntry] { (subject.attendance ?? []).sorted(by: { $0.date > $1.date }) }
@@ -239,14 +264,18 @@ struct StandardSubjectDetailView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     HeroSection(subject: subject)
+                    
                     QuickActionsRow(
+                        onAddExam: { showingAddExam = true }, // ✅ NEW
                         onAddGrade: { showingAddGrade = true },
                         onAddAttendance: { showingAddAttendance = true },
                         onAddTask: { showingAddTask = true },
                         onEdit: { showingEditSubject = true },
                         onWhatIf: { showingWhatIf = true }
                     )
+                    
                     SubjectInfoCard(subject: subject)
+                    
                     if !exams.isEmpty {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Exams").font(.headline).padding(.horizontal)
@@ -257,29 +286,41 @@ struct StandardSubjectDetailView: View {
                             }.padding(.horizontal)
                         }
                     }
+                    
                     PerformanceRingsSection(subject: subject)
+                    
                     VStack(spacing: 20) {
                         ScrollableHistoryCard(title: "Grade History", icon: "chart.bar.fill", height: 250) {
                             if regularGrades.isEmpty { ContentUnavailableView("No grades", systemImage: "chart.bar") } else { LazyVStack(spacing: 12) { ForEach(regularGrades) { grade in GradeRow(grade: grade).onTapGesture { editingGrade = grade } } }.padding(.horizontal) }
                         }
+                        
                         ScrollableHistoryCard(title: "Attendance History", icon: "calendar", height: 250) {
                             if attendanceHistory.isEmpty { ContentUnavailableView("No records", systemImage: "calendar.badge.exclamationmark") } else { LazyVStack(spacing: 12) { ForEach(attendanceHistory) { entry in AttendanceRow(entry: entry).onTapGesture { editingAttendance = entry } } }.padding(.horizontal) }
                         }
+                        
                         ScrollableHistoryCard(title: "Active Tasks", icon: "checklist", height: 200) {
                             if subjectTasks.isEmpty { ContentUnavailableView("No active tasks", systemImage: "checkmark.circle") } else { LazyVStack(spacing: 0) { ForEach(subjectTasks) { task in TaskRow(task: task); Divider() } } }
                         }
                     }.padding(.horizontal)
+                    
                     Spacer(minLength: 50)
                 }.padding(.bottom)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .primaryAction) { Button(role: .destructive) { showingDeleteAlert = true } label: { Image(systemName: "trash").foregroundColor(.red) } } }
+        
+        // Sheets
+        // ✅ NEW: Add Exam Sheet
+        .sheet(isPresented: $showingAddExam) {
+            AddTaskView(preSelectedSubject: subject, initialTitle: "Exam", initialPriority: .high, initialType: .exam)
+        }
         .sheet(isPresented: $showingAddGrade) { AddGradeSheet(isPresented: $showingAddGrade, accentColor: subject.color) { d, g, w, desc, isExam in let new = GradeEntry(date: d, grade: g, weight: w, description: desc, isExam: isExam); new.subject = subject; modelContext.insert(new) } }
         .sheet(isPresented: $showingAddAttendance) { MarkAttendanceSheet(isPresented: $showingAddAttendance) { d, status, n in let new = AttendanceEntry(date: d, status: status, note: n); new.subject = subject; modelContext.insert(new) } }
         .sheet(isPresented: $showingAddTask) { AddTaskView(preSelectedSubject: subject) }
         .sheet(isPresented: $showingEditSubject) { EditSubjectView(subject: subject) }
         .sheet(isPresented: $showingWhatIf) { WhatIfGradeView(subject: subject) }
+        
         .sheet(item: $editingGrade) { grade in EditGradeSheet(gradeEntry: grade, accentColor: subject.color) { updated in grade.date = updated.date; grade.score = updated.score; grade.weight = updated.weight; grade.title = updated.title; grade.isExam = updated.isExam; try? modelContext.save() } }
         .sheet(item: $editingAttendance) { entry in EditAttendanceSheet(attendanceEntry: entry) { updated in entry.date = updated.date; entry.statusRaw = updated.statusRaw; entry.note = updated.note; try? modelContext.save() } }
         .alert("Delete Subject", isPresented: $showingDeleteAlert) { Button("Delete", role: .destructive) { modelContext.delete(subject); dismiss() }; Button("Cancel", role: .cancel) { } } message: { Text("Are you sure? All grades, attendance, and tasks for this subject will be deleted.") }
@@ -370,7 +411,6 @@ struct RainbowExamRow: View {
     }
 }
 
-// ✅ Scrollable Section for Rainbow Mode
 struct RainbowScrollableSection<Content: View>: View {
     let title: String
     let icon: String
@@ -408,7 +448,7 @@ struct RainbowGradeRow: View {
         HStack {
             VStack(alignment: .leading) { Text(grade.title).font(.body).fontWeight(.bold).foregroundColor(.white); Text(grade.date.formatted(date: .abbreviated, time: .omitted)).font(.caption).foregroundColor(.gray) }
             Spacer()
-            VStack(alignment: .trailing) { Text(String(format: "%.1f", grade.score)).font(.headline).fontWeight(.black).foregroundColor(grade.score >= 5 ? RainbowColors.green : RainbowColors.red); Text("\(Int(grade.weight))%").font(.caption).foregroundColor(.gray) }
+            VStack(alignment: .trailing) { Text(String(format: "%.1f", grade.score)).font(.headline).fontWeight(.black).foregroundColor(grade.score >= 5 ? RainbowColors.green : RainbowColors.red); Text("\(Int(grade.weight))% wgt").font(.caption).foregroundColor(.gray) }
         }.padding()
     }
 }
@@ -446,10 +486,15 @@ struct HeroSection: View {
 }
 
 struct QuickActionsRow: View {
+    let onAddExam: () -> Void // ✅ NEW
     let onAddGrade: () -> Void; let onAddAttendance: () -> Void; let onAddTask: () -> Void; let onEdit: () -> Void; let onWhatIf: () -> Void
+    
     var body: some View {
         HStack(spacing: 20) {
             Spacer()
+            // ✅ NEW: Exam Button (Red)
+            ActionButton(icon: "exclamationmark.triangle.fill", label: "Exam", color: .red, action: onAddExam)
+            
             ActionButton(icon: "graduationcap.fill", label: "Grade", color: .blue, action: onAddGrade)
             ActionButton(icon: "hand.raised.fill", label: "Attend", color: .green, action: onAddAttendance)
             ActionButton(icon: "checklist", label: "Task", color: .orange, action: onAddTask)
@@ -631,12 +676,4 @@ struct EditAttendanceSheet: View {
     @State private var status: AttendanceStatus; @State private var notes: String; @State private var date: Date
     init(attendanceEntry: AttendanceEntry, onSave: @escaping (AttendanceEntry) -> Void) { self.attendanceEntry = attendanceEntry; self.onSave = onSave; _status = State(initialValue: attendanceEntry.status); _notes = State(initialValue: attendanceEntry.note ?? ""); _date = State(initialValue: attendanceEntry.date) }
     var body: some View { NavigationStack { Form { DatePicker("Date", selection: $date, displayedComponents: .date); Picker("Status", selection: $status) { ForEach(AttendanceStatus.allCases, id: \.self) { Text($0.rawValue).tag($0) } }; TextField("Notes", text: $notes) }.navigationTitle("Edit Attendance").toolbar { Button("Save") { let updated = AttendanceEntry(date: date, status: status, note: notes); onSave(updated); dismiss() } } } }
-}
-
-// MARK: - 🕹️ ARCADE STUB
-struct ArcadeSubjectDetailView: View {
-    let subject: Subject
-    var body: some View {
-        ZStack { Color.black.ignoresSafeArea(); Text(subject.title).font(.largeTitle).foregroundColor(.cyan) }
-    }
 }

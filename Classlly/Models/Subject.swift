@@ -4,153 +4,107 @@ import SwiftUI
 
 @Model
 final class Subject {
-    var id: UUID = UUID()
+    var id: String = UUID().uuidString
     var title: String = ""
-    var colorHex: String = "007AFF"
-    var ectsCredits: Int = 0
+    var code: String = ""
+    var colorHex: String = "#0000FF"
+    var icon: String = "book.fill"
+    var credits: Int = 3
     
-    // MARK: - Course Details
+    // Course Details
     var courseTeacher: String = ""
     var courseClassroom: String = ""
+    var courseDays: [Int] = [] // 1=Sun, 2=Mon...
+    var courseStartTime: Date? = nil
+    var courseEndTime: Date? = nil
     
-    // ✅ FIX: Fully qualified default value for SwiftData macro
-    var courseFrequency: ClassFrequency = ClassFrequency.weekly
-    
-    var courseStartTime: Date = Date()
-    var courseEndTime: Date = Date().addingTimeInterval(3600)
-    var courseDays: [Int] = []
-    
-    // MARK: - Seminar Details
+    // Seminar Details
     var hasSeminar: Bool = false
     var seminarTeacher: String = ""
     var seminarClassroom: String = ""
-    
-    // ✅ FIX: Fully qualified default value
-    var seminarFrequency: ClassFrequency = ClassFrequency.weekly
-    
-    var seminarStartTime: Date = Date()
-    var seminarEndTime: Date = Date().addingTimeInterval(3600)
     var seminarDays: [Int] = []
+    var seminarStartTime: Date? = nil
+    var seminarEndTime: Date? = nil
     
-    // MARK: - Relationships
-    @Relationship(deleteRule: .cascade, inverse: \GradeEntry.subject)
-    var grades: [GradeEntry]? = []
+    // Relationships
+    @Relationship(deleteRule: .cascade) var tasks: [StudyTask]? = []
+    @Relationship(deleteRule: .cascade) var grades: [GradeEntry]? = []
+    @Relationship(deleteRule: .cascade) var attendance: [AttendanceEntry]? = []
     
-    @Relationship(deleteRule: .cascade, inverse: \AttendanceEntry.subject)
-    var attendance: [AttendanceEntry]? = []
-    
-    @Relationship(deleteRule: .cascade, inverse: \StudyTask.subject)
-    var tasks: [StudyTask]? = []
-
-    init(
-        title: String,
-        colorHex: String = "007AFF",
-        ectsCredits: Int = 0,
-        
-        courseTeacher: String = "",
-        courseClassroom: String = "",
-        courseFrequency: ClassFrequency = .weekly,
-        courseStartTime: Date = Date(),
-        courseEndTime: Date = Date().addingTimeInterval(3600),
-        courseDays: [Int] = [],
-        
-        hasSeminar: Bool = false,
-        seminarTeacher: String = "",
-        seminarClassroom: String = "",
-        seminarFrequency: ClassFrequency = .weekly,
-        seminarStartTime: Date = Date(),
-        seminarEndTime: Date = Date().addingTimeInterval(3600),
-        seminarDays: [Int] = []
-    ) {
-        self.id = UUID()
-        self.title = title
-        self.colorHex = colorHex
-        self.ectsCredits = ectsCredits
-        
-        self.courseTeacher = courseTeacher
-        self.courseClassroom = courseClassroom
-        self.courseFrequency = courseFrequency
-        self.courseStartTime = courseStartTime
-        self.courseEndTime = courseEndTime
-        self.courseDays = courseDays
-        
-        self.hasSeminar = hasSeminar
-        self.seminarTeacher = seminarTeacher
-        self.seminarClassroom = seminarClassroom
-        self.seminarFrequency = seminarFrequency
-        self.seminarStartTime = seminarStartTime
-        self.seminarEndTime = seminarEndTime
-        self.seminarDays = seminarDays
-    }
-    
-    // MARK: - Computed Properties
+    // Computed Color
     var color: Color {
-        return (Color(hex: colorHex) as Color?) ?? .blue
+        Color(hex: colorHex) ?? .blue
     }
     
+    // Computed Helpers
+    var courseDaysString: String { daysToString(courseDays) }
+    var seminarDaysString: String { daysToString(seminarDays) }
+    var courseTimeString: String { timeRangeString(start: courseStartTime, end: courseEndTime) }
+    var seminarTimeString: String { timeRangeString(start: seminarStartTime, end: seminarEndTime) }
+    
+    // Statistics
     var currentGrade: Double? {
         guard let grades = grades, !grades.isEmpty else { return nil }
-        let totalWeight = grades.reduce(0.0) { $0 + $1.weight }
+        let totalWeight = grades.reduce(0) { $0 + $1.weight }
         guard totalWeight > 0 else { return nil }
-        let weightedSum = grades.reduce(0.0) { $0 + ($1.score * $1.weight) }
+        let weightedSum = grades.reduce(0) { $0 + ($1.score * $1.weight) }
         return weightedSum / totalWeight
     }
     
-    // MARK: - UI Helpers
-    
-    // ✅ Added Missing Helpers
-    var courseDaysString: String {
-        formatDays(courseDays)
-    }
-    
-    var seminarDaysString: String {
-        formatDays(seminarDays)
-    }
-    
-    var courseTimeString: String {
-        formatTimeRange(start: courseStartTime, end: courseEndTime)
-    }
-    
-    var seminarTimeString: String {
-        formatTimeRange(start: seminarStartTime, end: seminarEndTime)
-    }
-    
-    var attendedClasses: Int {
-        return attendance?.filter { $0.status == .present || $0.status == .late }.count ?? 0
-    }
-    
-    var totalClasses: Int {
-        return attendance?.count ?? 0
-    }
-    
     var attendanceRate: Double {
-        guard totalClasses > 0 else { return 0.0 }
-        return Double(attendedClasses) / Double(totalClasses)
+        guard let attendance = attendance, !attendance.isEmpty else { return 1.0 }
+        let total = attendance.count
+        let present = attendance.filter { $0.status == .present || $0.status == .late }.count
+        return Double(present) / Double(total)
     }
-    
-    var gradeHistory: [GradeEntry]? {
-        return grades?.sorted { $0.date > $1.date }
-    }
-    
-    // Helpers
-    private func formatDays(_ days: [Int]) -> String {
-        let sorted = days.sorted()
-        let symbols = Calendar.current.shortWeekdaySymbols
-        return sorted.map { day in
-            let index = (day - 1) % 7
-            return symbols[safe: index] ?? "?"
-        }.joined(separator: ", ")
-    }
-    
-    private func formatTimeRange(start: Date, end: Date) -> String {
-        let f = DateFormatter()
-        f.timeStyle = .short
-        return "\(f.string(from: start)) - \(f.string(from: end))"
-    }
-}
 
-extension Array {
-    subscript(safe index: Int) -> Element? {
-        return indices.contains(index) ? self[index] : nil
+    init(
+        id: String = UUID().uuidString,
+        title: String,
+        code: String = "",
+        colorHex: String = "#0000FF",
+        icon: String = "book.fill",
+        credits: Int = 3,
+        courseTeacher: String = "",
+        courseClassroom: String = "",
+        courseDays: [Int] = [],
+        courseStartTime: Date? = nil,
+        courseEndTime: Date? = nil,
+        hasSeminar: Bool = false,
+        seminarTeacher: String = "",
+        seminarClassroom: String = "",
+        seminarDays: [Int] = [],
+        seminarStartTime: Date? = nil,
+        seminarEndTime: Date? = nil
+    ) {
+        self.id = id
+        self.title = title
+        self.code = code
+        self.colorHex = colorHex
+        self.icon = icon
+        self.credits = credits
+        self.courseTeacher = courseTeacher
+        self.courseClassroom = courseClassroom
+        self.courseDays = courseDays
+        self.courseStartTime = courseStartTime
+        self.courseEndTime = courseEndTime
+        self.hasSeminar = hasSeminar
+        self.seminarTeacher = seminarTeacher
+        self.seminarClassroom = seminarClassroom
+        self.seminarDays = seminarDays
+        self.seminarStartTime = seminarStartTime
+        self.seminarEndTime = seminarEndTime
+    }
+    
+    private func daysToString(_ days: [Int]) -> String {
+        if days.isEmpty { return "TBA" }
+        let weekdaySymbols = Calendar.current.shortWeekdaySymbols
+        return days.map { weekdaySymbols[($0 - 1) % 7] }.joined(separator: ", ")
+    }
+    
+    private func timeRangeString(start: Date?, end: Date?) -> String {
+        guard let s = start, let e = end else { return "TBA" }
+        let f = DateFormatter(); f.timeStyle = .short
+        return "\(f.string(from: s)) - \(f.string(from: e))"
     }
 }

@@ -8,8 +8,6 @@ struct EditTaskView: View {
     var body: some View {
         Group {
             switch themeManager.selectedGameMode {
-            case .arcade:
-                AnyView(ArcadeEditTaskView(task: task))
             case .rainbow:
                 AnyView(RainbowEditTaskView(task: task))
             case .standard: // ✅ FIXED: .none -> .standard

@@ -10,8 +10,6 @@ struct SubjectsView: View {
             switch themeManager.selectedGameMode {
             case .rainbow:
                 AnyView(RainbowSubjectsView(embedInNavigationStack: embedInNavigationStack))
-            case .arcade:
-                AnyView(ArcadeSubjectsView())
             case .standard: // ✅ FIXED: .none -> .standard
                 AnyView(StandardSubjectsView())
             }

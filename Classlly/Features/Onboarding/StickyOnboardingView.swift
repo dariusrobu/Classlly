@@ -1,164 +1,160 @@
 import SwiftUI
-import SwiftData
 
+@MainActor
 struct StickyOnboardingView: View {
     @EnvironmentObject var authManager: AuthenticationManager
-    @EnvironmentObject var themeManager: AppTheme
-    @EnvironmentObject var calendarManager: AcademicCalendarManager
-    @Environment(\.modelContext) var modelContext
     
-    // Flow State
-    @State private var currentStep = 1
-    @State private var direction: AnyTransition = .asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))
+    // State for the Carousel
+    @State private var currentPage = 0
     
-    // User Data
-    @State private var semesterEndDate = Calendar.current.date(byAdding: .month, value: 4, to: Date()) ?? Date()
-    @State private var subjectCount: Double = 4
-    
-    // UI Triggers
-    @State private var showConfetti = false
-    @State private var showPopup = false
+    // Onboarding Pages Data
+    private let pages: [OnboardingPage] = [
+        OnboardingPage(
+            title: "Academic Vision",
+            description: "Visualize your success. Track your progress across semesters with intuitive charts and insights.",
+            icon: "chart.bar.xaxis",
+            color: .blue
+        ),
+        OnboardingPage(
+            title: "Syllabus Scanning",
+            description: "Digitize your life. Snap a photo of your syllabus and let AI extract your schedule and assignments.",
+            icon: "doc.text.viewfinder",
+            color: .purple
+        ),
+        OnboardingPage(
+            title: "GPA Mastering",
+            description: "Stay ahead of the curve. Use 'What-If' scenarios to calculate exactly what you need to score to get that A.",
+            icon: "graduationcap.fill",
+            color: .orange
+        )
+    ]
     
     var body: some View {
         ZStack {
-            // Shared Background
-            Color.black.ignoresSafeArea()
+            Color.themeBackground.ignoresSafeArea()
             
-            // Step Content
             VStack {
-                switch currentStep {
-                case 1:
-                    StickyHookView(onNext: nextStep)
-                        .transition(direction)
-                case 2:
-                    StickyUniversityView(onNext: nextStep)
-                        .transition(direction)
-                case 3:
-                    StickySetupView(onNext: nextStep, onGenerateDemo: generateAndProceed)
-                        .transition(direction)
-                case 4:
-                    StickyVibeView(onFinish: finishOnboarding)
-                        .transition(direction)
-                default:
-                    EmptyView()
-                }
-            }
-            .animation(.easeInOut(duration: 0.5), value: currentStep)
-            
-            // Confetti Overlay
-            if showConfetti {
-                ConfettiView()
-            }
-            
-            // "Aha!" Popup
-            if showPopup {
-                Color.black.opacity(0.4).ignoresSafeArea()
-                VStack(spacing: 16) {
-                    Image(systemName: "wand.and.stars")
-                        .font(.system(size: 40))
-                        .foregroundColor(.yellow)
-                    Text("Schedule Generated!")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                    Text("We built a base schedule for you.\nTap any block later to rename it to your actual subject.")
-                        .font(.caption)
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(.gray)
-                    
-                    Button("Got it") {
-                        withAnimation { showPopup = false }
+                // MARK: - Carousel
+                TabView(selection: $currentPage) {
+                    ForEach(0..<pages.count, id: \.self) { index in
+                        OnboardingPageView(page: pages[index])
+                            .tag(index)
                     }
-                    .fontWeight(.bold)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color.blue)
-                    .cornerRadius(12)
-                    .foregroundColor(.white)
                 }
-                .padding(24)
-                .background(Color(white: 0.15))
-                .cornerRadius(20)
-                .padding(40)
-                .transition(.scale.combined(with: .opacity))
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .animation(.spring(), value: currentPage)
+                
+                // MARK: - Controls
+                VStack(spacing: 24) {
+                    // Page Indicators
+                    HStack(spacing: 8) {
+                        ForEach(0..<pages.count, id: \.self) { index in
+                            Capsule()
+                                .fill(currentPage == index ? pages[currentPage].color : Color.gray.opacity(0.3))
+                                .frame(width: currentPage == index ? 24 : 8, height: 8)
+                                .animation(.spring(), value: currentPage)
+                        }
+                    }
+                    
+                    // Action Button
+                    Button(action: handleNext) {
+                        Text(currentPage == pages.count - 1 ? "Get Started" : "Next")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(pages[currentPage].color)
+                            .cornerRadius(16)
+                            .shadow(color: pages[currentPage].color.opacity(0.4), radius: 10, y: 5)
+                    }
+                    
+                    // Skip Button (Only on first pages)
+                    if currentPage < pages.count - 1 {
+                        Button("Skip") {
+                            complete()
+                        }
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    } else {
+                        // Placeholder to keep spacing consistent
+                        Text(" ").font(.subheadline)
+                    }
+                }
+                .padding(.horizontal, 32)
+                .padding(.bottom, 50)
             }
         }
     }
     
     // MARK: - Logic
     
-    private func nextStep() {
-        withAnimation {
-            currentStep += 1
-        }
-    }
-    
-    private func generateAndProceed() {
-        // 1. Template Injection
-        OnboardingGenerator.generateTemplate(
-            context: modelContext,
-            subjectCount: Int(subjectCount),
-            semesterEnd: semesterEndDate
-        )
-        
-        // 2. Move to next step (Vibe Check)
-        withAnimation {
-            currentStep = 4
-        }
-        
-        // 3. Trigger "Aha" moments
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            showConfetti = true
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
-        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            withAnimation { showPopup = true }
-        }
-    }
-    
-    private func finishOnboarding() {
-        // Marks onboarding as done -> Triggers switch to SignInView in ClassllyApp
-        authManager.completeStickyOnboarding(modelContext: modelContext)
-    }
-}
-
-// ... (Subviews: Hook, University, Setup, Vibe remain unchanged in functionality)
-
-// MARK: - Data Model
-enum OnboardingPainPoint: String, CaseIterable, Identifiable {
-    case exams = "Passing Exams"
-    case schedule = "Organizing Schedule"
-    case procrastination = "Stop Procrastinating"
-    
-    var id: String { self.rawValue }
-    var icon: String {
-        switch self {
-        case .exams: return "graduationcap.fill"
-        case .schedule: return "calendar"
-        case .procrastination: return "hourglass"
-        }
-    }
-}
-
-// MARK: - Confetti View
-// ✅ Added here to ensure visibility
-struct ConfettiView: View {
-    @State private var animate = false
-    var body: some View {
-        ZStack {
-            ForEach(0..<50) { _ in
-                Circle()
-                    .fill(Color(
-                        red: .random(in: 0...1),
-                        green: .random(in: 0...1),
-                        blue: .random(in: 0...1)
-                    ))
-                    .frame(width: 8, height: 8)
-                    .offset(x: animate ? .random(in: -200...200) : 0, y: animate ? .random(in: -200...200) : 0)
-                    .opacity(animate ? 0 : 1)
+    private func handleNext() {
+        if currentPage < pages.count - 1 {
+            withAnimation {
+                currentPage += 1
             }
+        } else {
+            complete()
         }
-        .onAppear { withAnimation(.easeOut(duration: 1.5)) { animate = true } }
+    }
+    
+    private func complete() {
+        // Mark carousel as seen. This triggers ClassllyApp to switch to SignInView.
+        withAnimation {
+            authManager.completeCarousel()
+        }
+    }
+}
+
+// MARK: - Subviews & Models
+
+struct OnboardingPage: Identifiable {
+    let id = UUID()
+    let title: String
+    let description: String
+    let icon: String
+    let color: Color
+}
+
+struct OnboardingPageView: View {
+    let page: OnboardingPage
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            Spacer()
+            
+            ZStack {
+                Circle()
+                    .fill(page.color.opacity(0.1))
+                    .frame(width: 250, height: 250)
+                
+                Circle()
+                    .fill(page.color.opacity(0.2))
+                    .frame(width: 180, height: 180)
+                
+                Image(systemName: page.icon)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 80, height: 80)
+                    .foregroundColor(page.color)
+            }
+            .padding(.bottom, 40)
+            
+            VStack(spacing: 16) {
+                Text(page.title)
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+                
+                Text(page.description)
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 32)
+                    .lineSpacing(4)
+            }
+            
+            Spacer()
+        }
     }
 }

@@ -32,7 +32,6 @@ enum Theme: String, CaseIterable, Identifiable, Codable {
 enum GameMode: String, CaseIterable, Identifiable, Codable {
     // ⚠️ Renamed 'none' to 'standard' to avoid conflict with Optional.none
     case standard = "Standard"
-    case arcade = "Arcade"
     case rainbow = "Rainbow"
     
     var id: String { self.rawValue }
@@ -40,7 +39,6 @@ enum GameMode: String, CaseIterable, Identifiable, Codable {
     var description: String {
         switch self {
         case .standard: return "Clean academic focus"
-        case .arcade: return "Modern gaming hub with neon vibes"
         case .rainbow: return "Vibrant gradients based on your theme"
         }
     }
@@ -48,7 +46,6 @@ enum GameMode: String, CaseIterable, Identifiable, Codable {
     var iconName: String {
         switch self {
         case .standard: return "book.closed.fill"
-        case .arcade: return "gamecontroller.fill"
         case .rainbow: return "paintpalette.fill"
         }
     }
@@ -85,8 +82,9 @@ class AppTheme: ObservableObject {
         
         let storedMode = UserDefaults.standard.string(forKey: "selectedGameMode") ?? GameMode.standard.rawValue
         
-        // Handle migration from old names if necessary
-        if storedMode == "Retro" || storedMode == "Standard" {
+        // Handle migration from old names or removed modes
+        // If user was previously on Arcade, migrate them to Standard
+        if storedMode == "Retro" || storedMode == "Standard" || storedMode == "Arcade" {
             self.selectedGameMode = .standard
         } else {
             self.selectedGameMode = GameMode(rawValue: storedMode) ?? .standard

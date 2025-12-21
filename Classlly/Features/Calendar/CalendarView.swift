@@ -9,8 +9,6 @@ struct CalendarView: View {
             switch themeManager.selectedGameMode {
             case .rainbow:
                 AnyView(RainbowScheduleView())
-            case .arcade:
-                AnyView(ArcadeScheduleView())
             case .standard:
                 AnyView(StandardCalendarView())
             }

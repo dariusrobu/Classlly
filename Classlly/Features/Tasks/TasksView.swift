@@ -9,8 +9,6 @@ struct TasksView: View {
             switch themeManager.selectedGameMode {
             case .rainbow:
                 AnyView(RainbowTasksView())
-            case .arcade:
-                AnyView(ArcadeTasksView())
             case .standard:
                 AnyView(StandardTasksView())
             }
@@ -143,33 +141,118 @@ struct TasksRainbowRow: View {
 struct StandardTasksView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var themeManager: AppTheme
-    @Query var tasks: [StudyTask]
-    @State private var showingAddTask = false
     
-    // ✅ Explicit Init
-    init() {
-        _tasks = Query(sort: [
-            SortDescriptor(\StudyTask.dueDate, order: .forward)
-        ])
+    // Fetch all tasks, we will filter them in memory for standard view
+    @Query(sort: [SortDescriptor(\StudyTask.dueDate, order: .forward)]) var allTasks: [StudyTask]
+    
+    @State private var showingAddTask = false
+    @State private var selectedFilter: StandardFilter = .today // Default to Today
+    
+    // Filter Definitions
+    enum StandardFilter: String, CaseIterable, Identifiable {
+        case today = "Today"
+        case all = "All"
+        case flagged = "Flagged"
+        case done = "Done"
+        
+        var id: String { rawValue }
+    }
+    
+    // Dynamic Filtering Logic
+    var filteredTasks: [StudyTask] {
+        let calendar = Calendar.current
+        
+        switch selectedFilter {
+        case .today:
+            // Active tasks due today
+            return allTasks.filter { task in
+                !task.isCompleted &&
+                task.dueDate != nil &&
+                calendar.isDateInToday(task.dueDate!)
+            }
+        case .all:
+            // All active tasks (Future + Overdue + Today)
+            return allTasks.filter { !$0.isCompleted }
+        case .flagged:
+            // Flagged and active
+            return allTasks.filter { $0.isFlagged && !$0.isCompleted }
+        case .done:
+            // Only completed tasks
+            return allTasks.filter { $0.isCompleted }
+        }
     }
     
     var body: some View {
         NavigationStack {
-            List {
-                if tasks.isEmpty { ContentUnavailableView("No Tasks", systemImage: "checklist") } else {
-                    ForEach(tasks) { task in
-                        TasksStandardRow(task: task, isStandardMode: themeManager.selectedGameMode == .standard)
-                            .swipeActions(edge: .leading) { Button { task.isCompleted.toggle() } label: { Label(task.isCompleted ? "Undo" : "Complete", systemImage: "checkmark") }.tint(.green) }
+            VStack(spacing: 0) {
+                // Filter Picker
+                Picker("Filter", selection: $selectedFilter) {
+                    ForEach(StandardFilter.allCases) { filter in
+                        Text(filter.rawValue).tag(filter)
                     }
-                    .onDelete(perform: deleteTasks)
                 }
+                .pickerStyle(.segmented)
+                .padding()
+                
+                List {
+                    if filteredTasks.isEmpty {
+                        ContentUnavailableView {
+                            Label("No Tasks", systemImage: "checklist")
+                        } description: {
+                            Text(emptyStateDescription)
+                        }
+                    } else {
+                        ForEach(filteredTasks) { task in
+                            TasksStandardRow(task: task, isStandardMode: themeManager.selectedGameMode == .standard)
+                                .swipeActions(edge: .leading) {
+                                    Button {
+                                        withAnimation { task.isCompleted.toggle() }
+                                    } label: {
+                                        Label(task.isCompleted ? "Undo" : "Complete", systemImage: "checkmark")
+                                    }
+                                    .tint(.green)
+                                }
+                                .swipeActions(edge: .trailing) {
+                                    Button(role: .destructive) {
+                                        modelContext.delete(task)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                    
+                                    Button {
+                                        task.isFlagged.toggle()
+                                    } label: {
+                                        Label("Flag", systemImage: "flag")
+                                    }
+                                    .tint(.orange)
+                                }
+                        }
+                    }
+                }
+                .listStyle(.plain)
             }
             .navigationTitle("Tasks")
-            .toolbar { ToolbarItem(placement: .primaryAction) { Button(action: { showingAddTask = true }) { Image(systemName: "plus") } } }
-            .sheet(isPresented: $showingAddTask) { AddTaskView() }
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: { showingAddTask = true }) {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+            .sheet(isPresented: $showingAddTask) {
+                AddTaskView()
+            }
         }
     }
-    private func deleteTasks(offsets: IndexSet) { withAnimation { for index in offsets { modelContext.delete(tasks[index]) } } }
+    
+    private var emptyStateDescription: String {
+        switch selectedFilter {
+        case .today: return "You have no tasks due today."
+        case .all: return "No active tasks found."
+        case .flagged: return "No flagged tasks."
+        case .done: return "No completed tasks yet."
+        }
+    }
 }
 
 struct TasksStandardRow: View {
@@ -194,7 +277,11 @@ struct TasksStandardRow: View {
                 Text(task.title).strikethrough(task.isCompleted).foregroundColor(task.isCompleted ? .secondary : (isStandardMode ? .primary : .white))
                 HStack {
                     if let subject = task.subject { Text(subject.title).font(.caption).padding(2).background(subject.color.opacity(0.2)).cornerRadius(4) }
-                    if let due = task.dueDate { Text(due, style: .date).font(.caption).foregroundColor(due < Date() && !task.isCompleted ? .red : .secondary) }
+                    if let due = task.dueDate {
+                        Text(due, style: .date)
+                            .font(.caption)
+                            .foregroundColor(isOverdue(due) && !task.isCompleted ? .red : .secondary)
+                    }
                 }
             }
             Spacer()
@@ -203,6 +290,10 @@ struct TasksStandardRow: View {
         .contentShape(Rectangle())
         .onTapGesture { showingEdit = true }
         .sheet(isPresented: $showingEdit) { EditTaskView(task: task) }
+    }
+    
+    private func isOverdue(_ date: Date) -> Bool {
+        return date < Date() && !Calendar.current.isDateInToday(date)
     }
 }
 

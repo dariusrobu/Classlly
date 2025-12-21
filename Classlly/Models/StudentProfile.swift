@@ -3,8 +3,7 @@ import SwiftData
 
 @Model
 final class StudentProfile {
-    // ✅ FIX: Removed @Attribute(.unique) which crashes CloudKit.
-    // CloudKit manages record uniqueness internally.
+    // ✅ FIX: Strictly removed @Attribute(.unique) to support CloudKit sync.
     var id: String = UUID().uuidString
     
     var name: String = ""

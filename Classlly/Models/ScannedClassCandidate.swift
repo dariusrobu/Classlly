@@ -1,31 +1,6 @@
 import Foundation
 import SwiftUI
 
-enum ClassType: String, Codable, CaseIterable {
-    case course = "Course"
-    case seminar = "Seminar"
-    case lab = "Lab"
-    case online = "Online"
-    
-    var color: Color {
-        switch self {
-        case .course: return .blue
-        case .seminar: return .green
-        case .lab: return .orange
-        case .online: return .purple
-        }
-    }
-    
-    var icon: String {
-        switch self {
-        case .course: return "book.fill"
-        case .seminar: return "person.2.fill"
-        case .lab: return "flask.fill"
-        case .online: return "laptopcomputer"
-        }
-    }
-}
-
 struct ScannedClassCandidate: Identifiable, Equatable {
     let id = UUID()
     
@@ -39,7 +14,10 @@ struct ScannedClassCandidate: Identifiable, Equatable {
     var title: String
     var room: String = ""
     var teacher: String = ""
+    
+    // ✅ FIX: Uses the shared enum from Enums.swift
     var type: ClassType = .course
+    
     var weekRestriction: String = "" // e.g., "Odd Weeks", "S1"
     var isOptional: Bool = false
     
