@@ -380,7 +380,81 @@ struct RainbowStatusCard: View { let icon: String; let title: String; let subtit
 struct RainbowExamCard: View { let task: StudyTask; var body: some View { VStack(alignment: .leading, spacing: 12) { HStack { Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.black); Spacer(); if let due = task.dueDate { Text(due.formatted(.dateTime.day().month())).font(.caption).fontWeight(.bold).foregroundColor(.black) } }; Text(task.title).font(.headline).fontWeight(.black).foregroundColor(.black).lineLimit(2); Text(task.subject?.title ?? "General").font(.caption).fontWeight(.bold).foregroundColor(.black.opacity(0.7)) }.padding(16).frame(width: 160, height: 120).background(LinearGradient(colors: [RainbowColors.orange, RainbowColors.red], startPoint: .topLeading, endPoint: .bottomTrailing)).cornerRadius(20) } }
 struct CleanHeader: View { @EnvironmentObject var themeManager: AppTheme; let profile: StudentProfile?; var body: some View { HStack { VStack(alignment: .leading, spacing: 4) { Text(greetingMessage).font(.largeTitle).fontWeight(.bold).foregroundColor(.primary); Text(Date().formatted(date: .complete, time: .omitted)).font(.subheadline).foregroundColor(.secondary) }; Spacer(); NavigationLink(destination: SettingsDashboardView()) { Image(systemName: "gearshape").font(.system(size: 20)).foregroundColor(.primary).padding(10).background(Color.themeSurface).clipShape(Circle()).shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2) } } }; private var greetingMessage: String { let h = Calendar.current.component(.hour, from: Date()); return h < 12 ? "Good Morning" : h < 17 ? "Good Afternoon" : "Good Evening" } }
 struct SmartActionBelt: View { var onAddTask: () -> Void; var onLogGrade: () -> Void; var onFastAttendance: () -> Void; var onFocus: () -> Void; var body: some View { HStack(spacing: 0) { BeltButton(icon: "plus", label: "Task", color: .blue, action: onAddTask); Spacer(); BeltButton(icon: "doc.badge.plus", label: "Grade", color: .orange, action: onLogGrade); Spacer(); BeltButton(icon: "hand.raised.fill", label: "Attend", color: .green, action: onFastAttendance); Spacer(); BeltButton(icon: "hourglass", label: "Focus", color: .indigo, action: onFocus) } }; struct BeltButton: View { let icon: String; let label: String; let color: Color; let action: () -> Void; var body: some View { Button(action: action) { VStack(spacing: 8) { ZStack { Circle().fill(color.opacity(0.1)).frame(width: 56, height: 56); Image(systemName: icon).font(.system(size: 22, weight: .semibold)).foregroundColor(color) }; Text(label).font(.caption).fontWeight(.medium).foregroundColor(.primary) } } } } }
-struct NextClassHero: View { let event: TodayClassEvent; var body: some View { HStack(spacing: 20) { VStack(spacing: 4) { if event.startTime > Date() { Text(event.startTime, style: .timer).font(.title3).fontWeight(.bold).foregroundColor(.white).monospacedDigit(); Text("until start").font(.caption2).foregroundColor(.gray) } else { Text("Now").font(.title3).fontWeight(.bold).foregroundColor(.white); Text("ends \(formatTime(event.endTime))").font(.caption).foregroundColor(.gray) } }.frame(minWidth: 80); Rectangle().fill(Color.white.opacity(0.3)).frame(width: 1, height: 40); VStack(alignment: .leading, spacing: 4) { Text(event.subject.title).font(.headline).foregroundColor(.white).lineLimit(1); HStack { Image(systemName: "mappin.and.ellipse").font(.caption); Text(event.room).font(.caption) }.foregroundColor(.gray) }; Spacer(); VStack { Image(systemName: event.type.icon).font(.title2).foregroundColor(event.type.color); Text(event.timerPhraseShort).font(.system(size: 9, weight: .bold)).foregroundColor(event.type.color).padding(.top, 2) } }.padding(20).background(Color.black.opacity(0.9)).cornerRadius(20).shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5) }; private func formatTime(_ date: Date) -> String { let f = DateFormatter(); f.timeStyle = .short; return f.string(from: date) } }
+struct NextClassHero: View {
+    let event: TodayClassEvent
+    
+    var body: some View {
+        HStack(spacing: 20) {
+            // Time Column
+            VStack(spacing: 4) {
+                if event.startTime > Date() {
+                    Text(event.startTime, style: .timer)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary) // ✅ Changed from .white
+                        .monospacedDigit()
+                    Text("until start")
+                        .font(.caption2)
+                        .foregroundColor(.secondary) // ✅ Changed from .gray
+                } else {
+                    Text("Now")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary) // ✅ Changed from .white
+                    Text("ends \(formatTime(event.endTime))")
+                        .font(.caption)
+                        .foregroundColor(.secondary) // ✅ Changed from .gray
+                }
+            }
+            .frame(minWidth: 80)
+            
+            // Vertical Separator
+            Rectangle()
+                .fill(Color.primary.opacity(0.1)) // ✅ Adaptive separator
+                .frame(width: 1, height: 40)
+            
+            // Subject Info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(event.subject.title)
+                    .font(.headline)
+                    .foregroundColor(.primary) // ✅ Changed from .white
+                    .lineLimit(1)
+                
+                HStack {
+                    Image(systemName: "mappin.and.ellipse")
+                        .font(.caption)
+                    Text(event.room)
+                        .font(.caption)
+                }
+                .foregroundColor(.secondary) // ✅ Changed from .gray
+            }
+            
+            Spacer()
+            
+            // Icon & Status
+            VStack {
+                Image(systemName: event.type.icon)
+                    .font(.title2)
+                    .foregroundColor(event.type.color)
+                
+                Text(event.timerPhraseShort)
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(event.type.color)
+                    .padding(.top, 2)
+            }
+        }
+        .padding(20)
+        .background(Color.themeSurface) // ✅ Uses your app's adaptive card color
+        .cornerRadius(20)
+        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 5) // ✅ Softer shadow
+    }
+    
+    private func formatTime(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        return f.string(from: date)
+    }
+}
 struct RemainingClassRow: View { let event: TodayClassEvent; var body: some View { HStack(spacing: 16) { Text(formatTime(event.startTime)).font(.subheadline).fontWeight(.medium).foregroundColor(.secondary).frame(width: 60, alignment: .leading); VStack(alignment: .leading, spacing: 2) { Text(event.subject.title).font(.body).fontWeight(.semibold).foregroundColor(.primary); Text(event.room).font(.caption).foregroundColor(.secondary) }; Spacer(); Image(systemName: event.type.icon).foregroundColor(event.type.color) }.padding().background(Color.themeSurface).cornerRadius(12) }; private func formatTime(_ date: Date) -> String { let f = DateFormatter(); f.timeStyle = .short; return f.string(from: date) } }
 struct CleanExamCard: View { let task: StudyTask; var daysLeft: Int { guard let due = task.dueDate else { return 0 }; return Calendar.current.dateComponents([.day], from: Date(), to: due).day ?? 0 }; var body: some View { VStack(alignment: .leading, spacing: 10) { HStack { Text(daysLeft <= 1 ? "URGENT" : "\(daysLeft) DAYS").font(.system(size: 10, weight: .black)).foregroundColor(.white).padding(.horizontal, 8).padding(.vertical, 4).background(Color.red).cornerRadius(8); Spacer() }; Text(task.title).font(.headline).foregroundColor(.primary).lineLimit(2); if let subject = task.subject { Text(subject.title).font(.caption).foregroundColor(.secondary) } }.padding(16).frame(width: 160, height: 120).background(Color.themeSurface).cornerRadius(16).overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.red.opacity(0.1), lineWidth: 1)).shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2) } }
 struct CleanTaskRow: View { @Bindable var task: StudyTask; @EnvironmentObject var themeManager: AppTheme; var body: some View { HStack(spacing: 12) { Button(action: { withAnimation { task.isCompleted.toggle() } }) { Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle").font(.title2).foregroundColor(task.isCompleted ? .green : .secondary) }.buttonStyle(PlainButtonStyle()); VStack(alignment: .leading, spacing: 4) { Text(task.title).font(.subheadline).fontWeight(.medium).strikethrough(task.isCompleted).foregroundColor(task.isCompleted ? .secondary : .primary); HStack { if let subject = task.subject { Text(subject.title).font(.caption2).padding(.horizontal, 6).padding(.vertical, 2).background(themeManager.selectedTheme.primaryColor.opacity(0.1)).foregroundColor(themeManager.selectedTheme.primaryColor).cornerRadius(4) }; if task.priority == .high { Text("High Priority").font(.caption2).foregroundColor(.red) } } }; Spacer() }.padding().background(Color.themeSurface).cornerRadius(12).opacity(task.isCompleted ? 0.6 : 1.0) } }

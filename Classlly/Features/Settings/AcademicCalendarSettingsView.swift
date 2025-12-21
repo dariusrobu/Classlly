@@ -30,19 +30,50 @@ struct RainbowCalendarSettingsView: View {
     
     var body: some View {
         let accent = themeManager.selectedTheme.primaryColor
+        let isRainbow = themeManager.selectedGameMode == .rainbow
         let isDark = themeManager.selectedGameMode != .none
         
-        NavigationStack {
-            ZStack {
-                if isDark {
-                    Color.black.ignoresSafeArea()
-                } else {
-                    Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
+        ZStack {
+            // Background
+            if isDark {
+                Color.black.ignoresSafeArea()
+                if isRainbow {
+                    RadialGradient(colors: [accent.opacity(0.2), .black], center: .topLeading, startRadius: 0, endRadius: 600).ignoresSafeArea()
                 }
+            } else {
+                Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
+            }
+            
+            VStack(spacing: 0) {
+                // ✅ 1. CUSTOM NAV BAR (Fixes missing Back Button)
+                HStack {
+                    Button(action: { dismiss() }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 20, weight: .bold))
+                            Text("Back")
+                                .font(.headline)
+                        }
+                        .foregroundColor(isDark ? .white : .primary)
+                    }
+                    
+                    Spacer()
+                    
+                    Text("ACADEMIC CALENDAR")
+                        .font(.headline)
+                        .fontWeight(.black)
+                        .foregroundColor(isDark ? .white : .primary)
+                        .offset(x: -20) // Center visually against back button
+                    
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 16)
+                .background(isDark ? Color.black.opacity(0.8) : Color.white.opacity(0.8))
                 
                 ScrollView {
                     VStack(spacing: 24) {
-                        // 1. Header Card with SWITCHER
+                        // 2. Switcher Card
                         VStack(spacing: 8) {
                             HStack {
                                 Image(systemName: "calendar.badge.clock")
@@ -50,7 +81,7 @@ struct RainbowCalendarSettingsView: View {
                                     .foregroundColor(accent)
                                 Spacer()
                                 
-                                // ✅ Calendar Switcher Menu
+                                // Calendar Switcher Menu
                                 Menu {
                                     Text("Switch Calendar")
                                     ForEach(calendarManager.availableCalendars) { cal in
@@ -117,15 +148,16 @@ struct RainbowCalendarSettingsView: View {
                         .cornerRadius(16)
                         .padding(.horizontal)
                         
-                        // 2. Semester Picker
+                        // 3. Semester Picker
                         Picker("Semester", selection: $selectedSemester) {
                             Text("Semester 1").tag(AcademicCalendarManager.SemesterType.semester1)
                             Text("Semester 2").tag(AcademicCalendarManager.SemesterType.semester2)
                         }
                         .pickerStyle(.segmented)
                         .padding(.horizontal)
+                        .colorScheme(isDark ? .dark : .light)
                         
-                        // 3. Timeline Editor
+                        // 4. Timeline Editor
                         VStack(alignment: .leading, spacing: 16) {
                             HStack {
                                 Text("TIMELINE")
@@ -171,15 +203,13 @@ struct RainbowCalendarSettingsView: View {
                     .padding(.top)
                 }
             }
-            .navigationTitle("Academic Structure")
-            .navigationBarTitleDisplayMode(.inline)
-            // ✅ Removed "Close" button here to fix navigation issue
-            .sheet(isPresented: $showingAddEvent) {
-                AddAcademicEventSheet(semester: selectedSemester)
-            }
-            .sheet(isPresented: $showingTemplateSheet) {
-                TemplateSelectionSheet()
-            }
+        }
+        .navigationBarHidden(true) // ✅ Hides system bar to use our custom one
+        .sheet(isPresented: $showingAddEvent) {
+            AddAcademicEventSheet(semester: selectedSemester)
+        }
+        .sheet(isPresented: $showingTemplateSheet) {
+            TemplateSelectionSheet()
         }
     }
 }

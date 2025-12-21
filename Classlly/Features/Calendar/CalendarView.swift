@@ -7,10 +7,9 @@ struct CalendarView: View {
     var body: some View {
         Group {
             switch themeManager.selectedGameMode {
-            case .rainbow:
-                RainbowCalendarView()
-            case .arcade:
-                RainbowCalendarView() // Shared for now
+            case .rainbow, .arcade:
+                // ✅ Renamed to avoid conflict with Settings view
+                RainbowScheduleView()
             case .none:
                 StandardCalendarView()
             }
@@ -18,8 +17,9 @@ struct CalendarView: View {
     }
 }
 
-// MARK: - 🌈 RAINBOW CALENDAR
-struct RainbowCalendarView: View {
+// MARK: - 🌈 RAINBOW SCHEDULE VIEW
+// Renamed from RainbowCalendarView to avoid "Invalid Redeclaration" error
+struct RainbowScheduleView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var subjects: [Subject]
     @EnvironmentObject var themeManager: AppTheme
@@ -62,7 +62,7 @@ struct RainbowCalendarView: View {
                     .padding(.horizontal)
                     .padding(.top, 10)
                     
-                    // ✅ 2. Week Info Badge (New)
+                    // 2. Week Info Badge
                     WeekStatusBadge(date: selectedDate, accent: accent)
                         .padding(.horizontal)
                     
@@ -142,7 +142,8 @@ struct RainbowCalendarView: View {
     }
 }
 
-// ✅ NEW COMPONENT: Week Status Badge
+// MARK: - COMPONENTS
+
 struct WeekStatusBadge: View {
     let date: Date
     let accent: Color
@@ -165,7 +166,6 @@ struct WeekStatusBadge: View {
                         .foregroundColor(.gray)
                 }
             } else {
-                // If nil, likely a holiday or exam session
                 if let event = calendarManager.getCurrentEvent(for: date) {
                     Text(event.customName?.uppercased() ?? event.type.displayName.uppercased())
                         .font(.caption).fontWeight(.black)
@@ -226,7 +226,8 @@ struct RainbowWeekStrip: View {
 }
 
 struct RainbowClassCard: View {
-    let item: RainbowCalendarView.ClassItem
+    // ✅ Updated to use the new struct name
+    let item: RainbowScheduleView.ClassItem
     let accentColor: Color
     
     var body: some View {

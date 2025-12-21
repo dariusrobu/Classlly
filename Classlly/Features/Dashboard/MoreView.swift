@@ -6,74 +6,84 @@ struct MoreView: View {
     @EnvironmentObject var themeManager: AppTheme
     @Environment(\.modelContext) var modelContext
     
-    // ✅ Fetch profile for editing
+    // Fetch profile for editing
     @Query private var profiles: [StudentProfile]
     @State private var showingProfileEdit = false
     
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background adaptivity based on GameMode
-                if themeManager.selectedGameMode != .none {
+                // MARK: - 🎨 RAINBOW BACKGROUND
+                if themeManager.selectedGameMode == .rainbow {
+                    let accent = themeManager.selectedTheme.primaryColor
+                    Color.black.ignoresSafeArea()
+                    RadialGradient(colors: [accent.opacity(0.3), .black], center: .topTrailing, startRadius: 0, endRadius: 600)
+                        .ignoresSafeArea()
+                } else if themeManager.selectedGameMode == .arcade {
                     Color.black.ignoresSafeArea()
                 } else {
                     Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
                 }
                 
                 ScrollView {
-                    VStack(spacing: 20) {
-                        // 1. Profile Card Header (Now Tappable)
+                    VStack(spacing: 24) {
+                        // 1. Profile Header
                         Button(action: {
-                            if !profiles.isEmpty {
-                                showingProfileEdit = true
-                            }
+                            if !profiles.isEmpty { showingProfileEdit = true }
                         }) {
-                            ProfileHeaderCard(user: profiles.first) // Use Query result
-                                .padding(.top, 10)
+                            RainbowProfileCard(user: profiles.first)
                         }
-                        .buttonStyle(PlainButtonStyle()) // Remove default button fade
+                        .buttonStyle(.plain)
+                        .padding(.top, 10)
                         
                         // 2. Navigation Group
-                        VStack(spacing: 0) {
-                            MoreNavigationRow(
+                        VStack(spacing: 16) {
+                            RainbowNavigationCard(
                                 title: "Academic Calendar",
-                                icon: "calendar",
+                                subtitle: "Manage your semesters",
+                                icon: "calendar.badge.clock",
                                 color: .blue,
                                 destination: AcademicCalendarSettingsView()
                             )
                             
-                            Divider()
-                                .padding(.leading, 56)
-                                .opacity(themeManager.selectedGameMode == .none ? 1 : 0.2)
-                            
-                            MoreNavigationRow(
+                            RainbowNavigationCard(
                                 title: "Settings",
+                                subtitle: "App preferences & data",
                                 icon: "gearshape.fill",
-                                color: .gray,
+                                color: .purple,
                                 destination: SettingsView()
                             )
+                            
+                            RainbowNavigationCard(
+                                title: "Privacy Policy",
+                                subtitle: "How we protect your data",
+                                icon: "hand.raised.fill",
+                                color: .green,
+                                destination: PrivacyPolicyView()
+                            )
                         }
-                        .background(themeManager.selectedGameMode == .none ? Color(uiColor: .secondarySystemGroupedBackground) : Color(white: 0.12))
-                        .cornerRadius(16)
                         .padding(.horizontal)
                         
-                        // 3. Sign Out
-                        Button(role: .destructive, action: { authManager.signOut() }) {
-                            Text("Sign Out")
-                                .fontWeight(.bold)
+                        // 3. Sign Out Button
+                        Button(action: { authManager.signOut() }) {
+                            Text("SIGN OUT")
+                                .font(.headline)
+                                .fontWeight(.black)
+                                .foregroundColor(.red)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(themeManager.selectedGameMode == .none ? Color(uiColor: .secondarySystemGroupedBackground) : Color(white: 0.12))
+                                .background(Color(white: 0.1))
                                 .cornerRadius(16)
+                                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.red.opacity(0.5), lineWidth: 1))
                         }
                         .padding(.horizontal)
+                        .padding(.top, 20)
                     }
-                    .padding(.bottom, 110) // Space for Tab Bar
+                    .padding(.bottom, 110)
                 }
             }
             .navigationTitle("More")
-            .toolbarColorScheme(themeManager.selectedGameMode == .none ? nil : .dark, for: .navigationBar)
-            // ✅ Present Profile Edit Sheet
+            .navigationBarHidden(themeManager.selectedGameMode == .rainbow)
             .sheet(isPresented: $showingProfileEdit) {
                 if let profile = profiles.first {
                     NavigationStack {
@@ -85,79 +95,77 @@ struct MoreView: View {
     }
 }
 
-// MARK: - Profile Card Component
-struct ProfileHeaderCard: View {
+// MARK: - 🌈 COMPONENTS
+struct RainbowProfileCard: View {
     let user: StudentProfile?
     @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
-        VStack(spacing: 16) {
+        HStack(spacing: 20) {
+            // Avatar
             if let data = user?.profileImageData, let uiImage = UIImage(data: data) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 80, height: 80)
-                    .clipShape(Circle())
+                Image(uiImage: uiImage).resizable().scaledToFill()
+                    .frame(width: 70, height: 70).clipShape(Circle())
                     .overlay(Circle().stroke(themeManager.selectedTheme.primaryColor, lineWidth: 2))
+                    .shadow(color: themeManager.selectedTheme.primaryColor.opacity(0.5), radius: 10)
             } else {
                 Image(systemName: "person.crop.circle.fill")
-                    .resizable()
-                    .frame(width: 80, height: 80)
-                    .foregroundColor(.gray)
+                    .resizable().frame(width: 70, height: 70)
+                    .foregroundColor(themeManager.selectedTheme.primaryColor.opacity(0.5))
             }
             
-            VStack(spacing: 4) {
-                HStack(spacing: 4) {
-                    Text(user?.name ?? "Student")
-                        .font(.headline)
-                        .foregroundColor(themeManager.selectedGameMode == .none ? .primary : .white)
-                    Image(systemName: "pencil")
-                        .font(.caption)
-                        .foregroundColor(themeManager.selectedTheme.primaryColor)
-                }
-                
+            // Info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(user?.name ?? "Student")
+                    .font(.title3).fontWeight(.heavy).foregroundColor(.white)
                 Text(user?.university ?? "University Not Set")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .font(.caption).fontWeight(.bold).foregroundColor(.gray)
+                
+                HStack(spacing: 4) {
+                    Image(systemName: "pencil").font(.caption2).foregroundColor(themeManager.selectedTheme.primaryColor)
+                    Text("Edit Profile").font(.caption2).fontWeight(.bold).foregroundColor(themeManager.selectedTheme.primaryColor)
+                }
+                .padding(.top, 4)
             }
+            Spacer()
+            Image(systemName: "chevron.right").foregroundColor(.gray.opacity(0.5))
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
-        .background(themeManager.selectedGameMode == .none ? Color(uiColor: .secondarySystemGroupedBackground) : Color(white: 0.15))
-        .cornerRadius(20)
+        .padding(20)
+        .background(Color(white: 0.1))
+        .cornerRadius(24)
         .padding(.horizontal)
-        .shadow(color: Color.black.opacity(0.05), radius: 8)
     }
 }
 
-// MARK: - Row Component
-struct MoreNavigationRow<Destination: View>: View {
+struct RainbowNavigationCard<Destination: View>: View {
     let title: String
+    let subtitle: String
     let icon: String
     let color: Color
     let destination: Destination
+    @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
         NavigationLink(destination: destination) {
             HStack(spacing: 16) {
-                Image(systemName: icon)
-                    .font(.subheadline)
-                    .foregroundColor(.white)
-                    .frame(width: 32, height: 32)
-                    .background(color)
-                    .cornerRadius(8)
+                ZStack {
+                    Circle().fill(color.opacity(0.2)).frame(width: 44, height: 44)
+                    Image(systemName: icon).font(.system(size: 20)).foregroundColor(color)
+                }
                 
-                Text(title)
-                    .font(.body)
-                    .foregroundColor(.primary)
-                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.headline).fontWeight(.bold)
+                        .foregroundColor(themeManager.selectedGameMode == .none ? .primary : .white)
+                    Text(subtitle)
+                        .font(.caption).foregroundColor(.gray)
+                }
                 Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                Image(systemName: "chevron.right").font(.caption).foregroundColor(.gray)
             }
-            .padding()
+            .padding(16)
+            .background(themeManager.selectedGameMode == .none ? Color(uiColor: .secondarySystemGroupedBackground) : Color(white: 0.1))
+            .cornerRadius(20)
         }
     }
 }

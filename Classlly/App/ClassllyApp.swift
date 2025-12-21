@@ -7,33 +7,40 @@ struct ClassllyApp: App {
     @StateObject private var authManager = AuthenticationManager.shared
     @StateObject private var themeManager = AppTheme.shared
     @StateObject private var notificationManager = NotificationManager.shared
-    // ✅ FIX: Initialize the Calendar Manager
     @StateObject private var calendarManager = AcademicCalendarManager.shared
+    @StateObject private var studyTimerManager = StudyTimerManager.shared
     
     // We use the shared container for Widget support
     let container = SharedModelContainer.shared
     
     var body: some Scene {
         WindowGroup {
-            if authManager.isAuthenticated {
-                // Main App Flow
-                MainTabView()
+            // ⬇️ APPLY MODIFIER INSIDE HERE TO A VIEW, NOT THE WINDOW GROUP
+            Group {
+                if authManager.isAuthenticated {
+                    // Main App Flow
+                    MainTabView()
+                        .environmentObject(authManager)
+                        .environmentObject(themeManager)
+                        .environmentObject(notificationManager)
+                        .environmentObject(calendarManager)
+                        .environmentObject(studyTimerManager)
+                        .modelContext(container.mainContext)
+                } else {
+                    // Onboarding Flow
+                    NavigationStack {
+                        StickyOnboardingView()
+                    }
                     .environmentObject(authManager)
                     .environmentObject(themeManager)
                     .environmentObject(notificationManager)
-                    .environmentObject(calendarManager) // 👈 Inject here
+                    .environmentObject(calendarManager)
+                    .environmentObject(studyTimerManager)
                     .modelContext(container.mainContext)
-            } else {
-                // Onboarding Flow
-                NavigationStack {
-                    StickyOnboardingView()
                 }
-                .environmentObject(authManager)
-                .environmentObject(themeManager)
-                .environmentObject(notificationManager)
-                .environmentObject(calendarManager) // 👈 Inject here too!
-                .modelContext(container.mainContext)
             }
+            // ✅ MOVED INSIDE: Attaches to the 'Group' view
+            .preferredColorScheme(themeManager.darkModeEnabled ? .dark : .light)
         }
         // Attach the container to the entire WindowGroup
         .modelContainer(container)
