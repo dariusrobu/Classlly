@@ -12,7 +12,7 @@ struct EditTaskView: View {
                 AnyView(ArcadeEditTaskView(task: task))
             case .rainbow:
                 AnyView(RainbowEditTaskView(task: task))
-            case .none:
+            case .standard: // ✅ FIXED: .none -> .standard
                 AnyView(StandardEditTaskView(task: task))
             }
         }
@@ -80,7 +80,6 @@ struct RainbowEditTaskView: View {
                         // 2. Deadlines & Priority
                         RainbowContainer {
                             VStack(alignment: .leading, spacing: 16) {
-                                // FIXED: Use p.title instead of p.rawValue (which is Int)
                                 Picker("Priority", selection: $priority) { ForEach(TaskPriority.allCases, id: \.self) { p in Text(p.title).tag(p) } }.pickerStyle(.segmented).colorScheme(.dark)
                                 
                                 Toggle(isOn: $hasDueDate) { Text("Set Due Date").font(.headline).foregroundColor(.white) }.tint(RainbowColors.blue)
@@ -149,7 +148,6 @@ struct StandardEditTaskView: View {
     var body: some View {
         NavigationView {
             Form {
-                // Apple-style: Title & Notes grouped
                 Section {
                     TextField("Title", text: $title)
                     TextField("Notes", text: $notes, axis: .vertical)
@@ -166,7 +164,6 @@ struct StandardEditTaskView: View {
                 }
                 
                 Section(header: Text("Priority")) {
-                    // FIXED: Use p.title instead of p.rawValue
                     Picker("Priority", selection: $priority) { ForEach(TaskPriority.allCases, id: \.self) { p in Text(p.title).tag(p) } }.pickerStyle(.segmented)
                 }
                 
@@ -244,7 +241,7 @@ struct ArcadeEditTaskView: View {
                             TextField("Notes...", text: $notes, axis: .vertical).padding().background(Color(white: 0.1)).cornerRadius(12).overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.green.opacity(0.5), lineWidth: 1)).foregroundColor(.white).lineLimit(3...6)
                         }
                         
-                        // Controls...
+                        // Controls
                         HStack(spacing: 16) {
                             Menu {
                                 Button("None") { selectedSubject = nil }
@@ -256,10 +253,10 @@ struct ArcadeEditTaskView: View {
                                 VStack { Text("FLAG").font(.caption).fontWeight(.bold).foregroundColor(.yellow); Image(systemName: isFlagged ? "flag.fill" : "flag").foregroundColor(isFlagged ? .yellow : .gray) }.padding().frame(maxWidth: .infinity).background(Color(white: 0.1)).cornerRadius(12).overlay(RoundedRectangle(cornerRadius: 12).stroke(isFlagged ? Color.yellow : Color.clear, lineWidth: 1))
                             }
                         }
-                        // Priority & Date...
+                        
+                        // Priority & Date
                         VStack(alignment: .leading, spacing: 12) {
                             Text("DIFFICULTY").font(.caption).fontWeight(.bold).foregroundColor(.gray)
-                            // FIXED: Use p.title.uppercased() instead of p.rawValue.uppercased()
                             HStack(spacing: 12) { ForEach(TaskPriority.allCases, id: \.self) { p in Button(action: { priority = p }) { Text(p.title.uppercased()).font(.system(.caption, design: .rounded)).fontWeight(.bold).frame(maxWidth: .infinity).padding(.vertical, 12).background(priority == p ? p.color : Color(white: 0.1)).foregroundColor(priority == p ? .white : .gray).cornerRadius(8) } } }
                         }
                         VStack(alignment: .leading, spacing: 12) {

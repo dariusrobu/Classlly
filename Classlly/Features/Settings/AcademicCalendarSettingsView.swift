@@ -10,9 +10,9 @@ struct AcademicCalendarSettingsView: View {
             case .rainbow:
                 RainbowCalendarSettingsView()
             case .arcade:
-                RainbowCalendarSettingsView() // Use Rainbow logic for Arcade too
-            case .none:
-                RainbowCalendarSettingsView() // Upgrade standard to the better view too
+                RainbowCalendarSettingsView()
+            case .standard: // ✅ UPDATED: .none -> .standard
+                RainbowCalendarSettingsView()
             }
         }
     }
@@ -31,7 +31,8 @@ struct RainbowCalendarSettingsView: View {
     var body: some View {
         let accent = themeManager.selectedTheme.primaryColor
         let isRainbow = themeManager.selectedGameMode == .rainbow
-        let isDark = themeManager.selectedGameMode != .none
+        // ✅ UPDATED: .none -> .standard
+        let isDark = themeManager.selectedGameMode != .standard
         
         ZStack {
             // Background
@@ -45,7 +46,7 @@ struct RainbowCalendarSettingsView: View {
             }
             
             VStack(spacing: 0) {
-                // ✅ 1. CUSTOM NAV BAR (Fixes missing Back Button)
+                // 1. CUSTOM NAV BAR
                 HStack {
                     Button(action: { dismiss() }) {
                         HStack(spacing: 6) {
@@ -63,7 +64,7 @@ struct RainbowCalendarSettingsView: View {
                         .font(.headline)
                         .fontWeight(.black)
                         .foregroundColor(isDark ? .white : .primary)
-                        .offset(x: -20) // Center visually against back button
+                        .offset(x: -20)
                     
                     Spacer()
                 }
@@ -204,7 +205,7 @@ struct RainbowCalendarSettingsView: View {
                 }
             }
         }
-        .navigationBarHidden(true) // ✅ Hides system bar to use our custom one
+        .navigationBarHidden(true)
         .sheet(isPresented: $showingAddEvent) {
             AddAcademicEventSheet(semester: selectedSemester)
         }
@@ -221,7 +222,8 @@ struct TimelineEventRow: View {
     @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
-        let isDark = themeManager.selectedGameMode != .none
+        // ✅ UPDATED: .none -> .standard
+        let isDark = themeManager.selectedGameMode != .standard
         
         HStack(spacing: 16) {
             // Left Track

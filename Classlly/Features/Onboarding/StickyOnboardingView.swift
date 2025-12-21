@@ -12,7 +12,6 @@ struct StickyOnboardingView: View {
     @State private var direction: AnyTransition = .asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))
     
     // User Data
-    @State private var selectedPainPoint: OnboardingPainPoint?
     @State private var semesterEndDate = Calendar.current.date(byAdding: .month, value: 4, to: Date()) ?? Date()
     @State private var subjectCount: Double = 4
     
@@ -46,7 +45,7 @@ struct StickyOnboardingView: View {
             }
             .animation(.easeInOut(duration: 0.5), value: currentStep)
             
-            // Confetti Overlay (Step 3->4 transition usually triggers this)
+            // Confetti Overlay
             if showConfetti {
                 ConfettiView()
             }
@@ -119,10 +118,12 @@ struct StickyOnboardingView: View {
     }
     
     private func finishOnboarding() {
-        // Mark as complete in AuthManager
+        // Marks onboarding as done -> Triggers switch to SignInView in ClassllyApp
         authManager.completeStickyOnboarding(modelContext: modelContext)
     }
 }
+
+// ... (Subviews: Hook, University, Setup, Vibe remain unchanged in functionality)
 
 // MARK: - Data Model
 enum OnboardingPainPoint: String, CaseIterable, Identifiable {

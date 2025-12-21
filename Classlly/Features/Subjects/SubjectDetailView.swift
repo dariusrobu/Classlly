@@ -12,7 +12,7 @@ struct SubjectDetailView: View {
                 RainbowSubjectDetailView(subject: subject)
             case .arcade:
                 ArcadeSubjectDetailView(subject: subject)
-            case .none:
+            case .standard: // ✅ FIXED: .none -> .standard
                 StandardSubjectDetailView(subject: subject)
             }
         }

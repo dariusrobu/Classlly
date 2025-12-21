@@ -30,7 +30,8 @@ enum Theme: String, CaseIterable, Identifiable, Codable {
 }
 
 enum GameMode: String, CaseIterable, Identifiable, Codable {
-    case none = "Standard"
+    // ⚠️ Renamed 'none' to 'standard' to avoid conflict with Optional.none
+    case standard = "Standard"
     case arcade = "Arcade"
     case rainbow = "Rainbow"
     
@@ -38,7 +39,7 @@ enum GameMode: String, CaseIterable, Identifiable, Codable {
     
     var description: String {
         switch self {
-        case .none: return "Clean academic focus"
+        case .standard: return "Clean academic focus"
         case .arcade: return "Modern gaming hub with neon vibes"
         case .rainbow: return "Vibrant gradients based on your theme"
         }
@@ -46,7 +47,7 @@ enum GameMode: String, CaseIterable, Identifiable, Codable {
     
     var iconName: String {
         switch self {
-        case .none: return "book.closed.fill"
+        case .standard: return "book.closed.fill"
         case .arcade: return "gamecontroller.fill"
         case .rainbow: return "paintpalette.fill"
         }
@@ -69,7 +70,8 @@ class AppTheme: ObservableObject {
         }
     }
     
-    @Published var selectedGameMode: GameMode = .none {
+    // Default to .standard (was .none)
+    @Published var selectedGameMode: GameMode = .standard {
         didSet {
             UserDefaults.standard.set(selectedGameMode.rawValue, forKey: "selectedGameMode")
         }
@@ -81,11 +83,13 @@ class AppTheme: ObservableObject {
         let storedTheme = UserDefaults.standard.string(forKey: "selectedTheme") ?? Theme.classicBlue.rawValue
         self.selectedTheme = Theme(rawValue: storedTheme) ?? .classicBlue
         
-        let storedMode = UserDefaults.standard.string(forKey: "selectedGameMode") ?? GameMode.none.rawValue
-        if storedMode == "Retro" {
-            self.selectedGameMode = .none
+        let storedMode = UserDefaults.standard.string(forKey: "selectedGameMode") ?? GameMode.standard.rawValue
+        
+        // Handle migration from old names if necessary
+        if storedMode == "Retro" || storedMode == "Standard" {
+            self.selectedGameMode = .standard
         } else {
-            self.selectedGameMode = GameMode(rawValue: storedMode) ?? .none
+            self.selectedGameMode = GameMode(rawValue: storedMode) ?? .standard
         }
     }
     

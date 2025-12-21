@@ -6,18 +6,23 @@ class AuthenticationManager: ObservableObject {
     static let shared = AuthenticationManager()
     
     @Published var isAuthenticated: Bool = false
+    // ✅ ENSURE THIS IS @Published
+    @Published var hasCompletedOnboarding: Bool = false
     @Published var currentUser: StudentProfile?
     
     private let userDefaults = UserDefaults.standard
     private let authKey = "isAuthenticated"
+    private let onboardingKey = "hasCompletedOnboarding"
     
-    // ✅ FIXED: Changed 'private init()' to 'init()' so it is accessible
     init() {
         self.isAuthenticated = userDefaults.bool(forKey: authKey)
+        self.hasCompletedOnboarding = userDefaults.bool(forKey: onboardingKey)
     }
     
-    func signIn() {
-        // Logic for real Apple/Google sign in would go here
+    func signIn(with user: StudentProfile? = nil) {
+        if let user = user {
+            self.currentUser = user
+        }
         isAuthenticated = true
         userDefaults.set(true, forKey: authKey)
     }
@@ -40,21 +45,9 @@ class AuthenticationManager: ObservableObject {
         return demoUser
     }
     
-    // ✅ Handle "Sticky" Onboarding Completion
     func completeStickyOnboarding(modelContext: ModelContext) {
-        print("🚀 Completing Sticky Onboarding...")
-        finalizeOnboarding(modelContext: modelContext)
-    }
-    
-    // ✅ Handle "Standard" Profile Setup Completion
-    func completeProfileSetup(modelContext: ModelContext) {
-        print("✅ Completing Standard Profile Setup...")
-        finalizeOnboarding(modelContext: modelContext)
-    }
-    
-    // Shared Logic to Save & Authenticate
-    private func finalizeOnboarding(modelContext: ModelContext) {
-        // 1. If no user exists yet (skipped sign in), create a default local profile
+        print("🚀 Completing Sticky Onboarding... Proceeding to Sign In.")
+        
         if currentUser == nil {
             let defaultUser = StudentProfile(
                 id: UUID().uuidString,
@@ -65,13 +58,16 @@ class AuthenticationManager: ObservableObject {
             )
             modelContext.insert(defaultUser)
             self.currentUser = defaultUser
-            print("👤 Default local user created.")
         }
         
-        // 2. Save any pending changes
         try? modelContext.save()
         
-        // 3. Mark as authenticated to transition to MainTabView
+        hasCompletedOnboarding = true
+        userDefaults.set(true, forKey: onboardingKey)
+    }
+    
+    func completeProfileSetup(modelContext: ModelContext) {
+        print("✅ Completing Standard Profile Setup...")
         isAuthenticated = true
         userDefaults.set(true, forKey: authKey)
     }
@@ -80,5 +76,16 @@ class AuthenticationManager: ObservableObject {
         isAuthenticated = false
         currentUser = nil
         userDefaults.set(false, forKey: authKey)
+    }
+    
+    func debugReset() {
+        print("⚠️ Executing Debug Reset...")
+        isAuthenticated = false
+        currentUser = nil
+        hasCompletedOnboarding = false // Reset this too
+        
+        userDefaults.removeObject(forKey: authKey)
+        userDefaults.removeObject(forKey: onboardingKey)
+        userDefaults.synchronize()
     }
 }

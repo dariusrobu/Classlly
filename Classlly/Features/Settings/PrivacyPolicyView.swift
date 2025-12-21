@@ -2,7 +2,7 @@ import SwiftUI
 
 struct PrivacyPolicyView: View {
     @Environment(\.dismiss) var dismiss
-    @EnvironmentObject var themeManager: AppTheme // Add this
+    @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
         let isRainbow = themeManager.selectedGameMode == .rainbow
@@ -16,7 +16,24 @@ struct PrivacyPolicyView: View {
             
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Header
+                    // ✅ Custom Header for Rainbow Mode with Back Button
+                    if isRainbow {
+                        HStack(spacing: 16) {
+                            Button(action: { dismiss() }) {
+                                Image(systemName: "chevron.left")
+                                    .font(.title3)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .padding(10)
+                                    .background(Color(white: 0.15))
+                                    .clipShape(Circle())
+                            }
+                            Spacer()
+                        }
+                        .padding(.bottom, 10)
+                    }
+                    
+                    // Header Text
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Privacy Policy")
                             .font(.largeTitle).fontWeight(.black)
@@ -54,6 +71,8 @@ struct PrivacyPolicyView: View {
                 .padding(24)
             }
         }
+        // ✅ Hide native navigation bar only in Rainbow mode to avoid double headers or missing buttons
+        .navigationBarHidden(isRainbow)
         .navigationBarTitleDisplayMode(.inline)
     }
 }

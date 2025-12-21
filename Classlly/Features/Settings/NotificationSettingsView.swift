@@ -9,11 +9,12 @@ struct NotificationSettingsView: View {
         Group {
             switch themeManager.selectedGameMode {
             case .arcade:
-                ArcadeNotificationSettingsView()
+                AnyView(ArcadeNotificationSettingsView())
             case .rainbow:
-                StandardNotificationSettingsView().preferredColorScheme(.dark)
-            case .none:
-                StandardNotificationSettingsView()
+                // Wrapped in AnyView because .preferredColorScheme changes the return type
+                AnyView(StandardNotificationSettingsView().preferredColorScheme(.dark))
+            case .standard: // ✅ FIXED: .none -> .standard
+                AnyView(StandardNotificationSettingsView())
             }
         }
     }

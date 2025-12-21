@@ -11,7 +11,7 @@ struct WhatIfGradeView: View {
                 AnyView(ArcadeWhatIfView(subject: subject))
             case .rainbow:
                 AnyView(RainbowWhatIfView(subject: subject))
-            case .none:
+            case .standard: // ✅ FIXED: .none -> .standard
                 AnyView(StandardWhatIfView(subject: subject))
             }
         }
@@ -364,4 +364,3 @@ struct ArcadeWhatIfView: View {
         }
     }
 }
-

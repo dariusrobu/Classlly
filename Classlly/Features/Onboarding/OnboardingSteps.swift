@@ -59,7 +59,6 @@ struct StickyHookView: View {
 // MARK: - Step 2: University
 struct StickyUniversityView: View {
     let onNext: () -> Void
-    // ✅ FIX: Ensure we have access to the context
     @Environment(\.modelContext) var modelContext
     @EnvironmentObject var calendarManager: AcademicCalendarManager
     @State private var isConfigured = false
@@ -70,9 +69,6 @@ struct StickyUniversityView: View {
             Text("Where do you study?").font(.largeTitle).fontWeight(.bold).foregroundColor(.white)
             
             Button(action: {
-                // ✅ FIX: Wrap in do-catch or ensure Manager uses correct context
-                // If your loadDemoData accepts a context, pass 'modelContext' here.
-                // Otherwise, this ensures the action runs safely on the main thread.
                 Task { @MainActor in
                     calendarManager.loadDemoData()
                     withAnimation { isConfigured = true }
@@ -148,20 +144,21 @@ struct StickyVibeView: View {
             Spacer()
             Text("Vibe Check").font(.largeTitle).fontWeight(.bold).foregroundColor(.white)
             HStack(spacing: 16) {
-                Button(action: { withAnimation { themeManager.selectedGameMode = .none } }) {
-                    // ✅ FIXED: Added missing closing parenthesis ')' before the semicolon
+                // ✅ UPDATED: .none -> .standard
+                Button(action: { withAnimation { themeManager.selectedGameMode = .standard } }) {
                     VStack {
                         Image(systemName: "book.closed.fill").font(.system(size: 40))
                         Text("Focus").font(.headline).padding(.top, 8)
                     }
-                    .foregroundColor(themeManager.selectedGameMode == .none ? .black : .white)
+                    // ✅ UPDATED: .none -> .standard
+                    .foregroundColor(themeManager.selectedGameMode == .standard ? .black : .white)
                     .frame(maxWidth: .infinity).frame(height: 200)
-                    .background(themeManager.selectedGameMode == .none ? Color.white : Color(white: 0.15))
+                    // ✅ UPDATED: .none -> .standard
+                    .background(themeManager.selectedGameMode == .standard ? Color.white : Color(white: 0.15))
                     .cornerRadius(20)
                 }
                 
                 Button(action: { withAnimation { themeManager.selectedGameMode = .arcade } }) {
-                    // ✅ FIXED: Added missing closing parenthesis ')' here too
                     VStack {
                         Image(systemName: "gamecontroller.fill").font(.system(size: 40))
                         Text("Arcade").font(.headline).padding(.top, 8)

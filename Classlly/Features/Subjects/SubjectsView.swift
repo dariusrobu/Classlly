@@ -12,7 +12,7 @@ struct SubjectsView: View {
                 AnyView(RainbowSubjectsView(embedInNavigationStack: embedInNavigationStack))
             case .arcade:
                 AnyView(ArcadeSubjectsView())
-            case .none:
+            case .standard: // ✅ FIXED: .none -> .standard
                 AnyView(StandardSubjectsView())
             }
         }
@@ -331,8 +331,6 @@ struct ArcadeSubjectsView: View {
 }
 
 // MARK: - ✨ UNIQUE COMPONENTS FOR THIS VIEW
-// (Only components NOT in SharedComponents are defined here)
-
 struct BigDetailedSubjectCard: View {
     let subject: Subject
     private var gradeColor: Color {

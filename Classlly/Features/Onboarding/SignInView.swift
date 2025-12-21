@@ -51,16 +51,13 @@ struct SignInView: View {
                         .cornerRadius(12)
                     }
                     
-                    // ✅ FIXED BUTTON LOGIC
                     Button(action: {
                         print("⚡️ Signing in as Demo User...")
                         
                         // 1. Wipe EVERYTHING (including old profiles) first
                         DemoDataManager.shared.deleteAllData(modelContext: modelContext, includeProfile: true)
                         
-                        // 2. Generate Data (Subjects, Tasks, etc.)
-                        // keepProfile: false doesn't matter here since we wiped anyway,
-                        // but cleanFirst: false prevents double deletion.
+                        // 2. Generate Data
                         DemoDataManager.shared.createHeavyStressData(
                             modelContext: modelContext,
                             cleanFirst: false,
@@ -68,7 +65,6 @@ struct SignInView: View {
                         )
                         
                         // 3. Create & Insert User LAST
-                        // This ensures the user isn't deleted by the data manager
                         let user = authManager.signInAsDemoUser()
                         modelContext.insert(user)
                         
@@ -80,6 +76,23 @@ struct SignInView: View {
                             .fontWeight(.medium)
                             .foregroundColor(.white)
                             .padding()
+                    }
+                    
+                    // ✅ NEW DEBUG BUTTON
+                    Button(action: {
+                        print("🧨 Debug Reset Triggered")
+                        
+                        // 1. Wipe Data
+                        DemoDataManager.shared.deleteAllData(modelContext: modelContext, includeProfile: true)
+                        
+                        // 2. Reset Auth State
+                        authManager.debugReset()
+                    }) {
+                        Text("Debug: Reset My Account")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(.red.opacity(0.8))
+                            .padding(.top, 10)
                     }
                 }
                 .padding(.horizontal, 32)

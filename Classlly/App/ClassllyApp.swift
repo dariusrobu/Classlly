@@ -15,34 +15,28 @@ struct ClassllyApp: App {
     
     var body: some Scene {
         WindowGroup {
-            // ⬇️ APPLY MODIFIER INSIDE HERE TO A VIEW, NOT THE WINDOW GROUP
             Group {
                 if authManager.isAuthenticated {
-                    // Main App Flow
+                    // 1. User is fully logged in -> Main App
                     MainTabView()
-                        .environmentObject(authManager)
-                        .environmentObject(themeManager)
-                        .environmentObject(notificationManager)
-                        .environmentObject(calendarManager)
-                        .environmentObject(studyTimerManager)
-                        .modelContext(container.mainContext)
+                } else if authManager.hasCompletedOnboarding {
+                    // 2. User finished slides but hasn't signed in -> Sign In
+                    SignInView()
                 } else {
-                    // Onboarding Flow
+                    // 3. New user -> Onboarding Slides
                     NavigationStack {
                         StickyOnboardingView()
                     }
-                    .environmentObject(authManager)
-                    .environmentObject(themeManager)
-                    .environmentObject(notificationManager)
-                    .environmentObject(calendarManager)
-                    .environmentObject(studyTimerManager)
-                    .modelContext(container.mainContext)
                 }
             }
-            // ✅ MOVED INSIDE: Attaches to the 'Group' view
+            .environmentObject(authManager)
+            .environmentObject(themeManager)
+            .environmentObject(notificationManager)
+            .environmentObject(calendarManager)
+            .environmentObject(studyTimerManager)
+            .modelContext(container.mainContext)
             .preferredColorScheme(themeManager.darkModeEnabled ? .dark : .light)
         }
-        // Attach the container to the entire WindowGroup
         .modelContainer(container)
     }
 }

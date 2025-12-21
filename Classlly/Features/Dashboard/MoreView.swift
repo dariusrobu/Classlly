@@ -155,8 +155,9 @@ struct RainbowNavigationCard<Destination: View>: View {
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
+                        // ✅ FIXED: .none -> .standard
                         .font(.headline).fontWeight(.bold)
-                        .foregroundColor(themeManager.selectedGameMode == .none ? .primary : .white)
+                        .foregroundColor(themeManager.selectedGameMode == .standard ? .primary : .white)
                     Text(subtitle)
                         .font(.caption).foregroundColor(.gray)
                 }
@@ -164,7 +165,8 @@ struct RainbowNavigationCard<Destination: View>: View {
                 Image(systemName: "chevron.right").font(.caption).foregroundColor(.gray)
             }
             .padding(16)
-            .background(themeManager.selectedGameMode == .none ? Color(uiColor: .secondarySystemGroupedBackground) : Color(white: 0.1))
+            // ✅ FIXED: .none -> .standard
+            .background(themeManager.selectedGameMode == .standard ? Color(uiColor: .secondarySystemGroupedBackground) : Color(white: 0.1))
             .cornerRadius(20)
         }
     }

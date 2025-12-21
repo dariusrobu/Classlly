@@ -12,7 +12,7 @@ struct SettingsDashboardView: View {
             case .arcade:
                 // Uses the robust implementation from SettingsView.swift
                 ArcadeSettingsView()
-            case .none:
+            case .standard:
                 // Uses the robust implementation from SettingsView.swift
                 StandardSettingsView()
             }
@@ -20,9 +20,11 @@ struct SettingsDashboardView: View {
     }
 }
 
-// MARK: - 決 RAINBOW SETTINGS
+// MARK: - 🌈 RAINBOW SETTINGS (DASHBOARD)
 struct RainbowSettingsView: View {
     @EnvironmentObject var themeManager: AppTheme
+    @Environment(\.dismiss) var dismiss
+    
     // ✅ Add Query to fetch the profile
     @Query private var profiles: [StudentProfile]
     @State private var showThemeSheet = false
@@ -30,94 +32,107 @@ struct RainbowSettingsView: View {
     var body: some View {
         let accent = themeManager.selectedTheme.primaryColor
         
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(spacing: 24) {
-                        // 1. Header
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("SYSTEM").font(.system(size: 10, weight: .black)).foregroundColor(accent).tracking(2)
-                                Text("CONFIG").font(.system(size: 34, weight: .black)).foregroundColor(.white)
-                            }
-                            Spacer()
-                            Image(systemName: "gearshape.fill").font(.largeTitle).foregroundColor(Color(white: 0.2))
+        ZStack {
+            Color.black.ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 24) {
+                    // 1. Header with Back Button
+                    HStack {
+                        // Custom Back Button
+                        Button(action: { dismiss() }) {
+                            Image(systemName: "chevron.left")
+                                .font(.title3)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .padding(10)
+                                .background(Color(white: 0.15))
+                                .clipShape(Circle())
                         }
-                        .padding(.horizontal).padding(.top, 10)
                         
-                        // 2. Profile Card
-                        // ✅ Only show link if profile exists and pass it to ProfileView
-                        if let profile = profiles.first {
-                            NavigationLink(destination: ProfileView(profile: profile)) {
-                                HStack(spacing: 16) {
-                                    ZStack {
-                                        Circle().fill(accent.opacity(0.2)).frame(width: 60, height: 60)
-                                        Image(systemName: "person.fill").font(.title2).foregroundColor(accent)
-                                    }
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(profile.name.isEmpty ? "USER PROFILE" : profile.name.uppercased())
-                                            .font(.headline).fontWeight(.black).foregroundColor(.white)
-                                        Text("Edit details & preferences").font(.caption).foregroundColor(.gray)
-                                    }
-                                    Spacer()
-                                    Image(systemName: "chevron.right").foregroundColor(.gray)
-                                }
-                                .padding()
-                                .background(Color(white: 0.1))
-                                .cornerRadius(20)
-                                .overlay(RoundedRectangle(cornerRadius: 20).stroke(accent.opacity(0.3), lineWidth: 1))
-                            }
-                            .padding(.horizontal)
-                        } else {
-                            // Fallback UI if no profile is found (prevents crash)
+                        Spacer()
+                        
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text("SYSTEM").font(.system(size: 10, weight: .black)).foregroundColor(accent).tracking(2)
+                            Text("CONFIG").font(.system(size: 34, weight: .black)).foregroundColor(.white)
+                        }
+                        
+                        Image(systemName: "gearshape.fill")
+                            .font(.largeTitle)
+                            .foregroundColor(Color(white: 0.2))
+                            .padding(.leading, 8)
+                    }
+                    .padding(.horizontal).padding(.top, 10)
+                    
+                    // 2. Profile Card
+                    if let profile = profiles.first {
+                        NavigationLink(destination: ProfileView(profile: profile)) {
                             HStack(spacing: 16) {
                                 ZStack {
-                                    Circle().fill(Color.gray.opacity(0.2)).frame(width: 60, height: 60)
-                                    Image(systemName: "person.slash.fill").font(.title2).foregroundColor(.gray)
+                                    Circle().fill(accent.opacity(0.2)).frame(width: 60, height: 60)
+                                    Image(systemName: "person.fill").font(.title2).foregroundColor(accent)
                                 }
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("NO PROFILE").font(.headline).fontWeight(.black).foregroundColor(.white)
-                                    Text("Please sign in again").font(.caption).foregroundColor(.gray)
+                                    Text(profile.name.isEmpty ? "USER PROFILE" : profile.name.uppercased())
+                                        .font(.headline).fontWeight(.black).foregroundColor(.white)
+                                    Text("Edit details & preferences").font(.caption).foregroundColor(.gray)
                                 }
                                 Spacer()
+                                Image(systemName: "chevron.right").foregroundColor(.gray)
                             }
                             .padding()
                             .background(Color(white: 0.1))
                             .cornerRadius(20)
-                            .padding(.horizontal)
-                        }
-                        
-                        // 3. Settings Sections
-                        VStack(spacing: 16) {
-                            RainbowSectionHeader(title: "INTERFACE", color: .blue)
-                            RainbowSettingRow(icon: "paintpalette.fill", title: "Theme Color", color: .blue) { showThemeSheet = true }
-                            RainbowGameModePicker()
-                            
-                            RainbowSectionHeader(title: "ACADEMIC", color: .green)
-                            NavigationLink(destination: AcademicCalendarSettingsView()) {
-                                RainbowSettingRowContent(icon: "calendar", title: "Academic Calendar", color: .green)
-                            }
-                            
-                            RainbowSectionHeader(title: "DATA", color: .red)
-                            RainbowSettingRowContent(icon: "arrow.down.doc.fill", title: "Export Data", color: .red)
+                            .overlay(RoundedRectangle(cornerRadius: 20).stroke(accent.opacity(0.3), lineWidth: 1))
                         }
                         .padding(.horizontal)
-                        
-                        Spacer(minLength: 50)
-                        
-                        Text("CLASSLLY v1.0").font(.caption).fontWeight(.bold).foregroundColor(Color(white: 0.2)).padding(.bottom, 100)
+                    } else {
+                        // Fallback UI
+                        HStack(spacing: 16) {
+                            ZStack {
+                                Circle().fill(Color.gray.opacity(0.2)).frame(width: 60, height: 60)
+                                Image(systemName: "person.slash.fill").font(.title2).foregroundColor(.gray)
+                            }
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("NO PROFILE").font(.headline).fontWeight(.black).foregroundColor(.white)
+                                Text("Please sign in again").font(.caption).foregroundColor(.gray)
+                            }
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Color(white: 0.1))
+                        .cornerRadius(20)
+                        .padding(.horizontal)
                     }
+                    
+                    // 3. Settings Sections
+                    VStack(spacing: 16) {
+                        RainbowSectionHeader(title: "INTERFACE", color: .blue)
+                        RainbowSettingRow(icon: "paintpalette.fill", title: "Theme Color", color: .blue) { showThemeSheet = true }
+                        RainbowGameModePicker()
+                        
+                        RainbowSectionHeader(title: "ACADEMIC", color: .green)
+                        NavigationLink(destination: AcademicCalendarSettingsView()) {
+                            RainbowSettingRowContent(icon: "calendar", title: "Academic Calendar", color: .green)
+                        }
+                        
+                        RainbowSectionHeader(title: "DATA", color: .red)
+                        RainbowSettingRowContent(icon: "arrow.down.doc.fill", title: "Export Data", color: .red)
+                    }
+                    .padding(.horizontal)
+                    
+                    Spacer(minLength: 50)
+                    
+                    Text("CLASSLLY v1.0").font(.caption).fontWeight(.bold).foregroundColor(Color(white: 0.2)).padding(.bottom, 100)
                 }
             }
-            .navigationBarHidden(true)
-            .sheet(isPresented: $showThemeSheet) { ThemeSelectionSheet() }
         }
+        .navigationBarHidden(true)
+        .sheet(isPresented: $showThemeSheet) { ThemeSelectionSheet() }
     }
 }
 
-// MARK: - 決 RAINBOW COMPONENTS
+// MARK: - 🌈 RAINBOW COMPONENTS
 struct RainbowSectionHeader: View {
     let title: String; let color: Color
     var body: some View {
@@ -152,7 +167,7 @@ struct RainbowGameModePicker: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("INTERFACE MODE").font(.caption).fontWeight(.bold).foregroundColor(.gray)
             HStack(spacing: 12) {
-                ModeButton(mode: .none, label: "Std", icon: "iphone")
+                ModeButton(mode: .standard, label: "Std", icon: "iphone") // Updated .none -> .standard
                 ModeButton(mode: .rainbow, label: "Neon", icon: "paintpalette.fill")
                 ModeButton(mode: .arcade, label: "Game", icon: "gamecontroller.fill")
             }
@@ -172,7 +187,7 @@ struct RainbowGameModePicker: View {
     }
 }
 
-// MARK: - 耳 THEME SELECTION SHEET
+// MARK: - 🎨 THEME SELECTION SHEET
 struct ThemeSelectionSheet: View {
     @EnvironmentObject var themeManager: AppTheme
     @Environment(\.dismiss) var dismiss
