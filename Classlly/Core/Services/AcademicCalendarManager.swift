@@ -1,11 +1,32 @@
 import SwiftUI
 import Combine
 
+// MARK: - API Response Models
+struct RemoteCalendarResponse: Codable {
+    let version: Int
+    let calendars: [RemoteCalendarTemplate]
+}
+
+struct RemoteCalendarTemplate: Codable {
+    let universityName: String
+    let academicYear: String
+    let sem1Start: String
+    let sem1End: String
+    let sem2Start: String
+    let sem2End: String
+    let sem1Events: [AcademicEventData]
+    let sem2Events: [AcademicEventData]
+}
+
 class AcademicCalendarManager: ObservableObject {
     static let shared = AcademicCalendarManager()
     
+    // ✅ LINKED TO YOUR VERCEL PROJECT
+    private let remoteCalendarsURL = URL(string: "https://fsega-4hgketyi6-robus-projects-a31a9e42.vercel.app/academic_calendars.json")!
+    
     @Published var currentAcademicYear: AcademicCalendarData? {
         didSet {
+            // Update master date range when calendar changes
             if let start = getDate(from: currentAcademicYear?.semester1.events.first?.start ?? ""),
                let end = getDate(from: currentAcademicYear?.semester2.events.last?.end ?? "") {
                 self.startDate = start
@@ -13,32 +34,20 @@ class AcademicCalendarManager: ObservableObject {
             }
         }
     }
+    
     @Published var availableCalendars: [AcademicCalendarData] = []
+    
+    // Merged list of local defaults + fetched remote templates
+    @Published var availableTemplates: [CalendarTemplate] = []
     
     @Published var startDate: Date = Date()
     @Published var endDate: Date = Date()
     @Published var currentSemester: SemesterType = .semester1
+    @Published var isFetching: Bool = false
+    @Published var lastFetchError: String?
     
-    @Published var availableTemplates: [CalendarTemplate] = [
-        CalendarTemplate(
-            universityName: "Universitatea Babeș-Bolyai (UBB)",
-            academicYear: "2025-2026",
-            sem1Start: "2025-09-29", sem1End: "2026-02-15",
-            sem2Start: "2026-02-23", sem2End: "2026-07-05"
-        ),
-        CalendarTemplate(
-            universityName: "University of Nottingham",
-            academicYear: "2025-2026",
-            sem1Start: "2025-09-22", sem1End: "2026-01-23",
-            sem2Start: "2026-01-26", sem2End: "2026-06-19"
-        ),
-        CalendarTemplate(
-            universityName: "Standard US Semester",
-            academicYear: "2025-2026",
-            sem1Start: "2025-08-25", sem1End: "2025-12-12",
-            sem2Start: "2026-01-12", sem2End: "2026-05-08"
-        )
-    ]
+    // Cache to store the detailed events from the JSON
+    private var cachedRemoteData: [String: RemoteCalendarTemplate] = [:]
     
     enum SemesterType: String {
         case semester1 = "Semester 1"
@@ -47,19 +56,127 @@ class AcademicCalendarManager: ObservableObject {
     }
     
     init() {
-        if availableCalendars.isEmpty {
-            loadDemoData()
+        // 1. Load local fallback data immediately
+        loadLocalTemplates()
+        
+        // 2. Fetch fresh data from Vercel
+        fetchRemoteCalendars()
+        
+        // 3. If no calendar is active, set a demo one after a short delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            if self.availableCalendars.isEmpty {
+                self.loadDemoData()
+            }
         }
     }
     
-    // MARK: - Logic
+    // MARK: - 🌍 Vercel API Fetching
+    
+    func fetchRemoteCalendars() {
+            isFetching = true
+            print("🌍 Fetching calendars from: \(remoteCalendarsURL)")
+            
+            URLSession.shared.dataTask(with: remoteCalendarsURL) { [weak self] data, response, error in
+                DispatchQueue.main.async {
+                    self?.isFetching = false
+                    
+                    if let error = error {
+                        print("❌ Vercel Fetch Error: \(error.localizedDescription)")
+                        self?.lastFetchError = error.localizedDescription
+                        return
+                    }
+                    
+                    guard let data = data else { return }
+                    
+                    // 🔍 DEBUG: Print the exact text we received from the server
+                    if let responseString = String(data: data, encoding: .utf8) {
+                        // Print only the first 200 characters to avoid clutter
+                        print("📄 Server Response (First 200 chars): \(responseString.prefix(200))")
+                    }
+                    
+                    do {
+                        let decoder = JSONDecoder()
+                        let result = try decoder.decode(RemoteCalendarResponse.self, from: data)
+                        self?.mergeRemoteTemplates(result.calendars)
+                        print("✅ Successfully fetched \(result.calendars.count) calendars")
+                    } catch {
+                        print("❌ JSON Parsing Error: \(error)")
+                        self?.lastFetchError = "Server returned invalid data. Check Xcode logs."
+                    }
+                }
+            }.resume()
+        }
+    
+    private func mergeRemoteTemplates(_ remoteTemplates: [RemoteCalendarTemplate]) {
+        for remote in remoteTemplates {
+            // 1. Create a display template for the list
+            let template = CalendarTemplate(
+                universityName: remote.universityName,
+                academicYear: remote.academicYear,
+                sem1Start: remote.sem1Start,
+                sem1End: remote.sem1End,
+                sem2Start: remote.sem2Start,
+                sem2End: remote.sem2End
+            )
+            
+            // 2. Remove duplicates (if local existed)
+            availableTemplates.removeAll { $0.universityName == remote.universityName && $0.academicYear == remote.academicYear }
+            
+            // 3. Add to top of list
+            availableTemplates.insert(template, at: 0)
+            
+            // 4. Cache the detailed events so generateAndSaveCalendar can use them
+            let key = remote.universityName + remote.academicYear
+            self.cachedRemoteData[key] = remote
+        }
+    }
+    
+    // MARK: - Logic & Helpers
+    
+    private func loadLocalTemplates() {
+        // Fallback options in case user is offline
+        availableTemplates = [
+            CalendarTemplate(
+                universityName: "Standard US Semester",
+                academicYear: "2025-2026",
+                sem1Start: "2025-08-25", sem1End: "2025-12-12",
+                sem2Start: "2026-01-12", sem2End: "2026-05-08"
+            )
+        ]
+    }
     
     func loadDemoData() {
-        if let ubb = availableTemplates.first(where: { $0.universityName.contains("Babeș-Bolyai") }) {
-            generateAndSaveCalendar(from: ubb)
-        } else if let first = availableTemplates.first {
+        if let first = availableTemplates.first {
             generateAndSaveCalendar(from: first)
         }
+    }
+    
+    func generateAndSaveCalendar(from template: CalendarTemplate) {
+        let key = template.universityName + template.academicYear
+        var sem1Events: [AcademicEventData] = []
+        var sem2Events: [AcademicEventData] = []
+        
+        // 1. Check if we have detailed API data for this template
+        if let remoteData = cachedRemoteData[key] {
+            sem1Events = remoteData.sem1Events
+            sem2Events = remoteData.sem2Events
+        }
+        // 2. Fallback (Basic structure if offline)
+        else {
+            sem1Events = [AcademicEventData(start: template.sem1Start, end: template.sem1End, type: .teaching, weeks: 14, customName: "Semester 1")]
+            sem2Events = [AcademicEventData(start: template.sem2Start, end: template.sem2End, type: .teaching, weeks: 14, customName: "Semester 2")]
+        }
+        
+        let newCalendar = AcademicCalendarData(
+            academicYear: template.academicYear,
+            universityName: template.universityName,
+            customName: template.universityName,
+            semester1: SemesterData(events: sem1Events),
+            semester2: SemesterData(events: sem2Events)
+        )
+        
+        addCustomCalendar(newCalendar)
+        setCurrentCalendar(newCalendar)
     }
     
     func createNewCalendar(year: String, universityName: String, customName: String) -> AcademicCalendarData {
@@ -100,7 +217,7 @@ class AcademicCalendarManager: ObservableObject {
         }
     }
     
-    // MARK: - 🧠 Smart Logic (Updated for Specific Dates)
+    // MARK: - 🧠 Week Logic
     
     var currentTeachingWeek: Int? {
         return getTeachingWeek(for: Date())
@@ -110,7 +227,6 @@ class AcademicCalendarManager: ObservableObject {
         return calculateWeek(for: Date(), strictTeachingOnly: false) ?? 1
     }
     
-    // ✅ NEW: Public method to get week number for ANY date
     func getTeachingWeek(for date: Date) -> Int? {
         return calculateWeek(for: date, strictTeachingOnly: true)
     }
@@ -142,7 +258,6 @@ class AcademicCalendarManager: ObservableObject {
         return "Semester 1"
     }
     
-    // ✅ Private calculation logic that accepts a Date
     private func calculateWeek(for date: Date, strictTeachingOnly: Bool) -> Int? {
         guard let calendar = currentAcademicYear else { return nil }
         
@@ -161,7 +276,6 @@ class AcademicCalendarManager: ObservableObject {
         for event in sortedEvents {
             guard let start = getDate(from: event.start), let end = getDate(from: event.end) else { continue }
             
-            // IF we are currently in this event
             if date >= start && date <= end {
                 if event.type == .teaching {
                     let weeksSinceStart = Calendar.current.dateComponents([.weekOfYear], from: start, to: date).weekOfYear ?? 0
@@ -171,53 +285,11 @@ class AcademicCalendarManager: ObservableObject {
                 }
             }
             
-            // Event passed
             if date > end && event.type == .teaching {
                 cumulativeWeeks += event.weeks
             }
         }
         return strictTeachingOnly ? nil : cumulativeWeeks
-    }
-    
-    // MARK: - Generator & Helpers
-    
-    func generateAndSaveCalendar(from template: CalendarTemplate) {
-        // ... (Logic remains identical to previous version, omitted for brevity but presumed included) ...
-        // Re-paste the exact same generation logic from previous turn if you need the full file again,
-        // but for now I am focusing on the Week Logic changes.
-        // Assuming previous generation logic is preserved here.
-        var sem1Events: [AcademicEventData] = []
-        var sem2Events: [AcademicEventData] = []
-        
-        if template.universityName.contains("Babeș-Bolyai") {
-            sem1Events = [
-                AcademicEventData(start: "2025-09-29", end: "2025-12-21", type: .teaching, weeks: 12, customName: "Teaching Module 1"),
-                AcademicEventData(start: "2025-12-22", end: "2026-01-04", type: .holiday, weeks: 2, customName: "Winter Holiday"),
-                AcademicEventData(start: "2026-01-05", end: "2026-01-18", type: .teaching, weeks: 2, customName: "Teaching Module 2"),
-                AcademicEventData(start: "2026-01-19", end: "2026-02-08", type: .exam, weeks: 3, customName: "Exam Session"),
-                AcademicEventData(start: "2026-02-09", end: "2026-02-15", type: .holiday, weeks: 1, customName: "Inter-semester Break")
-            ]
-            sem2Events = [
-                AcademicEventData(start: "2026-02-23", end: "2026-04-10", type: .teaching, weeks: 7, customName: "Teaching Module 3"),
-                AcademicEventData(start: "2026-04-11", end: "2026-04-19", type: .holiday, weeks: 1, customName: "Easter Holiday"),
-                AcademicEventData(start: "2026-04-20", end: "2026-06-05", type: .teaching, weeks: 7, customName: "Teaching Module 4"),
-                AcademicEventData(start: "2026-06-06", end: "2026-06-28", type: .exam, weeks: 3, customName: "Summer Exams")
-            ]
-        } else {
-            sem1Events = [AcademicEventData(start: template.sem1Start, end: template.sem1End, type: .teaching, weeks: 14, customName: "Semester 1")]
-            sem2Events = [AcademicEventData(start: template.sem2Start, end: template.sem2End, type: .teaching, weeks: 14, customName: "Semester 2")]
-        }
-        
-        let newCalendar = AcademicCalendarData(
-            academicYear: template.academicYear,
-            universityName: template.universityName,
-            customName: template.universityName,
-            semester1: SemesterData(events: sem1Events),
-            semester2: SemesterData(events: sem2Events)
-        )
-        
-        addCustomCalendar(newCalendar)
-        setCurrentCalendar(newCalendar)
     }
     
     func addEvent(to semester: SemesterType, event: AcademicEventData) {
