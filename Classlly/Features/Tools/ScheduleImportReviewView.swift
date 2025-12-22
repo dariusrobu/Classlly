@@ -44,11 +44,17 @@ struct ScheduleImportReviewView: View {
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        if course.isOddWeek != nil {
-                            Text("Bi-Weekly")
+                        if let isOdd = course.isOddWeek {
+                            Text(isOdd ? "Odd Week" : "Even Week")
                                 .font(.caption2)
                                 .padding(4)
                                 .background(Color.orange.opacity(0.2))
+                                .cornerRadius(4)
+                        } else {
+                            Text("Weekly")
+                                .font(.caption2)
+                                .padding(4)
+                                .background(Color.blue.opacity(0.1))
                                 .cornerRadius(4)
                         }
                     }
@@ -67,8 +73,8 @@ struct ScheduleImportReviewView: View {
         for course in importedCourses {
             // Determine Frequency
             let frequency: ClassFrequency
-            if course.isOddWeek != nil {
-                frequency = .biweekly
+            if let isOdd = course.isOddWeek {
+                frequency = isOdd ? .biweeklyOdd : .biweeklyEven
             } else {
                 frequency = .weekly
             }
@@ -77,13 +83,13 @@ struct ScheduleImportReviewView: View {
             let newSubject = Subject(
                 title: course.title,
                 colorHex: "007AFF", // Default color
-                credits: 0, // Changed from ectsCredits to match model
+                credits: 0, // Using standard credits property
                 
                 // Course Details
                 courseTeacher: course.teacher,
                 courseClassroom: course.room,
                 courseDays: [course.dayOfWeek],
-                courseFrequency: frequency, // ✅ This matches the new init in Subject.swift
+                courseFrequency: frequency, // ✅ Updated frequency logic
                 courseStartTime: course.startTime,
                 courseEndTime: course.endTime,
                 

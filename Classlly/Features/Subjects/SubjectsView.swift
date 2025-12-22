@@ -385,4 +385,4 @@ struct ScanButtonContent: View {
             .fontWeight(.bold).foregroundColor(.white)
             .padding().frame(minWidth: 120).background(color).cornerRadius(12)
     }
-}
+} 

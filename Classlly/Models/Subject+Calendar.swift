@@ -5,7 +5,6 @@
 //  Created by Robu Darius on 17.12.2025.
 //
 
-
 import Foundation
 
 extension Subject {
@@ -30,7 +29,7 @@ extension Subject {
         
         // If it's a specific "One Time" event, we check if the dates match
         if frequency == .oneTime {
-            // ✅ FIX: Safely unwrap the optional dates
+            // Safely unwrap the optional dates
             guard let targetDate = isSeminar ? seminarStartTime : courseStartTime else {
                 return false
             }
@@ -40,9 +39,12 @@ extension Subject {
         switch frequency {
         case .weekly:
             return true
-        case .biweekly:
-            // Occurs every 2 weeks: treat odd weeks as true, even as false (or vice versa as per your original intent)
-            return !weekOfYear.isMultiple(of: 2)
+        case .biweeklyOdd:
+            // Returns true if week number is ODD (1, 3, 5...)
+            return weekOfYear % 2 != 0
+        case .biweeklyEven:
+            // Returns true if week number is EVEN (2, 4, 6...)
+            return weekOfYear % 2 == 0
         case .oneTime:
             return false // Handled above
         }

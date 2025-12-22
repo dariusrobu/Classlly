@@ -9,7 +9,7 @@ struct AcademicCalendarSettingsView: View {
             switch themeManager.selectedGameMode {
             case .rainbow:
                 RainbowCalendarSettingsView()
-            case .standard: // ✅ UPDATED: .none -> .standard
+            case .standard:
                 RainbowCalendarSettingsView()
             }
         }
@@ -29,7 +29,6 @@ struct RainbowCalendarSettingsView: View {
     var body: some View {
         let accent = themeManager.selectedTheme.primaryColor
         let isRainbow = themeManager.selectedGameMode == .rainbow
-        // ✅ UPDATED: .none -> .standard
         let isDark = themeManager.selectedGameMode != .standard
         
         ZStack {
@@ -46,14 +45,12 @@ struct RainbowCalendarSettingsView: View {
             VStack(spacing: 0) {
                 // 1. CUSTOM NAV BAR
                 HStack {
+                    // ✅ MODIFIED: Removed "Back" text, kept only the arrow
                     Button(action: { dismiss() }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 20, weight: .bold))
-                            Text("Back")
-                                .font(.headline)
-                        }
-                        .foregroundColor(isDark ? .white : .primary)
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(isDark ? .white : .primary)
+                            .padding(8) // Better touch target
                     }
                     
                     Spacer()
@@ -62,9 +59,12 @@ struct RainbowCalendarSettingsView: View {
                         .font(.headline)
                         .fontWeight(.black)
                         .foregroundColor(isDark ? .white : .primary)
-                        .offset(x: -20)
+                        // Removed offset for better natural centering
                     
                     Spacer()
+                    
+                    // Invisible placeholder to balance the layout for perfect centering (Optional, but looks cleaner)
+                    Image(systemName: "chevron.left").font(.system(size: 24)).opacity(0).padding(8)
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 16)
@@ -220,7 +220,6 @@ struct TimelineEventRow: View {
     @EnvironmentObject var themeManager: AppTheme
     
     var body: some View {
-        // ✅ UPDATED: .none -> .standard
         let isDark = themeManager.selectedGameMode != .standard
         
         HStack(spacing: 16) {

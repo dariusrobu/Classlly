@@ -26,7 +26,7 @@ struct RainbowSubjectDetailView: View {
     @Bindable var subject: Subject
     
     // Sheets State
-    @State private var showingAddExam = false // ✅ NEW
+    @State private var showingAddExam = false
     @State private var showingAddGrade = false
     @State private var showingAddAttendance = false
     @State private var showingAddTask = false
@@ -70,14 +70,10 @@ struct RainbowSubjectDetailView: View {
                     // 2. Actions
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
-                            // ✅ NEW: Exam Button (Red)
-                            RainbowActionButton(icon: "exclamationmark.triangle.fill", label: "Exam", color: RainbowColors.red) { showingAddExam = true }
-                            
                             RainbowActionButton(icon: "graduationcap.fill", label: "Grade", color: RainbowColors.blue) { showingAddGrade = true }
                             RainbowActionButton(icon: "hand.raised.fill", label: "Attend", color: RainbowColors.green) { showingAddAttendance = true }
                             RainbowActionButton(icon: "checklist", label: "Task", color: RainbowColors.orange) { showingAddTask = true }
                             RainbowActionButton(icon: "function", label: "Calc", color: RainbowColors.purple) { showingWhatIf = true }
-                            RainbowActionButton(icon: "pencil", label: "Edit", color: .gray) { showingEditSubject = true }
                         }
                         .padding(.horizontal)
                     }
@@ -155,37 +151,37 @@ struct RainbowSubjectDetailView: View {
                     }
                     .padding(.horizontal)
                     
-                    // Delete Button
-                    Button(role: .destructive, action: { showingDeleteAlert = true }) {
-                        HStack {
-                            Image(systemName: "trash.fill")
-                            Text("Delete Subject")
-                        }
-                        .font(.headline)
-                        .foregroundColor(.red)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color(white: 0.1))
-                        .cornerRadius(16)
-                    }
-                    .padding(.horizontal)
-                    .padding(.bottom, 40)
+                    Spacer().frame(height: 40)
                 }
                 .padding(.top, 20)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button(action: { showingEditSubject = true }) {
+                        Label("Edit Subject", systemImage: "pencil")
+                    }
+                    Button(role: .destructive, action: { showingDeleteAlert = true }) {
+                        Label("Delete Subject", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.title3)
+                        .foregroundColor(accent)
+                }
+            }
+        }
         
         // MARK: - Sheets
         
-        // ✅ NEW: Add Exam Sheet
         .sheet(isPresented: $showingAddExam) {
             AddTaskView(
                 preSelectedSubject: subject,
                 initialTitle: "Exam",
                 initialPriority: .high,
-                initialType: .exam // ✅ Sets TaskType.exam
+                initialType: .exam
             )
         }
         
@@ -236,7 +232,7 @@ struct StandardSubjectDetailView: View {
     @EnvironmentObject var themeManager: AppTheme
     @Bindable var subject: Subject
     
-    @State private var showingAddExam = false // ✅ NEW
+    @State private var showingAddExam = false
     @State private var showingAddGrade = false
     @State private var showingAddAttendance = false
     @State private var showingAddTask = false
@@ -266,11 +262,9 @@ struct StandardSubjectDetailView: View {
                     HeroSection(subject: subject)
                     
                     QuickActionsRow(
-                        onAddExam: { showingAddExam = true }, // ✅ NEW
                         onAddGrade: { showingAddGrade = true },
                         onAddAttendance: { showingAddAttendance = true },
                         onAddTask: { showingAddTask = true },
-                        onEdit: { showingEditSubject = true },
                         onWhatIf: { showingWhatIf = true }
                     )
                     
@@ -308,10 +302,22 @@ struct StandardSubjectDetailView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar { ToolbarItem(placement: .primaryAction) { Button(role: .destructive) { showingDeleteAlert = true } label: { Image(systemName: "trash").foregroundColor(.red) } } }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Button(action: { showingEditSubject = true }) {
+                        Label("Edit", systemImage: "pencil")
+                    }
+                    Button(role: .destructive, action: { showingDeleteAlert = true }) {
+                        Label("Delete", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+        }
         
         // Sheets
-        // ✅ NEW: Add Exam Sheet
         .sheet(isPresented: $showingAddExam) {
             AddTaskView(preSelectedSubject: subject, initialTitle: "Exam", initialPriority: .high, initialType: .exam)
         }
@@ -464,7 +470,45 @@ struct RainbowAttendanceRow: View {
 struct RainbowTaskRowSimple: View {
     let task: StudyTask
     var body: some View {
-        HStack { Image(systemName: "circle").foregroundColor(RainbowColors.orange); Text(task.title).font(.body).fontWeight(.medium).foregroundColor(.white); Spacer(); if let due = task.dueDate { Text(due.formatted(date: .numeric, time: .omitted)).font(.caption).foregroundColor(.gray) } }.padding()
+        HStack {
+            Button(action: { withAnimation { task.isCompleted.toggle() } }) {
+                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(task.isCompleted ? RainbowColors.green : RainbowColors.orange)
+            }
+            Text(task.title).font(.body).fontWeight(.medium)
+                .strikethrough(task.isCompleted)
+                .foregroundColor(task.isCompleted ? .gray : .white)
+            Spacer()
+            if let due = task.dueDate { Text(due.formatted(date: .numeric, time: .omitted)).font(.caption).foregroundColor(.gray) }
+        }.padding().opacity(task.isCompleted ? 0.5 : 1.0)
+    }
+}
+
+// ✅ FIXED: Missing Component Added
+struct RainbowActionButton: View {
+    let icon: String
+    let label: String
+    let color: Color
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Image(systemName: icon)
+                Text(label)
+            }
+            .font(.system(size: 12, weight: .black))
+            .foregroundColor(.black)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 16)
+            .background(color)
+            .cornerRadius(20)
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+            )
+            .shadow(color: color.opacity(0.3), radius: 5, x: 0, y: 2)
+        }
     }
 }
 
@@ -486,20 +530,15 @@ struct HeroSection: View {
 }
 
 struct QuickActionsRow: View {
-    let onAddExam: () -> Void // ✅ NEW
-    let onAddGrade: () -> Void; let onAddAttendance: () -> Void; let onAddTask: () -> Void; let onEdit: () -> Void; let onWhatIf: () -> Void
+    let onAddGrade: () -> Void; let onAddAttendance: () -> Void; let onAddTask: () -> Void; let onWhatIf: () -> Void
     
     var body: some View {
         HStack(spacing: 20) {
             Spacer()
-            // ✅ NEW: Exam Button (Red)
-            ActionButton(icon: "exclamationmark.triangle.fill", label: "Exam", color: .red, action: onAddExam)
-            
             ActionButton(icon: "graduationcap.fill", label: "Grade", color: .blue, action: onAddGrade)
             ActionButton(icon: "hand.raised.fill", label: "Attend", color: .green, action: onAddAttendance)
             ActionButton(icon: "checklist", label: "Task", color: .orange, action: onAddTask)
             ActionButton(icon: "function", label: "Calc", color: .purple, action: onWhatIf)
-            ActionButton(icon: "pencil", label: "Edit", color: .gray, action: onEdit)
             Spacer()
         }.padding(.horizontal)
     }
@@ -621,8 +660,14 @@ struct TaskRow: View {
     let task: StudyTask
     var body: some View {
         HStack {
-            Image(systemName: task.isCompleted ? "circle.inset.filled" : "circle").foregroundColor(task.isCompleted ? .green : .blue)
-            Text(task.title).strikethrough(task.isCompleted)
+            // ✅ FIX: Added toggle button logic
+            Button(action: { withAnimation { task.isCompleted.toggle() } }) {
+                Image(systemName: task.isCompleted ? "circle.inset.filled" : "circle")
+                    .foregroundColor(task.isCompleted ? .green : .blue)
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            Text(task.title).strikethrough(task.isCompleted).foregroundColor(task.isCompleted ? .secondary : .primary)
             Spacer()
             if let due = task.dueDate { Text(due.formatted(date: .abbreviated, time: .omitted)).font(.caption).foregroundColor(.red) }
         }.padding(.horizontal).padding(.vertical, 8)

@@ -8,7 +8,6 @@ struct HomeView: View {
     @Query(sort: \Subject.title) var subjects: [Subject]
     @Query var tasks: [StudyTask]
     
-    // Accepts profile from MainTabView
     let profile: StudentProfile?
     
     public init(profile: StudentProfile?) {
@@ -32,7 +31,7 @@ struct HomeView: View {
     }
 }
 
-// MARK: - 🌈 RAINBOW DASHBOARD
+// MARK: - 🌈 RAINBOW DASHBOARD (Redesigned v2)
 struct RainbowDashboard: View {
     let subjects: [Subject]
     let tasks: [StudyTask]
@@ -53,7 +52,6 @@ struct RainbowDashboard: View {
     private var nextClass: TodayClassEvent? { DashboardLogic.getNextClass(from: todaysSchedule) }
     private var remainingClasses: [TodayClassEvent] { DashboardLogic.getRemainingClasses(from: todaysSchedule) }
     
-    // ✅ FIX: Filter based on TaskType (.exam or .quiz)
     private var examItems: [StudyTask] {
         tasks.filter { task in
             guard !task.isCompleted else { return false }
@@ -66,9 +64,9 @@ struct RainbowDashboard: View {
         tasks.filter { !$0.isCompleted }
             .sorted {
                 if $0.priority == $1.priority {
-                    return ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture)
+                    return ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture)
                 }
-                return $0.priority == .high
+                return $0.priority.rawValue > $1.priority.rawValue
             }
     }
     
@@ -76,89 +74,166 @@ struct RainbowDashboard: View {
         let accent = themeManager.selectedTheme.primaryColor
         
         ZStack {
+            // 🌌 Deep Ambient Background
             Color.black.ignoresSafeArea()
             
+            // Dynamic Ambient Glow based on Next Class or Accent
+            RadialGradient(
+                colors: [
+                    (nextClass?.subject.color ?? accent).opacity(0.3),
+                    .black
+                ],
+                center: .top,
+                startRadius: 0,
+                endRadius: 600
+            )
+            .ignoresSafeArea()
+            .animation(.easeInOut(duration: 1.0), value: nextClass?.subject.id)
+            
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 32) {
-                    // 1. Header
-                    RainbowHeaderView(profile: profile)
-                        .padding(.horizontal)
-                        .padding(.top, 10)
+                VStack(spacing: 28) {
                     
-                    // 2. Status & Progress
-                    RainbowSemesterStatus(
-                        weekProgress: calendarManager.currentWeekProgress,
-                        totalWeeks: calendarManager.totalWeeksInCurrentSemester,
-                        statusTitle: calendarManager.currentStatusString,
-                        semester: calendarManager.currentSemesterDisplayName,
-                        accentColor: accent
-                    )
-                    .padding(.horizontal)
-                    
-                    // 3. Quick Actions
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            RainbowActionButton(icon: "plus", label: "Task", color: RainbowColors.blue) { showAddTask = true }
-                            RainbowActionButton(icon: "doc.fill", label: "Grade", color: RainbowColors.orange) { showLogGradeSheet = true }
-                            RainbowActionButton(icon: "hand.raised.fill", label: "Attend", color: RainbowColors.green) { showAttendanceSheet = true }
-                            RainbowActionButton(icon: "hourglass", label: "Focus", color: RainbowColors.purple) { showStudyTimer = true }
+                    // 1. Header & Semester Pill
+                    VStack(spacing: 16) {
+                        RainbowHeaderView(profile: profile)
+                        
+                        // Glass Semester Pill
+                        HStack {
+                            Label(calendarManager.currentSemesterDisplayName, systemImage: "graduationcap.fill")
+                            Spacer()
+                            Text("Week \(calendarManager.currentWeekProgress)")
+                            Text("•")
+                            Text((calendarManager.currentWeekProgress % 2 == 0) ? "Even" : "Odd")
+                                .foregroundColor(accent)
                         }
-                        .padding(.horizontal)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white.opacity(0.8))
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 16)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(20)
+                        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.1), lineWidth: 1))
                     }
+                    .padding(.horizontal)
+                    .padding(.top, 10)
                     
-                    // 4. Up Next
+                    // 2. Schedule Section (Hero Card)
                     VStack(alignment: .leading, spacing: 12) {
                         if let next = nextClass {
-                            Text("SCHEDULE").font(.caption).fontWeight(.black).foregroundColor(accent).padding(.horizontal)
-                            RainbowNextClassCard(event: next, accentColor: accent).padding(.horizontal)
+                            Text("HAPPENING NOW")
+                                .font(.system(size: 10, weight: .black))
+                                .foregroundColor(.white.opacity(0.6))
+                                .padding(.horizontal)
+                            
+                            RainbowHeroScheduleCard(event: next)
+                                .padding(.horizontal)
+                            
                             if !remainingClasses.isEmpty {
-                                VStack(spacing: 10) { ForEach(remainingClasses) { event in RainbowRemainingRow(event: event) } }.padding(.horizontal)
+                                Text("LATER TODAY")
+                                    .font(.system(size: 10, weight: .black))
+                                    .foregroundColor(.white.opacity(0.6))
+                                    .padding(.horizontal)
+                                    .padding(.top, 8)
+                                
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 12) {
+                                        ForEach(remainingClasses) { event in
+                                            RainbowMiniClassCard(event: event)
+                                        }
+                                    }
+                                    .padding(.horizontal)
+                                }
                             }
                         } else if !todaysSchedule.isEmpty {
-                            RainbowStatusCard(icon: "moon.stars.fill", title: "All Done", subtitle: "No more classes today", color: accent).padding(.horizontal)
+                            RainbowMessageCard(icon: "moon.stars.fill", title: "Classes Done", subtitle: "Rest up for tomorrow!", color: RainbowColors.purple)
+                                .padding(.horizontal)
                         } else {
-                            RainbowStatusCard(icon: "sun.max.fill", title: "Free Day", subtitle: "Relax and recharge", color: RainbowColors.orange).padding(.horizontal)
+                            RainbowMessageCard(icon: "sun.max.fill", title: "Free Day", subtitle: "No classes scheduled today.", color: RainbowColors.orange)
+                                .padding(.horizontal)
                         }
                     }
                     
-                    // 5. Exam Radar
+                    // 3. Quick Actions (Bubbles)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 20) {
+                            RainbowBubbleAction(icon: "plus", label: "Task", color: RainbowColors.blue) { showAddTask = true }
+                            RainbowBubbleAction(icon: "doc.fill", label: "Grade", color: RainbowColors.orange) { showLogGradeSheet = true }
+                            RainbowBubbleAction(icon: "hand.raised.fill", label: "Attend", color: RainbowColors.green) { showAttendanceSheet = true }
+                            RainbowBubbleAction(icon: "hourglass", label: "Focus", color: RainbowColors.purple) { showStudyTimer = true }
+                        }
+                        .padding(.horizontal)
+                    }
+                    
+                    // 4. Exam Radar
                     if !examItems.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("RADAR").font(.caption).fontWeight(.black).foregroundColor(RainbowColors.red).padding(.horizontal)
-                            ScrollView(.horizontal, showsIndicators: false) { HStack(spacing: 16) { ForEach(examItems) { task in RainbowExamCard(task: task) } }.padding(.horizontal) }
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill").foregroundColor(RainbowColors.red)
+                                Text("UPCOMING EXAMS").font(.system(size: 12, weight: .black)).foregroundColor(.white)
+                            }.padding(.horizontal)
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 16) {
+                                    ForEach(examItems) { task in
+                                        RainbowExamTile(task: task)
+                                    }
+                                }
+                                .padding(.horizontal)
+                            }
                         }
                     }
                     
-                    // 6. Tasks
+                    // 5. Tasks
                     if !generalTasks.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
-                                Text("TASKS").font(.caption).fontWeight(.black).foregroundColor(accent)
+                                Text("TASKS").font(.system(size: 12, weight: .black)).foregroundColor(.white)
                                 Spacer()
-                                NavigationLink("VIEW ALL") { TasksView() }.font(.caption).fontWeight(.bold).foregroundColor(.gray)
+                                NavigationLink("VIEW ALL") { TasksView(embedInNavigation: false) }
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(accent)
                             }.padding(.horizontal)
-                            VStack(spacing: 12) { ForEach(generalTasks.prefix(3)) { task in RainbowTaskRow(task: task, accentColor: accent) } }.padding(.horizontal)
+                            
+                            VStack(spacing: 10) {
+                                ForEach(generalTasks.prefix(3)) { task in
+                                    RainbowNeonTaskRow(task: task)
+                                }
+                            }.padding(.horizontal)
                         }
                     }
                     
-                    // 7. Performance
+                    // 6. Performance
                     VStack(alignment: .leading, spacing: 12) {
-                        HStack { Text("PERFORMANCE").font(.caption).fontWeight(.black).foregroundColor(accent); Spacer() }.padding(.horizontal)
+                        HStack {
+                            Text("PERFORMANCE").font(.system(size: 12, weight: .black)).foregroundColor(.white)
+                            Spacer()
+                            Button(action: { showAddSubject = true }) {
+                                Image(systemName: "plus.circle.fill").font(.title2).foregroundColor(accent)
+                            }
+                        }.padding(.horizontal)
+                        
                         if subjects.isEmpty {
-                            Button(action: { showAddSubject = true }) { Text("Add subjects to track stats").font(.caption).fontWeight(.bold).foregroundColor(.gray).padding().frame(maxWidth: .infinity).background(Color(white: 0.1)).cornerRadius(12) }.padding(.horizontal)
+                            Text("Add subjects to see stats")
+                                .font(.caption).foregroundColor(.gray)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding()
                         } else {
                             ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 16) {
-                                    ForEach(subjects) { subject in RainbowSubjectStatsCard(subject: subject) }
-                                    Button(action: { showAddSubject = true }) { VStack { Image(systemName: "plus").font(.title2).foregroundColor(accent); Text("Add").font(.caption).fontWeight(.bold).foregroundColor(.gray) }.frame(width: 100, height: 130).background(Color(white: 0.1)).cornerRadius(20) }
-                                }.padding(.horizontal)
+                                HStack(spacing: 14) {
+                                    ForEach(subjects) { subject in
+                                        RainbowSubjectTile(subject: subject)
+                                    }
+                                }
+                                .padding(.horizontal)
                             }
                         }
                     }
+                    
                     Spacer(minLength: 100)
                 }
             }
         }
+        // Sheets
         .sheet(isPresented: $showAddTask) { AddTaskView() }
         .sheet(isPresented: $showLogGradeSheet) { QuickLogGradeSheet(subjects: subjects) }
         .sheet(isPresented: $showAttendanceSheet) { QuickAttendanceSheet(subjects: DashboardLogic.filterTodayClasses(subjects: subjects)) }
@@ -167,99 +242,301 @@ struct RainbowDashboard: View {
     }
 }
 
+// MARK: - 🌈 NEW RAINBOW v2 COMPONENTS
+
+struct RainbowHeaderView: View {
+    let profile: StudentProfile?
+    var body: some View {
+        HStack {
+            // Profile Image with Glow
+            ZStack {
+                Circle().fill(LinearGradient(colors: [RainbowColors.blue, RainbowColors.purple], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .frame(width: 44, height: 44)
+                    .blur(radius: 4)
+                
+                if let data = profile?.profileImageData, let uiImage = UIImage(data: data) {
+                    Image(uiImage: uiImage).resizable().scaledToFill().frame(width: 44, height: 44).clipShape(Circle())
+                } else {
+                    Image(systemName: "person.fill").font(.title3).foregroundColor(.white)
+                        .frame(width: 44, height: 44).background(Color.black).clipShape(Circle())
+                }
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Welcome Back,")
+                    .font(.caption).fontWeight(.bold).foregroundColor(.gray)
+                Text(profile?.name ?? "Student")
+                    .font(.title2).fontWeight(.black).foregroundColor(.white)
+            }
+            Spacer()
+            
+            NavigationLink(destination: SettingsDashboardView()) {
+                Image(systemName: "gearshape")
+                    .font(.title2)
+                    .foregroundColor(.white)
+                    .padding(8)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Circle())
+            }
+        }
+    }
+}
+
+struct RainbowHeroScheduleCard: View {
+    let event: TodayClassEvent
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // Time Strip
+            VStack {
+                Text(event.startTime.formatted(date: .omitted, time: .shortened))
+                    .font(.system(size: 14, weight: .black))
+                    .foregroundColor(.white)
+                Rectangle().fill(Color.white.opacity(0.5)).frame(width: 1)
+                Text(event.endTime.formatted(date: .omitted, time: .shortened))
+                    .font(.caption).fontWeight(.bold)
+                    .foregroundColor(.white.opacity(0.6))
+            }
+            .frame(width: 50)
+            
+            // Info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(event.subject.title)
+                    .font(.title3).fontWeight(.black)
+                    .foregroundColor(.white)
+                    .lineLimit(2)
+                
+                HStack {
+                    Label(event.room, systemImage: "mappin.circle.fill")
+                    Text("•")
+                    Text(event.type.rawValue)
+                }
+                .font(.caption).fontWeight(.bold)
+                .foregroundColor(.white.opacity(0.8))
+            }
+            
+            Spacer()
+            
+            // Icon
+            Image(systemName: event.type == .course ? "book.fill" : "person.2.fill")
+                .font(.largeTitle)
+                .foregroundColor(.white.opacity(0.2))
+        }
+        .padding(20)
+        .background(
+            LinearGradient(
+                colors: [event.subject.color, event.subject.color.opacity(0.6)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .cornerRadius(24)
+        .shadow(color: event.subject.color.opacity(0.4), radius: 10, x: 0, y: 5)
+    }
+}
+
+struct RainbowMiniClassCard: View {
+    let event: TodayClassEvent
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Circle().fill(event.subject.color).frame(width: 8, height: 8)
+                Spacer()
+                Text(event.startTime.formatted(date: .omitted, time: .shortened))
+                    .font(.caption2).fontWeight(.bold).foregroundColor(.gray)
+            }
+            Text(event.subject.title)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundColor(.white)
+                .lineLimit(2)
+            
+            Text(event.room)
+                .font(.caption2).foregroundColor(.gray)
+        }
+        .padding(12)
+        .frame(width: 120, height: 100)
+        .background(Color(white: 0.1))
+        .cornerRadius(16)
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.05), lineWidth: 1))
+    }
+}
+
+struct RainbowMessageCard: View {
+    let icon: String; let title: String; let subtitle: String; let color: Color
+    var body: some View {
+        HStack(spacing: 16) {
+            Image(systemName: icon).font(.largeTitle).foregroundColor(color)
+            VStack(alignment: .leading) {
+                Text(title).font(.headline).fontWeight(.black).foregroundColor(.white)
+                Text(subtitle).font(.caption).foregroundColor(.gray)
+            }
+            Spacer()
+        }
+        .padding()
+        .background(Color(white: 0.1))
+        .cornerRadius(20)
+    }
+}
+
+struct RainbowBubbleAction: View {
+    let icon: String; let label: String; let color: Color; let action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                ZStack {
+                    Circle().fill(color.opacity(0.15)).frame(width: 56, height: 56)
+                    Image(systemName: icon).font(.title3).foregroundColor(color)
+                        .shadow(color: color.opacity(0.8), radius: 5)
+                }
+                Text(label).font(.caption).fontWeight(.bold).foregroundColor(.gray)
+            }
+        }
+    }
+}
+
+struct RainbowExamTile: View {
+    let task: StudyTask
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("EXAM").font(.system(size: 8, weight: .black))
+                    .padding(4).background(Color.black).foregroundColor(RainbowColors.red).cornerRadius(4)
+                Spacer()
+                if let due = task.dueDate {
+                    Text(due.formatted(.dateTime.day().month()))
+                        .font(.caption2).fontWeight(.bold).foregroundColor(.white)
+                }
+            }
+            Text(task.title).font(.subheadline).fontWeight(.bold).foregroundColor(.white).lineLimit(2)
+            Text(task.subject?.title ?? "General").font(.caption2).foregroundColor(.white.opacity(0.7))
+        }
+        .padding(12)
+        .frame(width: 140, height: 100)
+        .background(LinearGradient(colors: [RainbowColors.red.opacity(0.8), RainbowColors.orange.opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing))
+        .cornerRadius(16)
+        .shadow(color: RainbowColors.red.opacity(0.3), radius: 5)
+    }
+}
+
+struct RainbowNeonTaskRow: View {
+    let task: StudyTask
+    var body: some View {
+        HStack(spacing: 12) {
+            Button(action: { withAnimation { task.isCompleted.toggle() } }) {
+                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(task.isCompleted ? RainbowColors.green : .gray)
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(task.title)
+                    .font(.system(size: 14, weight: .bold))
+                    .strikethrough(task.isCompleted)
+                    .foregroundColor(task.isCompleted ? .gray : .white)
+                    .lineLimit(1)
+                
+                if let subject = task.subject {
+                    Text(subject.title.uppercased())
+                        .font(.caption2).fontWeight(.bold)
+                        .foregroundColor(subject.color)
+                }
+            }
+            Spacer()
+        }
+        .padding(12)
+        .background(Color(white: 0.08))
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(task.priority == .high && !task.isCompleted ? RainbowColors.red.opacity(0.5) : Color.clear, lineWidth: 1)
+        )
+        .opacity(task.isCompleted ? 0.5 : 1.0)
+    }
+}
+
+struct RainbowSubjectTile: View {
+    let subject: Subject
+    var body: some View {
+        NavigationLink(destination: SubjectDetailView(subject: subject)) {
+            VStack {
+                ZStack {
+                    Circle().stroke(subject.color.opacity(0.3), lineWidth: 3)
+                        .frame(width: 50, height: 50)
+                    
+                    if let grade = subject.currentGrade {
+                        Text(String(format: "%.1f", grade))
+                            .font(.headline).fontWeight(.black)
+                            .foregroundColor(.white)
+                    } else {
+                        Text("-").foregroundColor(.gray)
+                    }
+                }
+                
+                Text(subject.title)
+                    .font(.caption).fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+            }
+            .padding(12)
+            .frame(width: 90, height: 110)
+            .background(Color(white: 0.1))
+            .cornerRadius(16)
+        }
+    }
+}
+
 // MARK: - STANDARD DASHBOARD
 struct StandardDashboard: View {
     let subjects: [Subject]
     let tasks: [StudyTask]
     let profile: StudentProfile?
-    
     @EnvironmentObject var calendarManager: AcademicCalendarManager
     @EnvironmentObject var themeManager: AppTheme
-    
-    // Sheets
     @State private var showAddTask = false
     @State private var showAttendanceSheet = false
     @State private var showLogGradeSheet = false
     @State private var showStudyTimer = false
     @State private var showAddSubject = false
     
-    // Logic
     private var todaysSchedule: [TodayClassEvent] { DashboardLogic.getTodaysSchedule(subjects: subjects) }
     private var nextClass: TodayClassEvent? { DashboardLogic.getNextClass(from: todaysSchedule) }
     private var remainingClasses: [TodayClassEvent] { DashboardLogic.getRemainingClasses(from: todaysSchedule) }
-    
-    // ✅ FIX: Filter based on TaskType (.exam or .quiz)
-    private var examItems: [StudyTask] {
-        tasks.filter { task in
-            guard !task.isCompleted else { return false }
-            return task.type == .exam || task.type == .quiz
-        }
-        .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
-    }
-    
-    private var generalTasks: [StudyTask] {
-        tasks.filter { !$0.isCompleted }
-            .sorted {
-                if $0.priority == $1.priority {
-                    return ($0.dueDate ?? Date.distantFuture) < ($1.dueDate ?? Date.distantFuture)
-                }
-                return $0.priority == .high
-            }
-    }
+    private var examItems: [StudyTask] { tasks.filter { ($0.type == .exam || $0.type == .quiz) && !$0.isCompleted }.sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) } }
+    private var generalTasks: [StudyTask] { tasks.filter { !$0.isCompleted }.sorted { if $0.priority == $1.priority { return ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }; return $0.priority.rawValue > $1.priority.rawValue } }
     
     var body: some View {
         ZStack {
             Color.themeBackground.ignoresSafeArea()
-            
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 32) {
-                    // Header
                     VStack(spacing: 24) {
                         CleanHeader(profile: profile)
-                        SemesterStatusCard(
-                            weekNumber: calendarManager.currentWeekProgress,
-                            totalWeeks: calendarManager.totalWeeksInCurrentSemester,
-                            semesterName: calendarManager.currentSemesterDisplayName,
-                            isEven: (calendarManager.currentWeekProgress) % 2 == 0,
-                            accent: themeManager.selectedTheme.primaryColor
-                        )
+                        SemesterStatusCard(weekNumber: calendarManager.currentWeekProgress, totalWeeks: calendarManager.totalWeeksInCurrentSemester, semesterName: calendarManager.currentSemesterDisplayName, isEven: (calendarManager.currentWeekProgress) % 2 == 0, accent: themeManager.selectedTheme.primaryColor)
                     }.padding(.horizontal).padding(.top, 10)
-                    
-                    // Buttons
                     SmartActionBelt(onAddTask: { showAddTask = true }, onLogGrade: { showLogGradeSheet = true }, onFastAttendance: { showAttendanceSheet = true }, onFocus: { showStudyTimer = true }).padding(.horizontal)
-                    
-                    // Up Next
                     if let next = nextClass {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Up Next").font(.headline).foregroundColor(.secondary).padding(.horizontal)
                             NextClassHero(event: next).padding(.horizontal)
                         }
                     } else if !todaysSchedule.isEmpty { AllDoneCard().padding(.horizontal) } else { FreeDayCard().padding(.horizontal) }
-                    
-                    // Remaining
                     if !remainingClasses.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Later Today").font(.headline).foregroundColor(.secondary).padding(.horizontal)
                             VStack(spacing: 12) { ForEach(remainingClasses) { event in RemainingClassRow(event: event) } }.padding(.horizontal)
                         }
                     }
-                    
-                    // Exam Radar
                     if !examItems.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             Label("Exam Radar", systemImage: "exclamationmark.triangle.fill").font(.headline).foregroundColor(.themeError).padding(.horizontal)
                             ScrollView(.horizontal, showsIndicators: false) { HStack(spacing: 16) { ForEach(examItems) { task in CleanExamCard(task: task) } }.padding(.horizontal) }
                         }
                     }
-                    
-                    // Tasks
                     VStack(alignment: .leading, spacing: 12) {
-                        HStack { Text("Priority Tasks").font(.headline).foregroundColor(.secondary); Spacer(); NavigationLink("View All") { TasksView() }.font(.subheadline).foregroundColor(themeManager.selectedTheme.primaryColor) }.padding(.horizontal)
+                        HStack { Text("Priority Tasks").font(.headline).foregroundColor(.secondary); Spacer(); NavigationLink("View All") { TasksView(embedInNavigation: false) }.font(.subheadline).foregroundColor(themeManager.selectedTheme.primaryColor) }.padding(.horizontal)
                         if generalTasks.isEmpty { HomeEmptyStateView(icon: "checkmark.shield", title: "All Caught Up", message: "No pending tasks.").padding(.horizontal) }
                         else { VStack(spacing: 12) { ForEach(generalTasks.prefix(3)) { task in CleanTaskRow(task: task) } }.padding(.horizontal) }
                     }
-                    
-                    // Performance
                     VStack(alignment: .leading, spacing: 16) {
                         HStack { Text("Performance").font(.headline).foregroundColor(.primary); Spacer() }.padding(.horizontal)
                         if subjects.isEmpty {
@@ -312,17 +589,17 @@ struct DashboardLogic {
         var events: [TodayClassEvent] = []
         
         for s in subjects {
-            // Check Course
             if s.courseDays.contains(weekday) {
-                if let start = combine(today, s.courseStartTime),
-                   let end = combine(today, s.courseEndTime) {
+                if s.occursThisWeek(date: today, isSeminar: false),
+                   let start = combine(today, s.courseStartTime ?? today),
+                   let end = combine(today, s.courseEndTime ?? today) {
                     events.append(TodayClassEvent(subject: s, type: .course, startTime: start, endTime: end, room: s.courseClassroom))
                 }
             }
-            // Check Seminar
             if s.hasSeminar && s.seminarDays.contains(weekday) {
-                if let start = combine(today, s.seminarStartTime),
-                   let end = combine(today, s.seminarEndTime) {
+                if s.occursThisWeek(date: today, isSeminar: true),
+                   let start = combine(today, s.seminarStartTime ?? today),
+                   let end = combine(today, s.seminarEndTime ?? today) {
                     events.append(TodayClassEvent(subject: s, type: .seminar, startTime: start, endTime: end, room: s.seminarClassroom))
                 }
             }
@@ -345,202 +622,10 @@ struct DashboardLogic {
         return subjects.filter { ids.contains($0.id) }
     }
     
-    static func combine(_ d: Date, _ t: Date?) -> Date? {
-        guard let t = t else { return nil }
+    static func combine(_ d: Date, _ t: Date) -> Date? {
         let c = Calendar.current
         let tc = c.dateComponents([.hour, .minute], from: t)
         return c.date(bySettingHour: tc.hour ?? 0, minute: tc.minute ?? 0, second: 0, of: d)
-    }
-}
-
-// MARK: - 🌈 RAINBOW COMPONENTS
-
-struct RainbowHeaderView: View {
-    let profile: StudentProfile?
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(profile?.name.uppercased() ?? "STUDENT").font(.system(size: 10, weight: .black)).foregroundColor(.gray)
-                Text(Date().formatted(date: .complete, time: .omitted).uppercased()).font(.title3).fontWeight(.black).foregroundColor(.white)
-            }
-            Spacer()
-            NavigationLink(destination: SettingsDashboardView()) { Image(systemName: "gearshape.fill").font(.title2).foregroundColor(.white).padding(10).background(Color(white: 0.15)).clipShape(Circle()) }
-        }
-    }
-}
-
-struct RainbowSemesterStatus: View {
-    let weekProgress: Int
-    let totalWeeks: Int
-    let statusTitle: String
-    let semester: String
-    let accentColor: Color
-    
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading) {
-                Text(semester.uppercased()).font(.caption).fontWeight(.bold).foregroundColor(.gray)
-                Text(statusTitle)
-                    .font(.largeTitle)
-                    .fontWeight(.black)
-                    .minimumScaleFactor(0.5)
-                    .lineLimit(1)
-                    .foregroundStyle(LinearGradient(colors: [accentColor, accentColor.opacity(0.6)], startPoint: .leading, endPoint: .trailing))
-            }
-            Spacer()
-            ZStack {
-                Circle().stroke(Color(white: 0.1), lineWidth: 8).frame(width: 60, height: 60)
-                Circle().trim(from: 0, to: Double(weekProgress) / Double(max(1, totalWeeks)))
-                    .stroke(accentColor, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                    .frame(width: 60, height: 60)
-                    .rotationEffect(.degrees(-90))
-                
-                Text("\(Int((Double(weekProgress) / Double(max(1, totalWeeks))) * 100))%")
-                    .font(.caption2).fontWeight(.bold).foregroundColor(.white)
-            }
-        }
-        .padding()
-        .background(Color(white: 0.1))
-        .cornerRadius(20)
-    }
-}
-
-struct RainbowActionButton: View {
-    let icon: String
-    let label: String
-    let color: Color
-    let action: () -> Void
-    var body: some View {
-        Button(action: action) {
-            HStack { Image(systemName: icon); Text(label) }
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(.black)
-                .padding(.vertical, 12)
-                .padding(.horizontal, 20)
-                .background(color)
-                .cornerRadius(30)
-        }
-    }
-}
-
-struct RainbowNextClassCard: View {
-    let event: TodayClassEvent
-    let accentColor: Color
-    var body: some View {
-        HStack(spacing: 20) {
-            VStack(alignment: .center, spacing: 4) {
-                if event.startTime > Date() {
-                    Text(event.startTime, style: .timer).font(.title3).fontWeight(.black).foregroundColor(.white).monospacedDigit()
-                    Text("STARTS IN").font(.system(size: 8, weight: .bold)).foregroundColor(accentColor)
-                } else {
-                    Text("NOW").font(.title3).fontWeight(.black).foregroundColor(.white)
-                    Text("HAPPENING").font(.system(size: 8, weight: .bold)).foregroundColor(RainbowColors.orange)
-                }
-            }.frame(minWidth: 80)
-            Rectangle().fill(Color(white: 0.2)).frame(width: 1, height: 40)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(event.subject.title).font(.headline).fontWeight(.bold).foregroundColor(.white)
-                HStack { Image(systemName: "mappin.circle.fill").foregroundColor(.gray); Text(event.room).font(.subheadline).foregroundColor(.gray) }
-            }
-            Spacer()
-            Image(systemName: event.type == .course ? "book.fill" : "person.2.fill").font(.title).foregroundColor(event.subject.color).opacity(0.8)
-        }
-        .padding(24).background(Color(white: 0.1)).cornerRadius(24)
-        .overlay(RoundedRectangle(cornerRadius: 24).stroke(LinearGradient(colors: [accentColor.opacity(0.6), accentColor.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 2))
-    }
-}
-
-struct RainbowRemainingRow: View {
-    let event: TodayClassEvent
-    var body: some View {
-        HStack(spacing: 16) {
-            Text(formatTime(event.startTime)).font(.subheadline).fontWeight(.bold).foregroundColor(.gray).frame(width: 60, alignment: .leading)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(event.subject.title).font(.body).fontWeight(.bold).foregroundColor(.white)
-                Text(event.room).font(.caption).foregroundColor(.gray)
-            }
-            Spacer()
-            Image(systemName: event.type == .course ? "book.fill" : "person.2.fill").foregroundColor(event.subject.color)
-        }
-        .padding().background(Color(white: 0.1)).cornerRadius(16)
-    }
-    private func formatTime(_ date: Date) -> String {
-        let f = DateFormatter(); f.timeStyle = .short; return f.string(from: date)
-    }
-}
-
-struct RainbowStatusCard: View {
-    let icon: String
-    let title: String
-    let subtitle: String
-    let color: Color
-    var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: icon).font(.largeTitle).foregroundColor(color)
-            VStack(alignment: .leading) {
-                Text(title).font(.headline).fontWeight(.bold).foregroundColor(.white)
-                Text(subtitle).font(.caption).foregroundColor(.gray)
-            }
-            Spacer()
-        }.padding(20).background(Color(white: 0.1)).cornerRadius(20)
-    }
-}
-
-struct RainbowExamCard: View {
-    let task: StudyTask
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.black)
-                Spacer()
-                if let due = task.dueDate { Text(due.formatted(.dateTime.day().month())).font(.caption).fontWeight(.bold).foregroundColor(.black) }
-            }
-            Text(task.title).font(.headline).fontWeight(.black).foregroundColor(.black).lineLimit(2)
-            Text(task.subject?.title ?? "General").font(.caption).fontWeight(.bold).foregroundColor(.black.opacity(0.7))
-        }
-        .padding(16).frame(width: 160, height: 120)
-        .background(LinearGradient(colors: [RainbowColors.orange, RainbowColors.red], startPoint: .topLeading, endPoint: .bottomTrailing))
-        .cornerRadius(20)
-    }
-}
-
-struct RainbowTaskRow: View {
-    let task: StudyTask
-    let accentColor: Color
-    var body: some View {
-        HStack(spacing: 12) {
-            Button(action: { }) { Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle").font(.title2).foregroundColor(task.isCompleted ? accentColor : .gray) }
-            VStack(alignment: .leading, spacing: 4) {
-                Text(task.title).font(.body).fontWeight(.medium).strikethrough(task.isCompleted).foregroundColor(task.isCompleted ? .gray : .white)
-                HStack {
-                    if let subject = task.subject { Text(subject.title).font(.caption2).fontWeight(.bold).foregroundColor(subject.color) }
-                    if task.priority == .high { Text("HIGH").font(.caption2).fontWeight(.black).foregroundColor(RainbowColors.red) }
-                }
-            }
-            Spacer()
-        }
-        .padding().background(Color(white: 0.1)).cornerRadius(16).opacity(task.isCompleted ? 0.6 : 1.0)
-    }
-}
-
-struct RainbowSubjectStatsCard: View {
-    let subject: Subject
-    var body: some View {
-        NavigationLink(destination: SubjectDetailView(subject: subject)) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    ZStack { Circle().fill(subject.color.opacity(0.2)).frame(width: 40, height: 40); Image(systemName: "book.fill").font(.caption).foregroundColor(subject.color) }
-                    Spacer()
-                    if let grade = subject.currentGrade { Text(String(format: "%.1f", grade)).font(.title3).fontWeight(.black).foregroundColor(grade >= 5 ? RainbowColors.green : RainbowColors.red) }
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(subject.title).font(.headline).fontWeight(.bold).foregroundColor(.white).lineLimit(1)
-                    Text("Attd: \(Int(subject.attendanceRate * 100))%").font(.caption).fontWeight(.bold).foregroundColor(.gray)
-                }
-            }
-            .padding(16).frame(width: 150, height: 130).background(Color(white: 0.1)).cornerRadius(20)
-            .overlay(RoundedRectangle(cornerRadius: 20).stroke(subject.color.opacity(0.3), lineWidth: 1))
-        }
     }
 }
 
@@ -726,22 +811,16 @@ struct CleanTaskRow: View {
     @EnvironmentObject var themeManager: AppTheme
     var body: some View {
         HStack(spacing: 12) {
-            Button(action: { }) { Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle").font(.title2).foregroundColor(task.isCompleted ? .green : .secondary) }
+            Button(action: { withAnimation { task.isCompleted.toggle() } }) {
+                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.title2)
+                    .foregroundColor(task.isCompleted ? .green : .secondary)
+            }
             VStack(alignment: .leading, spacing: 4) {
                 Text(task.title).font(.subheadline).fontWeight(.medium).strikethrough(task.isCompleted).foregroundColor(task.isCompleted ? .secondary : .primary)
                 HStack {
                     if let subject = task.subject { Text(subject.title).font(.caption2).padding(.horizontal, 6).padding(.vertical, 2).background(themeManager.selectedTheme.primaryColor.opacity(0.1)).foregroundColor(themeManager.selectedTheme.primaryColor).cornerRadius(4) }
-                    
-                    // ✅ NEW: Show Type Badge
-                    Text(task.type.rawValue.uppercased())
-                        .font(.caption2)
-                        .fontWeight(.bold)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(4)
-                        .foregroundColor(.secondary)
-                    
+                    Text(task.type.rawValue.uppercased()).font(.caption2).fontWeight(.bold).padding(.horizontal, 4).padding(.vertical, 2).background(Color.gray.opacity(0.2)).cornerRadius(4).foregroundColor(.secondary)
                     if task.priority == .high { Text("High Priority").font(.caption2).foregroundColor(.red) }
                 }
             }
@@ -773,11 +852,16 @@ struct CleanSubjectCard: View {
 struct HomeEmptyStateView: View {
     let icon: String; let title: String; let message: String
     var body: some View {
-        HStack {
-            Image(systemName: icon).font(.title2).foregroundColor(.secondary)
-            VStack(alignment: .leading) { Text(title).font(.headline).foregroundColor(.primary); Text(message).font(.caption).foregroundColor(.secondary) }
-            Spacer()
-        }.padding().background(Color.themeSurface).cornerRadius(12)
+        VStack(spacing: 12) {
+            Image(systemName: icon).font(.system(size: 40)).foregroundColor(.secondary.opacity(0.5))
+            Text(title).font(.headline).foregroundColor(.primary)
+            Text(message).font(.subheadline).foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(24)
+        .background(Color.themeSurface)
+        .cornerRadius(12)
+        .multilineTextAlignment(.center)
     }
 }
 
@@ -904,4 +988,3 @@ struct QuickAttendanceButton: View {
         }
     }
 }
-

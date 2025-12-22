@@ -24,7 +24,6 @@ struct StandardTabBarView: View {
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            // ✅ FIX: Pass profile to HomeView
             HomeView(profile: authManager.currentUser)
                 .tabItem { Label("Home", systemImage: "house.fill") }
                 .tag(0)
@@ -57,9 +56,10 @@ struct RainbowTabBarView: View {
     
     var body: some View {
         ZStack(alignment: .bottom) {
+            // Content Layer
             Group {
                 switch selectedTab {
-                case 0: HomeView(profile: authManager.currentUser) // ✅ FIX: Pass profile
+                case 0: HomeView(profile: authManager.currentUser)
                 case 1: CalendarView()
                 case 2: SubjectsView(embedInNavigationStack: true)
                 case 3: TasksView()
@@ -69,30 +69,31 @@ struct RainbowTabBarView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             
-            // Custom Tab Bar
-            HStack(spacing: 0) {
-                RainbowTabButton(icon: "house.fill", label: "Home", isSelected: selectedTab == 0, color: .blue) { selectedTab = 0 }
-                Spacer()
-                RainbowTabButton(icon: "calendar", label: "Sched", isSelected: selectedTab == 1, color: .green) { selectedTab = 1 }
-                Spacer()
-                RainbowTabButton(icon: "book.fill", label: "Subs", isSelected: selectedTab == 2, color: .orange) { selectedTab = 2 }
-                Spacer()
-                RainbowTabButton(icon: "checklist", label: "Tasks", isSelected: selectedTab == 3, color: .purple) { selectedTab = 3 }
-                Spacer()
-                RainbowTabButton(icon: "ellipsis", label: "More", isSelected: selectedTab == 4, color: .white) { selectedTab = 4 }
+            // ✅ UPDATED: Full-Width Custom Tab Bar
+            VStack(spacing: 0) {
+                // Top Border
+                Rectangle()
+                    .fill(Color(white: 0.2))
+                    .frame(height: 1)
+                
+                HStack(spacing: 0) {
+                    RainbowTabButton(icon: "house.fill", label: "Home", isSelected: selectedTab == 0, color: .blue) { selectedTab = 0 }
+                    Spacer()
+                    RainbowTabButton(icon: "calendar", label: "Sched", isSelected: selectedTab == 1, color: .green) { selectedTab = 1 }
+                    Spacer()
+                    RainbowTabButton(icon: "book.fill", label: "Subs", isSelected: selectedTab == 2, color: .orange) { selectedTab = 2 }
+                    Spacer()
+                    RainbowTabButton(icon: "checklist", label: "Tasks", isSelected: selectedTab == 3, color: .purple) { selectedTab = 3 }
+                    Spacer()
+                    RainbowTabButton(icon: "ellipsis", label: "More", isSelected: selectedTab == 4, color: .white) { selectedTab = 4 }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 12)
+                .padding(.bottom, 34) // Extra padding for Home Indicator
+                .background(Color.black.opacity(0.95)) // Solid dark background
+                .background(.ultraThinMaterial) // Blur effect
             }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 16)
-            .background(Color(white: 0.1).opacity(0.95))
-            .background(.ultraThinMaterial)
-            .cornerRadius(35)
-            .overlay(
-                RoundedRectangle(cornerRadius: 35)
-                    .stroke(LinearGradient(colors: [.white.opacity(0.2), .clear], startPoint: .top, endPoint: .bottom), lineWidth: 1)
-            )
-            .shadow(color: Color.black.opacity(0.4), radius: 10, y: 5)
-            .padding(.horizontal, 20)
-            .padding(.bottom, 10)
+            .edgesIgnoringSafeArea(.bottom)
         }
         .ignoresSafeArea(.keyboard)
     }
@@ -116,9 +117,8 @@ struct RainbowTabButton: View {
                     .font(.system(size: 10, weight: .bold))
                     .foregroundColor(isSelected ? .white : .gray)
             }
-            .frame(width: 50)
-            .scaleEffect(isSelected ? 1.1 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
+            .frame(maxWidth: .infinity) // Ensures even spacing
+            .contentShape(Rectangle())
         }
     }
 }

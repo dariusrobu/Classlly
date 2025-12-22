@@ -24,64 +24,79 @@ struct MoreView: View {
                     Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
                 }
                 
-                ScrollView {
-                    VStack(spacing: 24) {
-                        // 1. Profile Header
-                        Button(action: {
-                            if !profiles.isEmpty { showingProfileEdit = true }
-                        }) {
-                            RainbowProfileCard(user: profiles.first)
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.top, 10)
-                        
-                        // 2. Navigation Group
-                        VStack(spacing: 16) {
-                            RainbowNavigationCard(
-                                title: "Academic Calendar",
-                                subtitle: "Manage your semesters",
-                                icon: "calendar.badge.clock",
-                                color: .blue,
-                                destination: AcademicCalendarSettingsView()
-                            )
-                            
-                            RainbowNavigationCard(
-                                title: "Settings",
-                                subtitle: "App preferences & data",
-                                icon: "gearshape.fill",
-                                color: .purple,
-                                destination: SettingsView()
-                            )
-                            
-                            RainbowNavigationCard(
-                                title: "Privacy Policy",
-                                subtitle: "How we protect your data",
-                                icon: "hand.raised.fill",
-                                color: .green,
-                                destination: PrivacyPolicyView()
-                            )
-                        }
-                        .padding(.horizontal)
-                        
-                        // 3. Sign Out Button
-                        Button(action: { authManager.signOut() }) {
-                            Text("SIGN OUT")
-                                .font(.headline)
-                                .fontWeight(.black)
-                                .foregroundColor(.red)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color(white: 0.1))
-                                .cornerRadius(16)
-                                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.red.opacity(0.5), lineWidth: 1))
-                        }
-                        .padding(.horizontal)
-                        .padding(.top, 20)
+                VStack(spacing: 0) {
+                    // ✅ ADDED: Rainbow Header for consistency
+                    if themeManager.selectedGameMode == .rainbow {
+                        RainbowHeader(
+                            title: "More",
+                            accentColor: themeManager.selectedTheme.primaryColor
+                        )
                     }
-                    .padding(.bottom, 110)
+                    
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            // 1. Profile Header
+                            Button(action: {
+                                if !profiles.isEmpty { showingProfileEdit = true }
+                            }) {
+                                RainbowProfileCard(user: profiles.first)
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.top, 10)
+                            
+                            // 2. Navigation Group
+                            VStack(spacing: 16) {
+                                RainbowNavigationCard(
+                                    title: "Academic Calendar",
+                                    subtitle: "Manage your semesters",
+                                    icon: "calendar.badge.clock",
+                                    color: .blue,
+                                    destination: AcademicCalendarSettingsView()
+                                )
+                                
+                                RainbowNavigationCard(
+                                    title: "Settings",
+                                    subtitle: "App preferences & data",
+                                    icon: "gearshape.fill",
+                                    color: .purple,
+                                    destination: SettingsView()
+                                )
+                                
+                                RainbowNavigationCard(
+                                    title: "Privacy Policy",
+                                    subtitle: "How we protect your data",
+                                    icon: "hand.raised.fill",
+                                    color: .green,
+                                    destination: PrivacyPolicyView()
+                                )
+                            }
+                            .padding(.horizontal)
+                            
+                            // 3. Sign Out Button
+                            Button(action: { authManager.signOut() }) {
+                                Text("SIGN OUT")
+                                    .font(.headline)
+                                    .fontWeight(.black)
+                                    .foregroundColor(.red)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(themeManager.selectedGameMode == .standard ? Color(uiColor: .secondarySystemGroupedBackground) : Color(white: 0.1))
+                                    .cornerRadius(16)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .stroke(Color.red.opacity(0.5), lineWidth: themeManager.selectedGameMode == .rainbow ? 1 : 0)
+                                    )
+                                    .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+                            }
+                            .padding(.horizontal)
+                            .padding(.top, 20)
+                        }
+                        .padding(.bottom, 110)
+                    }
                 }
             }
             .navigationTitle("More")
+            .navigationBarTitleDisplayMode(.inline)
             .navigationBarHidden(themeManager.selectedGameMode == .rainbow)
             .sheet(isPresented: $showingProfileEdit) {
                 if let profile = profiles.first {
@@ -116,9 +131,12 @@ struct RainbowProfileCard: View {
             // Info
             VStack(alignment: .leading, spacing: 4) {
                 Text(user?.name ?? "Student")
-                    .font(.title3).fontWeight(.heavy).foregroundColor(.white)
+                    .font(.title3).fontWeight(.heavy)
+                    .foregroundColor(themeManager.selectedGameMode == .standard ? .primary : .white)
+                
                 Text(user?.university ?? "University Not Set")
-                    .font(.caption).fontWeight(.bold).foregroundColor(.gray)
+                    .font(.caption).fontWeight(.bold)
+                    .foregroundColor(.gray)
                 
                 HStack(spacing: 4) {
                     Image(systemName: "pencil").font(.caption2).foregroundColor(themeManager.selectedTheme.primaryColor)
@@ -130,8 +148,9 @@ struct RainbowProfileCard: View {
             Image(systemName: "chevron.right").foregroundColor(.gray.opacity(0.5))
         }
         .padding(20)
-        .background(Color(white: 0.1))
+        .background(themeManager.selectedGameMode == .standard ? Color(uiColor: .secondarySystemGroupedBackground) : Color(white: 0.1))
         .cornerRadius(24)
+        .shadow(color: themeManager.selectedGameMode == .standard ? Color.black.opacity(0.05) : Color.clear, radius: 8, x: 0, y: 4)
         .padding(.horizontal)
     }
 }
@@ -165,6 +184,7 @@ struct RainbowNavigationCard<Destination: View>: View {
             .padding(16)
             .background(themeManager.selectedGameMode == .standard ? Color(uiColor: .secondarySystemGroupedBackground) : Color(white: 0.1))
             .cornerRadius(20)
+            .shadow(color: themeManager.selectedGameMode == .standard ? Color.black.opacity(0.05) : Color.clear, radius: 5, x: 0, y: 2)
         }
     }
 }

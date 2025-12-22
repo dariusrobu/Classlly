@@ -12,7 +12,7 @@ struct AddTaskView: View {
     var preSelectedSubject: Subject?
     var initialTitle: String?
     var initialPriority: TaskPriority?
-    var initialType: TaskType? // ✅ NEW
+    var initialType: TaskType?
     
     @Query(sort: \Subject.title) var subjects: [Subject]
     
@@ -20,17 +20,18 @@ struct AddTaskView: View {
     @State private var dueDate = Date()
     @State private var hasDueDate = true
     @State private var priority: TaskPriority = .medium
-    @State private var selectedType: TaskType = .task // ✅ NEW
+    @State private var selectedType: TaskType = .task
     @State private var selectedSubject: Subject?
     @State private var notes = ""
     @State private var isFlagged = false
+    @State private var selectedReminder: TaskReminderTime = .none // ✅ NEW
     
     init(
         taskToEdit: StudyTask? = nil,
         preSelectedSubject: Subject? = nil,
         initialTitle: String? = nil,
         initialPriority: TaskPriority? = nil,
-        initialType: TaskType? = nil // ✅ Updated Init
+        initialType: TaskType? = nil
     ) {
         self.taskToEdit = taskToEdit
         self.preSelectedSubject = preSelectedSubject
@@ -45,7 +46,6 @@ struct AddTaskView: View {
                 Section("Task Details") {
                     TextField("Title", text: $title)
                     
-                    // ✅ NEW: Type Selector
                     Picker("Type", selection: $selectedType) {
                         ForEach(TaskType.allCases, id: \.self) { type in
                             HStack {
@@ -80,6 +80,13 @@ struct AddTaskView: View {
                     
                     if hasDueDate {
                         DatePicker("Date", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
+                        
+                        // ✅ NEW: Reminder Picker
+                        Picker("Reminder", selection: $selectedReminder) {
+                            ForEach(TaskReminderTime.allCases, id: \.self) { reminder in
+                                Text(reminder.rawValue).tag(reminder)
+                            }
+                        }
                     }
                 }
                 
@@ -107,10 +114,11 @@ struct AddTaskView: View {
         if let task = taskToEdit {
             title = task.title
             priority = task.priority
-            selectedType = task.type // ✅ Load Type
+            selectedType = task.type
             selectedSubject = task.subject
             notes = task.notes
             isFlagged = task.isFlagged
+            selectedReminder = task.reminderTime // ✅ Load Reminder
             
             if let due = task.dueDate {
                 dueDate = due
@@ -123,7 +131,7 @@ struct AddTaskView: View {
             if let subject = preSelectedSubject { selectedSubject = subject }
             if let initTitle = initialTitle { title = initTitle }
             if let initPriority = initialPriority { priority = initPriority }
-            if let initType = initialType { selectedType = initType } // ✅ Pre-fill Type
+            if let initType = initialType { selectedType = initType }
         }
     }
     
@@ -131,18 +139,20 @@ struct AddTaskView: View {
         if let task = taskToEdit {
             task.title = title
             task.priority = priority
-            task.type = selectedType // ✅ Save Type
+            task.type = selectedType
             task.subject = selectedSubject
             task.notes = notes
             task.dueDate = hasDueDate ? dueDate : nil
             task.isFlagged = isFlagged
+            task.reminderTime = hasDueDate ? selectedReminder : .none // ✅ Save Reminder
         } else {
             let newTask = StudyTask(
                 title: title,
                 isCompleted: false,
                 dueDate: hasDueDate ? dueDate : nil,
                 priority: priority,
-                type: selectedType, // ✅ Save Type
+                type: selectedType,
+                reminderTime: hasDueDate ? selectedReminder : .none, // ✅ Save Reminder
                 subject: selectedSubject,
                 isFlagged: isFlagged,
                 notes: notes

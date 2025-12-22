@@ -3,7 +3,8 @@ import SwiftUI
 // MARK: - Class Frequency
 enum ClassFrequency: String, Codable, CaseIterable {
     case weekly = "Weekly"
-    case biweekly = "Bi-Weekly"
+    case biweeklyOdd = "Bi-Weekly (Odd)"  // Week 1, 3, 5...
+    case biweeklyEven = "Bi-Weekly (Even)" // Week 2, 4, 6...
     case oneTime = "One-Time"
 }
 
@@ -59,7 +60,6 @@ enum TaskReminderTime: String, CaseIterable, Codable {
 }
 
 // MARK: - Class Type
-// ✅ FIX: Centralized definition to prevent ambiguity
 enum ClassType: String, Codable, CaseIterable {
     case course = "Course"
     case seminar = "Seminar"
@@ -73,7 +73,7 @@ enum ClassType: String, Codable, CaseIterable {
     var color: Color {
         switch self {
         case .course: return .blue
-        case .seminar: return .orange // Changed from green to match HomeView logic
+        case .seminar: return .orange
         case .lab: return .green
         case .online: return .purple
         }
@@ -89,6 +89,7 @@ enum ClassType: String, Codable, CaseIterable {
     }
 }
 
+// MARK: - Task Type
 enum TaskType: String, Codable, CaseIterable {
     case task = "Task"
     case homework = "Homework"
