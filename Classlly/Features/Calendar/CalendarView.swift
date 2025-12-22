@@ -110,8 +110,9 @@ struct CalendarClassItem: Identifiable {
     let id = UUID()
     let subject: Subject
     let isSeminar: Bool
-    var startTime: Date { isSeminar ? subject.seminarStartTime : subject.courseStartTime }
-    var endTime: Date { isSeminar ? subject.seminarEndTime : subject.courseEndTime }
+    // ✅ FIX: Safely unwrap optional dates
+    var startTime: Date { (isSeminar ? subject.seminarStartTime : subject.courseStartTime) ?? Date() }
+    var endTime: Date { (isSeminar ? subject.seminarEndTime : subject.courseEndTime) ?? Date() }
 }
 
 struct WeekStatusBadge: View {
@@ -299,7 +300,13 @@ struct StandardClassCard: View {
             }.padding()
         }.background(Color(uiColor: .systemBackground)).cornerRadius(12).shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
     }
-    var timeString: String { let s = isSeminar ? subject.seminarStartTime : subject.courseStartTime; let e = isSeminar ? subject.seminarEndTime : subject.courseEndTime; return "\(s.formatted(date: .omitted, time: .shortened)) - \(e.formatted(date: .omitted, time: .shortened))" }
+    
+    // ✅ FIX: Safely unwrap optional dates
+    var timeString: String {
+        let s = (isSeminar ? subject.seminarStartTime : subject.courseStartTime) ?? Date()
+        let e = (isSeminar ? subject.seminarEndTime : subject.courseEndTime) ?? Date()
+        return "\(s.formatted(date: .omitted, time: .shortened)) - \(e.formatted(date: .omitted, time: .shortened))"
+    }
     var room: String { isSeminar ? subject.seminarClassroom : subject.courseClassroom }
     var teacher: String { isSeminar ? subject.seminarTeacher : subject.courseTeacher }
 }

@@ -1,5 +1,6 @@
 import SwiftUI
 import GoogleGenerativeAI
+import Combine
 
 class ScheduleScannerService {
     static let shared = ScheduleScannerService()

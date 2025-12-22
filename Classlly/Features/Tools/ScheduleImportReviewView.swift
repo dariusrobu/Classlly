@@ -74,19 +74,18 @@ struct ScheduleImportReviewView: View {
             }
             
             // Create the Subject
-            // FIX: Ensure arguments match the definition order in Subject.swift
             let newSubject = Subject(
                 title: course.title,
                 colorHex: "007AFF", // Default color
-                ectsCredits: 0,
+                credits: 0, // Changed from ectsCredits to match model
                 
                 // Course Details
                 courseTeacher: course.teacher,
                 courseClassroom: course.room,
-                courseFrequency: frequency, // Frequency comes BEFORE StartTime
+                courseDays: [course.dayOfWeek],
+                courseFrequency: frequency, // ✅ This matches the new init in Subject.swift
                 courseStartTime: course.startTime,
                 courseEndTime: course.endTime,
-                courseDays: [course.dayOfWeek],
                 
                 // Seminar Details (Default to empty)
                 hasSeminar: false

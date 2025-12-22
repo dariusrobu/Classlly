@@ -152,21 +152,23 @@ struct AddSubjectView: View {
     private func saveSubject() {
         let newSubject = Subject(
             title: title,
+            code: "", // No field in UI, default empty
             colorHex: colorHex,
-            ectsCredits: ectsCredits,
+            icon: "book.fill", // No icon picker, default
+            credits: ectsCredits, // Correct label
             courseTeacher: courseTeacher,
             courseClassroom: courseClassroom,
+            courseDays: Array(courseDays),
             courseFrequency: courseFrequency,
             courseStartTime: courseStartTime,
             courseEndTime: courseEndTime,
-            courseDays: Array(courseDays),
             hasSeminar: hasSeminar,
             seminarTeacher: seminarTeacher,
             seminarClassroom: seminarClassroom,
+            seminarDays: Array(seminarDays),
             seminarFrequency: seminarFrequency,
             seminarStartTime: seminarStartTime,
-            seminarEndTime: seminarEndTime,
-            seminarDays: Array(seminarDays)
+            seminarEndTime: seminarEndTime
         )
         
         modelContext.insert(newSubject)

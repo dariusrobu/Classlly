@@ -30,7 +30,10 @@ extension Subject {
         
         // If it's a specific "One Time" event, we check if the dates match
         if frequency == .oneTime {
-            let targetDate = isSeminar ? seminarStartTime : courseStartTime
+            // ✅ FIX: Safely unwrap the optional dates
+            guard let targetDate = isSeminar ? seminarStartTime : courseStartTime else {
+                return false
+            }
             return calendar.isDate(date, equalTo: targetDate, toGranularity: .weekOfYear)
         }
         

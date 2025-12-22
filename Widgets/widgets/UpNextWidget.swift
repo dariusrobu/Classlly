@@ -93,7 +93,8 @@ struct UpNextProvider: TimelineProvider {
         return UpNextEntry(date: date, currentClass: current, nextClass: next)
     }
     
-    private func normalizeTime(_ time: Date, on date: Date) -> Date? {
+    private func normalizeTime(_ time: Date?, on date: Date) -> Date? {
+        guard let time else { return nil }
         let calendar = Calendar.current
         let timeComp = calendar.dateComponents([.hour, .minute], from: time)
         return calendar.date(bySettingHour: timeComp.hour ?? 0, minute: timeComp.minute ?? 0, second: 0, of: date)

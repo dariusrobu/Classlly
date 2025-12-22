@@ -13,15 +13,24 @@ struct EditSubjectView: View {
         Form {
             Section("Basic Info") {
                 TextField("Subject Name", text: $subject.title)
-                Stepper("ECTS Credits: \(subject.ectsCredits)", value: $subject.ectsCredits, in: 0...30)
+                // ✅ FIX: Changed 'ectsCredits' to 'credits' to match Model
+                Stepper("Credits: \(subject.credits)", value: $subject.credits, in: 0...30)
             }
             
             Section("Course Details") {
                 TextField("Teacher", text: $subject.courseTeacher)
                 TextField("Room", text: $subject.courseClassroom)
                 
-                DatePicker("Start Time", selection: $subject.courseStartTime, displayedComponents: .hourAndMinute)
-                DatePicker("End Time", selection: $subject.courseEndTime, displayedComponents: .hourAndMinute)
+                // ✅ FIX: Custom Binding to handle Optional Date?
+                DatePicker("Start Time", selection: Binding(
+                    get: { subject.courseStartTime ?? Date() },
+                    set: { subject.courseStartTime = $0 }
+                ), displayedComponents: .hourAndMinute)
+                
+                DatePicker("End Time", selection: Binding(
+                    get: { subject.courseEndTime ?? Date() },
+                    set: { subject.courseEndTime = $0 }
+                ), displayedComponents: .hourAndMinute)
                 
                 Picker("Frequency", selection: $subject.courseFrequency) {
                     ForEach(ClassFrequency.allCases, id: \.self) { freq in
@@ -58,8 +67,23 @@ struct EditSubjectView: View {
                     TextField("Teacher", text: $subject.seminarTeacher)
                     TextField("Room", text: $subject.seminarClassroom)
                     
-                    DatePicker("Start Time", selection: $subject.seminarStartTime, displayedComponents: .hourAndMinute)
-                    DatePicker("End Time", selection: $subject.seminarEndTime, displayedComponents: .hourAndMinute)
+                    // ✅ FIX: Custom Binding for Seminars
+                    DatePicker("Start Time", selection: Binding(
+                        get: { subject.seminarStartTime ?? Date() },
+                        set: { subject.seminarStartTime = $0 }
+                    ), displayedComponents: .hourAndMinute)
+                    
+                    DatePicker("End Time", selection: Binding(
+                        get: { subject.seminarEndTime ?? Date() },
+                        set: { subject.seminarEndTime = $0 }
+                    ), displayedComponents: .hourAndMinute)
+                    
+                    // ✅ ADDED: Frequency picker for Seminars
+                    Picker("Frequency", selection: $subject.seminarFrequency) {
+                        ForEach(ClassFrequency.allCases, id: \.self) { freq in
+                            Text(freq.rawValue).tag(freq)
+                        }
+                    }
                     
                     VStack(alignment: .leading) {
                         Text("Days")

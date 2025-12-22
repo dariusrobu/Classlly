@@ -418,9 +418,11 @@ struct SubjectCard: View {
                 InfoRow(icon: "mappin.circle", text: subject.courseClassroom)
             }
             HStack(spacing: 12) {
+                // ✅ FIX: Using the new computed properties from Subject
                 StatPill(icon: "checkmark.circle", value: "\(subject.attendedClasses)", label: "Present")
                 StatPill(icon: "xmark.circle", value: "\(subject.totalClasses - subject.attendedClasses)", label: "Absent")
-                StatPill(icon: "star", value: "\(subject.gradeHistory?.count ?? 0)", label: "Grades")
+                // ✅ FIX: Corrected relationship name from gradeHistory to grades
+                StatPill(icon: "star", value: "\(subject.grades?.count ?? 0)", label: "Grades")
             }
         }
         .padding()

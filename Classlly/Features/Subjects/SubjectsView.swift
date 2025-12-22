@@ -370,7 +370,8 @@ struct BigDetailedSubjectCard: View {
                 HStack(spacing: 8) { Image(systemName: "person.3.fill"); Text("\(Int(subject.attendanceRate * 100))%") }
                     .font(.subheadline).fontWeight(.bold).padding(.horizontal, 16).padding(.vertical, 10).background(attendanceColor.opacity(0.15)).foregroundColor(attendanceColor).cornerRadius(10)
                 Spacer()
-                Text("\(subject.ectsCredits) ECTS").font(.caption2).fontWeight(.bold).foregroundColor(.secondary).padding(6).background(Color.secondary.opacity(0.1)).cornerRadius(6)
+                // ✅ FIX: Renamed ectsCredits to credits
+                Text("\(subject.credits) ECTS").font(.caption2).fontWeight(.bold).foregroundColor(.secondary).padding(6).background(Color.secondary.opacity(0.1)).cornerRadius(6)
             }
         }.padding(20).background(Color.themeSurface).cornerRadius(20).shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
     }

@@ -30,6 +30,7 @@ struct StandardNotificationSettingsView: View {
                 HStack {
                     Text("Permission Status")
                     Spacer()
+                    // ✅ FIX: This now relies on the computed property added to NotificationManager
                     Text(notificationManager.permissionGranted ? "Granted" : "Denied")
                         .foregroundColor(notificationManager.permissionGranted ? .green : .red)
                 }

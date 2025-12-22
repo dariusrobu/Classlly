@@ -43,7 +43,6 @@ class DemoDataManager {
         var subjects: [Subject] = []
         
         for data in subjectsData {
-            // ✅ FIX: Using the explicit initializer from Subject.swift
             let s = Subject(
                 title: data.0,
                 code: data.1,
@@ -55,6 +54,7 @@ class DemoDataManager {
                 courseTeacher: data.2,
                 courseClassroom: data.3,
                 courseDays: data.4,
+                courseFrequency: .weekly, // Explicit default
                 courseStartTime: dateFromTime(data.5.components(separatedBy: " - ")[0]),
                 courseEndTime: dateFromTime(data.5.components(separatedBy: " - ")[1]),
                 
@@ -63,6 +63,7 @@ class DemoDataManager {
                 seminarTeacher: data.6.isEmpty ? "" : "TA Smith",
                 seminarClassroom: data.6,
                 seminarDays: data.7,
+                seminarFrequency: .weekly, // Explicit default
                 seminarStartTime: data.7.isEmpty ? Date() : dateFromTime("16:00"),
                 seminarEndTime: data.7.isEmpty ? Date() : dateFromTime("17:00")
             )
@@ -102,7 +103,6 @@ class DemoDataManager {
                 dueDate: Date().addingTimeInterval(TimeInterval(tData.2 * 86400)), // Days from now
                 priority: tData.1,
                 type: tData.3,
-                // ✅ FIX: Included reminderTime to match new init
                 reminderTime: .onTime,
                 subject: subjects[index % subjects.count],
                 isFlagged: tData.1 == .high,
@@ -112,6 +112,39 @@ class DemoDataManager {
         }
         
         print("✅ Heavy Stress Data Loaded")
+    }
+    
+    // ✅ ADDED: This method was missing in the debug view
+    @MainActor
+    func createPerfectGapScenario(modelContext: ModelContext) {
+        deleteAllData(modelContext: modelContext)
+        print("🏗️ Creating Perfect Gap Scenario...")
+        
+        let todayWeekday = Calendar.current.component(.weekday, from: Date())
+        
+        // Class 1: 08:00 - 10:00
+        let s1 = Subject(
+            title: "Morning Lecture",
+            code: "AM-101",
+            colorHex: "#FF0000",
+            courseDays: [todayWeekday],
+            courseStartTime: dateFromTime("08:00"),
+            courseEndTime: dateFromTime("10:00")
+        )
+        
+        // Class 2: 14:00 - 16:00 (Creating a 4-hour gap: 10:00 -> 14:00)
+        let s2 = Subject(
+            title: "Afternoon Seminar",
+            code: "PM-202",
+            colorHex: "#00FF00",
+            courseDays: [todayWeekday],
+            courseStartTime: dateFromTime("14:00"),
+            courseEndTime: dateFromTime("16:00")
+        )
+        
+        modelContext.insert(s1)
+        modelContext.insert(s2)
+        print("✅ Gap Scenario Created: 10:00 -> 14:00 (4h Gap)")
     }
     
     private func dateFromTime(_ timeString: String) -> Date {

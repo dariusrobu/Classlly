@@ -345,7 +345,8 @@ struct DashboardLogic {
         return subjects.filter { ids.contains($0.id) }
     }
     
-    static func combine(_ d: Date, _ t: Date) -> Date? {
+    static func combine(_ d: Date, _ t: Date?) -> Date? {
+        guard let t = t else { return nil }
         let c = Calendar.current
         let tc = c.dateComponents([.hour, .minute], from: t)
         return c.date(bySettingHour: tc.hour ?? 0, minute: tc.minute ?? 0, second: 0, of: d)
@@ -903,3 +904,4 @@ struct QuickAttendanceButton: View {
         }
     }
 }
+

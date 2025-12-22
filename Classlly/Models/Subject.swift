@@ -15,6 +15,7 @@ final class Subject {
     var courseTeacher: String = ""
     var courseClassroom: String = ""
     var courseDays: [Int] = [] // 1=Sun, 2=Mon...
+    var courseFrequency: ClassFrequency = ClassFrequency.weekly
     var courseStartTime: Date? = nil
     var courseEndTime: Date? = nil
     
@@ -23,6 +24,7 @@ final class Subject {
     var seminarTeacher: String = ""
     var seminarClassroom: String = ""
     var seminarDays: [Int] = []
+    var seminarFrequency: ClassFrequency = ClassFrequency.weekly
     var seminarStartTime: Date? = nil
     var seminarEndTime: Date? = nil
     
@@ -33,7 +35,7 @@ final class Subject {
     
     // Computed Color
     var color: Color {
-        Color(hex: colorHex) ?? .blue
+        Color(hex: colorHex)
     }
     
     // Computed Helpers
@@ -57,6 +59,15 @@ final class Subject {
         let present = attendance.filter { $0.status == .present || $0.status == .late }.count
         return Double(present) / Double(total)
     }
+    
+    // UI Helpers
+    var attendedClasses: Int {
+        attendance?.filter { $0.status == .present || $0.status == .late }.count ?? 0
+    }
+    
+    var totalClasses: Int {
+        attendance?.count ?? 0
+    }
 
     init(
         id: String = UUID().uuidString,
@@ -68,12 +79,14 @@ final class Subject {
         courseTeacher: String = "",
         courseClassroom: String = "",
         courseDays: [Int] = [],
+        courseFrequency: ClassFrequency = .weekly,
         courseStartTime: Date? = nil,
         courseEndTime: Date? = nil,
         hasSeminar: Bool = false,
         seminarTeacher: String = "",
         seminarClassroom: String = "",
         seminarDays: [Int] = [],
+        seminarFrequency: ClassFrequency = .weekly,
         seminarStartTime: Date? = nil,
         seminarEndTime: Date? = nil
     ) {
@@ -86,12 +99,14 @@ final class Subject {
         self.courseTeacher = courseTeacher
         self.courseClassroom = courseClassroom
         self.courseDays = courseDays
+        self.courseFrequency = courseFrequency
         self.courseStartTime = courseStartTime
         self.courseEndTime = courseEndTime
         self.hasSeminar = hasSeminar
         self.seminarTeacher = seminarTeacher
         self.seminarClassroom = seminarClassroom
         self.seminarDays = seminarDays
+        self.seminarFrequency = seminarFrequency
         self.seminarStartTime = seminarStartTime
         self.seminarEndTime = seminarEndTime
     }
