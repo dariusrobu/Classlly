@@ -1,88 +1,56 @@
 import SwiftUI
 import SwiftData
-import PhotosUI
+import Observation
 
 struct ProfileView: View {
-    @Bindable var profile: StudentProfile
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    @EnvironmentObject var themeManager: AppTheme
+    @Environment(AuthenticationManager.self) private var authManager
     
-    @State private var selectedItem: PhotosPickerItem?
-    @State private var selectedImage: Image?
+    // FIXED: Query AppUser, not User
+    @Query(sort: \AppUser.dateCreated, order: .reverse) private var users: [AppUser]
+    
+    private var currentUser: AppUser? {
+        guard let userId = authManager.userSession?.uid else { return nil }
+        return users.first { $0.id == userId }
+    }
     
     var body: some View {
-        Form {
-            Section {
-                HStack {
-                    Spacer()
-                    VStack {
-                        if let selectedImage {
-                            selectedImage
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 100, height: 100)
-                                .clipShape(Circle())
-                        } else if let data = profile.profileImageData, let uiImage = UIImage(data: data) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 100, height: 100)
-                                .clipShape(Circle())
-                        } else {
-                            Image(systemName: "person.circle.fill")
-                                .resizable()
-                                .frame(width: 100, height: 100)
-                                .foregroundColor(.gray)
-                        }
+        List {
+            if let user = currentUser {
+                Section {
+                    HStack {
+                        Text(user.initials)
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .frame(width: 50, height: 50)
+                            .background(Color.accentColor.opacity(0.1))
+                            .clipShape(Circle())
                         
-                        PhotosPicker(selection: $selectedItem, matching: .images) {
-                            Text("Edit Photo")
-                                .font(.callout)
-                                .fontWeight(.medium)
-                                .foregroundColor(themeManager.selectedTheme.primaryColor)
+                        VStack(alignment: .leading) {
+                            Text(user.fullName ?? "Student")
+                                .font(.headline)
+                            Text(user.email ?? "No Email")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
-                        .padding(.top, 8)
                     }
-                    Spacer()
                 }
-                .listRowBackground(Color.clear)
-            }
-            
-            Section(header: Text("Personal Info")) {
-                TextField("Full Name", text: $profile.name)
-                    .textContentType(.name)
                 
-                TextField("Email", text: $profile.email)
-                    .textContentType(.emailAddress)
-                    .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
+                Section("Academic Info") {
+                    LabeledContent("University", value: user.universityName ?? "-")
+                    LabeledContent("Faculty", value: user.facultyName ?? "-")
+                    LabeledContent("Group", value: user.group ?? "-")
+                }
+            } else {
+                ContentUnavailableView("Profile Not Found", systemImage: "person.slash")
             }
             
-            Section(header: Text("Academic Info")) {
-                TextField("University/School", text: $profile.university)
-                TextField("Major", text: $profile.major)
-            }
-        }
-        .navigationTitle("Edit Profile")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Done") {
-                    dismiss()
-                }
-                .fontWeight(.bold)
-            }
-        }
-        .onChange(of: selectedItem) { _, newItem in
-            Task {
-                if let data = try? await newItem?.loadTransferable(type: Data.self) {
-                    if let uiImage = UIImage(data: data) {
-                        selectedImage = Image(uiImage: uiImage)
-                        profile.profileImageData = data
-                    }
+            Section {
+                Button("Sign Out", role: .destructive) {
+                    authManager.signOut()
                 }
             }
         }
+        .navigationTitle("Profile")
     }
 }

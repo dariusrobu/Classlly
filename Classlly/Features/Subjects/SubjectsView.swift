@@ -53,22 +53,62 @@ struct RainbowSubjectsView: View {
     
     @ViewBuilder
     private func content(accentColor: Color) -> some View {
-        VStack(spacing: 0) {
-            RainbowHeader(
-                title: "Subjects",
-                accentColor: accentColor,
-                showBackButton: !embedInNavigationStack,
-                backAction: { dismiss() },
-                trailingIcon: "plus",
-                trailingAction: { showingAddSubject = true }
-            )
+        ZStack {
+            // 🌌 Deep Ambient Background (Matches Home Dashboard)
+            Color.black.ignoresSafeArea()
             
-            ZStack {
-                Color.black.ignoresSafeArea()
+            // Dynamic Ambient Glow
+            RadialGradient(
+                colors: [accentColor.opacity(0.3), .black],
+                center: .top,
+                startRadius: 0,
+                endRadius: 600
+            )
+            .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Transparent Header to match Dashboard look
+                HStack {
+                    if !embedInNavigationStack {
+                        Button(action: { dismiss() }) {
+                            Image(systemName: "chevron.left")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(width: 44, height: 44)
+                                .background(Color.white.opacity(0.1))
+                                .clipShape(Circle())
+                        }
+                    } else {
+                        Spacer().frame(width: 44)
+                    }
+                    
+                    Spacer()
+                    
+                    Text("Subjects")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                    
+                    Spacer()
+                    
+                    Button(action: { showingAddSubject = true }) {
+                        Image(systemName: "plus")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(accentColor)
+                            .clipShape(Circle())
+                            .shadow(color: accentColor.opacity(0.4), radius: 8)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 10)
+                // No background color to let gradient show through
                 
                 if subjects.isEmpty {
                     // Empty State
                     VStack(spacing: 24) {
+                        Spacer()
                         VStack(spacing: 16) {
                             Image(systemName: "book.fill")
                                 .font(.system(size: 60))
@@ -86,35 +126,36 @@ struct RainbowSubjectsView: View {
                                 ScanButtonContent(icon: "photo.fill", text: "Import", color: RainbowColors.darkCard)
                             }
                         }
+                        Spacer()
                     }
                 } else {
-                    // ✅ VERTICAL LIST
-                    ScrollView(.vertical, showsIndicators: false) {
-                        LazyVStack(spacing: 16) {
-                            ForEach(Array(subjects.enumerated()), id: \.element.id) { index, subject in
-                                let color = cardColors[index % cardColors.count]
-                                
-                                NavigationLink(destination: SubjectDetailView(subject: subject)) {
-                                    // Uses the component from SharedComponents.swift
-                                    RainbowSubjectCard(subject: subject, color: color)
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                                // Subtle scroll animation
-                                .scrollTransition { content, phase in
-                                    content
-                                        .opacity(phase.isIdentity ? 1 : 0.8)
-                                        .scaleEffect(phase.isIdentity ? 1 : 0.95)
+                    // ✅ FIXED: Using ZStack so List fills screen and buttons float on top
+                    ZStack(alignment: .bottom) {
+                        // 1. Full Height Vertical List
+                        ScrollView(.vertical, showsIndicators: false) {
+                            LazyVStack(spacing: 16) {
+                                ForEach(Array(subjects.enumerated()), id: \.element.id) { index, subject in
+                                    let color = cardColors[index % cardColors.count]
+                                    
+                                    NavigationLink(destination: SubjectDetailView(subject: subject)) {
+                                        // Uses the component from SharedComponents.swift
+                                        RainbowSubjectCard(subject: subject, color: color)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    // Subtle scroll animation
+                                    .scrollTransition { content, phase in
+                                        content
+                                            .opacity(phase.isIdentity ? 1 : 0.8)
+                                            .scaleEffect(phase.isIdentity ? 1 : 0.95)
+                                    }
                                 }
                             }
+                            .padding(.horizontal)
+                            .padding(.top, 10)
+                            .padding(.bottom, 100) // Space for floating buttons
                         }
-                        .padding(.horizontal)
-                        .padding(.top, 10)
-                        .padding(.bottom, 100) // Space for floating buttons
-                    }
-                    
-                    // Floating Action Bar (Bottom)
-                    VStack {
-                        Spacer()
+                        
+                        // 2. Floating Action Bar (Bottom Overlay)
                         HStack(spacing: 12) {
                             Button(action: { showingScanner = true }) {
                                 Label("Scan", systemImage: "camera.fill")
@@ -124,6 +165,7 @@ struct RainbowSubjectsView: View {
                                     .padding(.horizontal, 24)
                                     .background(accentColor)
                                     .cornerRadius(30)
+                                    .shadow(color: accentColor.opacity(0.4), radius: 8)
                             }
                             
                             Button(action: { showingImagePicker = true }) {
@@ -133,19 +175,19 @@ struct RainbowSubjectsView: View {
                                     .padding(14)
                                     .background(RainbowColors.darkCard)
                                     .clipShape(Circle())
+                                    .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 1))
                             }
                         }
                         .padding(.bottom, 20)
                     }
                 }
-                
-                if isProcessingScan {
-                    Color.black.opacity(0.6).ignoresSafeArea()
-                    ProgressView("Analyzing...").tint(accentColor).foregroundColor(.white)
-                }
+            }
+            
+            if isProcessingScan {
+                Color.black.opacity(0.6).ignoresSafeArea()
+                ProgressView("Analyzing...").tint(accentColor).foregroundColor(.white)
             }
         }
-        .background(Color.black.ignoresSafeArea())
         .navigationBarHidden(true)
         .sheet(isPresented: $showingAddSubject) {
             AddSubjectView()
@@ -385,4 +427,4 @@ struct ScanButtonContent: View {
             .fontWeight(.bold).foregroundColor(.white)
             .padding().frame(minWidth: 120).background(color).cornerRadius(12)
     }
-} 
+}

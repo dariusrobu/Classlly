@@ -40,7 +40,7 @@ enum EventType: String, CaseIterable, Codable, Identifiable {
 
 // MARK: - 📦 ACADEMIC EVENT DATA
 struct AcademicEventData: Identifiable, Codable {
-    var id: UUID = UUID()
+    var id: UUID
     var start: String // Format: yyyy-MM-dd
     var end: String   // Format: yyyy-MM-dd
     var type: EventType
@@ -50,6 +50,25 @@ struct AcademicEventData: Identifiable, Codable {
     var teachingWeekIndexStart: Int?
     var teachingWeekIndexEnd: Int?
     
+    // ✅ FIXED: Explicit keys to help with decoding
+    enum CodingKeys: String, CodingKey {
+        case id, start, end, type, weeks, customName, teachingWeekIndexStart, teachingWeekIndexEnd
+    }
+    
+    // ✅ FIXED: Custom decoder to handle missing 'id' from JSON
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID() // Fallback to new UUID
+        self.start = try container.decode(String.self, forKey: .start)
+        self.end = try container.decode(String.self, forKey: .end)
+        self.type = try container.decode(EventType.self, forKey: .type)
+        self.weeks = try container.decode(Int.self, forKey: .weeks)
+        self.customName = try container.decodeIfPresent(String.self, forKey: .customName)
+        self.teachingWeekIndexStart = try container.decodeIfPresent(Int.self, forKey: .teachingWeekIndexStart)
+        self.teachingWeekIndexEnd = try container.decodeIfPresent(Int.self, forKey: .teachingWeekIndexEnd)
+    }
+    
+    // Manual init for local creation
     init(id: UUID = UUID(), start: String, end: String, type: EventType, weeks: Int, customName: String? = nil, teachingWeekIndexStart: Int? = nil, teachingWeekIndexEnd: Int? = nil) {
         self.id = id
         self.start = start
@@ -98,7 +117,7 @@ final class StudyCalendarEvent {
     // Stores the raw string value
     var eventTypeRaw: String = EventType.other.rawValue
     
-    // ✅ FIXED: Uses the GLOBAL EventType (teaching, holiday, etc.)
+    // Uses the GLOBAL EventType
     @Transient var eventType: EventType {
         get { EventType(rawValue: eventTypeRaw) ?? .other }
         set { eventTypeRaw = newValue.rawValue }
@@ -106,9 +125,6 @@ final class StudyCalendarEvent {
     
     var taskId: UUID?
     var subjectId: UUID?
-    
-    // ✅ REMOVED: The conflicting nested 'enum EventType' was deleted.
-    // If you need a secondary type, name it 'SourceType' or similar, do not name it EventType.
     
     init(id: UUID = UUID(), title: String, time: String, location: String, colorName: String = "blue", eventType: EventType = .other, taskId: UUID? = nil, subjectId: UUID? = nil) {
         self.id = id

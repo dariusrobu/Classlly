@@ -84,6 +84,7 @@
 				"Core/Design Systems/SharedComponents.swift",
 				Core/Utilities/SharedModelContainer.swift,
 				Models/AcademicEvents.swift,
+				Models/AppUser.swift,
 				Models/AttendanceEntry.swift,
 				Models/Enums.swift,
 				Models/GradeEntry.swift,

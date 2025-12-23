@@ -109,6 +109,12 @@ struct AddSubjectView: View {
                         DatePicker("Start Time", selection: $seminarStartTime, displayedComponents: .hourAndMinute)
                         DatePicker("End Time", selection: $seminarEndTime, displayedComponents: .hourAndMinute)
                         
+                        Picker("Frequency", selection: $seminarFrequency) {
+                            ForEach(ClassFrequency.allCases, id: \.self) { freq in
+                                Text(freq.rawValue).tag(freq)
+                            }
+                        }
+                        
                         // Seminar Day Selector
                         VStack(alignment: .leading) {
                             Text("Days")

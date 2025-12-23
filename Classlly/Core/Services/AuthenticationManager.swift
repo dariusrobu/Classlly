@@ -1,116 +1,86 @@
-import SwiftUI
-import Combine
-import SwiftData
+import Foundation
+import AuthenticationServices
+import Observation
 
-@MainActor
-class AuthenticationManager: ObservableObject {
-    static let shared = AuthenticationManager()
+// Simple struct to hold session data
+struct UserSession: Sendable, Codable {
+    let uid: String
+    let email: String?
+    let fullName: String?
+    let isAnonymous: Bool
+}
+
+@Observable
+class AuthenticationManager {
+    var userSession: UserSession?
+    var hasCompletedOnboarding: Bool = false
     
-    // MARK: - State Properties
-    @Published var isAuthenticated: Bool = false
-    @Published var hasCompletedOnboarding: Bool = false
-    @Published var hasSeenCarousel: Bool = false
-    @Published var currentUser: StudentProfile?
-    
-    // MARK: - Persistence Keys
-    private let userDefaults = UserDefaults.standard
-    private let authKey = "isAuthenticated"
-    private let onboardingKey = "hasCompletedOnboarding"
-    private let carouselKey = "hasSeenCarousel"
+    // Derived state
+    var isAuthenticated: Bool {
+        userSession != nil
+    }
     
     init() {
-        self.isAuthenticated = userDefaults.bool(forKey: authKey)
-        self.hasCompletedOnboarding = userDefaults.bool(forKey: onboardingKey)
-        self.hasSeenCarousel = userDefaults.bool(forKey: carouselKey)
+        // Load state from UserDefaults on launch
+        self.hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+        
+        if let savedData = UserDefaults.standard.data(forKey: "userSession"),
+           let session = try? JSONDecoder().decode(UserSession.self, from: savedData) {
+            self.userSession = session
+        }
     }
     
-    // MARK: - Actions
+    // MARK: - Auth Actions
     
-    func completeCarousel() {
-        print("✅ Carousel Completed")
-        hasSeenCarousel = true
-        userDefaults.set(true, forKey: carouselKey)
+    func signInWithApple() async throws {
+        // Simulation of Apple Auth
+        try await Task.sleep(nanoseconds: 1_000_000_000)
+        
+        // In a real app, you get this data from ASAuthorizationController
+        let newSession = UserSession(
+            uid: UUID().uuidString,
+            email: "student@classlly.com",
+            fullName: "Apple User",
+            isAnonymous: false
+        )
+        updateSession(newSession)
     }
     
-    func signIn(with user: StudentProfile? = nil) {
-        if let user = user {
-            self.currentUser = user
-        }
-        isAuthenticated = true
-        userDefaults.set(true, forKey: authKey)
-        print("✅ User Signed In")
-    }
-    
-    func completeProfileSetup(modelContext: ModelContext) {
-        print("🚀 Completing Profile Setup...")
-        
-        // 1. Ensure we have a valid user
-        if currentUser == nil {
-            let defaultUser = StudentProfile(name: "Student", email: "user@classlly.app")
-            modelContext.insert(defaultUser)
-            self.currentUser = defaultUser
-        }
-        
-        // 2. Persist Changes to Disk IMMEDIATELY
-        do {
-            try modelContext.save()
-            print("💾 Profile Data Saved Successfully")
-        } catch {
-            print("❌ Failed to save profile: \(error.localizedDescription)")
-        }
-        
-        // 3. Update State Flags
-        hasCompletedOnboarding = true
-        userDefaults.set(true, forKey: onboardingKey)
-        
-        // 4. Force UI Refresh
-        // This ensures views observing the manager (like MainTabView) redraw with the new name
-        objectWillChange.send()
+    func signInAsDemoUser() {
+        print("👤 Signing in as Demo User...")
+        let demoSession = UserSession(
+            uid: "demo-user-001",
+            email: "demo@classlly.com",
+            fullName: "Demo Student",
+            isAnonymous: true
+        )
+        updateSession(demoSession)
     }
     
     func signOut() {
-        print("👋 Signing Out")
-        isAuthenticated = false
-        currentUser = nil
-        hasCompletedOnboarding = false
-        // We typically keep hasSeenCarousel true so they don't see the tutorial again
-        
-        userDefaults.set(false, forKey: authKey)
-        userDefaults.set(false, forKey: onboardingKey)
+        userSession = nil
+        UserDefaults.standard.removeObject(forKey: "userSession")
     }
+    
+    // MARK: - Debug / Dev Tools
     
     func debugReset() {
-        print("⚠️ Executing Debug Reset...")
-        isAuthenticated = false
-        currentUser = nil
+        print("⚠️ Resetting Auth State...")
+        signOut()
         hasCompletedOnboarding = false
-        hasSeenCarousel = false
-        
-        userDefaults.removeObject(forKey: authKey)
-        userDefaults.removeObject(forKey: onboardingKey)
-        userDefaults.removeObject(forKey: carouselKey)
-        userDefaults.synchronize()
+        UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")
     }
     
-    // Demo Helper
-    func signInAsDemoUser() -> StudentProfile {
-        let demoUser = StudentProfile(
-            id: "demo_user_123",
-            name: "Alex Carter",
-            email: "alex@classlly.demo",
-            university: "Tech University",
-            major: "Computer Science",
-            gradeLevel: "Sophomore",
-            academicYear: "2024-2025"
-        )
-        
-        self.currentUser = demoUser
-        self.isAuthenticated = true
-        self.hasCompletedOnboarding = true // Demo users skip setup
-        
-        userDefaults.set(true, forKey: authKey)
-        userDefaults.set(true, forKey: onboardingKey)
-        
-        return demoUser
+    func completeOnboarding() {
+        hasCompletedOnboarding = true
+        UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+    }
+    
+    // MARK: - Private Helpers
+    private func updateSession(_ session: UserSession) {
+        self.userSession = session
+        if let data = try? JSONEncoder().encode(session) {
+            UserDefaults.standard.set(data, forKey: "userSession")
+        }
     }
 }

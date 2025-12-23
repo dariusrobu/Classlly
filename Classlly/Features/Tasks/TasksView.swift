@@ -17,7 +17,7 @@ struct TasksView: View {
     }
 }
 
-// MARK: - 🌈 RAINBOW TASKS (Redesigned)
+// MARK: - 決 RAINBOW TASKS (Redesigned)
 struct RainbowTasksView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -36,12 +36,19 @@ struct RainbowTasksView: View {
     }
     
     enum TaskFilter: String, CaseIterable {
-        case all = "All"
         case pending = "Todo"
+        case all = "All"
+        case flagged = "Flagged"
         case completed = "Done"
     }
     
-    // Computed Progress for the Header
+    // Counts for the Dashboard
+    var countTodo: Int { tasks.filter { !$0.isCompleted }.count }
+    var countAll: Int { tasks.filter { !$0.isCompleted }.count } // Usually "All" in Reminders implies active tasks, or we can show total. Let's show total active for now or just total. Reminders shows total. Let's show total tasks.
+    var countTotal: Int { tasks.count }
+    var countFlagged: Int { tasks.filter { $0.isFlagged && !$0.isCompleted }.count }
+    var countDone: Int { tasks.filter { $0.isCompleted }.count }
+    
     var taskProgress: Double {
         let total = tasks.count
         let done = tasks.filter { $0.isCompleted }.count
@@ -52,6 +59,7 @@ struct RainbowTasksView: View {
         let currentTasks = switch filter {
         case .all: tasks
         case .pending: tasks.filter { !$0.isCompleted }
+        case .flagged: tasks.filter { $0.isFlagged && !$0.isCompleted }
         case .completed: tasks.filter { $0.isCompleted }
         }
         
@@ -85,10 +93,49 @@ struct RainbowTasksView: View {
                 ScrollView {
                     VStack(spacing: 24) {
                         
-                        // 2. Progress & Stats Bar
-                        VStack(spacing: 10) {
+                        // 2. Reminders-Style Grid Filter
+                        LazyVGrid(columns: [
+                            GridItem(.flexible(), spacing: 12),
+                            GridItem(.flexible(), spacing: 12)
+                        ], spacing: 12) {
+                            FilterCard(
+                                title: "Todo",
+                                icon: "calendar",
+                                count: countTodo,
+                                color: accent,
+                                isSelected: filter == .pending
+                            ) { withAnimation { filter = .pending } }
+                            
+                            FilterCard(
+                                title: "All",
+                                icon: "tray.fill",
+                                count: countTotal,
+                                color: .gray,
+                                isSelected: filter == .all
+                            ) { withAnimation { filter = .all } }
+                            
+                            FilterCard(
+                                title: "Flagged",
+                                icon: "flag.fill",
+                                count: countFlagged,
+                                color: .orange,
+                                isSelected: filter == .flagged
+                            ) { withAnimation { filter = .flagged } }
+                            
+                            FilterCard(
+                                title: "Done",
+                                icon: "checkmark.circle.fill",
+                                count: countDone,
+                                color: .green,
+                                isSelected: filter == .completed
+                            ) { withAnimation { filter = .completed } }
+                        }
+                        .padding(.horizontal)
+                        
+                        // 3. Progress Bar (Optional, kept for flavor)
+                        VStack(spacing: 8) {
                             HStack {
-                                Text("YOUR PROGRESS")
+                                Text("OVERALL COMPLETION")
                                     .font(.system(size: 10, weight: .black))
                                     .foregroundColor(.gray)
                                 Spacer()
@@ -105,39 +152,20 @@ struct RainbowTasksView: View {
                                         .frame(width: geo.size.width * taskProgress)
                                 }
                             }
-                            .frame(height: 8)
-                            .shadow(color: accent.opacity(0.3), radius: 5)
-                            
-                            // Filter Pills
-                            HStack(spacing: 12) {
-                                ForEach(TaskFilter.allCases, id: \.self) { f in
-                                    Button(action: { withAnimation { filter = f } }) {
-                                        Text(f.rawValue.uppercased())
-                                            .font(.system(size: 10, weight: .bold))
-                                            .padding(.vertical, 8)
-                                            .padding(.horizontal, 16)
-                                            .background(filter == f ? accent : Color(white: 0.1))
-                                            .foregroundColor(filter == f ? .black : .gray)
-                                            .cornerRadius(20)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 20)
-                                                    .stroke(filter == f ? accent : Color.white.opacity(0.1), lineWidth: 1)
-                                            )
-                                    }
-                                }
-                                Spacer()
-                            }
+                            .frame(height: 6)
                         }
                         .padding(.horizontal)
                         
-                        // 3. Task List
+                        // 4. Task List
                         LazyVStack(spacing: 16) {
                             if filteredTasks.isEmpty {
                                 VStack(spacing: 16) {
                                     Image(systemName: "checklist").font(.system(size: 60))
                                         .foregroundStyle(LinearGradient(colors: [Color.gray.opacity(0.3), Color.gray.opacity(0.1)], startPoint: .top, endPoint: .bottom))
                                     Text("No Tasks Found").font(.headline).fontWeight(.bold).foregroundColor(.gray)
-                                }.padding(.top, 60)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 40)
                             } else {
                                 ForEach(filteredTasks) { task in
                                     RainbowColorfulTaskRow(task: task)
@@ -154,9 +182,55 @@ struct RainbowTasksView: View {
         .navigationBarHidden(true)
         .sheet(isPresented: $showingAddTask) { AddTaskView() }
     }
+    
+    // Helper View for the Filter Cards
+    struct FilterCard: View {
+        let title: String
+        let icon: String
+        let count: Int
+        let color: Color
+        let isSelected: Bool
+        let action: () -> Void
+        
+        var body: some View {
+            Button(action: action) {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(alignment: .top) {
+                        ZStack {
+                            Circle()
+                                .fill(color)
+                                .frame(width: 32, height: 32)
+                            Image(systemName: icon)
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        Spacer()
+                        Text("\(count)")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                    
+                    Spacer()
+                    
+                    Text(title)
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.gray)
+                }
+                .padding(12)
+                .frame(height: 80)
+                .background(Color(white: 0.12))
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(isSelected ? color : Color.clear, lineWidth: 2)
+                )
+            }
+        }
+    }
 }
 
-// MARK: - 🎨 COLORFUL TASK ROW
+// MARK: - 耳 COLORFUL TASK ROW
 struct RainbowColorfulTaskRow: View {
     let task: StudyTask
     @State private var showEdit = false
@@ -258,6 +332,13 @@ struct RainbowColorfulTaskRow: View {
                                 .cornerRadius(4)
                                 .shadow(color: RainbowColors.red.opacity(0.5), radius: 4)
                         }
+                        
+                        // Flag Badge
+                        if task.isFlagged {
+                            Image(systemName: "flag.fill")
+                                .font(.caption2)
+                                .foregroundColor(.orange)
+                        }
                     }
                     
                     Text(task.title)
@@ -303,6 +384,22 @@ struct RainbowColorfulTaskRow: View {
         .sheet(isPresented: $showEdit) {
             EditTaskView(task: task)
         }
+        // Add swipe actions for flag/delete even in Rainbow mode?
+        // Rainbow mode usually relies on tap/edit, but we can add Context Menu
+        .contextMenu {
+            Button {
+                withAnimation { task.isFlagged.toggle() }
+            } label: {
+                Label(task.isFlagged ? "Unflag" : "Flag", systemImage: task.isFlagged ? "flag.slash" : "flag")
+            }
+            
+            Button(role: .destructive) {
+                // Delete logic needs modelContext passed down or Environment
+                // For now, let's stick to the Edit View for deletion to keep this clean
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
     }
     
     // Helper for Date Color
@@ -316,7 +413,7 @@ struct RainbowColorfulTaskRow: View {
     }
 }
 
-// MARK: - 👔 STANDARD TASKS
+// MARK: - 藻 STANDARD TASKS
 struct StandardTasksView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var themeManager: AppTheme
@@ -370,7 +467,10 @@ struct StandardTasksView: View {
             
             List {
                 if filteredTasks.isEmpty {
-                    ContentUnavailableView { Label("No Tasks", systemImage: "checklist") } description: { Text(emptyStateDescription) }
+                    ContentUnavailableView {
+                        Label("No Tasks", systemImage: "checklist")
+                    }
+                    .listRowSeparator(.hidden)
                 } else {
                     ForEach(filteredTasks) { task in
                         TasksStandardRow(task: task, isStandardMode: themeManager.selectedGameMode == .standard)

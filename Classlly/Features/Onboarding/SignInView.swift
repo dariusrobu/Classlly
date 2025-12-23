@@ -1,160 +1,103 @@
 import SwiftUI
 import AuthenticationServices
-import SwiftData
 
-@MainActor
 struct SignInView: View {
-    @EnvironmentObject var authManager: AuthenticationManager
-    @Environment(\.modelContext) var modelContext
+    // MARK: - Environment
+    @Environment(AuthenticationManager.self) private var authManager
+    @Environment(\.colorScheme) var colorScheme
+    
     @State private var isLoading = false
+    @State private var errorMessage: String?
     
     var body: some View {
-        ZStack {
-            // Background Gradient
-            LinearGradient(
-                gradient: Gradient(colors: [Color.blue.opacity(0.8), Color.purple.opacity(0.8)]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+        VStack(spacing: 24) {
+            Spacer()
             
-            VStack(spacing: 30) {
-                Spacer()
+            // Header
+            VStack(spacing: 12) {
+                Image(systemName: "graduationcap.fill")
+                    .font(.system(size: 64))
+                    .foregroundStyle(.tint)
                 
-                // Logo & Title
-                VStack(spacing: 16) {
-                    Image(systemName: "graduationcap.fill")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 80, height: 80)
-                        .foregroundColor(.white)
-                        .shadow(radius: 10)
-                    
-                    Text("Classlly")
-                        .font(.system(size: 40, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
-                        .shadow(radius: 5)
-                    
-                    Text("Master your academic life.")
-                        .font(.title3)
-                        .fontWeight(.medium)
-                        .foregroundColor(.white.opacity(0.9))
-                }
+                Text("Welcome to Classlly")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
                 
-                Spacer()
-                
-                // Auth Buttons
-                VStack(spacing: 16) {
-                    // 1. Sign in with Apple (Native Button)
-                    SignInWithAppleButton(
-                        onRequest: { request in
-                            request.requestedScopes = [.fullName, .email]
-                        },
-                        onCompletion: { result in
-                            handleAppleLogin(result)
-                        }
-                    )
-                    .signInWithAppleButtonStyle(.white)
+                Text("Your academic companion")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
+            
+            Spacer()
+            
+            // Actions
+            VStack(spacing: 16) {
+                // Apple Sign In
+                Button {
+                    handleAppleSignIn()
+                } label: {
+                    HStack {
+                        Image(systemName: "apple.logo")
+                        Text("Sign in with Apple")
+                    }
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
                     .frame(height: 50)
+                    .background(colorScheme == .dark ? Color.white : Color.black)
+                    .foregroundColor(colorScheme == .dark ? Color.black : Color.white)
                     .cornerRadius(12)
-                    
-                    // 2. Guest / Demo Option
-                    Button(action: continueAsGuest) {
-                        Text("Continue as Guest")
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(Color.white.opacity(0.2))
-                            .cornerRadius(12)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.white.opacity(0.5), lineWidth: 1)
-                            )
-                    }
-                    
-                    // Debug Reset (Optional, keep for development)
-                    Button(action: {
-                        authManager.debugReset()
-                        try? modelContext.delete(model: StudentProfile.self)
-                    }) {
-                        Text("Debug: Reset App")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.5))
-                            .padding(.top, 10)
-                    }
                 }
-                .padding(.horizontal, 32)
-                .padding(.bottom, 40)
+                
+                // Demo User
+                Button {
+                    authManager.signInAsDemoUser()
+                } label: {
+                    Text("Try as Demo User")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                
+                // Debug Reset (Restored)
+                Button("Debug: Reset State") {
+                    authManager.debugReset()
+                }
+                .font(.caption)
+                .foregroundStyle(.red.opacity(0.8))
+                .padding(.top, 20)
             }
-            
+            .padding(.horizontal)
+            .padding(.bottom, 40)
+        }
+        .overlay {
             if isLoading {
-                Color.black.opacity(0.4).ignoresSafeArea()
-                ProgressView().tint(.white)
+                ZStack {
+                    Color.black.opacity(0.2).ignoresSafeArea()
+                    ProgressView()
+                        .controlSize(.large)
+                }
             }
+        }
+        .alert("Error", isPresented: .constant(errorMessage != nil)) {
+            Button("OK") { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "Unknown error")
         }
     }
     
-    // MARK: - Actions
-    
-    private func handleAppleLogin(_ result: Result<ASAuthorization, Error>) {
+    private func handleAppleSignIn() {
         isLoading = true
-        
-        switch result {
-        case .success(let authorization):
-            if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
-                
-                // 1. Extract Name (Only available on first login!)
-                var initialName = "Apple User"
-                if let fullName = appleIDCredential.fullName {
-                    let given = fullName.givenName ?? ""
-                    let family = fullName.familyName ?? ""
-                    if !given.isEmpty || !family.isEmpty {
-                        initialName = "\(given) \(family)".trimmingCharacters(in: .whitespaces)
-                    }
-                }
-                
-                let email = appleIDCredential.email ?? "user@icloud.com"
-                let userID = appleIDCredential.user
-                
-                print("🍎 Apple Login Success. Name: \(initialName), ID: \(userID)")
-                
-                // 2. Create User
-                let user = StudentProfile(
-                    name: initialName,
-                    email: email
-                )
-                
-                modelContext.insert(user)
-                
-                // 3. Sign In
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    isLoading = false
-                    authManager.signIn(with: user)
-                }
+        Task {
+            do {
+                try await authManager.signInWithApple()
+            } catch {
+                errorMessage = error.localizedDescription
             }
-            
-        case .failure(let error):
-            isLoading = false
-            print("🍎 Apple Login Failed: \(error.localizedDescription)")
-        }
-    }
-    
-    private func continueAsGuest() {
-        isLoading = true
-        print("👤 Continuing as Guest...")
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            let guestUser = StudentProfile(
-                name: "Guest Student",
-                email: "guest@local"
-            )
-            
-            modelContext.insert(guestUser)
-            try? modelContext.save()
-            
-            authManager.signIn(with: guestUser)
             isLoading = false
         }
     }
+}
+
+#Preview {
+    SignInView()
+        .environment(AuthenticationManager())
 }
