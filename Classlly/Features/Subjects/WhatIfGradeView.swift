@@ -26,75 +26,75 @@ struct StandardWhatIfView: View {
     @State private var resultGrade: Double? = nil
     
     var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Current Status")) {
-                    HStack {
-                        Text("Current Average")
-                        Spacer()
-                        Text(String(format: "%.2f", subject.currentGrade ?? 0.0))
-                            .fontWeight(.bold)
-                            .foregroundColor(.themePrimary)
-                    }
-                }
-                
-                Section(header: Text("The Scenario")) {
-                    HStack {
-                        Text("Goal Average")
-                        Spacer()
-                        TextField("e.g. 9.0", text: $targetGrade)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                    }
-                    
-                    HStack {
-                        Text("Exam Weight (%)")
-                        Spacer()
-                        TextField("e.g. 40", text: $examWeight)
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                    }
-                }
-                
-                Section {
-                    Button("Calculate") {
-                        calculate()
-                    }
-                    .frame(maxWidth: .infinity)
-                    .foregroundColor(.themePrimary)
-                    .fontWeight(.bold)
-                }
-                
-                if let result = resultGrade {
-                    Section(header: Text("Result")) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("You need to score:")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            
-                            HStack {
-                                Text(String(format: "%.2f", result))
-                                    .font(.system(size: 34, weight: .bold))
-                                    .foregroundColor(resultColor(result))
-                                Text("/ 10")
-                                    .font(.headline)
-                                    .foregroundColor(.secondary)
-                            }
-                            
-                            Text(feedbackMessage(result))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.vertical, 8)
-                    }
+        // Removed nested NavigationView
+        Form {
+            Section(header: Text("Current Status")) {
+                HStack {
+                    Text("Current Average")
+                    Spacer()
+                    Text(String(format: "%.2f", subject.currentGrade ?? 0.0))
+                        .fontWeight(.bold)
+                        .foregroundColor(.themePrimary)
                 }
             }
-            .navigationTitle("What If Calculator")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Close") { dismiss() }
+            
+            Section(header: Text("The Scenario")) {
+                HStack {
+                    Text("Goal Average")
+                    Spacer()
+                    TextField("e.g. 9.0", text: $targetGrade)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
                 }
+                
+                HStack {
+                    Text("Exam Weight (%)")
+                    Spacer()
+                    TextField("e.g. 40", text: $examWeight)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
+                }
+            }
+            
+            Section {
+                Button("Calculate") {
+                    calculate()
+                }
+                .frame(maxWidth: .infinity)
+                .foregroundColor(.themePrimary)
+                .fontWeight(.bold)
+            }
+            
+            if let result = resultGrade {
+                Section(header: Text("Result")) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("You need to score:")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        HStack {
+                            Text(String(format: "%.2f", result))
+                                .font(.system(size: 34, weight: .bold))
+                                .foregroundColor(resultColor(result))
+                            Text("/ 10")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Text(feedbackMessage(result))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 8)
+                }
+            }
+        }
+        .navigationTitle("What If Calculator")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true) // ✅ Hides the back arrow
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Close") { dismiss() }
             }
         }
     }
@@ -133,97 +133,97 @@ struct RainbowWhatIfView: View {
     var body: some View {
         let accentColor = themeManager.selectedTheme.primaryColor
         
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(spacing: 24) {
-                        // Current Stats
-                        RainbowContainer {
-                            VStack(spacing: 8) {
-                                Text("Current Average")
-                                    .foregroundColor(.gray)
-                                    .font(.headline)
-                                Text(String(format: "%.2f", subject.currentGrade ?? 0.0))
-                                    .font(.system(size: 48, weight: .bold))
+        // Removed nested NavigationStack
+        ZStack {
+            Color.black.ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Current Stats
+                    RainbowContainer {
+                        VStack(spacing: 8) {
+                            Text("Current Average")
+                                .foregroundColor(.gray)
+                                .font(.headline)
+                            Text(String(format: "%.2f", subject.currentGrade ?? 0.0))
+                                .font(.system(size: 48, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    
+                    // Inputs
+                    RainbowContainer {
+                        VStack(alignment: .leading, spacing: 20) {
+                            Text("Set Your Goals").font(.headline).foregroundColor(.white)
+                            
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Desired Grade").font(.caption).foregroundColor(accentColor).fontWeight(.bold)
+                                TextField("e.g. 9.5", text: $targetGrade)
+                                    .keyboardType(.decimalPad)
+                                    .padding()
+                                    .background(Color.black.opacity(0.3))
+                                    .cornerRadius(12)
                                     .foregroundColor(.white)
                             }
-                            .frame(maxWidth: .infinity)
-                        }
-                        
-                        // Inputs
-                        RainbowContainer {
-                            VStack(alignment: .leading, spacing: 20) {
-                                Text("Set Your Goals").font(.headline).foregroundColor(.white)
-                                
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("Desired Grade").font(.caption).foregroundColor(accentColor).fontWeight(.bold)
-                                    TextField("e.g. 9.5", text: $targetGrade)
-                                        .keyboardType(.decimalPad)
-                                        .padding()
-                                        .background(Color.black.opacity(0.3))
-                                        .cornerRadius(12)
-                                        .foregroundColor(.white)
-                                }
-                                
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("Next Exam/Task Weight (%)").font(.caption).foregroundColor(RainbowColors.blue).fontWeight(.bold)
-                                    TextField("e.g. 50", text: $examWeight)
-                                        .keyboardType(.numberPad)
-                                        .padding()
-                                        .background(Color.black.opacity(0.3))
-                                        .cornerRadius(12)
-                                        .foregroundColor(.white)
-                                }
+                            
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Next Exam/Task Weight (%)").font(.caption).foregroundColor(RainbowColors.blue).fontWeight(.bold)
+                                TextField("e.g. 50", text: $examWeight)
+                                    .keyboardType(.numberPad)
+                                    .padding()
+                                    .background(Color.black.opacity(0.3))
+                                    .cornerRadius(12)
+                                    .foregroundColor(.white)
                             }
-                        }
-                        
-                        // Calculate Button
-                        Button(action: calculate) {
-                            Text("Calculate")
-                                .font(.headline)
-                                .fontWeight(.bold)
-                                .foregroundColor(.black)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(LinearGradient(colors: [accentColor, RainbowColors.blue], startPoint: .leading, endPoint: .trailing))
-                                .cornerRadius(16)
-                        }
-                        
-                        // Result
-                        if let result = resultGrade {
-                            RainbowContainer {
-                                VStack(spacing: 12) {
-                                    Text("Required Score")
-                                        .foregroundColor(.gray)
-                                        .fontWeight(.medium)
-                                    
-                                    Text(String(format: "%.2f", result))
-                                        .font(.system(size: 56, weight: .black))
-                                        .foregroundColor(result > 10 ? .red : (result <= 4 ? .green : .white))
-                                        .shadow(color: (result > 10 ? Color.red : Color.white).opacity(0.5), radius: 10)
-                                    
-                                    Text(feedbackMessage(result))
-                                        .font(.caption)
-                                        .foregroundColor(result > 10 ? .red : .gray)
-                                        .multilineTextAlignment(.center)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
-                            }
-                            .transition(.scale.combined(with: .opacity))
                         }
                     }
-                    .padding()
+                    
+                    // Calculate Button
+                    Button(action: calculate) {
+                        Text("Calculate")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(LinearGradient(colors: [accentColor, RainbowColors.blue], startPoint: .leading, endPoint: .trailing))
+                            .cornerRadius(16)
+                    }
+                    
+                    // Result
+                    if let result = resultGrade {
+                        RainbowContainer {
+                            VStack(spacing: 12) {
+                                Text("Required Score")
+                                    .foregroundColor(.gray)
+                                    .fontWeight(.medium)
+                                
+                                Text(String(format: "%.2f", result))
+                                    .font(.system(size: 56, weight: .black))
+                                    .foregroundColor(result > 10 ? .red : (result <= 4 ? .green : .white))
+                                    .shadow(color: (result > 10 ? Color.red : Color.white).opacity(0.5), radius: 10)
+                                
+                                Text(feedbackMessage(result))
+                                    .font(.caption)
+                                    .foregroundColor(result > 10 ? .red : .gray)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                        }
+                        .transition(.scale.combined(with: .opacity))
+                    }
                 }
+                .padding()
             }
-            .navigationTitle("What If?")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Close") { dismiss() }.foregroundColor(.white)
-                }
+        }
+        .navigationTitle("What If?")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true) // ✅ Hides the back arrow
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Close") { dismiss() }.foregroundColor(.white)
             }
         }
     }

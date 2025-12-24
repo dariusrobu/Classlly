@@ -9,6 +9,7 @@ enum EventType: String, CaseIterable, Codable, Identifiable {
     case exam = "Exam"
     case assessment = "Assessment"
     case social = "Social"
+    case administrative = "Administrative" // ✅ ADDED THIS
     case other = "Other"
     
     var id: String { self.rawValue }
@@ -22,6 +23,7 @@ enum EventType: String, CaseIterable, Codable, Identifiable {
         case .exam: return "doc.text.fill"
         case .assessment: return "pencil.and.outline"
         case .social: return "person.2.fill"
+        case .administrative: return "building.columns.fill" // ✅ ADDED THIS
         case .other: return "calendar"
         }
     }
@@ -33,6 +35,7 @@ enum EventType: String, CaseIterable, Codable, Identifiable {
         case .exam: return .red
         case .assessment: return .orange
         case .social: return .purple
+        case .administrative: return .indigo // ✅ ADDED THIS
         case .other: return .gray
         }
     }
@@ -50,15 +53,13 @@ struct AcademicEventData: Identifiable, Codable {
     var teachingWeekIndexStart: Int?
     var teachingWeekIndexEnd: Int?
     
-    // ✅ FIXED: Explicit keys to help with decoding
     enum CodingKeys: String, CodingKey {
         case id, start, end, type, weeks, customName, teachingWeekIndexStart, teachingWeekIndexEnd
     }
     
-    // ✅ FIXED: Custom decoder to handle missing 'id' from JSON
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID() // Fallback to new UUID
+        self.id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
         self.start = try container.decode(String.self, forKey: .start)
         self.end = try container.decode(String.self, forKey: .end)
         self.type = try container.decode(EventType.self, forKey: .type)
@@ -88,7 +89,7 @@ struct SemesterData: Codable {
 
 struct AcademicCalendarData: Identifiable, Codable {
     var id = UUID()
-    var academicYear: String // e.g., "2024-2025"
+    var academicYear: String
     var universityName: String?
     var customName: String?
     var semester1: SemesterData
@@ -99,7 +100,7 @@ struct CalendarTemplate: Identifiable {
     let id: UUID = UUID()
     let universityName: String
     let academicYear: String
-    let sem1Start: String // yyyy-MM-dd
+    let sem1Start: String
     let sem1End: String
     let sem2Start: String
     let sem2End: String
@@ -114,10 +115,8 @@ final class StudyCalendarEvent {
     var location: String = ""
     var colorName: String = "blue"
     
-    // Stores the raw string value
     var eventTypeRaw: String = EventType.other.rawValue
     
-    // Uses the GLOBAL EventType
     @Transient var eventType: EventType {
         get { EventType(rawValue: eventTypeRaw) ?? .other }
         set { eventTypeRaw = newValue.rawValue }

@@ -44,7 +44,7 @@ struct RainbowDashboard: View {
     @State private var showAddTask = false
     @State private var showAttendanceSheet = false
     @State private var showLogGradeSheet = false
-    @State private var showStudyTimer = false
+    @State private var showWhatIfSheet = false
     @State private var showAddSubject = false
     
     // Logic
@@ -159,7 +159,7 @@ struct RainbowDashboard: View {
                             RainbowBubbleAction(icon: "plus", label: "Task", color: RainbowColors.blue) { showAddTask = true }
                             RainbowBubbleAction(icon: "doc.fill", label: "Grade", color: RainbowColors.orange) { showLogGradeSheet = true }
                             RainbowBubbleAction(icon: "hand.raised.fill", label: "Attend", color: RainbowColors.green) { showAttendanceSheet = true }
-                            RainbowBubbleAction(icon: "hourglass", label: "Focus", color: RainbowColors.purple) { showStudyTimer = true }
+                            RainbowBubbleAction(icon: "function", label: "What If?", color: RainbowColors.purple) { showWhatIfSheet = true }
                         }
                         .padding(.horizontal)
                     }
@@ -237,7 +237,7 @@ struct RainbowDashboard: View {
         .sheet(isPresented: $showAddTask) { AddTaskView() }
         .sheet(isPresented: $showLogGradeSheet) { QuickLogGradeSheet(subjects: subjects) }
         .sheet(isPresented: $showAttendanceSheet) { QuickAttendanceSheet(subjects: DashboardLogic.filterTodayClasses(subjects: subjects)) }
-        .sheet(isPresented: $showStudyTimer) { StudySessionView() }
+        .sheet(isPresented: $showWhatIfSheet) { WhatIfSubjectPickerSheet(subjects: subjects) }
         .sheet(isPresented: $showAddSubject) { AddSubjectView() }
     }
 }
@@ -268,154 +268,66 @@ struct RainbowHeaderView: View {
                 Text(profile?.name ?? "Student")
                     .font(.title2).fontWeight(.black).foregroundColor(.white)
             }
-            Spacer()
             
-            NavigationLink(destination: SettingsDashboardView()) {
-                Image(systemName: "gearshape")
-                    .font(.title2)
-                    .foregroundColor(.white)
-                    .padding(8)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Circle())
-            }
+            Spacer()
+            // ❌ Settings button removed
         }
     }
 }
 
 struct RainbowHeroScheduleCard: View {
     let event: TodayClassEvent
-    
     var body: some View {
         HStack(spacing: 16) {
-            // Time Strip
             VStack {
-                Text(event.startTime.formatted(date: .omitted, time: .shortened))
-                    .font(.system(size: 14, weight: .black))
-                    .foregroundColor(.white)
+                Text(event.startTime.formatted(date: .omitted, time: .shortened)).font(.system(size: 14, weight: .black)).foregroundColor(.white)
                 Rectangle().fill(Color.white.opacity(0.5)).frame(width: 1)
-                Text(event.endTime.formatted(date: .omitted, time: .shortened))
-                    .font(.caption).fontWeight(.bold)
-                    .foregroundColor(.white.opacity(0.6))
-            }
-            .frame(width: 50)
-            
-            // Info
+                Text(event.endTime.formatted(date: .omitted, time: .shortened)).font(.caption).fontWeight(.bold).foregroundColor(.white.opacity(0.6))
+            }.frame(width: 50)
             VStack(alignment: .leading, spacing: 4) {
-                Text(event.subject.title)
-                    .font(.title3).fontWeight(.black)
-                    .foregroundColor(.white)
-                    .lineLimit(2)
-                
-                HStack {
-                    Label(event.room, systemImage: "mappin.circle.fill")
-                    Text("•")
-                    Text(event.type.rawValue)
-                }
-                .font(.caption).fontWeight(.bold)
-                .foregroundColor(.white.opacity(0.8))
+                Text(event.subject.title).font(.title3).fontWeight(.black).foregroundColor(.white).lineLimit(2)
+                HStack { Label(event.room, systemImage: "mappin.circle.fill"); Text("•"); Text(event.type.rawValue) }
+                    .font(.caption).fontWeight(.bold).foregroundColor(.white.opacity(0.8))
             }
-            
             Spacer()
-            
-            // Icon
-            Image(systemName: event.type == .course ? "book.fill" : "person.2.fill")
-                .font(.largeTitle)
-                .foregroundColor(.white.opacity(0.2))
+            Image(systemName: event.type == .course ? "book.fill" : "person.2.fill").font(.largeTitle).foregroundColor(.white.opacity(0.2))
         }
-        .padding(20)
-        .background(
-            LinearGradient(
-                colors: [event.subject.color, event.subject.color.opacity(0.6)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .cornerRadius(24)
-        .shadow(color: event.subject.color.opacity(0.4), radius: 10, x: 0, y: 5)
+        .padding(20).background(LinearGradient(colors: [event.subject.color, event.subject.color.opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing))
+        .cornerRadius(24).shadow(color: event.subject.color.opacity(0.4), radius: 10, x: 0, y: 5)
     }
 }
 
 struct RainbowMiniClassCard: View {
     let event: TodayClassEvent
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Circle().fill(event.subject.color).frame(width: 8, height: 8)
-                Spacer()
-                Text(event.startTime.formatted(date: .omitted, time: .shortened))
-                    .font(.caption2).fontWeight(.bold).foregroundColor(.gray)
-            }
-            Text(event.subject.title)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundColor(.white)
-                .lineLimit(2)
-            
-            Text(event.room)
-                .font(.caption2).foregroundColor(.gray)
+            HStack { Circle().fill(event.subject.color).frame(width: 8, height: 8); Spacer(); Text(event.startTime.formatted(date: .omitted, time: .shortened)).font(.caption2).fontWeight(.bold).foregroundColor(.gray) }
+            Text(event.subject.title).font(.system(size: 12, weight: .bold)).foregroundColor(.white).lineLimit(2)
+            Text(event.room).font(.caption2).foregroundColor(.gray)
         }
-        .padding(12)
-        .frame(width: 120, height: 100)
-        .background(Color(white: 0.1))
-        .cornerRadius(16)
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.05), lineWidth: 1))
+        .padding(12).frame(width: 120, height: 100).background(Color(white: 0.1)).cornerRadius(16).overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.05), lineWidth: 1))
     }
 }
 
 struct RainbowMessageCard: View {
     let icon: String; let title: String; let subtitle: String; let color: Color
-    var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: icon).font(.largeTitle).foregroundColor(color)
-            VStack(alignment: .leading) {
-                Text(title).font(.headline).fontWeight(.black).foregroundColor(.white)
-                Text(subtitle).font(.caption).foregroundColor(.gray)
-            }
-            Spacer()
-        }
-        .padding()
-        .background(Color(white: 0.1))
-        .cornerRadius(20)
-    }
+    var body: some View { HStack(spacing: 16) { Image(systemName: icon).font(.largeTitle).foregroundColor(color); VStack(alignment: .leading) { Text(title).font(.headline).fontWeight(.black).foregroundColor(.white); Text(subtitle).font(.caption).foregroundColor(.gray) }; Spacer() }.padding().background(Color(white: 0.1)).cornerRadius(20) }
 }
 
 struct RainbowBubbleAction: View {
     let icon: String; let label: String; let color: Color; let action: () -> Void
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                ZStack {
-                    Circle().fill(color.opacity(0.15)).frame(width: 56, height: 56)
-                    Image(systemName: icon).font(.title3).foregroundColor(color)
-                        .shadow(color: color.opacity(0.8), radius: 5)
-                }
-                Text(label).font(.caption).fontWeight(.bold).foregroundColor(.gray)
-            }
-        }
-    }
+    var body: some View { Button(action: action) { VStack(spacing: 8) { ZStack { Circle().fill(color.opacity(0.15)).frame(width: 56, height: 56); Image(systemName: icon).font(.title3).foregroundColor(color).shadow(color: color.opacity(0.8), radius: 5) }; Text(label).font(.caption).fontWeight(.bold).foregroundColor(.gray) } } }
 }
 
 struct RainbowExamTile: View {
     let task: StudyTask
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("EXAM").font(.system(size: 8, weight: .black))
-                    .padding(4).background(Color.black).foregroundColor(RainbowColors.red).cornerRadius(4)
-                Spacer()
-                if let due = task.dueDate {
-                    Text(due.formatted(.dateTime.day().month()))
-                        .font(.caption2).fontWeight(.bold).foregroundColor(.white)
-                }
-            }
+            HStack { Text("EXAM").font(.system(size: 8, weight: .black)).padding(4).background(Color.black).foregroundColor(RainbowColors.red).cornerRadius(4); Spacer(); if let due = task.dueDate { Text(due.formatted(.dateTime.day().month())).font(.caption2).fontWeight(.bold).foregroundColor(.white) } }
             Text(task.title).font(.subheadline).fontWeight(.bold).foregroundColor(.white).lineLimit(2)
             Text(task.subject?.title ?? "General").font(.caption2).foregroundColor(.white.opacity(0.7))
         }
-        .padding(12)
-        .frame(width: 140, height: 100)
-        .background(LinearGradient(colors: [RainbowColors.red.opacity(0.8), RainbowColors.orange.opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing))
-        .cornerRadius(16)
-        .shadow(color: RainbowColors.red.opacity(0.3), radius: 5)
+        .padding(12).frame(width: 140, height: 100).background(LinearGradient(colors: [RainbowColors.red.opacity(0.8), RainbowColors.orange.opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing)).cornerRadius(16).shadow(color: RainbowColors.red.opacity(0.3), radius: 5)
     }
 }
 
@@ -423,34 +335,13 @@ struct RainbowNeonTaskRow: View {
     let task: StudyTask
     var body: some View {
         HStack(spacing: 12) {
-            Button(action: { withAnimation { task.isCompleted.toggle() } }) {
-                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(task.isCompleted ? RainbowColors.green : .gray)
-            }
-            
+            Button(action: { withAnimation { task.isCompleted.toggle() } }) { Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle").foregroundColor(task.isCompleted ? RainbowColors.green : .gray) }
             VStack(alignment: .leading, spacing: 2) {
-                Text(task.title)
-                    .font(.system(size: 14, weight: .bold))
-                    .strikethrough(task.isCompleted)
-                    .foregroundColor(task.isCompleted ? .gray : .white)
-                    .lineLimit(1)
-                
-                if let subject = task.subject {
-                    Text(subject.title.uppercased())
-                        .font(.caption2).fontWeight(.bold)
-                        .foregroundColor(subject.color)
-                }
+                Text(task.title).font(.system(size: 14, weight: .bold)).strikethrough(task.isCompleted).foregroundColor(task.isCompleted ? .gray : .white).lineLimit(1)
+                if let subject = task.subject { Text(subject.title.uppercased()).font(.caption2).fontWeight(.bold).foregroundColor(subject.color) }
             }
             Spacer()
-        }
-        .padding(12)
-        .background(Color(white: 0.08))
-        .cornerRadius(12)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(task.priority == .high && !task.isCompleted ? RainbowColors.red.opacity(0.5) : Color.clear, lineWidth: 1)
-        )
-        .opacity(task.isCompleted ? 0.5 : 1.0)
+        }.padding(12).background(Color(white: 0.08)).cornerRadius(12).overlay(RoundedRectangle(cornerRadius: 12).stroke(task.priority == .high && !task.isCompleted ? RainbowColors.red.opacity(0.5) : Color.clear, lineWidth: 1)).opacity(task.isCompleted ? 0.5 : 1.0)
     }
 }
 
@@ -459,31 +350,13 @@ struct RainbowSubjectTile: View {
     var body: some View {
         NavigationLink(destination: SubjectDetailView(subject: subject)) {
             VStack {
-                ZStack {
-                    Circle().stroke(subject.color.opacity(0.3), lineWidth: 3)
-                        .frame(width: 50, height: 50)
-                    
-                    if let grade = subject.currentGrade {
-                        Text(String(format: "%.1f", grade))
-                            .font(.headline).fontWeight(.black)
-                            .foregroundColor(.white)
-                    } else {
-                        Text("-").foregroundColor(.gray)
-                    }
-                }
-                
-                Text(subject.title)
-                    .font(.caption).fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-            }
-            .padding(12)
-            .frame(width: 90, height: 110)
-            .background(Color(white: 0.1))
-            .cornerRadius(16)
+                ZStack { Circle().stroke(subject.color.opacity(0.3), lineWidth: 3).frame(width: 50, height: 50); if let grade = subject.currentGrade { Text(String(format: "%.1f", grade)).font(.headline).fontWeight(.black).foregroundColor(.white) } else { Text("-").foregroundColor(.gray) } }
+                Text(subject.title).font(.caption).fontWeight(.bold).foregroundColor(.white).lineLimit(1)
+            }.padding(12).frame(width: 90, height: 110).background(Color(white: 0.1)).cornerRadius(16)
         }
     }
 }
+
 
 // MARK: - STANDARD DASHBOARD
 struct StandardDashboard: View {
@@ -495,7 +368,7 @@ struct StandardDashboard: View {
     @State private var showAddTask = false
     @State private var showAttendanceSheet = false
     @State private var showLogGradeSheet = false
-    @State private var showStudyTimer = false
+    @State private var showWhatIfSheet = false
     @State private var showAddSubject = false
     
     private var todaysSchedule: [TodayClassEvent] { DashboardLogic.getTodaysSchedule(subjects: subjects) }
@@ -513,7 +386,7 @@ struct StandardDashboard: View {
                         CleanHeader(profile: profile)
                         SemesterStatusCard(weekNumber: calendarManager.currentWeekProgress, totalWeeks: calendarManager.totalWeeksInCurrentSemester, semesterName: calendarManager.currentSemesterDisplayName, isEven: (calendarManager.currentWeekProgress) % 2 == 0, accent: themeManager.selectedTheme.primaryColor)
                     }.padding(.horizontal).padding(.top, 10)
-                    SmartActionBelt(onAddTask: { showAddTask = true }, onLogGrade: { showLogGradeSheet = true }, onFastAttendance: { showAttendanceSheet = true }, onFocus: { showStudyTimer = true }).padding(.horizontal)
+                    SmartActionBelt(onAddTask: { showAddTask = true }, onLogGrade: { showLogGradeSheet = true }, onFastAttendance: { showAttendanceSheet = true }, onWhatIf: { showWhatIfSheet = true }).padding(.horizontal)
                     if let next = nextClass {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Up Next").font(.headline).foregroundColor(.secondary).padding(.horizontal)
@@ -557,75 +430,8 @@ struct StandardDashboard: View {
         .sheet(isPresented: $showAddTask) { NavigationStack { AddTaskView() } }
         .sheet(isPresented: $showLogGradeSheet) { QuickLogGradeSheet(subjects: subjects) }
         .sheet(isPresented: $showAttendanceSheet) { QuickAttendanceSheet(subjects: DashboardLogic.filterTodayClasses(subjects: subjects)) }
-        .sheet(isPresented: $showStudyTimer) { StudySessionView() }
+        .sheet(isPresented: $showWhatIfSheet) { WhatIfSubjectPickerSheet(subjects: subjects) }
         .sheet(isPresented: $showAddSubject) { NavigationStack { AddSubjectView() } }
-    }
-}
-
-// MARK: - 🧩 DASHBOARD LOGIC & MODELS
-
-struct TodayClassEvent: Identifiable {
-    let id = UUID()
-    let subject: Subject
-    let type: ClassType
-    let startTime: Date
-    let endTime: Date
-    let room: String
-    
-    var timerPhraseShort: String {
-        let diff = startTime.timeIntervalSinceNow
-        if diff <= 0 { return Date() < endTime ? "NOW" : "DONE" }
-        let minutes = Int(diff / 60)
-        return "IN \(minutes) MIN"
-    }
-}
-
-struct DashboardLogic {
-    static func getTodaysSchedule(subjects: [Subject]) -> [TodayClassEvent] {
-        let cal = Calendar.current
-        let today = Date()
-        let weekday = cal.component(.weekday, from: today) // 1=Sun, 2=Mon...
-        
-        var events: [TodayClassEvent] = []
-        
-        for s in subjects {
-            if s.courseDays.contains(weekday) {
-                if s.occursThisWeek(date: today, isSeminar: false),
-                   let start = combine(today, s.courseStartTime ?? today),
-                   let end = combine(today, s.courseEndTime ?? today) {
-                    events.append(TodayClassEvent(subject: s, type: .course, startTime: start, endTime: end, room: s.courseClassroom))
-                }
-            }
-            if s.hasSeminar && s.seminarDays.contains(weekday) {
-                if s.occursThisWeek(date: today, isSeminar: true),
-                   let start = combine(today, s.seminarStartTime ?? today),
-                   let end = combine(today, s.seminarEndTime ?? today) {
-                    events.append(TodayClassEvent(subject: s, type: .seminar, startTime: start, endTime: end, room: s.seminarClassroom))
-                }
-            }
-        }
-        return events.sorted { $0.startTime < $1.startTime }
-    }
-    
-    static func getNextClass(from schedule: [TodayClassEvent]) -> TodayClassEvent? {
-        return schedule.first { $0.endTime > Date() }
-    }
-    
-    static func getRemainingClasses(from schedule: [TodayClassEvent]) -> [TodayClassEvent] {
-        guard let next = getNextClass(from: schedule) else { return [] }
-        return schedule.filter { $0.startTime > next.startTime }
-    }
-    
-    static func filterTodayClasses(subjects: [Subject]) -> [Subject] {
-        let events = getTodaysSchedule(subjects: subjects)
-        let ids = Set(events.map { $0.subject.id })
-        return subjects.filter { ids.contains($0.id) }
-    }
-    
-    static func combine(_ d: Date, _ t: Date) -> Date? {
-        let c = Calendar.current
-        let tc = c.dateComponents([.hour, .minute], from: t)
-        return c.date(bySettingHour: tc.hour ?? 0, minute: tc.minute ?? 0, second: 0, of: d)
     }
 }
 
@@ -641,11 +447,7 @@ struct CleanHeader: View {
                 Text(Date().formatted(date: .complete, time: .omitted)).font(.subheadline).foregroundColor(.secondary)
             }
             Spacer()
-            NavigationLink(destination: SettingsDashboardView()) {
-                Image(systemName: "gearshape").font(.system(size: 20)).foregroundColor(.primary)
-                    .padding(10).background(Color.themeSurface).clipShape(Circle())
-                    .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
-            }
+            // ❌ Settings Button Removed
         }
     }
     private var greetingMessage: String {
@@ -696,7 +498,7 @@ struct SmartActionBelt: View {
     var onAddTask: () -> Void
     var onLogGrade: () -> Void
     var onFastAttendance: () -> Void
-    var onFocus: () -> Void
+    var onWhatIf: () -> Void
     
     var body: some View {
         HStack(spacing: 0) {
@@ -706,7 +508,7 @@ struct SmartActionBelt: View {
             Spacer()
             BeltButton(icon: "hand.raised.fill", label: "Attend", color: .green, action: onFastAttendance)
             Spacer()
-            BeltButton(icon: "hourglass", label: "Focus", color: .indigo, action: onFocus)
+            BeltButton(icon: "function", label: "What If?", color: .indigo, action: onWhatIf)
         }
     }
     
@@ -867,44 +669,41 @@ struct HomeEmptyStateView: View {
 
 // MARK: - 🔌 SHEETS
 
-struct StudySessionView: View {
+// What If Picker
+struct WhatIfSubjectPickerSheet: View {
+    let subjects: [Subject]
     @Environment(\.dismiss) var dismiss
-    @EnvironmentObject var timerManager: StudyTimerManager
+    
     var body: some View {
         NavigationStack {
-            VStack(spacing: 40) {
-                Picker("Mode", selection: Binding(get: { timerManager.selectedMode }, set: { timerManager.setMode($0) })) {
-                    Text("Focus").tag(0); Text("Short Break").tag(1); Text("Long Break").tag(2)
-                }.pickerStyle(.segmented).padding(.horizontal).disabled(timerManager.isRunning)
-                ZStack {
-                    Circle().stroke(Color.gray.opacity(0.2), lineWidth: 20)
-                    Circle().trim(from: 0, to: timerManager.progress)
-                        .stroke(Color.indigo, style: StrokeStyle(lineWidth: 20, lineCap: .round))
-                        .rotationEffect(.degrees(-90)).animation(.linear(duration: 1), value: timerManager.timeRemaining)
-                    VStack {
-                        Text(timeString(time: timerManager.timeRemaining)).font(.system(size: 60, weight: .bold, design: .monospaced))
-                        Text(timerManager.isRunning ? "STAY FOCUSED" : "PAUSED").font(.caption).fontWeight(.bold).foregroundColor(.secondary)
-                    }
-                }.padding(40)
-                HStack(spacing: 30) {
-                    Button(action: { if timerManager.isRunning { timerManager.pause() } else { timerManager.start() } }) {
-                        Image(systemName: timerManager.isRunning ? "pause.fill" : "play.fill").font(.title).foregroundColor(.white).frame(width: 70, height: 70).background(Color.indigo).clipShape(Circle()).shadow(radius: 5)
-                    }
-                    Button(action: { timerManager.reset() }) {
-                        Image(systemName: "arrow.counterclockwise").font(.title).foregroundColor(.indigo).frame(width: 70, height: 70).background(Color.indigo.opacity(0.1)).clipShape(Circle())
+            List(subjects) { subject in
+                NavigationLink(destination: WhatIfGradeView(subject: subject)) {
+                    HStack {
+                        Circle().fill(subject.color).frame(width: 12, height: 12)
+                        Text(subject.title)
+                            .fontWeight(.medium)
+                        Spacer()
+                        if let grade = subject.currentGrade {
+                            Text(String(format: "%.2f", grade))
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
-                Spacer()
-                if timerManager.isRunning { Button("Continue in Background") { dismiss() }.font(.subheadline).foregroundColor(.secondary).padding(.bottom) }
             }
-            .navigationTitle("Study Timer").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Close") { dismiss() } } }
+            .navigationTitle("Select Subject")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+            .overlay {
+                if subjects.isEmpty {
+                    ContentUnavailableView("No Subjects", systemImage: "book.closed", description: Text("Add a subject first to use the calculator."))
+                }
+            }
         }
-    }
-    private func timeString(time: TimeInterval) -> String {
-        let minutes = Int(time) / 60
-        let seconds = Int(time) % 60
-        return String(format: "%02d:%02d", minutes, seconds)
+        .presentationDetents([.medium, .large])
     }
 }
 
@@ -987,4 +786,48 @@ struct QuickAttendanceButton: View {
             modelContext.insert(e)
         }
     }
+}
+
+// MARK: - 🧩 SHARED LOGIC
+
+struct TodayClassEvent: Identifiable {
+    let id = UUID()
+    let subject: Subject
+    let type: ClassType
+    let startTime: Date
+    let endTime: Date
+    let room: String
+    
+    var timerPhraseShort: String {
+        let diff = startTime.timeIntervalSinceNow
+        if diff <= 0 { return Date() < endTime ? "NOW" : "DONE" }
+        let minutes = Int(diff / 60)
+        return "IN \(minutes) MIN"
+    }
+}
+
+struct DashboardLogic {
+    static func getTodaysSchedule(subjects: [Subject]) -> [TodayClassEvent] {
+        let cal = Calendar.current
+        let today = Date()
+        let weekday = cal.component(.weekday, from: today)
+        var events: [TodayClassEvent] = []
+        for s in subjects {
+            if s.courseDays.contains(weekday) {
+                if s.occursThisWeek(date: today, isSeminar: false), let start = combine(today, s.courseStartTime ?? today), let end = combine(today, s.courseEndTime ?? today) {
+                    events.append(TodayClassEvent(subject: s, type: .course, startTime: start, endTime: end, room: s.courseClassroom))
+                }
+            }
+            if s.hasSeminar && s.seminarDays.contains(weekday) {
+                if s.occursThisWeek(date: today, isSeminar: true), let start = combine(today, s.seminarStartTime ?? today), let end = combine(today, s.seminarEndTime ?? today) {
+                    events.append(TodayClassEvent(subject: s, type: .seminar, startTime: start, endTime: end, room: s.seminarClassroom))
+                }
+            }
+        }
+        return events.sorted { $0.startTime < $1.startTime }
+    }
+    static func getNextClass(from schedule: [TodayClassEvent]) -> TodayClassEvent? { return schedule.first { $0.endTime > Date() } }
+    static func getRemainingClasses(from schedule: [TodayClassEvent]) -> [TodayClassEvent] { guard let next = getNextClass(from: schedule) else { return [] }; return schedule.filter { $0.startTime > next.startTime } }
+    static func filterTodayClasses(subjects: [Subject]) -> [Subject] { let events = getTodaysSchedule(subjects: subjects); let ids = Set(events.map { $0.subject.id }); return subjects.filter { ids.contains($0.id) } }
+    static func combine(_ d: Date, _ t: Date) -> Date? { let c = Calendar.current; let tc = c.dateComponents([.hour, .minute], from: t); return c.date(bySettingHour: tc.hour ?? 0, minute: tc.minute ?? 0, second: 0, of: d) }
 }

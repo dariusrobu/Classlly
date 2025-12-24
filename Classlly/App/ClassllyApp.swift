@@ -3,13 +3,26 @@ import SwiftData
 
 @main
 struct ClassllyApp: App {
+    // 🚨 CRITICAL FIX: Connect the AppDelegate to handle app lifecycle and notifications
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    
     // Source of Truth
     @State private var authManager = AuthenticationManager()
+    
+    // ObservableObjects (Combine) need StateObject to manage their lifecycle
+    @StateObject private var themeManager = AppTheme.shared
+    @StateObject private var calendarManager = AcademicCalendarManager.shared
     
     // MARK: - Database Setup
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             AppUser.self,
+            StudentProfile.self,
+            Subject.self,
+            StudyTask.self,
+            GradeEntry.self,
+            AttendanceEntry.self,
+            StudyCalendarEvent.self
         ])
         
         // 1. Your specific App Group ID
@@ -23,14 +36,12 @@ struct ClassllyApp: App {
             // Construct the path to the database file
             let storeURL = containerURL.appendingPathComponent("Library/Application Support/default.store")
             
-            // 🚨 CRITICAL FIX: Explicitly create the directory if it doesn't exist
+            // Explicitly create the directory if it doesn't exist
             let directoryURL = storeURL.deletingLastPathComponent()
             try? FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
             
-            // 3. COMPILE FIX: We include 'schema' here to disambiguate the initializer.
-            // This matches init(url:schema:isStoredInMemoryOnly:)
-            modelConfiguration = ModelConfiguration(url: storeURL, schema: schema, isStoredInMemoryOnly: false)
-            
+            // Persist to App Group
+            modelConfiguration = ModelConfiguration(schema: schema, url: storeURL)
             print("💾 App Group Storage: \(storeURL.path)")
             
         } else {
@@ -48,9 +59,24 @@ struct ClassllyApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                // Inject Swift 6 Observable
                 .environment(authManager)
+                // Inject Combine ObservableObjects (Required by Home/Calendar/Tasks Views)
+                .environmentObject(themeManager)
+                .environmentObject(calendarManager)
+                // Inject Database
                 .modelContainer(sharedModelContainer)
+                // Apply Global Theme
+                .preferredColorScheme(activeColorScheme)
         }
+    }
+    
+    // Computed property to determine the active color scheme
+    private var activeColorScheme: ColorScheme? {
+        if themeManager.selectedGameMode == .rainbow {
+            return .dark
+        }
+        return themeManager.darkModeEnabled ? .dark : .light
     }
 }
 
@@ -65,6 +91,7 @@ struct RootView: View {
                 StickyOnboardingView()
             }
             else if authManager.isAuthenticated {
+                // If we have a session, verify we have a matching AppUser record
                 if let _ = users.first(where: { $0.id == authManager.userSession?.uid }) {
                     MainTabView()
                 } else {
