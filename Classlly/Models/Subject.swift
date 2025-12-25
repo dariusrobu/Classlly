@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import SwiftUI
+import CoreLocation
 
 @Model
 final class Subject {
@@ -18,6 +19,11 @@ final class Subject {
     var courseFrequency: ClassFrequency = ClassFrequency.weekly
     var courseStartTime: Date? = nil
     var courseEndTime: Date? = nil
+    
+    // Location Data (New)
+    var latitude: Double?
+    var longitude: Double?
+    var geofenceRadius: Double = 100.0 // Meters
     
     // Seminar Details
     var hasSeminar: Bool = false
@@ -60,7 +66,7 @@ final class Subject {
         return Double(present) / Double(total)
     }
     
-    // UI Helpers
+    // UI Helpers (Restored)
     var attendedClasses: Int {
         attendance?.filter { $0.status == .present || $0.status == .late }.count ?? 0
     }
@@ -88,7 +94,10 @@ final class Subject {
         seminarDays: [Int] = [],
         seminarFrequency: ClassFrequency = .weekly,
         seminarStartTime: Date? = nil,
-        seminarEndTime: Date? = nil
+        seminarEndTime: Date? = nil,
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        geofenceRadius: Double = 100.0
     ) {
         self.id = id
         self.title = title
@@ -109,6 +118,9 @@ final class Subject {
         self.seminarFrequency = seminarFrequency
         self.seminarStartTime = seminarStartTime
         self.seminarEndTime = seminarEndTime
+        self.latitude = latitude
+        self.longitude = longitude
+        self.geofenceRadius = geofenceRadius
     }
     
     private func daysToString(_ days: [Int]) -> String {

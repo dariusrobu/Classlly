@@ -9,94 +9,76 @@ struct NotificationDebugView: View {
             // MARK: - Setup
             Section(header: Text("Data Setup")) {
                 Button(action: {
-                    DemoDataManager.shared.createPerfectGapScenario(modelContext: modelContext)
+                     DemoDataManager.shared.createPerfectGapScenario(modelContext: modelContext)
                 }) {
                     Label("Inject Perfect Gap Data", systemImage: "flask.fill")
                         .foregroundColor(.purple)
                 }
             }
             
-            // MARK: - Simulations
-            Section(header: Text("Simulations (Trigger in 5s)")) {
+            // MARK: - Attendance Simulations
+            Section(header: Text("Attendance Alerts (5s Delay)")) {
                 
                 Button(action: { NotificationManager.shared.testClassReminder() }) {
-                    TestRow(icon: "bell.fill", color: .blue, title: "Class Reminder", sub: "Standard Alert")
+                    TestRow(icon: "bell.fill", color: .blue, title: "Class Finished", sub: "Time-based trigger")
                 }
                 
-                Button(action: { NotificationManager.shared.testTaskReminder() }) {
-                    TestRow(icon: "checkmark.circle.fill", color: .green, title: "Task Reminder", sub: "Action: Mark Done")
+                Button(action: { NotificationManager.shared.testGeofenceEntryNotification() }) {
+                    TestRow(icon: "location.fill", color: .green, title: "Geofence Entry", sub: "Arrived at class")
                 }
                 
-                Button(action: { NotificationManager.shared.testSmartGap() }) {
-                    TestRow(icon: "clock.arrow.circlepath", color: .orange, title: "Smart Gap", sub: "Action: Start Focus")
-                }
-                
-                Button(action: { NotificationManager.shared.testStreakNotification() }) {
-                    TestRow(icon: "flame.fill", color: .red, title: "Streak Reward", sub: "Engagement Alert")
-                }
-                
-                Button(action: { NotificationManager.shared.testHeavyDayNotification() }) {
-                    TestRow(icon: "bed.double.fill", color: .indigo, title: "Heavy Day Warning", sub: "Info: 6 Classes Tomorrow")
-                }
-                
-                // ✅ NEW BUTTON: Grade Rescue
-                Button(action: { NotificationManager.shared.testGradeRescueNotification() }) {
-                    TestRow(icon: "chart.line.downtrend.xyaxis", color: .pink, title: "Grade Rescue", sub: "Alert: Low Average")
+                Button(action: { NotificationManager.shared.testGeofenceMissingAlert() }) {
+                    TestRow(icon: "location.slash.fill", color: .red, title: "Geofence Miss", sub: "Absent detection")
                 }
             }
             
-            // MARK: - Real Logic
+            // MARK: - Task & Study Simulations
+            Section(header: Text("Study Alerts")) {
+                Button(action: { NotificationManager.shared.testTaskReminder() }) {
+                    TestRow(icon: "checkmark.circle.fill", color: .orange, title: "Task Reminder", sub: "Due date alert")
+                }
+                
+                Button(action: { NotificationManager.shared.testSmartGap() }) {
+                    TestRow(icon: "clock.arrow.circlepath", color: .indigo, title: "Smart Gap", sub: "Free time suggestion")
+                }
+            }
+            
+            // MARK: - Insights Simulations
+            Section(header: Text("Insights & Briefings")) {
+                Button(action: { NotificationManager.shared.testStreakNotification() }) {
+                    TestRow(icon: "flame.fill", color: .orange, title: "Streak Reward", sub: "Engagement Alert")
+                }
+                
+                Button(action: { NotificationManager.shared.testHeavyDayNotification() }) {
+                    TestRow(icon: "bed.double.fill", color: .purple, title: "Heavy Day", sub: "Morning Briefing")
+                }
+                
+                Button(action: { NotificationManager.shared.testGradeRescueNotification() }) {
+                    TestRow(icon: "chart.line.downtrend.xyaxis", color: .pink, title: "Grade Rescue", sub: "Low average alert")
+                }
+            }
+            
+            // MARK: - Real Logic Analysis
             Section(header: Text("Real Logic Analysis")) {
                 Button(action: {
                     NotificationManager.shared.checkForSmartGaps(modelContext: modelContext)
                 }) {
-                    Label {
-                        VStack(alignment: .leading) {
-                            Text("Analyze Gaps")
-                                .fontWeight(.medium)
-                            Text("Checks today's gaps > 2h")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    } icon: {
-                        Image(systemName: "bolt.badge.clock.fill")
-                            .foregroundColor(.yellow)
-                    }
+                    Label("Analyze Gaps", systemImage: "bolt.badge.clock.fill")
+                        .foregroundColor(.yellow)
                 }
                 
                 Button(action: {
                     NotificationManager.shared.scheduleHeavyDayWarning(modelContext: modelContext)
                 }) {
-                    Label {
-                        VStack(alignment: .leading) {
-                            Text("Check Heavy Load")
-                                .fontWeight(.medium)
-                            Text("Checks tomorrow's class count")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    } icon: {
-                        Image(systemName: "calendar.badge.exclamationmark")
-                            .foregroundColor(.red)
-                    }
+                    Label("Check Heavy Load", systemImage: "calendar.badge.exclamationmark")
+                        .foregroundColor(.red)
                 }
                 
-                // ✅ NEW BUTTON: Check Grade Health
                 Button(action: {
                     NotificationManager.shared.checkGradeHealth(modelContext: modelContext)
                 }) {
-                    Label {
-                        VStack(alignment: .leading) {
-                            Text("Check Grade Health")
-                                .fontWeight(.medium)
-                            Text("Scans for subjects < 5.0")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    } icon: {
-                        Image(systemName: "cross.case.fill")
-                            .foregroundColor(.pink)
-                    }
+                    Label("Check Grade Health", systemImage: "cross.case.fill")
+                        .foregroundColor(.pink)
                 }
             }
             
@@ -108,7 +90,7 @@ struct NotificationDebugView: View {
     }
 }
 
-// Helper View for Rows (Preserved)
+// MARK: - Helper View
 struct TestRow: View {
     let icon: String
     let color: Color

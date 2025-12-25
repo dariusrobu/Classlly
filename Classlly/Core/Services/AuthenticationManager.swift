@@ -15,6 +15,9 @@ class AuthenticationManager {
     var userSession: UserSession?
     var hasCompletedOnboarding: Bool = false
     
+    // Constant ID for consistency across the app
+    static let demoUserID = "demo-user-001"
+    
     // Derived state
     var isAuthenticated: Bool {
         userSession != nil
@@ -49,7 +52,7 @@ class AuthenticationManager {
     func signInAsDemoUser() {
         print("👤 Signing in as Demo User...")
         let demoSession = UserSession(
-            uid: "demo-user-001",
+            uid: Self.demoUserID, // Use the static constant
             email: "demo@classlly.com",
             fullName: "Demo Student",
             isAnonymous: true

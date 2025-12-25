@@ -15,11 +15,53 @@ class DemoDataManager {
             
             if includeProfile {
                 try modelContext.delete(model: StudentProfile.self)
+                try modelContext.delete(model: AppUser.self) // Ensure user record is also deleted
             }
+            
+            // Explicit save to ensure deletion is committed immediately
+            try? modelContext.save()
             
             print("🗑️ All Data Deleted")
         } catch {
             print("❌ Failed to delete data: \(error)")
+        }
+    }
+    
+    @MainActor
+    func createDemoProfile(modelContext: ModelContext) {
+        // 1. Check if user already exists to avoid duplicates
+        let demoID = AuthenticationManager.demoUserID
+        let descriptor = FetchDescriptor<AppUser>(predicate: #Predicate { $0.id == demoID })
+        
+        if let count = try? modelContext.fetchCount(descriptor), count > 0 {
+            print("⚠️ Demo user already exists, skipping creation.")
+            return
+        }
+        
+        print("👤 Creating Demo User Profile...")
+        
+        // 2. Create the AppUser with the specific ID required by AuthManager
+        let demoUser = AppUser(
+            id: demoID,
+            email: "demo@classlly.com",
+            fullName: "Demo Student"
+        )
+        
+        // 3. Pre-fill academic details so ProfileSetupView is skipped
+        demoUser.universityName = "Demo University"
+        demoUser.facultyName = "Computer Science"
+        demoUser.yearOfStudy = "2"
+        demoUser.group = "CS-202"
+        demoUser.onboardingCompleted = true
+        
+        modelContext.insert(demoUser)
+        
+        // 4. Critical: Save immediately so RootView queries find it
+        do {
+            try modelContext.save()
+            print("✅ Demo User Saved Successfully")
+        } catch {
+            print("❌ Failed to save demo user: \(error)")
         }
     }
     
@@ -54,7 +96,7 @@ class DemoDataManager {
                 courseTeacher: data.2,
                 courseClassroom: data.3,
                 courseDays: data.4,
-                courseFrequency: .weekly, // Explicit default
+                courseFrequency: .weekly,
                 courseStartTime: dateFromTime(data.5.components(separatedBy: " - ")[0]),
                 courseEndTime: dateFromTime(data.5.components(separatedBy: " - ")[1]),
                 
@@ -63,7 +105,7 @@ class DemoDataManager {
                 seminarTeacher: data.6.isEmpty ? "" : "TA Smith",
                 seminarClassroom: data.6,
                 seminarDays: data.7,
-                seminarFrequency: .weekly, // Explicit default
+                seminarFrequency: .weekly,
                 seminarStartTime: data.7.isEmpty ? Date() : dateFromTime("16:00"),
                 seminarEndTime: data.7.isEmpty ? Date() : dateFromTime("17:00")
             )
@@ -84,7 +126,7 @@ class DemoDataManager {
             subjects.append(s)
         }
         
-        // 2. Tasks (Heavy Load)
+        // 2. Tasks
         let tasksData: [(String, TaskPriority, Int, TaskType)] = [
             ("Final Calculus Exam", .high, 2, .exam),
             ("Physics Lab Report", .high, 1, .project),
@@ -100,7 +142,7 @@ class DemoDataManager {
             let task = StudyTask(
                 title: tData.0,
                 isCompleted: false,
-                dueDate: Date().addingTimeInterval(TimeInterval(tData.2 * 86400)), // Days from now
+                dueDate: Date().addingTimeInterval(TimeInterval(tData.2 * 86400)),
                 priority: tData.1,
                 type: tData.3,
                 reminderTime: .onTime,
@@ -111,10 +153,10 @@ class DemoDataManager {
             modelContext.insert(task)
         }
         
+        try? modelContext.save()
         print("✅ Heavy Stress Data Loaded")
     }
     
-    // ✅ ADDED: This method was missing in the debug view
     @MainActor
     func createPerfectGapScenario(modelContext: ModelContext) {
         deleteAllData(modelContext: modelContext)
@@ -144,7 +186,8 @@ class DemoDataManager {
         
         modelContext.insert(s1)
         modelContext.insert(s2)
-        print("✅ Gap Scenario Created: 10:00 -> 14:00 (4h Gap)")
+        try? modelContext.save()
+        print("✅ Gap Scenario Created")
     }
     
     private func dateFromTime(_ timeString: String) -> Date {
