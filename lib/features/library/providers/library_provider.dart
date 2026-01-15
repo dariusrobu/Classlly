@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:classlly/data/repositories/supabase_repository.dart';
 
-enum LibraryView { dashboard, allNotes, courses, tasks, archive }
+enum LibraryView { dashboard, allNotes, courses, tasks, calendar, archive }
 
 class LibraryProvider with ChangeNotifier {
   final SupabaseRepository _remoteRepository = SupabaseRepository();

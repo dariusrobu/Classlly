@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  static const Color primaryPurple = Color(0xFF7C3AED);
-  static const Color vibrantPurple = Color(0xFFB388FF);
+  static const Color primaryPurple = Color(0xFF8B5CF6);
+  static const Color vibrantPurple = Color(0xFFA78BFA);
 
-  static const Color backgroundDark = Color(0xFF0F172A);
-  static const Color borderDark = Color(0xFF1E293B);
-  static const Color inputDark = Color(0xFF1E293B);
+  static const Color backgroundDark = Color(0xFF121212);
+  static const Color cardDark = Color(0xFF1E1E1E);
+  static const Color borderDark = Color(0xFF2A2A2A);
 
   static const Color backgroundLight = Color(0xFFF8FAFC);
   static const Color cardLight = Color(0xFFFFFFFF);
@@ -56,13 +56,13 @@ class AppTheme {
       seedColor: primaryPurple,
       brightness: Brightness.dark,
       primary: primaryPurple,
-      surface: backgroundDark,
+      surface: cardDark,
       background: backgroundDark,
       outline: borderDark,
-      surfaceVariant: inputDark,
+      surfaceVariant: borderDark,
     ),
     scaffoldBackgroundColor: backgroundDark,
-    cardColor: backgroundDark,
+    cardColor: cardDark,
     dividerColor: borderDark,
     textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).apply(
       bodyColor: const Color(0xFFF1F5F9),

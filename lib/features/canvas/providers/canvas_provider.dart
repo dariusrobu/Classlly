@@ -6,20 +6,21 @@ import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/data/repositories/supabase_repository.dart';
 import 'package:classlly/core/utils/geometry_utils.dart';
 import 'package:classlly/core/theme/app_theme.dart';
+import 'package:classlly/features/audio/providers/audio_provider.dart';
 
-enum CanvasTool { pen, eraser, text, select, hand, highlighter }
+enum CanvasTool { pen, eraser, text, select, hand, highlighter, brush, monoline, fountain, reed, watercolor, pencil, marker, image }
 
 class NoteStateSnapshot {
   final List<Stroke> strokes;
   final List<TextBlock> textBlocks;
-  NoteStateSnapshot({required this.strokes, required this.textBlocks});
+  final List<ImageBlock> images;
+  NoteStateSnapshot({required this.strokes, required this.textBlocks, required this.images});
 }
 
 class CanvasProvider with ChangeNotifier {
   final NotesRepository _repository = NotesRepository();
   final SupabaseRepository _remoteRepository = SupabaseRepository();
 
-  // History Stacks
   final List<NoteStateSnapshot> _undoStack = [];
   final List<NoteStateSnapshot> _redoStack = [];
 
@@ -35,6 +36,9 @@ class CanvasProvider with ChangeNotifier {
   double _currentWidth = 3.0;
   double get currentWidth => _currentWidth;
 
+  double _currentOpacity = 1.0;
+  double get currentOpacity => _currentOpacity;
+
   int? _playbackTime;
   int? get playbackTime => _playbackTime;
 
@@ -43,9 +47,11 @@ class CanvasProvider with ChangeNotifier {
 
   List<Stroke> _selectedStrokes = [];
   List<TextBlock> _selectedTextBlocks = [];
+  List<ImageBlock> _selectedImages = [];
 
   List<Stroke> get selectedStrokes => _selectedStrokes;
   List<TextBlock> get selectedTextBlocks => _selectedTextBlocks;
+  List<ImageBlock> get selectedImages => _selectedImages;
 
   String? _activeResizeHandle;
   Rect? _selectionRect;
@@ -65,6 +71,7 @@ class CanvasProvider with ChangeNotifier {
     _undoStack.add(NoteStateSnapshot(
       strokes: List.from(_currentNote!.strokes),
       textBlocks: List.from(_currentNote!.textBlocks),
+      images: List.from(_currentNote!.images),
     ));
     _redoStack.clear();
     if (_undoStack.length > 50) _undoStack.removeAt(0);
@@ -76,12 +83,15 @@ class CanvasProvider with ChangeNotifier {
     _redoStack.add(NoteStateSnapshot(
       strokes: List.from(_currentNote!.strokes),
       textBlocks: List.from(_currentNote!.textBlocks),
+      images: List.from(_currentNote!.images),
     ));
     final snapshot = _undoStack.removeLast();
     _currentNote!.strokes.clear();
     _currentNote!.strokes.addAll(snapshot.strokes);
     _currentNote!.textBlocks.clear();
     _currentNote!.textBlocks.addAll(snapshot.textBlocks);
+    _currentNote!.images.clear();
+    _currentNote!.images.addAll(snapshot.images);
     notifyListeners();
     saveNote();
   }
@@ -91,12 +101,15 @@ class CanvasProvider with ChangeNotifier {
     _undoStack.add(NoteStateSnapshot(
       strokes: List.from(_currentNote!.strokes),
       textBlocks: List.from(_currentNote!.textBlocks),
+      images: List.from(_currentNote!.images),
     ));
     final snapshot = _redoStack.removeLast();
     _currentNote!.strokes.clear();
     _currentNote!.strokes.addAll(snapshot.strokes);
     _currentNote!.textBlocks.clear();
     _currentNote!.textBlocks.addAll(snapshot.textBlocks);
+    _currentNote!.images.clear();
+    _currentNote!.images.addAll(snapshot.images);
     notifyListeners();
     saveNote();
   }
@@ -106,8 +119,13 @@ class CanvasProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void setOpacity(double opacity) {
+    _currentOpacity = opacity;
+    notifyListeners();
+  }
+
   void startResize(Offset position) {
-    if (_selectedStrokes.isEmpty && _selectedTextBlocks.isEmpty) return;
+    if (_selectedStrokes.isEmpty && _selectedTextBlocks.isEmpty && _selectedImages.isEmpty) return;
     final rect = _calculateSelectionBounds();
     if (rect == null) return;
     _selectionRect = rect.inflate(10);
@@ -165,6 +183,13 @@ class CanvasProvider with ChangeNotifier {
         _selectedStrokes[_selectedStrokes.indexOf(stroke)] = _currentNote!.strokes[index];
       }
     }
+
+    for (var img in _selectedImages) {
+      img.width = (img.width * scaleX).abs().clamp(50, 2000);
+      img.height = (img.height * scaleY).abs().clamp(50, 2000);
+      img.x = pivot.dx + (img.x - pivot.dx) * scaleX;
+      img.y = pivot.dy + (img.y - pivot.dy) * scaleY;
+    }
     
     _selectionRect = _calculateSelectionBounds()?.inflate(10);
     notifyListeners();
@@ -181,6 +206,13 @@ class CanvasProvider with ChangeNotifier {
         if (p.y < minY) minY = p.y;
         if (p.y > maxY) maxY = p.y;
       }
+    }
+
+    for (var img in _selectedImages) {
+      if (img.x < minX) minX = img.x;
+      if (img.x + img.width > maxX) maxX = img.x + img.width;
+      if (img.y < minY) minY = img.y;
+      if (img.y + img.height > maxY) maxY = img.y + img.height;
     }
     
     if (minX == double.infinity) return null;
@@ -212,7 +244,15 @@ class CanvasProvider with ChangeNotifier {
     if (tool != CanvasTool.select) {
       _selectedStrokes = [];
       _selectedTextBlocks = [];
+      _selectedImages = [];
     }
+    notifyListeners();
+  }
+
+  void setTemplate(String type) {
+    if (_currentNote == null) return;
+    _currentNote!.templateType = type;
+    saveNote();
     notifyListeners();
   }
 
@@ -221,26 +261,40 @@ class CanvasProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void setWidth(double width) {
-    _currentWidth = width;
+  void setWidth(double val) {
+    _currentWidth = val;
     notifyListeners();
+  }
+
+  bool _isPenType(CanvasTool tool) {
+    return [
+      CanvasTool.pen,
+      CanvasTool.monoline,
+      CanvasTool.fountain,
+      CanvasTool.reed,
+      CanvasTool.watercolor,
+      CanvasTool.pencil,
+      CanvasTool.marker,
+      CanvasTool.highlighter,
+      CanvasTool.brush
+    ].contains(tool);
   }
 
   void startStroke(Offset offset, double pressure, {int? timestamp}) {
     if (_currentNote == null) return;
-    if (_activeTool == CanvasTool.pen || _activeTool == CanvasTool.highlighter) {
+    if (_isPenType(_activeTool)) {
       _activePoints = [StrokePoint(x: offset.dx, y: offset.dy, pressure: pressure)];
     }
   }
 
   void updateStroke(Offset offset, double pressure) {
-    if (_currentNote == null || (_activeTool != CanvasTool.pen && _activeTool != CanvasTool.highlighter)) return;
+    if (_currentNote == null || !_isPenType(_activeTool)) return;
     _activePoints.add(StrokePoint(x: offset.dx, y: offset.dy, pressure: pressure));
     notifyListeners();
   }
 
   void endStroke({int? timestamp, List<StrokePoint>? forcedPoints}) {
-    if (_currentNote == null || (_activeTool != CanvasTool.pen && _activeTool != CanvasTool.highlighter) || _activePoints.isEmpty) return;
+    if (_currentNote == null || !_isPenType(_activeTool) || _activePoints.isEmpty) return;
 
     if (forcedPoints == null && _checkForGestures(_activePoints)) {
       _activePoints = [];
@@ -251,17 +305,15 @@ class CanvasProvider with ChangeNotifier {
     _takeSnapshot();
 
     List<StrokePoint> pointsToSave = forcedPoints ?? List.from(_activePoints);
-    if (forcedPoints == null) {
-      final shape = GeometryUtils.recognizeShape(pointsToSave);
-      if (shape != null) pointsToSave = shape.points;
-    }
-
+    
     Color strokeColor = _currentColor;
     double strokeWidth = _currentWidth;
 
     if (_activeTool == CanvasTool.highlighter) {
-      strokeColor = _currentColor.withOpacity(0.3);
+      strokeColor = _currentColor.withOpacity(0.3 * _currentOpacity);
       strokeWidth = _currentWidth * 4;
+    } else {
+      strokeColor = _currentColor.withOpacity(_currentOpacity);
     }
 
     final stroke = Stroke(
@@ -281,6 +333,7 @@ class CanvasProvider with ChangeNotifier {
     if (GeometryUtils.isClosedLoop(points)) {
       final insideStrokes = <Stroke>[];
       final insideBlocks = <TextBlock>[];
+      final insideImages = <ImageBlock>[];
 
       for (var stroke in _currentNote!.strokes) {
         if (stroke.points.isNotEmpty) {
@@ -297,10 +350,17 @@ class CanvasProvider with ChangeNotifier {
         }
       }
 
-      if (insideStrokes.isNotEmpty || insideBlocks.isNotEmpty) {
+      for (var img in _currentNote!.images) {
+        if (GeometryUtils.isPointInPolygon(Offset(img.x + img.width/2, img.y + img.height/2), points)) {
+          insideImages.add(img);
+        }
+      }
+
+      if (insideStrokes.isNotEmpty || insideBlocks.isNotEmpty || insideImages.isNotEmpty) {
         _takeSnapshot();
         _selectedStrokes = insideStrokes;
         _selectedTextBlocks = insideBlocks;
+        _selectedImages = insideImages;
         _activeTool = CanvasTool.select;
         notifyListeners();
         return true;
@@ -324,6 +384,16 @@ class CanvasProvider with ChangeNotifier {
       _currentNote!.textBlocks.removeWhere((block) {
         final blockRect = Rect.fromLTWH(block.x, block.y, 100, 30);
         if (scribbleBox.overlaps(blockRect)) {
+          if (!erasedSomething) _takeSnapshot();
+          erasedSomething = true;
+          return true;
+        }
+        return false;
+      });
+
+      _currentNote!.images.removeWhere((img) {
+        final imgRect = Rect.fromLTWH(img.x, img.y, img.width, img.height);
+        if (scribbleBox.overlaps(imgRect)) {
           if (!erasedSomething) _takeSnapshot();
           erasedSomething = true;
           return true;
@@ -363,6 +433,16 @@ class CanvasProvider with ChangeNotifier {
       return false;
     });
 
+    _currentNote!.images.removeWhere((img) {
+      final rect = Rect.fromLTWH(img.x, img.y, img.width, img.height);
+      if (rect.contains(offset)) {
+        if (!erased) _takeSnapshot();
+        erased = true;
+        return true;
+      }
+      return false;
+    });
+
     if (erased) {
       saveNote();
       notifyListeners();
@@ -384,6 +464,21 @@ class CanvasProvider with ChangeNotifier {
       createdAt: timestamp ?? DateTime.now().millisecondsSinceEpoch,
     );
     _currentNote!.textBlocks.add(block);
+    notifyListeners();
+  }
+
+  void addImage(String base64Data, Offset offset, {int? timestamp}) {
+    if (_currentNote == null) return;
+    _takeSnapshot();
+    final img = ImageBlock(
+      id: const Uuid().v4(),
+      base64Data: base64Data,
+      x: offset.dx,
+      y: offset.dy,
+      createdAt: timestamp ?? DateTime.now().millisecondsSinceEpoch,
+    );
+    _currentNote!.images.add(img);
+    saveNote();
     notifyListeners();
   }
 
@@ -436,7 +531,58 @@ class CanvasProvider with ChangeNotifier {
         _selectedTextBlocks[_selectedTextBlocks.indexOf(block)] = _currentNote!.textBlocks[index];
       }
     }
+    for (var img in _selectedImages) {
+      img.x += delta.dx;
+      img.y += delta.dy;
+    }
     notifyListeners();
+  }
+
+  void selectItemAt(Offset position, AudioProvider audioProvider) {
+    if (_currentNote == null) return;
+    
+    // Images first
+    for (var img in _currentNote!.images) {
+      final rect = Rect.fromLTWH(img.x, img.y, img.width, img.height);
+      if (rect.contains(position)) {
+        _selectedImages = [img];
+        _selectedStrokes = [];
+        _selectedTextBlocks = [];
+        _jumpToTimestamp(img.createdAt, audioProvider);
+        notifyListeners();
+        return;
+      }
+    }
+
+    for (var block in _currentNote!.textBlocks) {
+      final blockRect = Rect.fromLTWH(block.x, block.y, 100, 30);
+      if (blockRect.contains(position)) {
+        _selectedTextBlocks = [block];
+        _selectedStrokes = [];
+        _selectedImages = [];
+        _jumpToTimestamp(block.createdAt, audioProvider);
+        notifyListeners();
+        return;
+      }
+    }
+    for (var stroke in _currentNote!.strokes) {
+      for (var p in stroke.points) {
+        if ((Offset(p.x, p.y) - position).distance < 20.0) {
+          _selectedStrokes = [stroke];
+          _selectedTextBlocks = [];
+          _selectedImages = [];
+          _jumpToTimestamp(stroke.createdAt, audioProvider);
+          notifyListeners();
+          return;
+        }
+      }
+    }
+  }
+
+  void _jumpToTimestamp(int timestamp, AudioProvider audio) {
+    if (timestamp < 36000000) {
+      audio.seek(Duration(milliseconds: timestamp));
+    }
   }
 
   Future<void> saveNote() async {

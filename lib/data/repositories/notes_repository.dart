@@ -17,11 +17,13 @@ class NotesRepository {
 
     Hive.registerAdapter(TextBlockAdapter());
 
-    Hive.registerAdapter(NoteAdapter());
+        Hive.registerAdapter(NoteAdapter());
 
-    Hive.registerAdapter(NotebookAdapter());
+        Hive.registerAdapter(NotebookAdapter());
 
-    await Hive.openBox<Note>(boxName);
+        Hive.registerAdapter(ImageBlockAdapter());
+
+        await Hive.openBox<Note>(boxName);
 
     await Hive.openBox<Notebook>(notebookBoxName);
 

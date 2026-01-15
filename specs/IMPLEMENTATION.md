@@ -1,4 +1,4 @@
-# IMPLEMENTATION.md - Notelly
+# IMPLEMENTATION.md - Classlly (formerly Notelly)
 
 ## Journal
 *   **2026-01-14:** Initial plan created.
@@ -13,61 +13,11 @@
 *   **2026-01-14:** Phase 13: Implemented Real-time Sync and Debounced Auto-save.
 *   **2026-01-14:** Phase 15: Implemented Notebooks/Courses organization and Note Renaming.
 *   **2026-01-14:** Phase 16: Implemented Highlighter, Color Picker, and Undo/Redo.
-
-## Phase 1: Project Setup & Foundation
-- [X] Create Flutter project.
-- [X] Add dependencies (Provider, Hive, Supabase, etc.).
-- [X] Setup Theme and Directory structure.
-
-## Phase 2: Data Layer (Hive & Models)
-- [X] Create Models (Stroke, Note, etc.).
-- [X] Generate Hive Adapters.
-- [X] Create NotesRepository.
-
-## Phase 3: Core Canvas & Drawing
-- [X] Implement DrawingPainter with freehand algorithm.
-- [X] Implement GestureDetector for ink input.
-
-## Phase 4: Text Input
-- [X] Add Text Tool and TextBlockWidget (moveable).
-
-## Phase 5: Audio Recording & Note Replay
-- [X] Implement Recording and Playback sync logic.
-
-## Phase 6: Library & Polish
-- [X] Create initial LibraryScreen.
-
-## Phase 7: Smart Ink & Selection
-- [X] Implement Scribble to Erase.
-- [X] Implement Circle to Lasso.
-- [X] Implement Selection Moving.
-
-## Phase 8: Cloud Sync (Supabase)
-- [X] Integrate Supabase Auth and Sync.
-
-## Phase 9: PDF Export
-- [X] Implement PDF Generation.
-
-## Phase 10: SLC - Usability Core (Zoom & Pan)
-- [X] Refactor CanvasScreen for Zoom/Pan.
-- [X] Implement "Virtual Bounds" and Page Borders.
-- [X] Implement Hand Tool for panning.
-
-## Phase 11: SLC - Page Management
-- [X] Implement Multi-Page vertical layout.
-- [X] Add "Add Page" functionality.
-
-## Phase 12: SLC - Advanced Manipulation
-- [X] Add Resize Handles.
-- [ ] **Ongoing:** Improve Shape Recognition (Perfecting Rectangles).
-
-## Phase 13: SLC - Real-time Sync & Polish
-- [X] Implement Debounced Auto-Save.
-- [X] Subscribe to Supabase Realtime changes.
-
-## Phase 14: Modern Dashboard UI
-- [X] Port HTML design to Flutter.
-- [X] Ensure full theme support (Light/Dark).
+*   **2026-01-14:** Phase 17: Implemented Note Replay Jump (Tap note to jump audio).
+*   **2026-01-14:** Phase 18: Renamed project to **Classlly**, initialized Git Repo.
+*   **2026-01-14:** Phase 19: Implemented Advanced Pen Tools (Monoline, Fountain, Reed, Watercolor, etc.) and Image Support.
+*   **2026-01-14:** Phase 20: Implemented Premium Canvas UI (Floating Control Panel, Glass Tool Dock, Sidebar Pages).
+*   **2026-01-14:** Phase 21: Implemented Profile & Settings screens with Academic Stats.
 
 ## Phase 15: Organization & Note Management
 - [X] Create `Notebook` model.
@@ -79,4 +29,33 @@
 - [X] Implement **Highlighter** tool.
 - [X] Implement **Color Picker**.
 - [X] Implement **Undo/Redo** functionality.
-- [ ] Implement **Note Replay Jump** (Tap note to jump to audio time).
+- [X] Implement **Note Replay Jump** (Tap note to jump to audio time).
+
+## Phase 17: SLC - Premium Canvas UI Overhaul
+- [X] Refactor `CanvasScreen` to match the high-fidelity design.
+- [X] Implement **Floating Control Panel** (Stroke Width, Opacity, Color).
+- [X] Implement **Glass Tool Dock** (Pen, Brush, Highlighter, Eraser, etc.).
+- [X] Implement **Pages Sidebar** with mini previews.
+- [X] Add **Dot Grid** background to the A4 pages.
+
+## Phase 18: SLC - Profile & Settings
+- [X] Implement `ProfileScreen` with Academic Stats.
+- [X] Implement `SettingsScreen` with Appearance and Sync sections.
+
+## Phase 19: SLC - Image & Advanced Pen Support
+- [X] Implement **Image Insertion** (resizable/movable).
+- [X] Implement **Advanced Pen Types** (Monoline, Fountain, etc.).
+- [X] Implement **Canvas Templates** (Grid, Lined, Cornell).
+
+## Phase 20: Dashboard Refresh
+- [X] Overhaul `LibraryScreen` to match "Student Interactive Dashboard" design.
+- [X] Implement Right Sidebar with Calendar and Deadlines.
+- [X] Implement "Active Courses" grid with latest note previews.
+- [X] Polish colors and transitions to match charcoal/violet theme.
+- [X] Implement **My Courses** tab with full course grid and sorting.
+
+## Phase 21: SLC - Academic Stats Logic (Next)
+- [ ] Wire "Total Notes" stat to actual database count.
+- [ ] Implement "Study Hours" tracking logic.
+- [ ] Implement "Task Completion" percentage logic.
+- [ ] Add **PDF Snippet** insertion support to the canvas.

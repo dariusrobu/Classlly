@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:classlly/data/models/note_models.dart';
 
 class GeometryUtils {
-  static bool isClosedLoop(List<StrokePoint> points, {double threshold = 120.0}) {
+  static bool isClosedLoop(List<StrokePoint> points, {double threshold = 100.0}) {
     if (points.length < 10) return false;
     final start = points.first;
     final end = points.last;
@@ -49,56 +49,47 @@ class GeometryUtils {
   }
 
   static ShapeResult? recognizeShape(List<StrokePoint> points) {
-    if (points.length < 15) return null;
-
+    if (points.length < 20) return null;
     final rect = getBoundingBox(points);
     final center = rect.center;
     final start = Offset(points.first.x, points.first.y);
     final end = Offset(points.last.x, points.last.y);
     
-    // 1. Line Detection
     double pathLength = 0;
     for (int i = 1; i < points.length; i++) {
       pathLength += sqrt(pow(points[i].x - points[i - 1].x, 2) + pow(points[i].y - points[i - 1].y, 2));
     }
     final directDist = (end - start).distance;
-    if (pathLength / (directDist == 0 ? 1 : directDist) < 1.1) {
+    if (pathLength / (directDist == 0 ? 1 : directDist) < 1.05) {
       return ShapeResult(ShapeType.line, [points.first, points.last]);
     }
 
-    // 2. Closed Shape Analysis
-    if (isClosedLoop(points)) {
-      // Calculate Circle Error (Variance of radius)
+    if (isClosedLoop(points, threshold: 80.0)) {
       final distances = points.map((p) => (Offset(p.x, p.y) - center).distance).toList();
       final double avgDist = distances.reduce((a, b) => a + b) / distances.length;
       double circleError = 0;
-      for (var d in distances) {
-        circleError += pow(d - avgDist, 2);
-      }
+      for (var d in distances) circleError += pow(d - avgDist, 2);
       circleError = sqrt(circleError / points.length) / avgDist;
 
-      // Calculate Rectangle Error (Distance to nearest edge of BBox)
       double rectError = 0;
       for (var p in points) {
-        final double distToLeft = (p.x - rect.left).abs();
-        final double distToRight = (p.x - rect.right).abs();
-        final double distToTop = (p.y - rect.top).abs();
-        final double distToBottom = (p.y - rect.bottom).abs();
-        rectError += pow([distToLeft, distToRight, distToTop, distToBottom].reduce(min), 2);
+        final dL = (p.x - rect.left).abs();
+        final dR = (p.x - rect.right).abs();
+        final dT = (p.y - rect.top).abs();
+        final dB = (p.y - rect.bottom).abs();
+        rectError += pow([dL, dR, dT, dB].reduce(min), 2);
       }
       rectError = sqrt(rectError / points.length) / ((rect.width + rect.height) / 2);
 
-      debugPrint('Shape Debug: CircleErr: $circleError, RectErr: $rectError');
-
-      // Best fit wins if error is low enough
-      if (circleError < rectError && circleError < 0.15) {
+      const double strictThreshold = 0.10;
+      if (circleError < rectError && circleError < strictThreshold) {
         final circlePoints = <StrokePoint>[];
         for (int i = 0; i <= 40; i++) {
           final angle = (i * 2 * pi) / 40;
           circlePoints.add(StrokePoint(x: center.dx + avgDist * cos(angle), y: center.dy + avgDist * sin(angle)));
         }
         return ShapeResult(ShapeType.circle, circlePoints);
-      } else if (rectError < 0.15) {
+      } else if (rectError < strictThreshold) {
         return ShapeResult(ShapeType.rectangle, [
           StrokePoint(x: rect.left, y: rect.top),
           StrokePoint(x: rect.right, y: rect.top),
@@ -108,7 +99,6 @@ class GeometryUtils {
         ]);
       }
     }
-
     return null;
   }
 }

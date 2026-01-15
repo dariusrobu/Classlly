@@ -181,6 +181,58 @@ class NotebookAdapter extends TypeAdapter<Notebook> {
           typeId == other.typeId;
 }
 
+class ImageBlockAdapter extends TypeAdapter<ImageBlock> {
+  @override
+  final int typeId = 5;
+
+  @override
+  ImageBlock read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return ImageBlock(
+      id: fields[0] as String,
+      base64Data: fields[1] as String,
+      x: fields[2] as double,
+      y: fields[3] as double,
+      width: fields[4] as double,
+      height: fields[5] as double,
+      createdAt: fields[6] as int,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, ImageBlock obj) {
+    writer
+      ..writeByte(7)
+      ..writeByte(0)
+      ..write(obj.id)
+      ..writeByte(1)
+      ..write(obj.base64Data)
+      ..writeByte(2)
+      ..write(obj.x)
+      ..writeByte(3)
+      ..write(obj.y)
+      ..writeByte(4)
+      ..write(obj.width)
+      ..writeByte(5)
+      ..write(obj.height)
+      ..writeByte(6)
+      ..write(obj.createdAt);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ImageBlockAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
 class NoteAdapter extends TypeAdapter<Note> {
   @override
   final int typeId = 3;
@@ -200,13 +252,15 @@ class NoteAdapter extends TypeAdapter<Note> {
       createdAt: fields[5] as DateTime,
       updatedAt: fields[6] as DateTime,
       notebookId: fields[7] as String?,
+      templateType: fields[8] as String,
+      images: (fields[9] as List).cast<ImageBlock>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, Note obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -222,7 +276,11 @@ class NoteAdapter extends TypeAdapter<Note> {
       ..writeByte(6)
       ..write(obj.updatedAt)
       ..writeByte(7)
-      ..write(obj.notebookId);
+      ..write(obj.notebookId)
+      ..writeByte(8)
+      ..write(obj.templateType)
+      ..writeByte(9)
+      ..write(obj.images);
   }
 
   @override
