@@ -122,6 +122,17 @@ class LibraryProvider with ChangeNotifier {
     return note;
   }
 
+  Future<void> renameNote(Note note, String newTitle) async {
+    note.title = newTitle;
+    await _localRepository.saveNote(note);
+    notifyListeners();
+  }
+
+  Future<void> deleteNote(String noteId) async {
+    await _localRepository.deleteNote(noteId);
+    notifyListeners();
+  }
+
   Future<void> toggleTask(Task task) async {
     task.isCompleted = !task.isCompleted;
     await _localRepository.saveTask(task);

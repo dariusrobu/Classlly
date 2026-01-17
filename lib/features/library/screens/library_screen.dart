@@ -1046,10 +1046,13 @@ class _RecentNotesList extends StatelessWidget {
 class _RecentNoteItem extends StatelessWidget {
   final Note note;
   const _RecentNoteItem({required this.note});
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
+    final libraryProvider = Provider.of<LibraryProvider>(context, listen: false);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -1110,16 +1113,103 @@ class _RecentNoteItem extends StatelessWidget {
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: isDark ? Colors.grey[400] : Colors.grey[800],
-                  size: 16,
+                PopupMenuButton<String>(
+                  icon: Icon(
+                    Icons.more_vert,
+                    size: 18,
+                    color: isDark ? Colors.grey[400] : Colors.grey[800],
+                  ),
+                  onSelected: (value) {
+                    if (value == 'rename') {
+                      _showRenameDialog(context, libraryProvider);
+                    } else if (value == 'delete') {
+                      _showDeleteDialog(context, libraryProvider);
+                    }
+                  },
+                  itemBuilder:
+                      (context) => [
+                        const PopupMenuItem(
+                          value: 'rename',
+                          child: Text('Rename'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text(
+                            'Delete',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
                 ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  void _showRenameDialog(BuildContext context, LibraryProvider provider) {
+    final controller = TextEditingController(text: note.title);
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Rename Note'),
+            content: TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                hintText: 'Note Title',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (controller.text.isNotEmpty) {
+                    provider.renameNote(note, controller.text);
+                    Navigator.pop(context);
+                  }
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context, LibraryProvider provider) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Note'),
+            content: Text(
+              'Are you sure you want to delete "${note.title}"? This cannot be undone.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  provider.deleteNote(note.id);
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
     );
   }
 }
