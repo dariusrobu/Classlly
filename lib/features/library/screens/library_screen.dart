@@ -499,10 +499,55 @@ class _AllNotesView extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Icon(
-                                  Icons.folder,
-                                  color: primaryColor,
-                                  size: 32,
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.folder,
+                                      color: primaryColor,
+                                      size: 32,
+                                    ),
+                                    PopupMenuButton<String>(
+                                      icon: const Icon(
+                                        Icons.more_vert,
+                                        size: 18,
+                                        color: Colors.grey,
+                                      ),
+                                      onSelected: (value) {
+                                        if (value == 'rename') {
+                                          _showRenameFolderDialog(
+                                            context,
+                                            libraryProvider,
+                                            folder,
+                                          );
+                                        } else if (value == 'delete') {
+                                          _showDeleteFolderDialog(
+                                            context,
+                                            libraryProvider,
+                                            folder,
+                                          );
+                                        }
+                                      },
+                                      itemBuilder:
+                                          (context) => [
+                                            const PopupMenuItem(
+                                              value: 'rename',
+                                              child: Text('Rename'),
+                                            ),
+                                            const PopupMenuItem(
+                                              value: 'delete',
+                                              child: Text(
+                                                'Delete',
+                                                style: TextStyle(
+                                                  color: Colors.red,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                    ),
+                                  ],
                                 ),
                                 Text(
                                   folder.title,
@@ -589,6 +634,78 @@ class _AllNotesView extends StatelessWidget {
                   }
                 },
                 child: const Text('Create'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _showRenameFolderDialog(
+    BuildContext context,
+    LibraryProvider provider,
+    Folder folder,
+  ) {
+    final controller = TextEditingController(text: folder.title);
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Rename Folder'),
+            content: TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                hintText: 'Folder Name',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (controller.text.isNotEmpty) {
+                    provider.renameFolder(folder, controller.text);
+                    Navigator.pop(context);
+                  }
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _showDeleteFolderDialog(
+    BuildContext context,
+    LibraryProvider provider,
+    Folder folder,
+  ) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Folder'),
+            content: Text(
+              'Are you sure you want to delete "${folder.title}"? This cannot be undone.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  provider.deleteFolder(folder.id);
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Delete'),
               ),
             ],
           ),

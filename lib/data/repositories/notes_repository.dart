@@ -131,6 +131,10 @@ class NotesRepository {
     await _folderBox.put(folder.id, folder);
   }
 
+  Future<void> deleteFolder(String id) async {
+    await _folderBox.delete(id);
+  }
+
   // --- Preferences ---
   UserPreferences getPreferences() {
     if (_prefsBox.isEmpty) {

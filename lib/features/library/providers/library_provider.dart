@@ -99,6 +99,17 @@ class LibraryProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> renameFolder(Folder folder, String newTitle) async {
+    folder.title = newTitle;
+    await _localRepository.saveFolder(folder);
+    notifyListeners();
+  }
+
+  Future<void> deleteFolder(String folderId) async {
+    await _localRepository.deleteFolder(folderId);
+    notifyListeners();
+  }
+
   void navigateToFolder(String? folderId) {
     _currentFolderId = folderId;
     notifyListeners();
