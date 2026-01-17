@@ -37,6 +37,9 @@ class LibraryScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      drawer: MediaQuery.of(context).size.width <= 1000
+          ? const Drawer(child: DashboardSidebar())
+          : null,
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -420,6 +423,17 @@ class _DashboardHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              if (MediaQuery.of(context).size.width <= 1000) {
+                return IconButton(
+                  icon: const Icon(Icons.menu),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
           const Spacer(),
           IconButton(
             onPressed: () {},

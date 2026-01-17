@@ -110,10 +110,15 @@ class DashboardSidebar extends StatelessWidget {
             icon: Icons.settings_rounded,
             label: 'Settings',
             isActive: false,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const SettingsScreen()),
-            ),
+            onTap: () {
+              if (Scaffold.maybeOf(context)?.isDrawerOpen ?? false) {
+                Navigator.pop(context);
+              }
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
           ),
           const Spacer(),
           const Padding(padding: EdgeInsets.all(24), child: UserCard()),
@@ -128,9 +133,17 @@ class DashboardSidebar extends StatelessWidget {
     LibraryView view,
   ) {
     provider.setView(view);
+
+    // If used in a drawer, close it
+    if (Scaffold.maybeOf(context)?.isDrawerOpen ?? false) {
+      Navigator.pop(context);
+    }
+
     // If we are not on the library screen (e.g. course detail), pop until we are.
     // This assumes LibraryScreen is the root of the navigation stack for these views.
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    }
   }
 }
 
@@ -208,10 +221,15 @@ class UserCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ProfileScreen()),
-      ),
+      onTap: () {
+        if (Scaffold.maybeOf(context)?.isDrawerOpen ?? false) {
+          Navigator.pop(context);
+        }
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+        );
+      },
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
