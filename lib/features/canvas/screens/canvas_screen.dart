@@ -547,20 +547,6 @@ class _CanvasScreenState extends State<CanvasScreen> {
               ],
             ),
           ),
-          const _AvatarStack(),
-          const VerticalDivider(width: 32, indent: 24, endIndent: 24),
-          TextButton.icon(
-            onPressed: () {},
-            icon: Icon(Icons.share_outlined, size: 18, color: primaryColor),
-            label: Text(
-              'Share',
-              style: TextStyle(
-                color: primaryColor,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
           const SizedBox(width: 16),
           ElevatedButton.icon(
             onPressed: () =>
@@ -992,34 +978,6 @@ class _GlassContainer extends StatelessWidget {
           child: child,
         ),
       ),
-    );
-  }
-}
-
-class _AvatarStack extends StatelessWidget {
-  const _AvatarStack();
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (var i = 0; i < 2; i++)
-          Align(
-            widthFactor: 0.6,
-            child: CircleAvatar(
-              radius: 14,
-              backgroundColor: i == 0 ? Colors.blue : Colors.teal,
-              child: Text(
-                i == 0 ? 'JD' : 'MK',
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-        const SizedBox(width: 16),
-      ],
     );
   }
 }
