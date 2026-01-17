@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:classlly/data/models/folder_model.dart';
 import 'package:classlly/data/models/note_models.dart';
 import 'package:classlly/data/models/task_model.dart';
 import 'package:classlly/data/models/course_model.dart';
@@ -370,36 +371,227 @@ class _AllNotesView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final libraryProvider = Provider.of<LibraryProvider>(context);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return ValueListenableBuilder(
-      valueListenable: Hive.box<Note>(NotesRepository.boxName).listenable(),
-      builder: (context, Box<Note> box, _) {
-        var notes = box.values.toList()
-          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      valueListenable: Hive.box<Folder>(
+        NotesRepository.folderBoxName,
+      ).listenable(),
+      builder: (context, Box<Folder> folderBox, _) {
+        return ValueListenableBuilder(
+          valueListenable: Hive.box<Note>(NotesRepository.boxName).listenable(),
+          builder: (context, Box<Note> noteBox, _) {
+            final repo = NotesRepository();
+            final currentFolderId = libraryProvider.currentFolderId;
 
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _SectionTitle(
-                title: libraryProvider.selectedTag != null
-                    ? 'Notes: ${libraryProvider.selectedTag}'
-                    : 'My Notes',
-                subtitle: '${notes.length} notes found',
+            final folders = repo.getFolders(
+              parentId: currentFolderId,
+              type: FolderType.notebook,
+            );
+            final notes = repo.getNotesInFolder(currentFolderId);
+
+            String title = 'My Notes';
+            if (currentFolderId != null) {
+              // Find current folder name (inefficient but simple for now)
+              final currentFolder = folderBox.values
+                  .where((f) => f.id == currentFolderId)
+                  .firstOrNull;
+              title = currentFolder?.title ?? 'Folder';
+            }
+
+            return Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          if (currentFolderId != null)
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back),
+                              onPressed: () {
+                                // Find parent of current folder to go back
+                                final currentFolder = folderBox.values
+                                    .where((f) => f.id == currentFolderId)
+                                    .firstOrNull;
+                                libraryProvider.navigateToFolder(
+                                  currentFolder?.parentId,
+                                );
+                              },
+                            ),
+                          _SectionTitle(
+                            title: title,
+                            subtitle:
+                                '${folders.length} folders, ${notes.length} notes',
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          _HeaderButton(
+                            icon: Icons.create_new_folder_outlined,
+                            label: 'New Folder',
+                            onPressed: () => _showCreateFolderDialog(
+                              context,
+                              libraryProvider,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          _HeaderButton(
+                            icon: Icons.note_add_outlined,
+                            label: 'New Note',
+                            onPressed: () async {
+                              final note =
+                                  await libraryProvider
+                                      .createNoteInCurrentFolder();
+                              if (context.mounted) {
+                                LibraryScreen.openNote(context, note);
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  if (folders.isNotEmpty) ...[
+                    const Text(
+                      'FOLDERS',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 200,
+                            mainAxisSpacing: 16,
+                            crossAxisSpacing: 16,
+                            childAspectRatio: 1.5,
+                          ),
+                      itemCount: folders.length,
+                      itemBuilder: (context, index) {
+                        final folder = folders[index];
+                        return GestureDetector(
+                          onTap:
+                              () => libraryProvider.navigateToFolder(folder.id),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).cardColor,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: Theme.of(
+                                  context,
+                                ).dividerColor.withValues(alpha: 0.5),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Icon(
+                                  Icons.folder,
+                                  color: primaryColor,
+                                  size: 32,
+                                ),
+                                Text(
+                                  folder.title,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                  if (notes.isNotEmpty) ...[
+                    const Text(
+                      'NOTES',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: notes.length,
+                        itemBuilder:
+                            (context, index) =>
+                                _RecentNoteItem(note: notes[index]),
+                      ),
+                    ),
+                  ] else if (folders.isEmpty)
+                    const Expanded(
+                      child: Center(
+                        child: Text(
+                          'Empty folder. Create a note or folder to get started.',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                    ),
+                ],
               ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: notes.length,
-                  itemBuilder: (context, index) =>
-                      _RecentNoteItem(note: notes[index]),
-                ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showCreateFolderDialog(
+    BuildContext context,
+    LibraryProvider provider,
+  ) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('New Folder'),
+            content: TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                hintText: 'Folder Name',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (controller.text.isNotEmpty) {
+                    provider.createFolder(controller.text);
+                    Navigator.pop(context);
+                  }
+                },
+                child: const Text('Create'),
               ),
             ],
           ),
-        );
-      },
     );
   }
 }

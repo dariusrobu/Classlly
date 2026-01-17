@@ -65,6 +65,14 @@ class NotesRepository {
     return notes..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
   }
 
+  List<Note> getNotesInFolder(String? folderId) {
+    final notes = _box.values.toList();
+    return notes
+        .where((n) => n.notebookId == folderId)
+        .toList()
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  }
+
   // --- Notebooks ---
   List<Notebook> getAllNotebooks() {
     return _notebookBox.values.toList()
