@@ -17,10 +17,10 @@ class StrokePoint extends HiveObject {
   Map<String, dynamic> toJson() => {'x': x, 'y': y, 'p': pressure};
 
   factory StrokePoint.fromJson(Map<String, dynamic> json) => StrokePoint(
-        x: (json['x'] as num).toDouble(),
-        y: (json['y'] as num).toDouble(),
-        pressure: (json['p'] as num?)?.toDouble() ?? 1.0,
-      );
+    x: (json['x'] as num).toDouble(),
+    y: (json['y'] as num).toDouble(),
+    pressure: (json['p'] as num?)?.toDouble() ?? 1.0,
+  );
 }
 
 @HiveType(typeId: 1)
@@ -42,20 +42,20 @@ class Stroke extends HiveObject {
   });
 
   Map<String, dynamic> toJson() => {
-        'points': points.map((p) => p.toJson()).toList(),
-        'color': color,
-        'width': width,
-        'createdAt': createdAt,
-      };
+    'points': points.map((p) => p.toJson()).toList(),
+    'color': color,
+    'width': width,
+    'createdAt': createdAt,
+  };
 
   factory Stroke.fromJson(Map<String, dynamic> json) => Stroke(
-        points: (json['points'] as List)
-            .map((e) => StrokePoint.fromJson(e))
-            .toList(),
-        color: json['color'] as int,
-        width: (json['width'] as num).toDouble(),
-        createdAt: json['createdAt'] as int,
-      );
+    points: (json['points'] as List)
+        .map((e) => StrokePoint.fromJson(e))
+        .toList(),
+    color: json['color'] as int,
+    width: (json['width'] as num).toDouble(),
+    createdAt: json['createdAt'] as int,
+  );
 }
 
 @HiveType(typeId: 2)
@@ -80,20 +80,20 @@ class TextBlock extends HiveObject {
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'text': text,
-        'x': x,
-        'y': y,
-        'createdAt': createdAt,
-      };
+    'id': id,
+    'text': text,
+    'x': x,
+    'y': y,
+    'createdAt': createdAt,
+  };
 
   factory TextBlock.fromJson(Map<String, dynamic> json) => TextBlock(
-        id: json['id'] as String,
-        text: json['text'] as String,
-        x: (json['x'] as num).toDouble(),
-        y: (json['y'] as num).toDouble(),
-        createdAt: json['createdAt'] as int,
-      );
+    id: json['id'] as String,
+    text: json['text'] as String,
+    x: (json['x'] as num).toDouble(),
+    y: (json['y'] as num).toDouble(),
+    createdAt: json['createdAt'] as int,
+  );
 }
 
 @HiveType(typeId: 4)
@@ -118,20 +118,20 @@ class Notebook extends HiveObject {
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'color': color,
-        'created_at': createdAt.toIso8601String(),
-        'updated_at': updatedAt.toIso8601String(),
-      };
+    'id': id,
+    'title': title,
+    'color': color,
+    'created_at': createdAt.toIso8601String(),
+    'updated_at': updatedAt.toIso8601String(),
+  };
 
   factory Notebook.fromJson(Map<String, dynamic> json) => Notebook(
-        id: json['id'] as String,
-        title: json['title'] as String,
-        color: json['color'] as int,
-        createdAt: DateTime.parse(json['created_at'] as String),
-        updatedAt: DateTime.parse(json['updated_at'] as String),
-      );
+    id: json['id'] as String,
+    title: json['title'] as String,
+    color: json['color'] as int,
+    createdAt: DateTime.parse(json['created_at'] as String),
+    updatedAt: DateTime.parse(json['updated_at'] as String),
+  );
 
   factory Notebook.create({required String title, int? color}) {
     final now = DateTime.now();
@@ -173,24 +173,24 @@ class ImageBlock extends HiveObject {
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'data': base64Data,
-        'x': x,
-        'y': y,
-        'w': width,
-        'h': height,
-        'createdAt': createdAt,
-      };
+    'id': id,
+    'data': base64Data,
+    'x': x,
+    'y': y,
+    'w': width,
+    'h': height,
+    'createdAt': createdAt,
+  };
 
   factory ImageBlock.fromJson(Map<String, dynamic> json) => ImageBlock(
-        id: json['id'] as String,
-        base64Data: json['data'] as String,
-        x: (json['x'] as num).toDouble(),
-        y: (json['y'] as num).toDouble(),
-        width: (json['w'] as num).toDouble(),
-        height: (json['h'] as num).toDouble(),
-        createdAt: json['createdAt'] as int,
-      );
+    id: json['id'] as String,
+    base64Data: json['data'] as String,
+    x: (json['x'] as num).toDouble(),
+    y: (json['y'] as num).toDouble(),
+    width: (json['w'] as num).toDouble(),
+    height: (json['h'] as num).toDouble(),
+    createdAt: json['createdAt'] as int,
+  );
 }
 
 @HiveType(typeId: 3)
@@ -215,6 +215,8 @@ class Note extends HiveObject {
   String templateType;
   @HiveField(9)
   final List<ImageBlock> images;
+  @HiveField(10)
+  List<String>? tags;
 
   Note({
     required this.id,
@@ -227,35 +229,52 @@ class Note extends HiveObject {
     this.notebookId,
     this.templateType = 'dot',
     required this.images,
+    this.tags,
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'strokes': strokes.map((s) => s.toJson()).toList(),
-        'textBlocks': textBlocks.map((t) => t.toJson()).toList(),
-        'images': images.map((i) => i.toJson()).toList(),
-        'audioPath': audioPath,
-        'created_at': createdAt.toIso8601String(),
-        'updated_at': updatedAt.toIso8601String(),
-        'notebook_id': notebookId,
-        'template_type': templateType,
-      };
+    'id': id,
+    'title': title,
+    'strokes': strokes.map((s) => s.toJson()).toList(),
+    'textBlocks': textBlocks.map((t) => t.toJson()).toList(),
+    'images': images.map((i) => i.toJson()).toList(),
+    'audioPath': audioPath,
+    'created_at': createdAt.toIso8601String(),
+    'updated_at': updatedAt.toIso8601String(),
+    'notebook_id': notebookId,
+    'template_type': templateType,
+    'tags': tags,
+  };
 
   factory Note.fromJson(Map<String, dynamic> json) => Note(
-        id: json['id'] as String,
-        title: json['title'] as String,
-        strokes: (json['strokes'] as List?)?.map((e) => Stroke.fromJson(e)).toList() ?? [],
-        textBlocks: (json['textBlocks'] as List?)?.map((e) => TextBlock.fromJson(e)).toList() ?? [],
-        images: (json['images'] as List?)?.map((e) => ImageBlock.fromJson(e)).toList() ?? [],
-        audioPath: json['audioPath'] as String?,
-        createdAt: DateTime.parse(json['created_at'] as String),
-        updatedAt: DateTime.parse(json['updated_at'] as String),
-        notebookId: json['notebook_id'] as String?,
-        templateType: json['template_type'] as String? ?? 'dot',
-      );
+    id: json['id'] as String,
+    title: json['title'] as String,
+    strokes:
+        (json['strokes'] as List?)?.map((e) => Stroke.fromJson(e)).toList() ??
+        [],
+    textBlocks:
+        (json['textBlocks'] as List?)
+            ?.map((e) => TextBlock.fromJson(e))
+            .toList() ??
+        [],
+    images:
+        (json['images'] as List?)
+            ?.map((e) => ImageBlock.fromJson(e))
+            .toList() ??
+        [],
+    audioPath: json['audioPath'] as String?,
+    createdAt: DateTime.parse(json['created_at'] as String),
+    updatedAt: DateTime.parse(json['updated_at'] as String),
+    notebookId: json['notebook_id'] as String?,
+    templateType: json['template_type'] as String? ?? 'dot',
+    tags: (json['tags'] as List?)?.map((e) => e as String).toList(),
+  );
 
-  factory Note.create({String title = 'Untitled', String? notebookId, String template = 'dot'}) {
+  factory Note.create({
+    String title = 'Untitled',
+    String? notebookId,
+    String template = 'dot',
+  }) {
     final now = DateTime.now();
     return Note(
       id: const Uuid().v4(),
@@ -267,6 +286,7 @@ class Note extends HiveObject {
       updatedAt: now,
       notebookId: notebookId,
       templateType: template,
+      tags: [],
     );
   }
 }

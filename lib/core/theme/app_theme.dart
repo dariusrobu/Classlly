@@ -23,55 +23,56 @@ class AppTheme {
     Color(0xFFF59E0B), // Amber
   ];
 
-  static ThemeData lightTheme = ThemeData(
-    useMaterial3: true,
-    brightness: Brightness.light,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: primaryPurple,
+  static ThemeData lightTheme(Color seedColor) {
+    return ThemeData(
+      useMaterial3: true,
       brightness: Brightness.light,
-      primary: primaryPurple,
-      surface: cardLight,
-      background: backgroundLight,
-      outline: borderLight,
-      surfaceVariant: inputLight,
-    ),
-    scaffoldBackgroundColor: backgroundLight,
-    cardColor: cardLight,
-    dividerColor: borderLight,
-    textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme).apply(
-      bodyColor: const Color(0xFF0F172A),
-      displayColor: const Color(0xFF0F172A),
-    ),
-    appBarTheme: const AppBarTheme(
-      backgroundColor: Colors.white,
-      foregroundColor: Color(0xFF0F172A),
-      elevation: 0,
-    ),
-  );
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: seedColor,
+        brightness: Brightness.light,
+        primary: seedColor,
+        surface: cardLight,
+        outline: borderLight,
+        surfaceContainerHighest: inputLight,
+      ),
+      scaffoldBackgroundColor: backgroundLight,
+      cardColor: cardLight,
+      dividerColor: borderLight,
+      textTheme: GoogleFonts.interTextTheme(
+        ThemeData.light().textTheme,
+      ).apply(bodyColor: Colors.black, displayColor: Colors.black),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+      ),
+    );
+  }
 
-  static ThemeData darkTheme = ThemeData(
-    useMaterial3: true,
-    brightness: Brightness.dark,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: primaryPurple,
+  static ThemeData darkTheme(Color seedColor) {
+    return ThemeData(
+      useMaterial3: true,
       brightness: Brightness.dark,
-      primary: primaryPurple,
-      surface: cardDark,
-      background: backgroundDark,
-      outline: borderDark,
-      surfaceVariant: borderDark,
-    ),
-    scaffoldBackgroundColor: backgroundDark,
-    cardColor: cardDark,
-    dividerColor: borderDark,
-    textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).apply(
-      bodyColor: const Color(0xFFF1F5F9),
-      displayColor: const Color(0xFFF1F5F9),
-    ),
-    appBarTheme: const AppBarTheme(
-      backgroundColor: backgroundDark,
-      foregroundColor: Colors.white,
-      elevation: 0,
-    ),
-  );
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: seedColor,
+        brightness: Brightness.dark,
+        primary: seedColor,
+        surface: cardDark,
+        outline: borderDark,
+        surfaceContainerHighest: borderDark,
+      ),
+      scaffoldBackgroundColor: backgroundDark,
+      cardColor: cardDark,
+      dividerColor: borderDark,
+      textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).apply(
+        bodyColor: const Color(0xFFF1F5F9),
+        displayColor: const Color(0xFFF1F5F9),
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: backgroundDark,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+    );
+  }
 }

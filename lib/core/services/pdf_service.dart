@@ -34,10 +34,11 @@ class PdfService {
                 pathData.write(
                   'M ${outlinePoints[0].x} ${outlinePoints[0].y} ',
                 );
-                for (var i = 1; i < outlinePoints.length; i++)
+                for (var i = 1; i < outlinePoints.length; i++) {
                   pathData.write(
                     'L ${outlinePoints[i].x} ${outlinePoints[i].y} ',
                   );
+                }
                 pathData.write('Z');
                 final colorHex = stroke.color
                     .toRadixString(16)
@@ -51,7 +52,7 @@ class PdfService {
                         '<svg width="1000" height="1000"><path d="${pathData.toString()}" fill="#$colorHex" /></svg>',
                   ),
                 );
-              }).toList(),
+              }),
               ...note.textBlocks.map((block) {
                 return pw.Positioned(
                   left: block.x,
@@ -61,7 +62,7 @@ class PdfService {
                     style: const pw.TextStyle(fontSize: 14),
                   ),
                 );
-              }).toList(),
+              }),
             ],
           );
         },

@@ -8,13 +8,32 @@ import 'package:classlly/core/utils/geometry_utils.dart';
 import 'package:classlly/core/theme/app_theme.dart';
 import 'package:classlly/features/audio/providers/audio_provider.dart';
 
-enum CanvasTool { pen, eraser, text, select, hand, highlighter, brush, monoline, fountain, reed, watercolor, pencil, marker, image }
+enum CanvasTool {
+  pen,
+  eraser,
+  text,
+  select,
+  hand,
+  highlighter,
+  brush,
+  monoline,
+  fountain,
+  reed,
+  watercolor,
+  pencil,
+  marker,
+  image,
+}
 
 class NoteStateSnapshot {
   final List<Stroke> strokes;
   final List<TextBlock> textBlocks;
   final List<ImageBlock> images;
-  NoteStateSnapshot({required this.strokes, required this.textBlocks, required this.images});
+  NoteStateSnapshot({
+    required this.strokes,
+    required this.textBlocks,
+    required this.images,
+  });
 }
 
 class CanvasProvider with ChangeNotifier {
@@ -68,11 +87,13 @@ class CanvasProvider with ChangeNotifier {
 
   void _takeSnapshot() {
     if (_currentNote == null) return;
-    _undoStack.add(NoteStateSnapshot(
-      strokes: List.from(_currentNote!.strokes),
-      textBlocks: List.from(_currentNote!.textBlocks),
-      images: List.from(_currentNote!.images),
-    ));
+    _undoStack.add(
+      NoteStateSnapshot(
+        strokes: List.from(_currentNote!.strokes),
+        textBlocks: List.from(_currentNote!.textBlocks),
+        images: List.from(_currentNote!.images),
+      ),
+    );
     _redoStack.clear();
     if (_undoStack.length > 50) _undoStack.removeAt(0);
     notifyListeners();
@@ -80,11 +101,13 @@ class CanvasProvider with ChangeNotifier {
 
   void undo() {
     if (!canUndo || _currentNote == null) return;
-    _redoStack.add(NoteStateSnapshot(
-      strokes: List.from(_currentNote!.strokes),
-      textBlocks: List.from(_currentNote!.textBlocks),
-      images: List.from(_currentNote!.images),
-    ));
+    _redoStack.add(
+      NoteStateSnapshot(
+        strokes: List.from(_currentNote!.strokes),
+        textBlocks: List.from(_currentNote!.textBlocks),
+        images: List.from(_currentNote!.images),
+      ),
+    );
     final snapshot = _undoStack.removeLast();
     _currentNote!.strokes.clear();
     _currentNote!.strokes.addAll(snapshot.strokes);
@@ -98,11 +121,13 @@ class CanvasProvider with ChangeNotifier {
 
   void redo() {
     if (!canRedo || _currentNote == null) return;
-    _undoStack.add(NoteStateSnapshot(
-      strokes: List.from(_currentNote!.strokes),
-      textBlocks: List.from(_currentNote!.textBlocks),
-      images: List.from(_currentNote!.images),
-    ));
+    _undoStack.add(
+      NoteStateSnapshot(
+        strokes: List.from(_currentNote!.strokes),
+        textBlocks: List.from(_currentNote!.textBlocks),
+        images: List.from(_currentNote!.images),
+      ),
+    );
     final snapshot = _redoStack.removeLast();
     _currentNote!.strokes.clear();
     _currentNote!.strokes.addAll(snapshot.strokes);
@@ -125,7 +150,11 @@ class CanvasProvider with ChangeNotifier {
   }
 
   void startResize(Offset position) {
-    if (_selectedStrokes.isEmpty && _selectedTextBlocks.isEmpty && _selectedImages.isEmpty) return;
+    if (_selectedStrokes.isEmpty &&
+        _selectedTextBlocks.isEmpty &&
+        _selectedImages.isEmpty) {
+      return;
+    }
     final rect = _calculateSelectionBounds();
     if (rect == null) return;
     _selectionRect = rect.inflate(10);
@@ -150,28 +179,45 @@ class CanvasProvider with ChangeNotifier {
 
     Offset pivot;
     Offset oldCorner;
-    
+
     switch (_activeResizeHandle) {
-      case 'tl': pivot = _selectionRect!.bottomRight; oldCorner = _selectionRect!.topLeft; break;
-      case 'tr': pivot = _selectionRect!.bottomLeft; oldCorner = _selectionRect!.topRight; break;
-      case 'bl': pivot = _selectionRect!.topRight; oldCorner = _selectionRect!.bottomLeft; break;
-      case 'br': pivot = _selectionRect!.topLeft; oldCorner = _selectionRect!.bottomRight; break;
-      default: return;
+      case 'tl':
+        pivot = _selectionRect!.bottomRight;
+        oldCorner = _selectionRect!.topLeft;
+        break;
+      case 'tr':
+        pivot = _selectionRect!.bottomLeft;
+        oldCorner = _selectionRect!.topRight;
+        break;
+      case 'bl':
+        pivot = _selectionRect!.topRight;
+        oldCorner = _selectionRect!.bottomLeft;
+        break;
+      case 'br':
+        pivot = _selectionRect!.topLeft;
+        oldCorner = _selectionRect!.bottomRight;
+        break;
+      default:
+        return;
     }
 
     double scaleX = (position.dx - pivot.dx) / (oldCorner.dx - pivot.dx);
     double scaleY = (position.dy - pivot.dy) / (oldCorner.dy - pivot.dy);
-    
+
     if (scaleX.abs() < 0.1) scaleX = 0.1;
     if (scaleY.abs() < 0.1) scaleY = 0.1;
 
     for (var stroke in _selectedStrokes) {
-      final newPoints = stroke.points.map((p) => StrokePoint(
-        x: pivot.dx + (p.x - pivot.dx) * scaleX,
-        y: pivot.dy + (p.y - pivot.dy) * scaleY,
-        pressure: p.pressure,
-      )).toList();
-      
+      final newPoints = stroke.points
+          .map(
+            (p) => StrokePoint(
+              x: pivot.dx + (p.x - pivot.dx) * scaleX,
+              y: pivot.dy + (p.y - pivot.dy) * scaleY,
+              pressure: p.pressure,
+            ),
+          )
+          .toList();
+
       final index = _currentNote!.strokes.indexOf(stroke);
       if (index != -1) {
         _currentNote!.strokes[index] = Stroke(
@@ -180,7 +226,8 @@ class CanvasProvider with ChangeNotifier {
           width: stroke.width * (scaleX + scaleY) / 2,
           createdAt: stroke.createdAt,
         );
-        _selectedStrokes[_selectedStrokes.indexOf(stroke)] = _currentNote!.strokes[index];
+        _selectedStrokes[_selectedStrokes.indexOf(stroke)] =
+            _currentNote!.strokes[index];
       }
     }
 
@@ -190,7 +237,7 @@ class CanvasProvider with ChangeNotifier {
       img.x = pivot.dx + (img.x - pivot.dx) * scaleX;
       img.y = pivot.dy + (img.y - pivot.dy) * scaleY;
     }
-    
+
     _selectionRect = _calculateSelectionBounds()?.inflate(10);
     notifyListeners();
   }
@@ -214,7 +261,7 @@ class CanvasProvider with ChangeNotifier {
       if (img.y < minY) minY = img.y;
       if (img.y + img.height > maxY) maxY = img.y + img.height;
     }
-    
+
     if (minX == double.infinity) return null;
     return Rect.fromLTRB(minX, minY, maxX, maxY);
   }
@@ -276,25 +323,33 @@ class CanvasProvider with ChangeNotifier {
       CanvasTool.pencil,
       CanvasTool.marker,
       CanvasTool.highlighter,
-      CanvasTool.brush
+      CanvasTool.brush,
     ].contains(tool);
   }
 
   void startStroke(Offset offset, double pressure, {int? timestamp}) {
     if (_currentNote == null) return;
     if (_isPenType(_activeTool)) {
-      _activePoints = [StrokePoint(x: offset.dx, y: offset.dy, pressure: pressure)];
+      _activePoints = [
+        StrokePoint(x: offset.dx, y: offset.dy, pressure: pressure),
+      ];
     }
   }
 
   void updateStroke(Offset offset, double pressure) {
     if (_currentNote == null || !_isPenType(_activeTool)) return;
-    _activePoints.add(StrokePoint(x: offset.dx, y: offset.dy, pressure: pressure));
+    _activePoints.add(
+      StrokePoint(x: offset.dx, y: offset.dy, pressure: pressure),
+    );
     notifyListeners();
   }
 
   void endStroke({int? timestamp, List<StrokePoint>? forcedPoints}) {
-    if (_currentNote == null || !_isPenType(_activeTool) || _activePoints.isEmpty) return;
+    if (_currentNote == null ||
+        !_isPenType(_activeTool) ||
+        _activePoints.isEmpty) {
+      return;
+    }
 
     if (forcedPoints == null && _checkForGestures(_activePoints)) {
       _activePoints = [];
@@ -305,20 +360,20 @@ class CanvasProvider with ChangeNotifier {
     _takeSnapshot();
 
     List<StrokePoint> pointsToSave = forcedPoints ?? List.from(_activePoints);
-    
+
     Color strokeColor = _currentColor;
     double strokeWidth = _currentWidth;
 
     if (_activeTool == CanvasTool.highlighter) {
-      strokeColor = _currentColor.withOpacity(0.3 * _currentOpacity);
+      strokeColor = _currentColor.withValues(alpha: 0.3 * _currentOpacity);
       strokeWidth = _currentWidth * 4;
     } else {
-      strokeColor = _currentColor.withOpacity(_currentOpacity);
+      strokeColor = _currentColor.withValues(alpha: _currentOpacity);
     }
 
     final stroke = Stroke(
       points: pointsToSave,
-      color: strokeColor.value,
+      color: strokeColor.toARGB32(),
       width: strokeWidth,
       createdAt: timestamp ?? DateTime.now().millisecondsSinceEpoch,
     );
@@ -338,7 +393,10 @@ class CanvasProvider with ChangeNotifier {
       for (var stroke in _currentNote!.strokes) {
         if (stroke.points.isNotEmpty) {
           final center = stroke.points[stroke.points.length ~/ 2];
-          if (GeometryUtils.isPointInPolygon(Offset(center.x, center.y), points)) {
+          if (GeometryUtils.isPointInPolygon(
+            Offset(center.x, center.y),
+            points,
+          )) {
             insideStrokes.add(stroke);
           }
         }
@@ -351,12 +409,17 @@ class CanvasProvider with ChangeNotifier {
       }
 
       for (var img in _currentNote!.images) {
-        if (GeometryUtils.isPointInPolygon(Offset(img.x + img.width/2, img.y + img.height/2), points)) {
+        if (GeometryUtils.isPointInPolygon(
+          Offset(img.x + img.width / 2, img.y + img.height / 2),
+          points,
+        )) {
           insideImages.add(img);
         }
       }
 
-      if (insideStrokes.isNotEmpty || insideBlocks.isNotEmpty || insideImages.isNotEmpty) {
+      if (insideStrokes.isNotEmpty ||
+          insideBlocks.isNotEmpty ||
+          insideImages.isNotEmpty) {
         _takeSnapshot();
         _selectedStrokes = insideStrokes;
         _selectedTextBlocks = insideBlocks;
@@ -411,7 +474,7 @@ class CanvasProvider with ChangeNotifier {
 
   void eraseAt(Offset offset) {
     if (_currentNote == null || _activeTool != CanvasTool.eraser) return;
-    
+
     bool erased = false;
     _currentNote!.strokes.removeWhere((stroke) {
       for (var point in stroke.points) {
@@ -423,7 +486,7 @@ class CanvasProvider with ChangeNotifier {
       }
       return false;
     });
-    
+
     _currentNote!.textBlocks.removeWhere((block) {
       if ((Offset(block.x, block.y) - offset).distance < 30.0) {
         if (!erased) _takeSnapshot();
@@ -517,18 +580,39 @@ class CanvasProvider with ChangeNotifier {
   void moveSelection(Offset delta) {
     if (_currentNote == null) return;
     for (var stroke in _selectedStrokes) {
-      final newPoints = stroke.points.map((p) => StrokePoint(x: p.x + delta.dx, y: p.y + delta.dy, pressure: p.pressure)).toList();
+      final newPoints = stroke.points
+          .map(
+            (p) => StrokePoint(
+              x: p.x + delta.dx,
+              y: p.y + delta.dy,
+              pressure: p.pressure,
+            ),
+          )
+          .toList();
       final index = _currentNote!.strokes.indexOf(stroke);
       if (index != -1) {
-        _currentNote!.strokes[index] = Stroke(points: newPoints, color: stroke.color, width: stroke.width, createdAt: stroke.createdAt);
-        _selectedStrokes[_selectedStrokes.indexOf(stroke)] = _currentNote!.strokes[index];
+        _currentNote!.strokes[index] = Stroke(
+          points: newPoints,
+          color: stroke.color,
+          width: stroke.width,
+          createdAt: stroke.createdAt,
+        );
+        _selectedStrokes[_selectedStrokes.indexOf(stroke)] =
+            _currentNote!.strokes[index];
       }
     }
     for (var block in _selectedTextBlocks) {
       final index = _currentNote!.textBlocks.indexOf(block);
       if (index != -1) {
-        _currentNote!.textBlocks[index] = TextBlock(id: block.id, text: block.text, x: block.x + delta.dx, y: block.y + delta.dy, createdAt: block.createdAt);
-        _selectedTextBlocks[_selectedTextBlocks.indexOf(block)] = _currentNote!.textBlocks[index];
+        _currentNote!.textBlocks[index] = TextBlock(
+          id: block.id,
+          text: block.text,
+          x: block.x + delta.dx,
+          y: block.y + delta.dy,
+          createdAt: block.createdAt,
+        );
+        _selectedTextBlocks[_selectedTextBlocks.indexOf(block)] =
+            _currentNote!.textBlocks[index];
       }
     }
     for (var img in _selectedImages) {
@@ -540,7 +624,7 @@ class CanvasProvider with ChangeNotifier {
 
   void selectItemAt(Offset position, AudioProvider audioProvider) {
     if (_currentNote == null) return;
-    
+
     // Images first
     for (var img in _currentNote!.images) {
       final rect = Rect.fromLTWH(img.x, img.y, img.width, img.height);

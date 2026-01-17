@@ -9,7 +9,7 @@ import 'package:classlly/features/canvas/providers/canvas_provider.dart';
 import 'package:classlly/features/audio/providers/audio_provider.dart';
 import 'package:classlly/features/library/screens/library_screen.dart';
 import 'package:classlly/features/library/providers/library_provider.dart';
-import 'package:classlly/features/auth/screens/auth_screen.dart';
+import 'package:classlly/features/auth/screens/onboarding_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,7 +46,20 @@ void main() async {
 
 class ThemeProvider with ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
+  Color _accentColor = AppTheme.primaryPurple;
+
   ThemeMode get themeMode => _themeMode;
+  Color get accentColor => _accentColor;
+
+  void setThemeMode(ThemeMode mode) {
+    _themeMode = mode;
+    notifyListeners();
+  }
+
+  void setAccentColor(Color color) {
+    _accentColor = color;
+    notifyListeners();
+  }
 
   void toggleTheme(bool isDark) {
     _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
@@ -64,12 +77,12 @@ class ClassllyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Classlly',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme(themeProvider.accentColor),
+      darkTheme: AppTheme.darkTheme(themeProvider.accentColor),
       themeMode: themeProvider.themeMode,
-      home: Supabase.instance.client.auth.currentUser != null
-          ? const LibraryScreen()
-          : const AuthScreen(),
+      home: Supabase.instance.client.auth.currentUser == null
+          ? const OnboardingScreen()
+          : const LibraryScreen(),
     );
   }
 }

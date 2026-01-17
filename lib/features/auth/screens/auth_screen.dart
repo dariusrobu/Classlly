@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:classlly/core/theme/app_theme.dart';
 import 'package:classlly/features/library/screens/library_screen.dart';
 import 'package:classlly/features/library/providers/library_provider.dart';
 import 'package:provider/provider.dart';
@@ -66,12 +65,12 @@ class _AuthScreenState extends State<AuthScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
+              Text(
                 'Classlly',
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryPurple,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
               const SizedBox(height: 48),
@@ -101,7 +100,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     ElevatedButton(
                       onPressed: _submit,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryPurple,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         foregroundColor: Colors.white,
                         minimumSize: const Size(double.infinity, 48),
                       ),
