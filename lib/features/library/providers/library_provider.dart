@@ -84,11 +84,11 @@ class LibraryProvider with ChangeNotifier {
         'time': '02:00 PM',
         'color': const Color(0xFFEF4444), // Red
         'frequency': 'Weekly',
-        'seminarProf': '',
-        'seminarLoc': '',
-        'seminarDay': '',
-        'seminarTime': '',
-        'seminarFreq': '',
+        'seminarProf': 'T.A. Gottfried Leibniz',
+        'seminarLoc': 'Room 301',
+        'seminarDay': 'Thursday',
+        'seminarTime': '04:00 PM',
+        'seminarFreq': 'Weekly',
       },
       {
         'title': 'Physics: Mechanics',
@@ -112,11 +112,11 @@ class LibraryProvider with ChangeNotifier {
         'time': '11:00 AM',
         'color': const Color(0xFFF59E0B), // Amber
         'frequency': 'Weekly',
-        'seminarProf': '',
-        'seminarLoc': '',
-        'seminarDay': '',
-        'seminarTime': '',
-        'seminarFreq': '',
+        'seminarProf': 'T.A. Jane Austen',
+        'seminarLoc': 'Reading Room',
+        'seminarDay': 'Monday',
+        'seminarTime': '01:00 PM',
+        'seminarFreq': 'Weekly',
       },
       {
         'title': 'World History',
@@ -126,11 +126,11 @@ class LibraryProvider with ChangeNotifier {
         'time': '01:00 PM',
         'color': const Color(0xFF8B5CF6), // Purple
         'frequency': 'Weekly',
-        'seminarProf': '',
-        'seminarLoc': '',
-        'seminarDay': '',
-        'seminarTime': '',
-        'seminarFreq': '',
+        'seminarProf': 'T.A. Cleopatra',
+        'seminarLoc': 'History Annex',
+        'seminarDay': 'Tuesday',
+        'seminarTime': '09:00 AM',
+        'seminarFreq': 'Bi-Weekly (even)',
       },
     ];
 
