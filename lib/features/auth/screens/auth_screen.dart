@@ -224,12 +224,20 @@ class _AuthScreenState extends State<AuthScreen> {
                       ],
                       const SizedBox(height: 24),
                       TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (_) => const LibraryScreen(),
-                            ),
-                          );
+                        onPressed: () async {
+                          final libraryProvider = Provider.of<LibraryProvider>(context, listen: false);
+                          // Create demo profile if it's a fresh guest session
+                          if (libraryProvider.courses.isEmpty && libraryProvider.tasks.isEmpty) {
+                             await libraryProvider.createDemoProfile();
+                          }
+
+                          if (context.mounted) {
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(
+                                builder: (_) => const LibraryScreen(),
+                              ),
+                            );
+                          }
                         },
                         child: const Text('Continue as Guest (Offline)'),
                       ),

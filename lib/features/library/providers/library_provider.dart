@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:classlly/data/repositories/supabase_repository.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
@@ -6,6 +7,8 @@ import 'package:classlly/data/models/task_model.dart';
 import 'package:classlly/data/models/folder_model.dart';
 import 'package:classlly/data/models/note_models.dart';
 import 'package:classlly/data/models/course_model.dart';
+import 'package:classlly/data/models/grade_model.dart';
+import 'package:classlly/data/models/attendance_model.dart';
 import 'package:intl/intl.dart';
 import 'package:classlly/core/services/notification_service.dart';
 
@@ -52,6 +55,141 @@ class LibraryProvider with ChangeNotifier {
     if (tasks.isEmpty) {
       _seedInitialData();
     }
+  }
+
+  Future<void> createDemoProfile() async {
+    final random = Random();
+    
+    // 1. Create 5 Courses
+    final coursesData = [
+      {
+        'title': 'Computer Science 101',
+        'professor': 'Dr. Alan Turing',
+        'location': 'Lab 3B',
+        'day': 'Monday',
+        'time': '10:00 AM',
+        'color': const Color(0xFF3B82F6), // Blue
+      },
+      {
+        'title': 'Calculus II',
+        'professor': 'Prof. Isaac Newton',
+        'location': 'Room 204',
+        'day': 'Tuesday',
+        'time': '02:00 PM',
+        'color': const Color(0xFFEF4444), // Red
+      },
+      {
+        'title': 'Physics: Mechanics',
+        'professor': 'Dr. Marie Curie',
+        'location': 'Hall A',
+        'day': 'Wednesday',
+        'time': '09:00 AM',
+        'color': const Color(0xFF10B981), // Green
+      },
+      {
+        'title': 'English Literature',
+        'professor': 'Prof. Shakespeare',
+        'location': 'Library 1',
+        'day': 'Thursday',
+        'time': '11:00 AM',
+        'color': const Color(0xFFF59E0B), // Amber
+      },
+      {
+        'title': 'World History',
+        'professor': 'Dr. Herodotus',
+        'location': 'Room 105',
+        'day': 'Friday',
+        'time': '01:00 PM',
+        'color': const Color(0xFF8B5CF6), // Purple
+      },
+    ];
+
+    final createdCourses = <Course>[];
+
+    for (var data in coursesData) {
+      final course = Course.create(
+        title: data['title'] as String,
+        professor: data['professor'] as String,
+        location: data['location'] as String,
+        courseDay: data['day'] as String,
+        courseTime: data['time'] as String,
+        color: data['color'] as Color,
+      );
+      await _localRepository.saveCourse(course);
+      createdCourses.add(course);
+    }
+
+    // 2. Create 50+ Attendance Records
+    // Distribute randomly across last 10 weeks for each course
+    for (var course in createdCourses) {
+      for (int i = 0; i < 12; i++) { // 12 weeks back
+        // 80% chance of being present, 10% absent, 10% excused
+        final r = random.nextDouble();
+        AttendanceStatus status;
+        if (r < 0.8) {
+          status = AttendanceStatus.present;
+        } else if (r < 0.9) {
+          status = AttendanceStatus.absent;
+        } else {
+          status = AttendanceStatus.excused;
+        }
+
+        final date = DateTime.now().subtract(Duration(days: i * 7));
+        final attendance = Attendance.create(
+          courseId: course.id,
+          date: date,
+          status: status,
+        );
+        await _localRepository.saveAttendance(attendance);
+      }
+    }
+
+    // 3. Create 25 Grades
+    final assignmentTypes = ['Quiz', 'Homework', 'Lab Report', 'Midterm', 'Project'];
+    
+    for (var course in createdCourses) {
+      for (int i = 0; i < 5; i++) { // 5 grades per course
+        final type = assignmentTypes[i];
+        final score = 60 + random.nextInt(41); // Score between 60 and 100
+        
+        final grade = Grade.create(
+          courseId: course.id,
+          title: '$type ${i + 1}',
+          score: score.toDouble(),
+          maxScore: 100,
+          weight: (i == 3 || i == 4) ? 30 : 10, // Midterm/Project worth more
+          date: DateTime.now().subtract(Duration(days: random.nextInt(60))),
+        );
+        await _localRepository.saveGrade(grade);
+      }
+    }
+
+    // 4. Create some tasks
+    await _localRepository.saveTask(
+      Task.create(
+        title: 'Review Calculus Notes',
+        dueDate: DateTime.now().add(const Duration(days: 1)),
+        category: 'Math',
+        priority: 2,
+      ),
+    );
+    await _localRepository.saveTask(
+      Task.create(
+        title: 'Physics Lab Report',
+        dueDate: DateTime.now().add(const Duration(days: 3)),
+        category: 'Science',
+        priority: 1,
+      ),
+    );
+    await _localRepository.saveTask(
+      Task.create(
+        title: 'Read History Chapter 5',
+        dueDate: DateTime.now().add(const Duration(days: 4)),
+        category: 'History',
+      ),
+    );
+
+    notifyListeners();
   }
 
   void _seedInitialData() async {
