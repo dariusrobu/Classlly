@@ -3,6 +3,7 @@ import 'package:classlly/data/models/student_profile_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/features/library/screens/library_screen.dart';
 import 'package:classlly/features/library/providers/library_provider.dart';
+import 'package:classlly/features/library/providers/academic_calendar_provider.dart';
 import 'package:provider/provider.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
@@ -19,6 +20,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _studentIdController = TextEditingController();
   String _selectedYear = 'Year 1';
   bool _isLoading = false;
+  List<dynamic> _availableTemplates = [];
 
   final List<String> _years = [
     'Year 1',
@@ -29,6 +31,22 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     'PhD',
     'Other'
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTemplates();
+  }
+
+  Future<void> _loadTemplates() async {
+    final provider = Provider.of<AcademicCalendarProvider>(context, listen: false);
+    final templates = await provider.getAvailableTemplates();
+    if (mounted) {
+      setState(() {
+        _availableTemplates = templates;
+      });
+    }
+  }
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
@@ -45,7 +63,19 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       final repo = NotesRepository();
       await repo.saveStudentProfile(profile);
 
+      // Auto-load academic calendar if a template matches the selected university
       if (mounted) {
+        final selectedUni = _universityController.text.trim();
+        final template = _availableTemplates.firstWhere(
+          (t) => t['universityName'] == selectedUni,
+          orElse: () => null,
+        );
+
+        if (template != null) {
+          await Provider.of<AcademicCalendarProvider>(context, listen: false)
+              .loadTemplate(template);
+        }
+
         Provider.of<LibraryProvider>(context, listen: false).initSync();
         // Navigate to LibraryScreen, removing all previous routes (Auth, SignUp, Setup)
         Navigator.of(context).pushAndRemoveUntil(
@@ -112,16 +142,54 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       style: TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                     const SizedBox(height: 32),
-                    TextFormField(
-                      controller: _universityController,
-                      decoration: InputDecoration(
-                        labelText: 'University / Institution',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        prefixIcon: const Icon(Icons.school_outlined),
-                      ),
-                      validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        return Autocomplete<String>(
+                          optionsBuilder: (TextEditingValue textEditingValue) {
+                            if (textEditingValue.text == '') {
+                              return _availableTemplates.map((t) => t['universityName'] as String);
+                            }
+                            return _availableTemplates
+                                .map((t) => t['universityName'] as String)
+                                .where((String option) {
+                              return option.toLowerCase().contains(
+                                    textEditingValue.text.toLowerCase(),
+                                  );
+                            });
+                          },
+                          onSelected: (String selection) {
+                            _universityController.text = selection;
+                          },
+                          fieldViewBuilder: (
+                            BuildContext context,
+                            TextEditingController fieldTextEditingController,
+                            FocusNode fieldFocusNode,
+                            VoidCallback onFieldSubmitted,
+                          ) {
+                            // Sync the external controller with the autocomplete one
+                            if (fieldTextEditingController.text != _universityController.text) {
+                                fieldTextEditingController.text = _universityController.text;
+                            }
+                            // Listen to changes to update our controller
+                            fieldTextEditingController.addListener(() {
+                                _universityController.text = fieldTextEditingController.text;
+                            });
+
+                            return TextFormField(
+                              controller: fieldTextEditingController,
+                              focusNode: fieldFocusNode,
+                              decoration: InputDecoration(
+                                labelText: 'University / Institution',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                prefixIcon: const Icon(Icons.school_outlined),
+                              ),
+                              validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                            );
+                          },
+                        );
+                      }
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
