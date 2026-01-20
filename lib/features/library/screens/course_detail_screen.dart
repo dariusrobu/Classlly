@@ -74,6 +74,124 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
     );
   }
 
+  void _showGradeHistory(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => ValueListenableBuilder(
+        valueListenable: Hive.box<Grade>(NotesRepository.gradeBoxName).listenable(),
+        builder: (context, Box<Grade> box, _) {
+          final grades = box.values
+              .where((g) => g.courseId == widget.course.id)
+              .toList()
+            ..sort((a, b) => b.date.compareTo(a.date));
+
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'Grade History',
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: grades.isEmpty
+                    ? const Center(child: Text('No grades recorded'))
+                    : ListView.builder(
+                        itemCount: grades.length,
+                        itemBuilder: (context, index) {
+                          final grade = grades[index];
+                          return ListTile(
+                            title: Text(grade.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                            subtitle: Text('${DateFormat.yMMMd().format(grade.date)} • Weight: ${(grade.weight * 100).toInt()}%'),
+                            trailing: Text(
+                              '${grade.score}/${grade.maxScore}',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showAttendanceHistory(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => ValueListenableBuilder(
+        valueListenable: Hive.box<Attendance>(NotesRepository.attendanceBoxName).listenable(),
+        builder: (context, Box<Attendance> box, _) {
+          final records = box.values
+              .where((r) => r.courseId == widget.course.id)
+              .toList()
+            ..sort((a, b) => b.date.compareTo(a.date));
+
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'Attendance History',
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: records.isEmpty
+                    ? const Center(child: Text('No attendance records'))
+                    : ListView.builder(
+                        itemCount: records.length,
+                        itemBuilder: (context, index) {
+                          final record = records[index];
+                          final isPresent = record.status == AttendanceStatus.present;
+                          final isExcused = record.status == AttendanceStatus.excused;
+                          final color = isPresent ? Colors.green : (isExcused ? Colors.orange : Colors.red);
+                          return ListTile(
+                            leading: Icon(
+                              isPresent ? Icons.check_circle : (isExcused ? Icons.info : Icons.cancel),
+                              color: color,
+                            ),
+                            title: Text(DateFormat.yMMMd().format(record.date)),
+                            subtitle: Text(DateFormat.jm().format(record.date)),
+                            trailing: Text(
+                              record.status.name.toUpperCase(),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: color,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -633,6 +751,17 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                       fontSize: 12,
                     ),
                   ),
+                  InkWell(
+                    onTap: () => _showGradeHistory(context),
+                    child: Text(
+                      'View All',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: primaryColor,
+                      ),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -682,13 +811,29 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Attendance History',
-                style: TextStyle(
-                  color: isDark ? Colors.grey[400] : Colors.grey[600],
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Attendance History',
+                    style: TextStyle(
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () => _showAttendanceHistory(context),
+                    child: Text(
+                      'View All',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: primaryColor,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const Spacer(),
               if (records.isEmpty)
