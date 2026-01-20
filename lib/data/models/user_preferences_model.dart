@@ -14,6 +14,8 @@ class UserPreferences extends HiveObject {
   bool highContrast;
   @HiveField(4)
   bool syncEnabled;
+  @HiveField(5, defaultValue: [])
+  List<int> savedColors;
 
   UserPreferences({
     this.themeMode = 'system',
@@ -21,5 +23,6 @@ class UserPreferences extends HiveObject {
     this.fontSize = 16.0,
     this.highContrast = false,
     this.syncEnabled = false,
+    this.savedColors = const [],
   });
 }

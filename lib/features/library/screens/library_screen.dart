@@ -19,6 +19,9 @@ import 'package:classlly/features/library/widgets/dashboard_sidebar.dart';
 import 'package:classlly/features/library/screens/add_task_screen.dart';
 import 'package:classlly/features/library/screens/add_course_screen.dart';
 import 'package:classlly/features/library/screens/tasks_screen.dart';
+import 'package:classlly/features/library/screens/calendar_screen.dart';
+
+import 'package:classlly/features/library/widgets/empty_state.dart';
 
 class LibraryScreen extends StatelessWidget {
   const LibraryScreen({super.key});
@@ -87,11 +90,11 @@ class _MainContentSwitch extends StatelessWidget {
       case LibraryView.courses:
         return const _CoursesView();
       case LibraryView.calendar:
-        return const _CalendarView();
+        return const CalendarScreen();
       case LibraryView.archive:
         return const _ArchiveView();
       case LibraryView.allNotes:
-        return const _AllNotesView();
+        return _AllNotesView();
     }
   }
 }
@@ -101,8 +104,14 @@ class _DashboardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final width = MediaQuery.of(context).size.width;
+    final horizontalPadding = width > 600 ? 48.0 : 20.0;
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
+      padding: EdgeInsets.symmetric(
+        horizontal: horizontalPadding,
+        vertical: 40,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -134,15 +143,9 @@ class _DashboardView extends StatelessWidget {
           ),
           const SizedBox(height: 48),
 
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const _SectionTitle(
-                title: 'Dashboard Overview',
-                subtitle: 'Track your progress and stay organized.',
-              ),
-              _IconButton(icon: Icons.filter_list, onPressed: () {}),
-            ],
+          const _SectionTitle(
+            title: 'Dashboard Overview',
+            subtitle: 'Track your progress and stay organized.',
           ),
           const SizedBox(height: 24),
           const _DashboardStatsGrid(),
@@ -171,63 +174,102 @@ class _ArchiveView extends StatelessWidget {
   const _ArchiveView();
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
+    final provider = Provider.of<LibraryProvider>(context);
+    final deletedNotes = provider.deletedNotes;
+    final deletedTasks = provider.deletedTasks;
+    final deletedFolders = provider.deletedFolders;
+
+    final isEmpty = deletedNotes.isEmpty && deletedTasks.isEmpty && deletedFolders.isEmpty;
+
+    if (isEmpty) {
+      return const EmptyState(
+        icon: Icons.delete_outline,
+        title: 'Trash is empty',
+        subtitle: 'Deleted notes and tasks will appear here for 30 days before being permanently removed.',
+      );
+    }
+
+    return ListView(
       padding: const EdgeInsets.all(32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const _SectionTitle(
-                title: 'Archived Items',
-                subtitle: 'View your past courses and notes.',
-              ),
-              _IconButton(icon: Icons.filter_list, onPressed: () {}),
-            ],
-          ),
+      children: [
+        const _SectionTitle(
+          title: 'Trash',
+          subtitle: 'Items here will be permanently deleted when you empty the trash.',
+        ),
+        const SizedBox(height: 32),
+        if (deletedFolders.isNotEmpty) ...[
+          const Text('Folders', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          ...deletedFolders.map((f) => _ArchiveTile(
+                title: f.title,
+                icon: Icons.folder,
+                onRestore: () => provider.restoreFolder(f.id),
+                onDelete: () => provider.permanentlyDeleteFolder(f.id),
+              )),
           const SizedBox(height: 32),
-          GridView.count(
-            crossAxisCount: MediaQuery.of(context).size.width > 1200 ? 3 : 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 24,
-            crossAxisSpacing: 24,
-            childAspectRatio: 1.1,
-            children: const [
-              _ArchivedCourseCard(
-                title: 'Biology 100',
-                meta: 'Fall 2022 • Dr. Stone',
-                icon: Icons.biotech,
-                lastNote: 'Final Exam Prep',
-              ),
-              _ArchivedCourseCard(
-                title: 'Calculus I',
-                meta: 'Spring 2022 • Prof. Webber',
-                icon: Icons.calculate,
-                lastNote: 'Derivatives Summary',
-              ),
-              _ArchivedCourseCard(
-                title: 'World History',
-                meta: 'Fall 2021 • Dr. Grant',
-                icon: Icons.history_edu,
-                lastNote: 'Industrial Revolution',
-              ),
-            ],
-          ),
-          const SizedBox(height: 48),
-          const _SectionTitle(title: 'Archived Notes'),
-          const SizedBox(height: 24),
-          const _ArchivedNoteTile(
-            title: 'Freshman Orientation Notes',
-            meta: 'Aug 25, 2021 • General',
-          ),
-          const SizedBox(height: 12),
-          const _ArchivedNoteTile(
-            title: 'Dorm Meeting Minutes',
-            meta: 'Sep 05, 2021 • Personal',
-          ),
         ],
+        if (deletedNotes.isNotEmpty) ...[
+          const Text('Notes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          ...deletedNotes.map((n) => _ArchiveTile(
+                title: n.title,
+                icon: Icons.description,
+                onRestore: () => provider.restoreNote(n.id),
+                onDelete: () => provider.permanentlyDeleteNote(n.id),
+              )),
+          const SizedBox(height: 32),
+        ],
+        if (deletedTasks.isNotEmpty) ...[
+          const Text('Tasks', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          ...deletedTasks.map((t) => _ArchiveTile(
+                title: t.title,
+                icon: Icons.check_circle,
+                onRestore: () => provider.restoreTask(t.id),
+                onDelete: () => provider.permanentlyDeleteTask(t.id),
+              )),
+        ],
+      ],
+    );
+  }
+}
+
+class _ArchiveTile extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final VoidCallback onRestore;
+  final VoidCallback onDelete;
+
+  const _ArchiveTile({
+    required this.title,
+    required this.icon,
+    required this.onRestore,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
+        title: Text(title),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.restore, color: Colors.green),
+              onPressed: onRestore,
+              tooltip: 'Restore',
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_forever, color: Colors.red),
+              onPressed: onDelete,
+              tooltip: 'Delete Permanently',
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -237,19 +279,28 @@ class _CoursesView extends StatelessWidget {
   const _CoursesView();
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < 600;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Flex(
+            direction: isMobile ? Axis.vertical : Axis.horizontal,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: isMobile ? CrossAxisAlignment.start : CrossAxisAlignment.center,
             children: [
-              const _SectionTitle(
-                title: 'My Courses',
-                subtitle: 'Access all your enrolled classes and materials.',
+              const Flexible(
+                child: _SectionTitle(
+                  title: 'My Courses',
+                  subtitle: 'Access all your enrolled classes and materials.',
+                ),
               ),
+              if (isMobile) const SizedBox(height: 16),
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   _HeaderButton(
                     icon: Icons.add_circle_outline,
@@ -271,107 +322,12 @@ class _CoursesView extends StatelessWidget {
   }
 }
 
-class _CalendarView extends StatelessWidget {
-  const _CalendarView();
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _SectionTitle(
-            title: 'Study Calendar',
-            subtitle: 'Organize your lectures and sessions.',
-          ),
-          const SizedBox(height: 32),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 3,
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Theme.of(context).dividerColor),
-                  ),
-                  child: TableCalendar(
-                    firstDay: DateTime.utc(2023, 1, 1),
-                    lastDay: DateTime.utc(2030, 12, 31),
-                    focusedDay: DateTime.now(),
-                    headerStyle: const HeaderStyle(
-                      formatButtonVisible: false,
-                      titleCentered: true,
-                    ),
-                    calendarStyle: CalendarStyle(
-                      todayDecoration: BoxDecoration(
-                        color: colorScheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      selectedDecoration: BoxDecoration(
-                        color: colorScheme.secondary,
-                        shape: BoxShape.circle,
-                      ),
-                      defaultTextStyle: TextStyle(
-                        color: Theme.of(context).textTheme.bodyMedium?.color,
-                      ),
-                      weekendTextStyle: const TextStyle(color: Colors.grey),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 32),
-              Expanded(
-                flex: 1,
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Theme.of(context).dividerColor),
-                  ),
-                  child: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Today's Schedule",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      _DeadlineTile(
-                        title: 'Biology 101',
-                        time: '10:00 AM - 11:30 AM',
-                        color: Colors.blue,
-                      ),
-                      _DeadlineTile(
-                        title: 'Calculus II',
-                        time: '1:00 PM - 2:30 PM',
-                        color: Colors.amber,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _AllNotesView extends StatelessWidget {
   const _AllNotesView();
   @override
   Widget build(BuildContext context) {
     final libraryProvider = Provider.of<LibraryProvider>(context);
-    final primaryColor = Theme.of(context).colorScheme.primary;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return ValueListenableBuilder(
       valueListenable: Hive.box<Folder>(
@@ -394,7 +350,7 @@ class _AllNotesView extends StatelessWidget {
             if (currentFolderId != null) {
               // Find current folder name (inefficient but simple for now)
               final currentFolder = folderBox.values
-                  .where((f) => f.id == currentFolderId)
+                  .where((f) => !f.isDeleted && f.id == currentFolderId)
                   .firstOrNull;
               title = currentFolder?.title ?? 'Folder';
             }
@@ -404,10 +360,13 @@ class _AllNotesView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  Flex(
+                    direction: MediaQuery.of(context).size.width < 700 ? Axis.vertical : Axis.horizontal,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: MediaQuery.of(context).size.width < 700 ? CrossAxisAlignment.start : CrossAxisAlignment.center,
                     children: [
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           if (currentFolderId != null)
                             IconButton(
@@ -415,21 +374,29 @@ class _AllNotesView extends StatelessWidget {
                               onPressed: () {
                                 // Find parent of current folder to go back
                                 final currentFolder = folderBox.values
-                                    .where((f) => f.id == currentFolderId)
+                                    .where(
+                                      (f) =>
+                                          !f.isDeleted &&
+                                          f.id == currentFolderId,
+                                    )
                                     .firstOrNull;
                                 libraryProvider.navigateToFolder(
                                   currentFolder?.parentId,
                                 );
                               },
                             ),
-                          _SectionTitle(
-                            title: title,
-                            subtitle:
-                                '${folders.length} folders, ${notes.length} notes',
+                          Flexible(
+                            child: _SectionTitle(
+                              title: title,
+                              subtitle:
+                                  '${folders.length} folders, ${notes.length} notes',
+                            ),
                           ),
                         ],
                       ),
+                      if (MediaQuery.of(context).size.width < 700) const SizedBox(height: 16),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           _HeaderButton(
                             icon: Icons.create_new_folder_outlined,
@@ -444,9 +411,8 @@ class _AllNotesView extends StatelessWidget {
                             icon: Icons.note_add_outlined,
                             label: 'New Note',
                             onPressed: () async {
-                              final note =
-                                  await libraryProvider
-                                      .createNoteInCurrentFolder();
+                              final note = await libraryProvider
+                                  .createNoteInCurrentFolder();
                               if (context.mounted) {
                                 LibraryScreen.openNote(context, note);
                               }
@@ -457,143 +423,163 @@ class _AllNotesView extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  if (folders.isNotEmpty) ...[
-                    const Text(
-                      'FOLDERS',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 200,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 16,
-                            childAspectRatio: 1.5,
-                          ),
-                      itemCount: folders.length,
-                      itemBuilder: (context, index) {
-                        final folder = folders[index];
-                        return GestureDetector(
-                          onTap:
-                              () => libraryProvider.navigateToFolder(folder.id),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: Theme.of(
-                                  context,
-                                ).dividerColor.withValues(alpha: 0.5),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Icon(
-                                      Icons.folder,
-                                      color: primaryColor,
-                                      size: 32,
-                                    ),
-                                    PopupMenuButton<String>(
-                                      icon: const Icon(
-                                        Icons.more_vert,
-                                        size: 18,
-                                        color: Colors.grey,
-                                      ),
-                                      onSelected: (value) {
-                                        if (value == 'rename') {
-                                          _showRenameFolderDialog(
-                                            context,
-                                            libraryProvider,
-                                            folder,
-                                          );
-                                        } else if (value == 'delete') {
-                                          _showDeleteFolderDialog(
-                                            context,
-                                            libraryProvider,
-                                            folder,
-                                          );
-                                        }
-                                      },
-                                      itemBuilder:
-                                          (context) => [
-                                            const PopupMenuItem(
-                                              value: 'rename',
-                                              child: Text('Rename'),
-                                            ),
-                                            const PopupMenuItem(
-                                              value: 'delete',
-                                              child: Text(
-                                                'Delete',
-                                                style: TextStyle(
-                                                  color: Colors.red,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                    ),
-                                  ],
-                                ),
-                                Text(
-                                  folder.title,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 32),
-                  ],
-                  if (notes.isNotEmpty) ...[
-                    const Text(
-                      'NOTES',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
+                  if (folders.isEmpty && notes.isEmpty)
                     Expanded(
-                      child: ListView.builder(
-                        itemCount: notes.length,
-                        itemBuilder:
-                            (context, index) =>
-                                _RecentNoteItem(note: notes[index]),
+                      child: EmptyState(
+                        icon: Icons.folder_open_outlined,
+                        title: 'Empty Folder',
+                        subtitle:
+                            'Organize your studies by creating folders or starting a new note.',
+                        actionLabel: 'New Note',
+                        onAction: () async {
+                          final note = await libraryProvider
+                              .createNoteInCurrentFolder();
+                          if (context.mounted) {
+                            LibraryScreen.openNote(context, note);
+                          }
+                        },
                       ),
-                    ),
-                  ] else if (folders.isEmpty)
-                    const Expanded(
-                      child: Center(
-                        child: Text(
-                          'Empty folder. Create a note or folder to get started.',
-                          style: TextStyle(color: Colors.grey),
+                    )
+                  else ...[
+                    if (folders.isNotEmpty) ...[
+                      const Text(
+                        'FOLDERS',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
+                          letterSpacing: 1.2,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 12),
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                              maxCrossAxisExtent: 200,
+                              mainAxisSpacing: 16,
+                              crossAxisSpacing: 16,
+                              childAspectRatio: 1.5,
+                            ),
+                        itemCount: folders.length,
+                        itemBuilder: (context, index) {
+                          final folder = folders[index];
+                          return GestureDetector(
+                            onTap: () =>
+                                libraryProvider.navigateToFolder(folder.id),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).cardColor,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Theme.of(
+                                    context,
+                                  ).dividerColor.withValues(alpha: 0.5),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(
+                                        Icons.folder,
+                                        color: colorScheme.primary,
+                                        size: 32,
+                                      ),
+                                      PopupMenuButton<String>(
+                                        icon: const Icon(
+                                          Icons.more_vert,
+                                          size: 18,
+                                          color: Colors.grey,
+                                        ),
+                                        onSelected: (value) {
+                                          if (value == 'rename') {
+                                            _showRenameFolderDialog(
+                                              context,
+                                              libraryProvider,
+                                              folder,
+                                            );
+                                          } else if (value == 'move') {
+                                            _showMoveDialog(
+                                              context,
+                                              libraryProvider,
+                                              folderToMove: folder,
+                                            );
+                                          } else if (value == 'delete') {
+                                            _showDeleteFolderDialog(
+                                              context,
+                                              libraryProvider,
+                                              folder,
+                                            );
+                                          }
+                                        },
+                                        itemBuilder: (context) => [
+                                          const PopupMenuItem(
+                                            value: 'rename',
+                                            child: Text('Rename'),
+                                          ),
+                                          const PopupMenuItem(
+                                            value: 'move',
+                                            child: Text('Move'),
+                                          ),
+                                          const PopupMenuItem(
+                                            value: 'delete',
+                                            child: Text(
+                                              'Delete',
+                                              style:
+                                                  TextStyle(color: Colors.red),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  Text(
+                                    folder.title,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                    if (notes.isNotEmpty) ...[
+                      const Text(
+                        'NOTES',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: notes.length,
+                          itemBuilder: (context, index) =>
+                              _RecentNoteItem(note: notes[index]),
+                        ),
+                      ),
+                    ],
+                  ],
                 ],
               ),
             );
@@ -603,40 +589,36 @@ class _AllNotesView extends StatelessWidget {
     );
   }
 
-  void _showCreateFolderDialog(
-    BuildContext context,
-    LibraryProvider provider,
-  ) {
+  void _showCreateFolderDialog(BuildContext context, LibraryProvider provider) {
     final controller = TextEditingController();
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('New Folder'),
-            content: TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                hintText: 'Folder Name',
-                border: OutlineInputBorder(),
-              ),
-              autofocus: true,
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  if (controller.text.isNotEmpty) {
-                    provider.createFolder(controller.text);
-                    Navigator.pop(context);
-                  }
-                },
-                child: const Text('Create'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('New Folder'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'Folder Name',
+            border: OutlineInputBorder(),
           ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.isNotEmpty) {
+                provider.createFolder(controller.text);
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -648,33 +630,32 @@ class _AllNotesView extends StatelessWidget {
     final controller = TextEditingController(text: folder.title);
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Rename Folder'),
-            content: TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                hintText: 'Folder Name',
-                border: OutlineInputBorder(),
-              ),
-              autofocus: true,
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  if (controller.text.isNotEmpty) {
-                    provider.renameFolder(folder, controller.text);
-                    Navigator.pop(context);
-                  }
-                },
-                child: const Text('Save'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('Rename Folder'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'Folder Name',
+            border: OutlineInputBorder(),
           ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.isNotEmpty) {
+                provider.renameFolder(folder, controller.text);
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -685,30 +666,102 @@ class _AllNotesView extends StatelessWidget {
   ) {
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Delete Folder'),
-            content: Text(
-              'Are you sure you want to delete "${folder.title}"? This cannot be undone.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  provider.deleteFolder(folder.id);
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Delete'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Folder'),
+        content: Text(
+          'Are you sure you want to delete "${folder.title}"? This will move it to the Trash.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
+          ElevatedButton(
+            onPressed: () {
+              provider.deleteFolder(folder.id);
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMoveDialog(
+    BuildContext context,
+    LibraryProvider provider, {
+    Folder? folderToMove,
+    Note? noteToMove,
+  }) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Move to...'),
+          content: SizedBox(
+            width: 300,
+            child: ValueListenableBuilder(
+              valueListenable: Hive.box<Folder>(
+                NotesRepository.folderBoxName,
+              ).listenable(),
+              builder: (context, Box<Folder> box, _) {
+                final folders = box.values
+                    .where((f) => !f.isDeleted && f.type == FolderType.notebook)
+                    .toList();
+
+                // Remove the folder itself and its children if we are moving a folder (to prevent circular loops)
+                if (folderToMove != null) {
+                  folders.removeWhere((f) => f.id == folderToMove.id);
+                }
+
+                return ListView(
+                  shrinkWrap: true,
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.home_outlined),
+                      title: const Text('My Notes (Root)'),
+                      onTap: () {
+                        if (folderToMove != null) {
+                          provider.moveFolder(folderToMove, null);
+                        } else if (noteToMove != null) {
+                          provider.moveNote(noteToMove, null);
+                        }
+                        Navigator.pop(context);
+                      },
+                    ),
+                    const Divider(),
+                    ...folders.map(
+                      (f) => ListTile(
+                        leading: const Icon(Icons.folder_outlined),
+                        title: Text(f.title),
+                        onTap: () {
+                          if (folderToMove != null) {
+                            provider.moveFolder(folderToMove, f.id);
+                          } else if (noteToMove != null) {
+                            provider.moveNote(noteToMove, f.id);
+                          }
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -722,36 +775,65 @@ class _DashboardHeader extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.9),
         border: Border(
           bottom: BorderSide(color: Theme.of(context).dividerColor),
         ),
       ),
-      child: Row(
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (MediaQuery.of(context).size.width <= 1000) {
-                return IconButton(
-                  icon: const Icon(Icons.menu),
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
-          const Spacer(),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.notifications_none, color: Colors.grey),
-          ),
-          const SizedBox(width: 12),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          child: Row(
+            children: [
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  if (MediaQuery.of(context).size.width <= 1000) {
+                    return IconButton(
+                      icon: const Icon(Icons.menu),
+                      onPressed: () => Scaffold.of(context).openDrawer(),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+              const Spacer(),
+
           if (isArchive)
             ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Empty Trash'),
+                    content: const Text(
+                      'Are you sure you want to permanently delete all items in the trash? This action cannot be undone.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          libraryProvider.emptyTrash();
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Trash emptied successfully'),
+                            ),
+                          );
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                        ),
+                        child: const Text('Empty Trash'),
+                      ),
+                    ],
+                  ),
+                );
+              },
               icon: const Icon(Icons.delete_sweep, size: 18),
               label: const Text('Empty Trash'),
               style: ElevatedButton.styleFrom(
@@ -816,30 +898,34 @@ class _DashboardHeader extends StatelessWidget {
                 ),
               ],
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
+                padding: EdgeInsets.symmetric(
+                  horizontal: MediaQuery.of(context).size.width > 600 ? 20 : 12,
                   vertical: 10,
                 ),
                 decoration: BoxDecoration(
                   color: colorScheme.primary,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.add, size: 18, color: Colors.white),
-                    SizedBox(width: 8),
-                    Text(
-                      'Quick Add',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                    const Icon(Icons.add, size: 18, color: Colors.white),
+                    if (MediaQuery.of(context).size.width > 600) ...[
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Quick Add',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
             ),
         ],
+      ),
+        ),
       ),
     );
   }
@@ -1033,7 +1119,7 @@ class _RecentNotesList extends StatelessWidget {
     return ValueListenableBuilder(
       valueListenable: Hive.box<Note>(NotesRepository.boxName).listenable(),
       builder: (context, Box<Note> box, _) {
-        var notes = box.values.toList()
+        var notes = box.values.where((n) => !n.isDeleted).toList()
           ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
         return Column(
           children: notes.take(5).map((n) => _RecentNoteItem(note: n)).toList(),
@@ -1051,7 +1137,10 @@ class _RecentNoteItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
-    final libraryProvider = Provider.of<LibraryProvider>(context, listen: false);
+    final libraryProvider = Provider.of<LibraryProvider>(
+      context,
+      listen: false,
+    );
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -1122,24 +1211,23 @@ class _RecentNoteItem extends StatelessWidget {
                   onSelected: (value) {
                     if (value == 'rename') {
                       _showRenameDialog(context, libraryProvider);
+                    } else if (value == 'move') {
+                      _showMoveDialog(context, libraryProvider);
                     } else if (value == 'delete') {
                       _showDeleteDialog(context, libraryProvider);
                     }
                   },
-                  itemBuilder:
-                      (context) => [
-                        const PopupMenuItem(
-                          value: 'rename',
-                          child: Text('Rename'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Text(
-                            'Delete',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ),
-                      ],
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(value: 'rename', child: Text('Rename')),
+                    const PopupMenuItem(value: 'move', child: Text('Move')),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text(
+                        'Delete',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1149,67 +1237,120 @@ class _RecentNoteItem extends StatelessWidget {
     );
   }
 
+  void _showMoveDialog(BuildContext context, LibraryProvider provider) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Move Note to...'),
+          content: SizedBox(
+            width: 300,
+            child: ValueListenableBuilder(
+              valueListenable: Hive.box<Folder>(
+                NotesRepository.folderBoxName,
+              ).listenable(),
+              builder: (context, Box<Folder> box, _) {
+                final folders = box.values
+                    .where((f) => f.type == FolderType.notebook)
+                    .toList();
+
+                return ListView(
+                  shrinkWrap: true,
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.home_outlined),
+                      title: const Text('My Notes (Root)'),
+                      onTap: () {
+                        provider.moveNote(note, null);
+                        Navigator.pop(context);
+                      },
+                    ),
+                    const Divider(),
+                    ...folders.map(
+                      (f) => ListTile(
+                        leading: const Icon(Icons.folder_outlined),
+                        title: Text(f.title),
+                        onTap: () {
+                          provider.moveNote(note, f.id);
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showRenameDialog(BuildContext context, LibraryProvider provider) {
     final controller = TextEditingController(text: note.title);
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Rename Note'),
-            content: TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                hintText: 'Note Title',
-                border: OutlineInputBorder(),
-              ),
-              autofocus: true,
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  if (controller.text.isNotEmpty) {
-                    provider.renameNote(note, controller.text);
-                    Navigator.pop(context);
-                  }
-                },
-                child: const Text('Save'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('Rename Note'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'Note Title',
+            border: OutlineInputBorder(),
           ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.isNotEmpty) {
+                provider.renameNote(note, controller.text);
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
     );
   }
 
   void _showDeleteDialog(BuildContext context, LibraryProvider provider) {
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Delete Note'),
-            content: Text(
-              'Are you sure you want to delete "${note.title}"? This cannot be undone.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  provider.deleteNote(note.id);
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Delete'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Note'),
+        content: Text(
+          'Are you sure you want to delete "${note.title}"? This will move it to the Trash.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
+          ElevatedButton(
+            onPressed: () {
+              provider.deleteNote(note.id);
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1239,18 +1380,9 @@ class _RightDashboardSidebar extends StatelessWidget {
           const SizedBox(height: 24),
           const _MiniCalendar(),
           const SizedBox(height: 48),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Upcoming Deadlines',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              TextButton(
-                onPressed: () {},
-                child: const Text('See all', style: TextStyle(fontSize: 12)),
-              ),
-            ],
+          const Text(
+            'Upcoming Deadlines',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
           Expanded(
@@ -1261,7 +1393,12 @@ class _RightDashboardSidebar extends StatelessWidget {
               builder: (context, Box<Task> box, _) {
                 final deadlines =
                     box.values
-                        .where((t) => !t.isCompleted && t.dueDate != null)
+                        .where(
+                          (t) =>
+                              !t.isDeleted &&
+                              !t.isCompleted &&
+                              t.dueDate != null,
+                        )
                         .toList()
                       ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
                 final displayDeadlines = deadlines.take(3).toList();
@@ -1296,7 +1433,7 @@ class _RightDashboardSidebar extends StatelessWidget {
               },
             ),
           ),
-          const _PremiumRocketCard(),
+
         ],
       ),
     );
@@ -1321,6 +1458,7 @@ class _MiniCalendar extends StatelessWidget {
         lastDay: DateTime.utc(2030, 12, 31),
         focusedDay: DateTime.now(),
         calendarFormat: CalendarFormat.month,
+        startingDayOfWeek: StartingDayOfWeek.monday,
         headerStyle: const HeaderStyle(
           formatButtonVisible: false,
           titleCentered: true,
@@ -1401,22 +1539,7 @@ class _DeadlineTile extends StatelessWidget {
   }
 }
 
-class _PremiumRocketCard extends StatelessWidget {
-  const _PremiumRocketCard();
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colorScheme.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.2)),
-      ),
-      child: const Text('Premium Card'),
-    );
-  }
-}
+
 
 class _SectionTitle extends StatelessWidget {
   final String title;
@@ -1427,10 +1550,12 @@ class _SectionTitle extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           title,
           style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          overflow: TextOverflow.ellipsis,
         ),
         if (subtitle != null)
           Text(
@@ -1439,6 +1564,7 @@ class _SectionTitle extends StatelessWidget {
               color: isDark ? Colors.grey : Colors.grey[700],
               fontSize: 14,
             ),
+            softWrap: true,
           ),
       ],
     );
@@ -1467,165 +1593,6 @@ class _HeaderButton extends StatelessWidget {
   }
 }
 
-class _IconButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onPressed;
-  const _IconButton({required this.icon, required this.onPressed});
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(icon: Icon(icon, size: 18), onPressed: onPressed);
-  }
-}
-
-class _ArchivedCourseCard extends StatelessWidget {
-  final String title;
-  final String meta;
-  final IconData icon;
-  final String lastNote;
-  const _ArchivedCourseCard({
-    required this.title,
-    required this.meta,
-    required this.icon,
-    required this.lastNote,
-  });
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: 0.75,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Theme.of(context).dividerColor),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, color: Colors.grey, size: 24),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text(
-                    'ARCHIVED',
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 8,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white70,
-              ),
-            ),
-            Text(
-              meta,
-              style: const TextStyle(color: Colors.grey, fontSize: 11),
-            ),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'LAST ACCESSED',
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 8,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    lastNote,
-                    style: const TextStyle(fontSize: 12, color: Colors.white54),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ArchivedNoteTile extends StatelessWidget {
-  final String title;
-  final String meta;
-  const _ArchivedNoteTile({required this.title, required this.meta});
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: 0.8,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Theme.of(context).dividerColor),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.description, color: Colors.grey, size: 20),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white70,
-                    ),
-                  ),
-                  Text(
-                    meta,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: Colors.white10),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _DashboardStatsGrid extends StatelessWidget {
   const _DashboardStatsGrid();
 
@@ -1635,8 +1602,16 @@ class _DashboardStatsGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        int cols = width > 1400 ? 4 : (width > 900 ? 2 : 1);
-        double ratio = width > 1400 ? 1.4 : (width > 900 ? 2.2 : 1.8);
+        // User requested 2x2 layout for overview stats
+        int cols = width > 900 ? 2 : 1;
+        double ratio;
+        if (width > 900) {
+          ratio = 1.8;
+        } else if (width > 600) {
+          ratio = 1.4;
+        } else {
+          ratio = 1.2; // Give more height on small phones
+        }
 
         return GridView.count(
           crossAxisCount: cols,
@@ -1666,22 +1641,22 @@ class _DashboardCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
         ),
-        child: child,
-      );
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
   }
 }
 
@@ -1690,11 +1665,12 @@ class _RecentNotesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<LibraryProvider>(context);
     final colorScheme = Theme.of(context).colorScheme;
     return ValueListenableBuilder(
       valueListenable: Hive.box<Note>(NotesRepository.boxName).listenable(),
       builder: (context, Box<Note> box, _) {
-        final notes = box.values.toList()
+        final notes = box.values.where((n) => !n.isDeleted).toList()
           ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
         final recentNotes = notes.take(3).toList();
 
@@ -1720,12 +1696,19 @@ class _RecentNotesCard extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               if (recentNotes.isEmpty)
-                const Expanded(
-                  child: Center(
-                    child: Text(
-                      'No notes yet',
-                      style: TextStyle(color: Colors.grey),
-                    ),
+                Expanded(
+                  child: EmptyState(
+                    icon: Icons.note_add_outlined,
+                    title: 'No notes yet',
+                    subtitle:
+                        'Create your first note to start organizing your studies.',
+                    actionLabel: 'Create Note',
+                    onAction: () async {
+                      final note = await provider.createNoteInCurrentFolder();
+                      if (context.mounted) {
+                        LibraryScreen.openNote(context, note);
+                      }
+                    },
                   ),
                 )
               else
@@ -2050,9 +2033,12 @@ class _TasksSummaryCard extends StatelessWidget {
     return ValueListenableBuilder(
       valueListenable: Hive.box<Task>(NotesRepository.taskBoxName).listenable(),
       builder: (context, Box<Task> box, _) {
-        final tasks = box.values.toList();
+        final tasks = box.values.where((t) => !t.isDeleted).toList();
+        final completed = tasks.where((t) => t.isCompleted).length;
+        final total = tasks.length;
         final pendingTasks = tasks.where((t) => !t.isCompleted).toList();
-        final displayTasks = tasks.take(3).toList();
+        final displayTasks = pendingTasks.take(3).toList();
+        final completionRate = total > 0 ? (completed / total) * 100 : 0.0;
 
         return _DashboardCard(
           child: Column(
@@ -2061,15 +2047,28 @@ class _TasksSummaryCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Tasks',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.grey[200]
-                          : Colors.black87,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Tasks',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey[200]
+                              : Colors.black87,
+                        ),
+                      ),
+                      Text(
+                        '${completionRate.toInt()}% Completed',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -2092,11 +2091,15 @@ class _TasksSummaryCard extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               if (displayTasks.isEmpty)
-                const Expanded(
-                  child: Center(
-                    child: Text(
-                      'No tasks yet',
-                      style: TextStyle(color: Colors.grey),
+                Expanded(
+                  child: EmptyState(
+                    icon: Icons.check_circle_outline,
+                    title: 'All caught up!',
+                    subtitle: 'No pending tasks. Relax or create a new one.',
+                    actionLabel: 'Add Task',
+                    onAction: () => showDialog(
+                      context: context,
+                      builder: (context) => const AddTaskScreen(),
                     ),
                   ),
                 )

@@ -22,27 +22,39 @@ class Folder extends HiveObject {
   @HiveField(3)
   FolderType type;
   @HiveField(4)
-  final DateTime createdAt;
+  DateTime? createdAt;
+  @HiveField(5)
+  DateTime? updatedAt;
+  @HiveField(6, defaultValue: false)
+  bool isDeleted;
 
   Folder({
     required this.id,
     required this.title,
     this.parentId,
     required this.type,
-    required this.createdAt,
-  });
+    this.createdAt,
+    this.updatedAt,
+    this.isDeleted = false,
+  }) {
+    createdAt ??= DateTime.now();
+    updatedAt ??= DateTime.now();
+  }
 
   factory Folder.create({
     required String title,
     String? parentId,
     FolderType type = FolderType.notebook,
   }) {
+    final now = DateTime.now();
     return Folder(
       id: const Uuid().v4(),
       title: title,
       parentId: parentId,
       type: type,
-      createdAt: DateTime.now(),
+      createdAt: now,
+      updatedAt: now,
+      isDeleted: false,
     );
   }
 }

@@ -6,6 +6,8 @@ import 'package:classlly/data/models/grade_model.dart';
 import 'package:classlly/data/models/attendance_model.dart';
 import 'package:classlly/data/models/folder_model.dart';
 import 'package:classlly/data/models/user_preferences_model.dart';
+import 'package:classlly/data/models/academic_calendar_model.dart';
+import 'package:classlly/data/models/student_profile_model.dart';
 
 class NotesRepository {
   static const String boxName = 'notes';
@@ -16,6 +18,9 @@ class NotesRepository {
   static const String attendanceBoxName = 'attendance';
   static const String folderBoxName = 'folders';
   static const String preferencesBoxName = 'preferences';
+  static const String periodsBoxName = 'periods';
+  static const String eventsBoxName = 'events';
+  static const String profileBoxName = 'profile';
 
   static Future<void> init() async {
     Hive.registerAdapter(StrokePointAdapter());
@@ -34,6 +39,11 @@ class NotesRepository {
     Hive.registerAdapter(FolderAdapter());
     Hive.registerAdapter(FolderTypeAdapter());
     Hive.registerAdapter(UserPreferencesAdapter());
+    Hive.registerAdapter(AcademicPeriodAdapter());
+    Hive.registerAdapter(AcademicPeriodTypeAdapter());
+    Hive.registerAdapter(AcademicEventAdapter());
+    Hive.registerAdapter(AcademicEventTypeAdapter());
+    Hive.registerAdapter(StudentProfileAdapter());
 
     await Hive.openBox<Note>(boxName);
     await Hive.openBox<Notebook>(notebookBoxName);
@@ -43,6 +53,9 @@ class NotesRepository {
     await Hive.openBox<Attendance>(attendanceBoxName);
     await Hive.openBox<Folder>(folderBoxName);
     await Hive.openBox<UserPreferences>(preferencesBoxName);
+    await Hive.openBox<AcademicPeriod>(periodsBoxName);
+    await Hive.openBox<AcademicEvent>(eventsBoxName);
+    await Hive.openBox<StudentProfile>(profileBoxName);
   }
 
   Box<Note> get _box => Hive.box<Note>(boxName);
@@ -54,10 +67,13 @@ class NotesRepository {
   Box<Folder> get _folderBox => Hive.box<Folder>(folderBoxName);
   Box<UserPreferences> get _prefsBox =>
       Hive.box<UserPreferences>(preferencesBoxName);
+  Box<AcademicPeriod> get _periodsBox => Hive.box<AcademicPeriod>(periodsBoxName);
+  Box<AcademicEvent> get _eventsBox => Hive.box<AcademicEvent>(eventsBoxName);
+  Box<StudentProfile> get _profileBox => Hive.box<StudentProfile>(profileBoxName);
 
   // --- Notes ---
   List<Note> getAllNotes({String? notebookId}) {
-    final notes = _box.values.toList();
+    final notes = _box.values.where((n) => !n.isDeleted).toList();
     if (notebookId != null) {
       return notes.where((n) => n.notebookId == notebookId).toList()
         ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
@@ -66,10 +82,15 @@ class NotesRepository {
   }
 
   List<Note> getNotesInFolder(String? folderId) {
-    final notes = _box.values.toList();
+    final notes = _box.values.where((n) => !n.isDeleted).toList();
     return notes
         .where((n) => n.notebookId == folderId)
         .toList()
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  }
+
+  List<Note> getDeletedNotes() {
+    return _box.values.where((n) => n.isDeleted).toList()
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
   }
 
@@ -81,10 +102,21 @@ class NotesRepository {
 
   // --- Tasks ---
   List<Task> getAllTasks() {
-    return _taskBox.values.toList()..sort(
-      (a, b) =>
-          (a.dueDate ?? DateTime.now()).compareTo(b.dueDate ?? DateTime.now()),
-    );
+    return _taskBox.values.where((t) => !t.isDeleted).toList()
+      ..sort(
+        (a, b) => (a.dueDate ?? DateTime.now()).compareTo(
+          b.dueDate ?? DateTime.now(),
+        ),
+      );
+  }
+
+  List<Task> getDeletedTasks() {
+    return _taskBox.values.where((t) => t.isDeleted).toList()
+      ..sort(
+        (a, b) => (a.dueDate ?? DateTime.now()).compareTo(
+          b.dueDate ?? DateTime.now(),
+        ),
+      );
   }
 
   // --- Courses ---
@@ -123,16 +155,30 @@ class NotesRepository {
   // --- Folders ---
   List<Folder> getFolders({String? parentId, required FolderType type}) {
     return _folderBox.values
-        .where((f) => f.parentId == parentId && f.type == type)
+        .where((f) => f.parentId == parentId && f.type == type && !f.isDeleted)
         .toList();
   }
 
+  List<Folder> getDeletedFolders() {
+    return _folderBox.values.where((f) => f.isDeleted).toList()
+      ..sort(
+        (a, b) => (b.updatedAt ?? DateTime.now()).compareTo(
+          a.updatedAt ?? DateTime.now(),
+        ),
+      );
+  }
+
   Future<void> saveFolder(Folder folder) async {
+    folder.updatedAt = DateTime.now();
     await _folderBox.put(folder.id, folder);
   }
 
   Future<void> deleteFolder(String id) async {
     await _folderBox.delete(id);
+  }
+
+  Folder? getFolder(String id) {
+    return _folderBox.get(id);
   }
 
   // --- Preferences ---
@@ -149,6 +195,52 @@ class NotesRepository {
     await _prefsBox.put('user_prefs', prefs);
   }
 
+  // --- Academic Calendar ---
+  List<AcademicPeriod> getAllPeriods() {
+    return _periodsBox.values.toList()
+      ..sort((a, b) => a.startDate.compareTo(b.startDate));
+  }
+
+  Future<void> savePeriod(AcademicPeriod period) async {
+    await _periodsBox.put(period.id, period);
+  }
+
+  Future<void> deletePeriod(String id) async {
+    await _periodsBox.delete(id);
+  }
+
+  List<AcademicEvent> getAllEvents() {
+    return _eventsBox.values.toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+  }
+
+  Future<void> saveEvent(AcademicEvent event) async {
+    await _eventsBox.put(event.id, event);
+  }
+
+  Future<void> deleteEvent(String id) async {
+    await _eventsBox.delete(id);
+  }
+
+  // --- Student Profile ---
+  StudentProfile getStudentProfile() {
+    if (_profileBox.isEmpty) {
+      final defaultProfile = StudentProfile(
+        university: 'UBB Cluj-Napoca',
+        major: 'Computer Science',
+        year: 'Year 2',
+        studentId: 'STUD-12345',
+      );
+      _profileBox.put('student_profile', defaultProfile);
+      return defaultProfile;
+    }
+    return _profileBox.get('student_profile')!;
+  }
+
+  Future<void> saveStudentProfile(StudentProfile profile) async {
+    await _profileBox.put('student_profile', profile);
+  }
+
   // --- Legacy/Existing ---
   Future<void> saveTask(Task task) async {
     await _taskBox.put(task.id, task);
@@ -156,6 +248,10 @@ class NotesRepository {
 
   Future<void> deleteTask(String id) async {
     await _taskBox.delete(id);
+  }
+
+  Task? getTask(String id) {
+    return _taskBox.get(id);
   }
 
   Future<void> saveNotebook(Notebook notebook) async {

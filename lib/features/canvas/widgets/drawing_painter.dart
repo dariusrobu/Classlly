@@ -36,6 +36,7 @@ class DrawingPainter extends CustomPainter {
         isSelected ? Colors.deepPurpleAccent : Color(stroke.color),
         stroke.width + (isSelected ? 2.0 : 0.0),
         paint,
+        toolType: stroke.toolType,
       );
     }
 
@@ -100,15 +101,25 @@ class DrawingPainter extends CustomPainter {
     List<StrokePoint> points,
     Color color,
     double width,
-    Paint paint,
-  ) {
+    Paint paint, {
+    String toolType = 'pen',
+  }) {
     if (points.isEmpty) return;
     paint.color = color;
+
+    // Specific rendering for Highlighter
+    if (toolType == 'highlighter') {
+      paint.blendMode = BlendMode.multiply; // Highlighter effect
+      paint.strokeCap = StrokeCap.square;
+    } else {
+      paint.blendMode = BlendMode.srcOver;
+      paint.strokeCap = StrokeCap.round;
+    }
+
     if (points.length == 2 || points.length == 5) {
       paint.style = PaintingStyle.stroke;
       paint.strokeWidth = width;
       paint.strokeJoin = StrokeJoin.miter;
-      paint.strokeCap = StrokeCap.round;
       final path = Path();
       path.moveTo(points[0].x, points[0].y);
       for (int i = 1; i < points.length; i++) {
@@ -119,19 +130,70 @@ class DrawingPainter extends CustomPainter {
       paint.style = PaintingStyle.fill;
       return;
     }
-    final inputPoints = points
-        .map((p) => fh.Vec(p.x, p.y, p.pressure))
-        .toList();
-    final outlinePoints = fh.getStroke(
-      inputPoints,
-      options: fh.StrokeOptions(
+
+    // Customize stroke options based on toolType
+    var options = fh.StrokeOptions(
+      size: width,
+      thinning: 0.5,
+      smoothing: 0.5,
+      streamline: 0.5,
+      simulatePressure: true,
+    );
+
+    if (toolType == 'monoline') {
+      options = fh.StrokeOptions(
         size: width,
-        thinning: 0.5,
+        thinning: 0.0, // No pressure sensitivity for thickness
         smoothing: 0.5,
         streamline: 0.5,
+        simulatePressure: false,
+      );
+    } else if (toolType == 'fountain') {
+      options = fh.StrokeOptions(
+        size: width * 1.2,
+        thinning: 0.9, // High contrast between thin and thick
+        smoothing: 0.2, // Shorter smoothing for more responsive/sharper feel
+        streamline: 0.8, // High streamline for elegant curves
         simulatePressure: true,
-      ),
-    );
+      );
+    } else if (toolType == 'marker') {
+      options = fh.StrokeOptions(
+        size: width,
+        thinning: 0.0,
+        smoothing: 0.2, // Less smoothing for "rough" look
+        streamline: 0.3,
+        simulatePressure: false,
+      );
+    } else if (toolType == 'pencil') {
+      options = fh.StrokeOptions(
+        size: width * 0.8, // Slightly thinner
+        thinning: 0.3, // Less pressure variance
+        smoothing: 0.3, // More raw input
+        streamline: 0.3,
+        simulatePressure: true,
+      );
+    } else if (toolType == 'brush') {
+      options = fh.StrokeOptions(
+        size: width * 1.2, // Slightly thicker base
+        thinning: 0.85, // Very high pressure sensitivity
+        smoothing: 0.8, // Very smooth
+        streamline: 0.7,
+        simulatePressure: true,
+      );
+    } else if (toolType == 'watercolor') {
+      options = fh.StrokeOptions(
+        size: width * 2.0, // Large soft brush
+        thinning: 0.95, // Extreme pressure sensitivity
+        smoothing: 0.9, // Ultra smooth
+        streamline: 0.8,
+        simulatePressure: true,
+      );
+    }
+
+    final inputPoints =
+        points.map((p) => fh.Vec(p.x, p.y, p.pressure)).toList();
+    final outlinePoints = fh.getStroke(inputPoints, options: options);
+
     if (outlinePoints.isEmpty) return;
     final path = Path();
     path.moveTo(outlinePoints[0].x, outlinePoints[0].y);

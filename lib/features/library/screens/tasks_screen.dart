@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:classlly/data/models/task_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
+import 'package:classlly/features/library/providers/library_provider.dart';
 import 'package:classlly/features/library/screens/add_task_screen.dart';
+
+import 'package:classlly/features/library/widgets/empty_state.dart';
 
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
@@ -12,17 +16,7 @@ class TasksScreen extends StatefulWidget {
   State<TasksScreen> createState() => _TasksScreenState();
 }
 
-class _TasksScreenState extends State<TasksScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  String _filter = 'All'; // All, High, Medium, Low
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
+class _TasksScreenState extends State<TasksScreen> {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
@@ -30,99 +24,55 @@ class _TasksScreenState extends State<TasksScreen>
       builder: (context, Box<Task> box, _) {
         final allTasks = box.values.toList();
 
-        // Filter logic
-        var filteredTasks = allTasks;
-        if (_filter != 'All') {
-          final priorityMap = {'High': 2, 'Medium': 1, 'Low': 0};
-          filteredTasks = filteredTasks
-              .where((t) => t.priority == priorityMap[_filter])
-              .toList();
-        }
-
-        final todoTasks = filteredTasks
-            .where((t) => !t.isCompleted && t.progress == 0)
+        // Task filtering for Kanban
+        final highPriorityTasks = allTasks
+            .where((t) => !t.isCompleted && t.priority == 2)
             .toList();
-        final inProgressTasks = filteredTasks
-            .where((t) => !t.isCompleted && t.progress > 0)
+        final todoTasks = allTasks
+            .where((t) => !t.isCompleted && t.priority != 2)
             .toList();
-        final doneTasks = filteredTasks.where((t) => t.isCompleted).toList();
+        final doneTasks = allTasks.where((t) => t.isCompleted).toList();
 
-        return Column(
+        final tasksForAgenda = _getTasksForDay(allTasks, DateTime.now());
+        final isLargeScreen = MediaQuery.of(context).size.width > 1200;
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(
-              context,
-              allTasks.length,
-              todoTasks.length + inProgressTasks.length,
-              doneTasks.length,
-            ),
-            const SizedBox(height: 8),
-            _buildToolbar(context),
-            const SizedBox(height: 24),
             Expanded(
-              child: TabBarView(
-                controller: _tabController,
+              flex: 3,
+              child: Column(
                 children: [
-                  _buildKanbanView(todoTasks, inProgressTasks, doneTasks),
-                  _buildListView(filteredTasks),
+                  _buildToolbar(context, allTasks.length),
+                  Expanded(
+                    // Kanban Board with To Do, High Priority, and Done columns
+                    child: _buildKanbanBoard(
+                      todoTasks,
+                      highPriorityTasks,
+                      doneTasks,
+                    ),
+                  ),
                 ],
               ),
             ),
+            if (isLargeScreen)
+              Container(
+                width: 320,
+                decoration: const BoxDecoration(
+                  border: Border(left: BorderSide(color: Color(0xFF2A2A2A))),
+                  color: Color(0xFF121212),
+                ),
+                child: _buildRightSidebar(context, tasksForAgenda),
+              ),
           ],
         );
       },
     );
   }
 
-  Widget _buildToolbar(BuildContext context) {
+  Widget _buildToolbar(BuildContext context, int totalTasks) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Row(
-        children: [
-          _buildTabs(context),
-          const Spacer(),
-          _buildFilterChip(context),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
-        ),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _filter,
-          icon: const Icon(Icons.filter_list, size: 16),
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-          ),
-          items: [
-            'All',
-            'High',
-            'Medium',
-            'Low',
-          ].map((f) => DropdownMenuItem(value: f, child: Text(f))).toList(),
-          onChanged: (v) => setState(() => _filter = v!),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context, int total, int pending, int done) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+      padding: const EdgeInsets.all(24),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -131,154 +81,68 @@ class _TasksScreenState extends State<TasksScreen>
             children: [
               const Text(
                 'Task Dashboard',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
-                'You have $pending pending tasks',
-                style: TextStyle(
-                  color: isDark ? Colors.grey[600] : Colors.grey[800],
-                  fontWeight: FontWeight.w500,
-                ),
+                'You have $totalTasks tasks in total.',
+                style: const TextStyle(color: Colors.grey, fontSize: 14),
               ),
             ],
           ),
-          Row(
-            children: [
-              _summaryCard('Total', '$total', Colors.blue),
-              const SizedBox(width: 12),
-              _summaryCard('Pending', '$pending', Colors.orange),
-              const SizedBox(width: 12),
-              _summaryCard('Done', '$done', Colors.green),
-              const SizedBox(width: 24),
-              ElevatedButton.icon(
-                onPressed: () => showDialog(
-                  context: context,
-                  builder: (c) => const AddTaskScreen(),
-                ),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('New Task'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colorScheme.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 18,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
-                ),
-              ),
-            ],
-          ),
+          // Removed Board/List toggle and Filter dropdown
         ],
       ),
     );
   }
 
-  Widget _summaryCard(String label, String value, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          Text(label, style: TextStyle(fontSize: 12, color: color)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTabs(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      height: 40,
-      width: 200,
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
-        ),
-      ),
-      child: TabBar(
-        controller: _tabController,
-        indicator: BoxDecoration(
-          color: colorScheme.primary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        indicatorPadding: const EdgeInsets.all(2),
-        labelColor: colorScheme.primary,
-        unselectedLabelColor: Colors.grey,
-        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-        tabs: const [
-          Tab(
-            text: 'Board',
-            icon: Icon(Icons.view_kanban, size: 14),
-            iconMargin: EdgeInsets.only(bottom: 2),
-          ),
-          Tab(
-            text: 'List',
-            icon: Icon(Icons.list, size: 14),
-            iconMargin: EdgeInsets.only(bottom: 2),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildKanbanView(
+  Widget _buildKanbanBoard(
     List<Task> todo,
-    List<Task> inProgress,
+    List<Task> highPriority,
     List<Task> done,
   ) {
-    return SingleChildScrollView(
+    return ListView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _kanbanColumn('To Do', todo, Colors.grey),
-          const SizedBox(width: 24),
-          _kanbanColumn('In Progress', inProgress, Colors.orange),
-          const SizedBox(width: 24),
-          _kanbanColumn('Done', done, Colors.green),
-        ],
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      children: [
+        _buildKanbanColumn('To Do', todo, Colors.grey),
+        const SizedBox(width: 24),
+        _buildKanbanColumn(
+          'High Priority',
+          highPriority,
+          const Color(0xFFEF4444),
+        ),
+        const SizedBox(width: 24),
+        _buildKanbanColumn('Done', done, const Color(0xFF10B981)),
+      ],
     );
   }
 
-  Widget _kanbanColumn(String title, List<Task> tasks, Color color) {
+  Widget _buildKanbanColumn(String title, List<Task> tasks, Color accentColor) {
     return SizedBox(
-      width: 320,
+      width: 300,
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
+              color: accentColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: accentColor.withValues(alpha: 0.2)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   title,
-                  style: TextStyle(fontWeight: FontWeight.bold, color: color),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: accentColor,
+                  ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -286,7 +150,7 @@ class _TasksScreenState extends State<TasksScreen>
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: const Color(0xFF1E1E1E),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -294,7 +158,7 @@ class _TasksScreenState extends State<TasksScreen>
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: color,
+                      color: accentColor,
                     ),
                   ),
                 ),
@@ -302,77 +166,27 @@ class _TasksScreenState extends State<TasksScreen>
             ),
           ),
           const SizedBox(height: 16),
-          if (tasks.isEmpty)
-            Container(
-              height: 100,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: Colors.grey.withValues(alpha: 0.2),
-                  style: BorderStyle.solid,
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text(
-                'No tasks',
-                style: TextStyle(color: Colors.grey),
-              ),
-            )
-          else
-            Expanded(
-              child: ListView.builder(
-                itemCount: tasks.length,
-                itemBuilder: (context, index) => _TaskCard(task: tasks[index]),
-              ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: tasks.length,
+              itemBuilder: (context, index) {
+                return _buildTaskCard(tasks[index]);
+              },
             ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildListView(List<Task> tasks) {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      itemCount: tasks.length,
-      itemBuilder: (context, index) {
-        final task = tasks[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: _TaskCard(task: task, isList: true),
-        );
-      },
-    );
-  }
-}
-
-class _TaskCard extends StatelessWidget {
-  final Task task;
-  final bool isList;
-  const _TaskCard({required this.task, this.isList = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final priorityColor = task.priority == 2
-        ? Colors.red
-        : (task.priority == 1 ? Colors.orange : Colors.blue);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
+  Widget _buildTaskCard(Task task) {
     return Container(
-      margin: EdgeInsets.only(bottom: isList ? 0 : 16),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF2A2A2A)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -380,30 +194,34 @@ class _TaskCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: priorityColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  task.priority == 2
-                      ? 'HIGH'
-                      : (task.priority == 1 ? 'MEDIUM' : 'LOW'),
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: priorityColor,
+              if (task.category != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _getPriorityColor(
+                      task.priority,
+                    ).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    task.category!.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: _getPriorityColor(task.priority),
+                    ),
                   ),
                 ),
-              ),
               if (task.dueDate != null)
                 Text(
                   DateFormat('MMM d').format(task.dueDate!),
                   style: TextStyle(
                     fontSize: 12,
-                    color: isDark ? Colors.grey : Colors.grey[900],
-                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[400],
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
             ],
@@ -411,17 +229,17 @@ class _TaskCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             task.title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: Colors.white,
+            ),
           ),
-          if (task.description?.isNotEmpty == true && !isList) ...[
-            const SizedBox(height: 8),
+          if (task.description?.isNotEmpty == true) ...[
+            const SizedBox(height: 4),
             Text(
               task.description!,
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark ? Colors.grey : Colors.grey[800],
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[400]),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -430,28 +248,235 @@ class _TaskCard extends StatelessWidget {
           Row(
             children: [
               Icon(
-                Icons.folder_open,
+                Icons.flag,
                 size: 14,
-                color: isDark ? Colors.grey : Colors.grey[800],
+                color: _getPriorityColor(task.priority),
               ),
               const SizedBox(width: 4),
               Text(
-                task.category ?? 'General',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? Colors.grey : Colors.grey[800],
-                  fontWeight: FontWeight.bold,
-                ),
+                task.priority == 2
+                    ? 'High'
+                    : (task.priority == 1 ? 'Medium' : 'Low'),
+                style: TextStyle(fontSize: 12, color: Colors.grey[400]),
               ),
               const Spacer(),
-              if (task.isCompleted)
-                const Icon(Icons.check_circle, color: Colors.green, size: 22)
-              else
-                Icon(Icons.circle_outlined, color: Colors.grey[400], size: 22),
+              InkWell(
+                onTap: () {
+                  final provider =
+                      Provider.of<LibraryProvider>(context, listen: false);
+                  task.isCompleted = !task.isCompleted;
+                  task.progress = task.isCompleted ? 1.0 : 0.0;
+                  provider.saveTask(task);
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Icon(
+                  task.isCompleted ? Icons.check_circle : Icons.circle_outlined,
+                  color: task.isCompleted
+                      ? const Color(0xFF10B981)
+                      : Colors.grey[600],
+                  size: 20,
+                ),
+              ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildRightSidebar(BuildContext context, List<Task> tasks) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(24),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Daily Agenda',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    DateFormat('EEEE, MMM d').format(DateTime.now()),
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
+              ),
+              PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'add') {
+                    showDialog(
+                      context: context,
+                      builder: (context) => const AddTaskScreen(),
+                    );
+                  } else if (value == 'calendar') {
+                    Provider.of<LibraryProvider>(context, listen: false)
+                        .setView(LibraryView.calendar);
+                  } else if (value == 'clear') {
+                    final provider =
+                        Provider.of<LibraryProvider>(context, listen: false);
+                    final box = Hive.box<Task>(NotesRepository.taskBoxName);
+                    final today = DateTime.now();
+                    final completedToday =
+                        box.values
+                            .where(
+                              (t) =>
+                                  !t.isDeleted &&
+                                  t.isCompleted &&
+                                  t.dueDate != null &&
+                                  t.dueDate!.year == today.year &&
+                                  t.dueDate!.month == today.month &&
+                                  t.dueDate!.day == today.day,
+                            )
+                            .toList();
+                    for (var task in completedToday) {
+                      provider.deleteTask(task.id);
+                    }
+                  }
+                },
+                itemBuilder:
+                    (context) => [
+                      const PopupMenuItem(
+                        value: 'add',
+                        child: Row(
+                          children: [
+                            Icon(Icons.add, size: 18),
+                            SizedBox(width: 8),
+                            Text('Add Task'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'calendar',
+                        child: Row(
+                          children: [
+                            Icon(Icons.calendar_today, size: 18),
+                            SizedBox(width: 8),
+                            Text('View Calendar'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'clear',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_sweep, size: 18),
+                            SizedBox(width: 8),
+                            Text('Clear Completed'),
+                          ],
+                        ),
+                      ),
+                    ],
+                icon: const Icon(Icons.more_horiz, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: tasks.isEmpty
+              ? EmptyState(
+                  icon: Icons.event_available_outlined,
+                  title: 'Free day!',
+                  subtitle: 'You have no tasks scheduled for today.',
+                  actionLabel: 'Add Task',
+                  onAction: () => showDialog(
+                    context: context,
+                    builder: (context) => const AddTaskScreen(),
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  itemCount: tasks.length,
+                  itemBuilder: (context, index) {
+                    final task = tasks[index];
+                    return _buildTimelineItem(context, task, index == 0);
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimelineItem(BuildContext context, Task task, bool isFirst) {
+    final color = _getPriorityColor(task.priority);
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Column(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF121212),
+                  border: Border.all(color: color, width: 2),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              Expanded(
+                child: Container(width: 2, color: const Color(0xFF2A2A2A)),
+              ),
+            ],
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    task.dueDate != null
+                        ? DateFormat('hh:mm a').format(task.dueDate!)
+                        : 'All Day',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildTaskCard(task),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+  List<Task> _getTasksForDay(List<Task> tasks, DateTime day) {
+    return tasks.where((t) {
+      if (t.dueDate == null) return false;
+      return t.dueDate!.year == day.year &&
+          t.dueDate!.month == day.month &&
+          t.dueDate!.day == day.day;
+    }).toList();
+  }
+
+  Color _getPriorityColor(int priority) {
+    switch (priority) {
+      case 2:
+        return const Color(0xFFEF4444); // Red
+      case 1:
+        return const Color(0xFFF59E0B); // Amber
+      case 0:
+        return const Color(0xFF3B82F6); // Blue
+      default:
+        return const Color(0xFF8B5CF6); // Purple
+    }
   }
 }

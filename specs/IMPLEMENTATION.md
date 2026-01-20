@@ -54,8 +54,8 @@
 - [X] Polish colors and transitions to match charcoal/violet theme.
 - [X] Implement **My Courses** tab with full course grid and sorting.
 
-## Phase 21: SLC - Academic Stats Logic (Next)
-- [ ] Wire "Total Notes" stat to actual database count.
-- [ ] Implement "Study Hours" tracking logic.
-- [ ] Implement "Task Completion" percentage logic.
-- [ ] Add **PDF Snippet** insertion support to the canvas.
+## Phase 21: SLC - Academic Stats Logic [COMPLETED]
+- [X] Wire "Total Notes" stat to actual database count.
+- [X] Implement "Study Hours" tracking logic.
+- [X] Implement "Task Completion" percentage logic.
+- [X] Add **PDF Snippet** insertion support to the canvas.

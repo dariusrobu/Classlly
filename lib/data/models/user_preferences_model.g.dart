@@ -22,13 +22,14 @@ class UserPreferencesAdapter extends TypeAdapter<UserPreferences> {
       fontSize: fields[2] as double,
       highContrast: fields[3] as bool,
       syncEnabled: fields[4] as bool,
+      savedColors: fields[5] == null ? [] : (fields[5] as List).cast<int>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, UserPreferences obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.themeMode)
       ..writeByte(1)
@@ -38,7 +39,9 @@ class UserPreferencesAdapter extends TypeAdapter<UserPreferences> {
       ..writeByte(3)
       ..write(obj.highContrast)
       ..writeByte(4)
-      ..write(obj.syncEnabled);
+      ..write(obj.syncEnabled)
+      ..writeByte(5)
+      ..write(obj.savedColors);
   }
 
   @override

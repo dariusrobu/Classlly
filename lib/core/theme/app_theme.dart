@@ -16,7 +16,7 @@ class AppTheme {
 
   static const List<Color> noteColors = [
     Colors.black,
-    Color(0xFF7C3AED), // Primary Purple
+    Colors.white, // Replaced Purple
     Color(0xFFEF4444), // Red
     Color(0xFF10B981), // Green
     Color(0xFF3B82F6), // Blue

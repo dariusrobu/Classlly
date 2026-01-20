@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
-// For ThemeProvider
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:classlly/features/library/screens/settings_screen.dart';
+import 'package:classlly/features/auth/screens/personal_info_screen.dart';
+import 'package:classlly/features/auth/screens/academic_details_screen.dart';
+import 'package:classlly/data/models/student_profile_model.dart';
+import 'package:classlly/data/repositories/notes_repository.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -8,6 +14,7 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
+    final user = Supabase.instance.client.auth.currentUser;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -23,47 +30,73 @@ class ProfileScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: () {}, // Navigate to settings
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            _buildProfileHeader(context, isDark, colorScheme),
-            const SizedBox(height: 32),
-            _buildStatsRow(isDark),
-            const SizedBox(height: 32),
-            _buildProCard(context, isDark, colorScheme),
-            const SizedBox(height: 32),
-            _buildMenuSection(context, 'Account', [
-              _MenuItem(
-                icon: Icons.person_outline,
-                label: 'Personal Information',
-              ),
-              _MenuItem(icon: Icons.school_outlined, label: 'Academic Details'),
-              _MenuItem(icon: Icons.notifications_none, label: 'Notifications'),
-            ]),
-            const SizedBox(height: 24),
-            _buildMenuSection(context, 'App', [
-              _MenuItem(icon: Icons.palette_outlined, label: 'Appearance'),
-              _MenuItem(icon: Icons.cloud_queue, label: 'Cloud Sync'),
-              _MenuItem(icon: Icons.help_outline, label: 'Help & Support'),
-            ]),
-            const SizedBox(height: 32),
-            TextButton(
-              onPressed: () {},
-              child: const Text(
-                'Log Out',
-                style: TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
+      body: ValueListenableBuilder(
+        valueListenable: Hive.box<StudentProfile>(NotesRepository.profileBoxName).listenable(),
+        builder: (context, box, _) {
+          final repo = NotesRepository();
+          final profile = repo.getStudentProfile();
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                _buildProfileHeader(context, isDark, colorScheme, user, profile),
+                const SizedBox(height: 32),
+                _buildStatsRow(isDark, profile),
+                const SizedBox(height: 32),
+                _buildProCard(context, isDark, colorScheme),
+                const SizedBox(height: 32),
+                _buildMenuSection(context, 'Account', [
+                  _MenuItem(
+                    icon: Icons.person_outline,
+                    label: 'Personal Information',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const PersonalInfoScreen(),
+                      ),
+                    ),
+                  ),
+                  _MenuItem(
+                    icon: Icons.school_outlined,
+                    label: 'Academic Details',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AcademicDetailsScreen(),
+                      ),
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 32),
+                TextButton(
+                  onPressed: () async {
+                    await Supabase.instance.client.auth.signOut();
+                    if (context.mounted) {
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                    }
+                  },
+                  child: const Text(
+                    'Log Out',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -72,7 +105,13 @@ class ProfileScreen extends StatelessWidget {
     BuildContext context,
     bool isDark,
     ColorScheme colorScheme,
+    User? user,
+    StudentProfile profile,
   ) {
+    final name = user?.userMetadata?['full_name'] ?? 'Alex Johnson';
+    final initials =
+        name.split(' ').take(2).map((e) => e[0]).join().toUpperCase();
+
     return Column(
       children: [
         Stack(
@@ -83,21 +122,22 @@ class ProfileScreen extends StatelessWidget {
               height: 100,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                image: const DecorationImage(
-                  image: AssetImage('assets/images/placeholder_profile.png'),
-                  fit: BoxFit.cover,
-                ), // Use asset or network
+                color: colorScheme.primary.withValues(alpha: 0.1),
                 border: Border.all(
                   color: colorScheme.primary.withValues(alpha: 0.3),
                   width: 4,
                 ),
               ),
-              child: const Center(
+              child: Center(
                 child: Text(
-                  'AJ',
-                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                  initials.isNotEmpty ? initials : '?',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.primary,
+                  ),
                 ),
-              ), // Fallback
+              ),
             ),
             Container(
               padding: const EdgeInsets.all(6),
@@ -114,26 +154,44 @@ class ProfileScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-        const Text(
-          'Alex Johnson',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        Text(
+          name,
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 4),
         Text(
-          'Computer Science • Sophomore',
+          '${profile.major} • ${profile.year}',
           style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
+        ),
+        Text(
+          profile.university,
+          style: TextStyle(
+            fontSize: 12,
+            color: isDark ? Colors.grey[500] : Colors.grey[700],
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildStatsRow(bool isDark) {
+  Widget _buildStatsRow(bool isDark, StudentProfile profile) {
+    final repo = NotesRepository();
+    final notesCount = repo.getAllNotes().length;
+    final coursesCount = repo.getAllCourses().length;
+    final tasks = repo.getAllTasks();
+    final completedTasks = tasks.where((t) => t.isCompleted).length;
+    final taskCompletion =
+        tasks.isNotEmpty ? (completedTasks / tasks.length * 100).toInt() : 0;
+
+    final studyHours = (profile.totalStudyTimeSeconds / 3600).toStringAsFixed(1);
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _statItem('3.8', 'GPA'),
-        _statItem('12', 'Courses'),
-        _statItem('84', 'Notes'),
+        _statItem(coursesCount.toString(), 'Courses'),
+        _statItem(notesCount.toString(), 'Notes'),
+        _statItem(studyHours, 'Study Hrs'),
+        _statItem('$taskCompletion%', 'Tasks'),
       ],
     );
   }
@@ -268,7 +326,7 @@ class ProfileScreen extends StatelessWidget {
         style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
       ),
       trailing: const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
-      onTap: () {},
+      onTap: item.onTap,
     );
   }
 }
@@ -276,5 +334,6 @@ class ProfileScreen extends StatelessWidget {
 class _MenuItem {
   final IconData icon;
   final String label;
-  _MenuItem({required this.icon, required this.label});
+  final VoidCallback? onTap;
+  _MenuItem({required this.icon, required this.label, this.onTap});
 }

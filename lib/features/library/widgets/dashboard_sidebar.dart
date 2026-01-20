@@ -286,7 +286,6 @@ class UserCard extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.more_vert, size: 18, color: Colors.grey[600]),
           ],
         ),
       ),

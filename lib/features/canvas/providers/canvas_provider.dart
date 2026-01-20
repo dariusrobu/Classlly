@@ -52,6 +52,28 @@ class CanvasProvider with ChangeNotifier {
   Color _currentColor = AppTheme.noteColors[0];
   Color get currentColor => _currentColor;
 
+  List<Color> get savedColors {
+    final prefs = _repository.getPreferences();
+    return prefs.savedColors.map((c) => Color(c)).toList();
+  }
+
+  void addColor(Color color) {
+    final prefs = _repository.getPreferences();
+    if (!prefs.savedColors.contains(color.toARGB32())) {
+      prefs.savedColors.add(color.toARGB32());
+      _repository.savePreferences(prefs);
+      notifyListeners();
+    }
+    setColor(color);
+  }
+
+  void removeColor(Color color) {
+    final prefs = _repository.getPreferences();
+    prefs.savedColors.remove(color.toARGB32());
+    _repository.savePreferences(prefs);
+    notifyListeners();
+  }
+
   double _currentWidth = 3.0;
   double get currentWidth => _currentWidth;
 
@@ -79,6 +101,8 @@ class CanvasProvider with ChangeNotifier {
   ShapeResult? get ghostShape => _ghostShape;
 
   Timer? _debounceTimer;
+  Timer? _studyTimer;
+  final Stopwatch _studyStopwatch = Stopwatch();
   bool _isSyncing = false;
   bool get isSyncing => _isSyncing;
 
@@ -225,6 +249,7 @@ class CanvasProvider with ChangeNotifier {
           color: stroke.color,
           width: stroke.width * (scaleX + scaleY) / 2,
           createdAt: stroke.createdAt,
+          toolType: stroke.toolType,
         );
         _selectedStrokes[_selectedStrokes.indexOf(stroke)] =
             _currentNote!.strokes[index];
@@ -278,7 +303,34 @@ class CanvasProvider with ChangeNotifier {
     _currentNote = note;
     _undoStack.clear();
     _redoStack.clear();
+    _startStudyTracking();
     notifyListeners();
+  }
+
+  void _startStudyTracking() {
+    _studyStopwatch.reset();
+    _studyStopwatch.start();
+    _studyTimer?.cancel();
+    _studyTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      _updateStudyTime();
+    });
+  }
+
+  void _updateStudyTime() {
+    if (!_studyStopwatch.isRunning) return;
+    final elapsedSeconds = _studyStopwatch.elapsed.inSeconds;
+    _studyStopwatch.reset();
+    _studyStopwatch.start();
+
+    final profile = _repository.getStudentProfile();
+    profile.totalStudyTimeSeconds += elapsedSeconds;
+    _repository.saveStudentProfile(profile);
+  }
+
+  void stopStudyTracking() {
+    _updateStudyTime();
+    _studyStopwatch.stop();
+    _studyTimer?.cancel();
   }
 
   void setPlaybackTime(int? time) {
@@ -376,6 +428,7 @@ class CanvasProvider with ChangeNotifier {
       color: strokeColor.toARGB32(),
       width: strokeWidth,
       createdAt: timestamp ?? DateTime.now().millisecondsSinceEpoch,
+      toolType: _activeTool.name,
     );
 
     _currentNote!.strokes.add(stroke);
@@ -530,17 +583,28 @@ class CanvasProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void addImage(String base64Data, Offset offset, {int? timestamp}) {
+  void addImage(
+    String base64Data,
+    Offset offset, {
+    int? timestamp,
+    AudioProvider? audioProvider,
+  }) {
     if (_currentNote == null) return;
+    print('DEBUG: Adding image to note ${_currentNote!.id} at $offset');
     _takeSnapshot();
     final img = ImageBlock(
       id: const Uuid().v4(),
       base64Data: base64Data,
       x: offset.dx,
       y: offset.dy,
-      createdAt: timestamp ?? DateTime.now().millisecondsSinceEpoch,
+      createdAt:
+          timestamp ??
+          (audioProvider?.isRecording == true
+              ? audioProvider!.elapsedRecordingMillis
+              : DateTime.now().millisecondsSinceEpoch),
     );
     _currentNote!.images.add(img);
+    print('DEBUG: Note now has ${_currentNote!.images.length} images');
     saveNote();
     notifyListeners();
   }
@@ -596,6 +660,7 @@ class CanvasProvider with ChangeNotifier {
           color: stroke.color,
           width: stroke.width,
           createdAt: stroke.createdAt,
+          toolType: stroke.toolType,
         );
         _selectedStrokes[_selectedStrokes.indexOf(stroke)] =
             _currentNote!.strokes[index];
@@ -664,9 +729,10 @@ class CanvasProvider with ChangeNotifier {
   }
 
   void _jumpToTimestamp(int timestamp, AudioProvider audio) {
-    if (timestamp < 36000000) {
-      audio.seek(Duration(milliseconds: timestamp));
-    }
+    // Audio disabled for now
+    // if (timestamp < 36000000) {
+    //   audio.seek(Duration(milliseconds: timestamp));
+    // }
   }
 
   Future<void> saveNote() async {
@@ -686,6 +752,8 @@ class CanvasProvider with ChangeNotifier {
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    _studyTimer?.cancel();
+    _studyStopwatch.stop();
     super.dispose();
   }
 }

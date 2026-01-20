@@ -61,13 +61,14 @@ class StrokeAdapter extends TypeAdapter<Stroke> {
       color: fields[1] as int,
       width: fields[2] as double,
       createdAt: fields[3] as int,
+      toolType: fields[4] == null ? 'pen' : fields[4] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, Stroke obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.points)
       ..writeByte(1)
@@ -75,7 +76,9 @@ class StrokeAdapter extends TypeAdapter<Stroke> {
       ..writeByte(2)
       ..write(obj.width)
       ..writeByte(3)
-      ..write(obj.createdAt);
+      ..write(obj.createdAt)
+      ..writeByte(4)
+      ..write(obj.toolType);
   }
 
   @override
@@ -253,15 +256,16 @@ class NoteAdapter extends TypeAdapter<Note> {
       updatedAt: fields[6] as DateTime,
       notebookId: fields[7] as String?,
       templateType: fields[8] as String,
-      images: (fields[9] as List).cast<ImageBlock>(),
+      images: fields[9] == null ? [] : (fields[9] as List).cast<ImageBlock>(),
       tags: (fields[10] as List?)?.cast<String>(),
+      isDeleted: fields[11] == null ? false : fields[11] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, Note obj) {
     writer
-      ..writeByte(11)
+      ..writeByte(12)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -283,7 +287,9 @@ class NoteAdapter extends TypeAdapter<Note> {
       ..writeByte(9)
       ..write(obj.images)
       ..writeByte(10)
-      ..write(obj.tags);
+      ..write(obj.tags)
+      ..writeByte(11)
+      ..write(obj.isDeleted);
   }
 
   @override

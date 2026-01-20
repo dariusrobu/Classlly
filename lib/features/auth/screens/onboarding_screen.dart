@@ -91,6 +91,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             },
           ),
           Positioned(
+            top: 60,
+            right: 24,
+            child: TextButton(
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AuthScreen()),
+                );
+              },
+              child: const Text(
+                'Skip',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
             bottom: 60,
             left: 40,
             right: 40,

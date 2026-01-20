@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:classlly/features/library/providers/library_provider.dart';
 import 'package:classlly/core/theme/app_theme.dart';
 import 'package:classlly/data/models/course_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
@@ -112,6 +114,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
 
   void _save() async {
     if (_formKey.currentState!.validate()) {
+      final provider = Provider.of<LibraryProvider>(context, listen: false);
       final credits = double.tryParse(_creditsController.text) ?? 0.0;
       final schedule = "${_courseDay ?? ''} ${_formatTime(_courseTime)}".trim();
 
@@ -136,7 +139,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
           seminarDay: _seminarDay ?? '',
           seminarTime: _formatTime(_seminarTime),
         );
-        await _repository.saveCourse(updatedCourse);
+        await provider.saveCourse(updatedCourse);
       } else {
         // Create
         final newCourse = Course.create(
@@ -155,7 +158,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
           seminarDay: _seminarDay ?? '',
           seminarTime: _formatTime(_seminarTime),
         );
-        await _repository.saveCourse(newCourse);
+        await provider.saveCourse(newCourse);
       }
       if (mounted) Navigator.pop(context, true);
     }

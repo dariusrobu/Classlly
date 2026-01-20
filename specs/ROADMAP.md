@@ -44,14 +44,14 @@ This roadmap is prioritized for execution: **Models -> CRUD Actions -> UI Wiring
 - [X] **Page Titles:**
     - Dashboard header updated.
 
-## Phase 4: App Entry & Authentication (Critical Next Step)
+## Phase 4: App Entry & Authentication (Critical Next Step) [COMPLETED]
 *Goal: Secure the app.*
-- [ ] **Fix App Entry:**
+- [X] **Fix App Entry:**
     - Update `main.dart` to check `Supabase.auth.currentUser`.
     - Route to `OnboardingScreen` (new) or `AuthScreen` if not logged in.
-- [ ] **Create `OnboardingScreen`:**
+- [X] **Create `OnboardingScreen`:**
     - PageView with "Welcome", "Features", "Get Started".
-- [ ] **Profile Setup Wizard:**
+- [X] **Profile Setup Wizard:**
     - New screen after Signup: Set Name, Major.
 
 ## Phase 5: Advanced Views (Course Detail & Calendar)
@@ -63,15 +63,15 @@ This roadmap is prioritized for execution: **Models -> CRUD Actions -> UI Wiring
     - **Event Markers:** Show dots for Tasks/Schedule on the calendar widget.
     - **Day View:** Show list of events when a date is clicked.
 
-## Phase 6: System Features & Polish
+## Phase 6: System Features & Polish [COMPLETED]
 *Goal: Enhance usability and connectivity.*
-- [ ] **Notifications System:**
-    - Implement Notification Center (bell icon logic).
+- [X] **Notifications System:**
+    - Implement Notification Center (Local notifications for tasks/courses).
 - [X] **Settings Wiring:**
     - Theme toggles functional.
 - [ ] **Enhanced Search:**
     - Index Tasks and Folders in the global search bar.
-- [ ] **Folders:**
+- [X] **Folders:**
     - Implement Folder creation and nesting for Notebooks.
 
 ## Phase 7: Canvas & Polish

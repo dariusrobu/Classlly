@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'dart:convert';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:classlly/features/canvas/providers/canvas_provider.dart';
@@ -14,6 +15,9 @@ import 'package:classlly/features/canvas/widgets/canvas_template_painter.dart';
 import 'package:classlly/core/theme/app_theme.dart';
 import 'package:classlly/core/services/pdf_service.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:pdfx/pdfx.dart';
 
 class CanvasScreen extends StatefulWidget {
   const CanvasScreen({super.key});
@@ -48,6 +52,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
 
   @override
   void dispose() {
+    Provider.of<CanvasProvider>(context, listen: false).stopStudyTracking();
     _transformationController.dispose();
     _titleController.dispose();
     super.dispose();
@@ -75,23 +80,40 @@ class _CanvasScreenState extends State<CanvasScreen> {
     final double pagesHeight =
         (_pageCount * pageHeight) + ((_pageCount - 1) * pageGap);
 
-    return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F0F11) : Colors.grey[300],
-      body: Stack(
-        children: [
-          Row(
-            children: [
-              if (_isSidebarVisible)
-                _buildSidebar(isDark, canvasProvider, primaryColor),
-              Expanded(
-                child: Column(
-                  children: [
-                    _buildTopHeader(
-                      canvasProvider,
-                      audioProvider,
-                      isDark,
-                      primaryColor,
-                    ),
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyZ, control: true):
+            () => canvasProvider.undo(),
+        const SingleActivator(
+          LogicalKeyboardKey.keyZ,
+          control: true,
+          shift: true,
+        ): () => canvasProvider.redo(),
+        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true):
+            () => canvasProvider.undo(),
+        const SingleActivator(
+          LogicalKeyboardKey.keyZ,
+          meta: true,
+          shift: true,
+        ): () => canvasProvider.redo(),
+      },
+      child: Scaffold(
+        backgroundColor: isDark ? const Color(0xFF0F0F11) : Colors.grey[300],
+        body: Stack(
+          children: [
+            Row(
+              children: [
+                if (_isSidebarVisible)
+                  _buildSidebar(isDark, canvasProvider, primaryColor),
+                Expanded(
+                  child: Column(
+                    children: [
+                      _buildTopHeader(
+                        canvasProvider,
+                        audioProvider,
+                        isDark,
+                        primaryColor,
+                      ),
                     Expanded(
                       child: Stack(
                         children: [
@@ -194,13 +216,16 @@ class _CanvasScreenState extends State<CanvasScreen> {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  if (audioProvider.isPlaying ||
-                                      canvasProvider.playbackTime != null)
-                                    const Padding(
-                                      padding: EdgeInsets.only(bottom: 12),
-                                      child: PlaybackControl(),
-                                    ),
-                                  const _ClassllyUnifiedToolbar(),
+                                  // if (audioProvider.isPlaying ||
+                                  //     canvasProvider.playbackTime != null)
+                                  //   const Padding(
+                                  //     padding: EdgeInsets.only(bottom: 12),
+                                  //     child: PlaybackControl(),
+                                  //   ),
+                                  _ClassllyUnifiedToolbar(
+                                    transformationController:
+                                        _transformationController,
+                                  ),
                                 ],
                               ),
                             ),
@@ -215,6 +240,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -227,13 +253,49 @@ class _CanvasScreenState extends State<CanvasScreen> {
     return Positioned(
       left: img.x,
       top: img.y,
-      child: Container(
-        width: img.width,
-        height: img.height,
-        decoration: BoxDecoration(
-          border: isSelected ? Border.all(color: primaryColor, width: 2) : null,
+      child: GestureDetector(
+        onTap: () => provider.selectItemAt(
+          Offset(img.x + 5, img.y + 5),
+          Provider.of<AudioProvider>(context, listen: false),
         ),
-        child: Image.memory(base64Decode(img.base64Data), fit: BoxFit.cover),
+        onPanStart: (details) {
+          if (provider.activeTool == CanvasTool.select) {
+            if (!provider.selectedImages.contains(img)) {
+              provider.selectItemAt(
+                Offset(img.x + 5, img.y + 5),
+                Provider.of<AudioProvider>(context, listen: false),
+              );
+            }
+          }
+        },
+        onPanUpdate: (details) {
+          if (provider.activeTool == CanvasTool.select) {
+            provider.moveSelection(details.delta);
+          }
+        },
+        onPanEnd: (details) {
+          if (provider.activeTool == CanvasTool.select) {
+            provider.saveNote();
+          }
+        },
+        child: Container(
+          width: img.width,
+          height: img.height,
+          decoration: BoxDecoration(
+            border:
+                isSelected ? Border.all(color: primaryColor, width: 2) : null,
+          ),
+          child: Image.memory(
+            base64Decode(img.base64Data),
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                color: Colors.red.withValues(alpha: 0.1),
+                child: const Icon(Icons.error_outline, color: Colors.red),
+              );
+            },
+          ),
+        ),
       ),
     );
   }
@@ -500,6 +562,23 @@ class _CanvasScreenState extends State<CanvasScreen> {
                 setState(() => _isSidebarVisible = !_isSidebarVisible),
             tooltip: 'Toggle Sidebar',
           ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: Icon(
+              Icons.undo,
+              color: canvasProvider.canUndo ? Colors.grey : Colors.grey.withValues(alpha: 0.3),
+            ),
+            onPressed: canvasProvider.canUndo ? canvasProvider.undo : null,
+            tooltip: 'Undo',
+          ),
+          IconButton(
+            icon: Icon(
+              Icons.redo,
+              color: canvasProvider.canRedo ? Colors.grey : Colors.grey.withValues(alpha: 0.3),
+            ),
+            onPressed: canvasProvider.canRedo ? canvasProvider.redo : null,
+            tooltip: 'Redo',
+          ),
           const VerticalDivider(width: 48, indent: 24, endIndent: 24),
           Expanded(
             child: Column(
@@ -574,268 +653,335 @@ class _CanvasScreenState extends State<CanvasScreen> {
 }
 
 class _ClassllyUnifiedToolbar extends StatefulWidget {
-  const _ClassllyUnifiedToolbar();
+  final TransformationController transformationController;
+  const _ClassllyUnifiedToolbar({required this.transformationController});
   @override
   State<_ClassllyUnifiedToolbar> createState() =>
       _ClassllyUnifiedToolbarState();
 }
 
 class _ClassllyUnifiedToolbarState extends State<_ClassllyUnifiedToolbar> {
-  bool _isPenMenuVisible = false;
+
+  void _showColorPicker(BuildContext context, CanvasProvider provider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Pick a color'),
+        content: SingleChildScrollView(
+          child: ColorPicker(
+            pickerColor: provider.currentColor,
+            onColorChanged: (color) => provider.setColor(color),
+            pickerAreaHeightPercent: 0.8,
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Add & Done'),
+            onPressed: () {
+              provider.addColor(provider.currentColor);
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickPdfSnippet(
+    BuildContext context,
+    CanvasProvider canvasProvider,
+    AudioProvider audioProvider,
+  ) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final path = result.files.single.path;
+      if (path == null) return;
+
+      if (!context.mounted) return;
+
+      // Open PDF document
+      final document = await PdfDocument.openFile(path);
+
+      if (!context.mounted) {
+        await document.close();
+        return;
+      }
+
+      // Simple dialog to pick page
+      final pageNumber = await showDialog<int>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Pick Page'),
+          content: SizedBox(
+            width: 300,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: document.pagesCount,
+              itemBuilder: (context, index) => ListTile(
+                title: Text('Page ${index + 1}'),
+                onTap: () => Navigator.pop(context, index + 1),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      if (pageNumber != null && context.mounted) {
+        final page = await document.getPage(pageNumber);
+        final pageImage = await page.render(
+          width: page.width * 2, // High res
+          height: page.height * 2,
+          format: PdfPageImageFormat.png,
+        );
+
+        if (pageImage != null) {
+          // Calculate position
+          final matrix = widget.transformationController.value;
+          final inverseMatrix = Matrix4.inverted(matrix);
+          final screenCenter = Offset(
+            MediaQuery.of(context).size.width / 2,
+            MediaQuery.of(context).size.height / 2,
+          );
+          final canvasCenter = MatrixUtils.transformPoint(
+            inverseMatrix,
+            screenCenter,
+          );
+
+          canvasProvider.addImage(
+            base64Encode(pageImage.bytes),
+            canvasCenter,
+            audioProvider: audioProvider,
+          );
+        }
+        await page.close();
+      }
+      await document.close();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking PDF: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final canvasProvider = Provider.of<CanvasProvider>(context);
     final audioProvider = Provider.of<AudioProvider>(context);
     final primaryColor = Theme.of(context).colorScheme.primary;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    final allColors = [
+      ...AppTheme.noteColors,
+      ...canvasProvider.savedColors,
+    ];
 
     return Stack(
       clipBehavior: Clip.none,
       alignment: Alignment.bottomCenter,
       children: [
-        if (_isPenMenuVisible)
-          Positioned(
-            bottom: 70,
-            left: 40,
-            child: _GlassContainer(
-              padding: const EdgeInsets.all(8),
-              borderRadius: BorderRadius.circular(20),
-              child: Column(
+        ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: screenWidth - 32),
+          child: _GlassContainer(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            borderRadius: BorderRadius.circular(24),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _SubToolIcon(
-                    label: 'Monoline',
-                    icon: Icons.horizontal_rule,
-                    isActive: canvasProvider.activeTool == CanvasTool.monoline,
-                    onTap: () {
-                      canvasProvider.setActiveTool(CanvasTool.monoline);
-                      setState(() => _isPenMenuVisible = false);
-                    },
+                  // Navigation & Selection
+                  _ToolIcon(
+                    icon: Icons.pan_tool,
+                    isActive: canvasProvider.activeTool == CanvasTool.hand,
+                    onTap: () => canvasProvider.setActiveTool(CanvasTool.hand),
                   ),
-                  _SubToolIcon(
-                    label: 'Fountain',
-                    icon: Icons.history_edu,
-                    isActive: canvasProvider.activeTool == CanvasTool.fountain,
-                    onTap: () {
-                      canvasProvider.setActiveTool(CanvasTool.fountain);
-                      setState(() => _isPenMenuVisible = false);
-                    },
+                  _ToolIcon(
+                    icon: Icons.gesture,
+                    isActive: canvasProvider.activeTool == CanvasTool.select,
+                    onTap: () => canvasProvider.setActiveTool(CanvasTool.select),
                   ),
-                  _SubToolIcon(
-                    label: 'Reed',
-                    icon: Icons.architecture,
-                    isActive: canvasProvider.activeTool == CanvasTool.reed,
-                    onTap: () {
-                      canvasProvider.setActiveTool(CanvasTool.reed);
-                      setState(() => _isPenMenuVisible = false);
-                    },
-                  ),
-                  _SubToolIcon(
-                    label: 'Watercolor',
-                    icon: Icons.waves,
-                    isActive:
-                        canvasProvider.activeTool == CanvasTool.watercolor,
-                    onTap: () {
-                      canvasProvider.setActiveTool(CanvasTool.watercolor);
-                      setState(() => _isPenMenuVisible = false);
-                    },
-                  ),
-                  _SubToolIcon(
-                    label: 'Pencil',
+                  _vDivider(),
+
+                  // Drawing
+                  _ToolIcon(
                     icon: Icons.edit,
                     isActive: canvasProvider.activeTool == CanvasTool.pencil,
-                    onTap: () {
-                      canvasProvider.setActiveTool(CanvasTool.pencil);
-                      setState(() => _isPenMenuVisible = false);
-                    },
+                    onTap: () => canvasProvider.setActiveTool(CanvasTool.pencil),
                   ),
-                  _SubToolIcon(
-                    label: 'Marker',
-                    icon: Icons.border_top,
-                    isActive: canvasProvider.activeTool == CanvasTool.marker,
-                    onTap: () {
-                      canvasProvider.setActiveTool(CanvasTool.marker);
-                      setState(() => _isPenMenuVisible = false);
-                    },
+                  _ToolIcon(
+                    icon: Icons.border_color,
+                    isActive: canvasProvider.activeTool == CanvasTool.highlighter,
+                    onTap: () =>
+                        canvasProvider.setActiveTool(CanvasTool.highlighter),
                   ),
-                ],
-              ),
-            ),
-          ),
-        _GlassContainer(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          borderRadius: BorderRadius.circular(24),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _ToolIcon(
-                icon: Icons.undo,
-                isActive: false,
-                onTap: canvasProvider.canUndo
-                    ? () => canvasProvider.undo()
-                    : () {},
-                color: canvasProvider.canUndo ? Colors.white : Colors.white24,
-              ),
-              _ToolIcon(
-                icon: Icons.redo,
-                isActive: false,
-                onTap: canvasProvider.canRedo
-                    ? () => canvasProvider.redo()
-                    : () {},
-                color: canvasProvider.canRedo ? Colors.white : Colors.white24,
-              ),
-              _vDivider(),
-              _ToolIcon(
-                icon: Icons.edit,
-                isActive: _isPenType(canvasProvider.activeTool),
-                onTap: () {
-                  setState(() {
-                    _isPenMenuVisible = !_isPenMenuVisible;
-                  });
-                },
-              ),
-              _ToolIcon(
-                icon: Icons.brush,
-                isActive: canvasProvider.activeTool == CanvasTool.brush,
-                onTap: () => canvasProvider.setActiveTool(CanvasTool.brush),
-              ),
-              _ToolIcon(
-                icon: Icons.border_color,
-                isActive: canvasProvider.activeTool == CanvasTool.highlighter,
-                onTap: () =>
-                    canvasProvider.setActiveTool(CanvasTool.highlighter),
-              ),
-              _ToolIcon(
-                icon: Icons.cleaning_services,
-                isActive: canvasProvider.activeTool == CanvasTool.eraser,
-                onTap: () => canvasProvider.setActiveTool(CanvasTool.eraser),
-              ),
-              _ToolIcon(
-                icon: Icons.gesture,
-                isActive: canvasProvider.activeTool == CanvasTool.select,
-                onTap: () => canvasProvider.setActiveTool(CanvasTool.select),
-              ),
-              _ToolIcon(
-                icon: Icons.text_fields,
-                isActive: canvasProvider.activeTool == CanvasTool.text,
-                onTap: () => canvasProvider.setActiveTool(CanvasTool.text),
-              ),
-              _ToolIcon(
-                icon: Icons.image,
-                isActive: canvasProvider.activeTool == CanvasTool.image,
-                onTap: () => canvasProvider.setActiveTool(CanvasTool.image),
-              ),
-              _vDivider(),
-              _PropertySlider(
-                label: 'WIDTH',
-                value: canvasProvider.currentWidth,
-                min: 1,
-                max: 20,
-                onChanged: (v) => canvasProvider.setWidth(v),
-              ),
-              _PropertySlider(
-                label: 'OPACITY',
-                value: canvasProvider.currentOpacity,
-                min: 0.1,
-                max: 1.0,
-                onChanged: (v) => canvasProvider.setOpacity(v),
-              ),
-              _vDivider(),
-              ...AppTheme.noteColors
-                  .take(4)
-                  .map(
-                    (color) => _ColorCircle(
+                  _ToolIcon(
+                    icon: Icons.cleaning_services,
+                    isActive: canvasProvider.activeTool == CanvasTool.eraser,
+                    onTap: () => canvasProvider.setActiveTool(CanvasTool.eraser),
+                  ),
+                  _vDivider(),
+
+                  // Objects
+                  _ToolIcon(
+                    icon: Icons.text_fields,
+                    isActive: canvasProvider.activeTool == CanvasTool.text,
+                    onTap: () => canvasProvider.setActiveTool(CanvasTool.text),
+                  ),
+                                                                          _ToolIcon(
+                                                                            icon: Icons.image,
+                                                                            isActive: canvasProvider.activeTool == CanvasTool.image,
+                                                                            onTap: () async {
+                                                                              print('DEBUG: Media icon tapped');
+                                                                              try {
+                                                                                canvasProvider.setActiveTool(CanvasTool.image);
+                                                                                final picker = ImagePicker();
+                                                                                final xFile =
+                                                                                    await picker.pickImage(source: ImageSource.gallery);
+                                                                                if (xFile != null) {
+                                                                                  print('DEBUG: Image picked: ${xFile.path}');
+                                                                                  final bytes = await xFile.readAsBytes();
+                                                            
+                                                                                  // Calculate position based on current view center
+                                                                                  final matrix = widget.transformationController.value;
+                                                                                  final inverseMatrix = Matrix4.inverted(matrix);
+                                                                                  final screenCenter = Offset(
+                                                                                    MediaQuery.of(context).size.width / 2,
+                                                                                    MediaQuery.of(context).size.height / 2,
+                                                                                  );
+                                                                                  final canvasCenter = MatrixUtils.transformPoint(
+                                                                                    inverseMatrix,
+                                                                                    screenCenter,
+                                                                                  );
+                                                            
+                                                                                  canvasProvider.addImage(
+                                                                                    base64Encode(bytes),
+                                                                                    canvasCenter,
+                                                                                    audioProvider: audioProvider,
+                                                                                  );
+                                                                                } else {
+                                                                                  print('DEBUG: No image picked');
+                                                                                }
+                                                                              } catch (e) {
+                                                                                print('DEBUG: Error picking image: $e');
+                                                                                if (context.mounted) {
+                                                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                                                    SnackBar(content: Text('Failed to add image: $e')),
+                                                                                  );
+                                                                                }
+                                                                              }
+                                                                            },
+                                                                          ),
+                                                                          _ToolIcon(
+                                                                            icon: Icons.picture_as_pdf_outlined,
+                                                                            isActive: false,
+                                                                            onTap: () =>
+                                                                                _pickPdfSnippet(context, canvasProvider, audioProvider),
+                                                                          ),
+                                                                          _vDivider(),
+                  // Properties
+                  _PropertySlider(
+                    label: 'WIDTH',
+                    value: canvasProvider.currentWidth,
+                    min: 1,
+                    max: 20,
+                    onChanged: (v) => canvasProvider.setWidth(v),
+                  ),
+                  _PropertySlider(
+                    label: 'OPACITY',
+                    value: canvasProvider.currentOpacity,
+                    min: 0.1,
+                    max: 1.0,
+                    onChanged: (v) => canvasProvider.setOpacity(v),
+                  ),
+                  _vDivider(),
+
+                  // Colors
+              ...allColors.map(
+                (color) {
+                  final isSaved = canvasProvider.savedColors.contains(color);
+                  return GestureDetector(
+                    onLongPress: isSaved
+                        ? () {
+                            // Show delete confirmation
+                            showDialog(
+                              context: context,
+                              builder: (c) => AlertDialog(
+                                title: const Text('Delete Color'),
+                                content: const Text(
+                                    'Remove this color from your palette?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(c),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      canvasProvider.removeColor(color);
+                                      Navigator.pop(c);
+                                    },
+                                    child: const Text('Delete'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                        : null,
+                    child: _ColorCircle(
                       color: color,
-                      isSelected:
-                          canvasProvider.currentColor.toARGB32() == color.toARGB32(),
+                      isSelected: canvasProvider.currentColor.toARGB32() ==
+                          color.toARGB32(),
                       onTap: () => canvasProvider.setColor(color),
                     ),
-                  ),
-              _vDivider(),
-              _ToolIcon(
-                icon: audioProvider.isRecording ? Icons.stop : Icons.mic,
-                isActive: audioProvider.isRecording,
-                color: audioProvider.isRecording ? Colors.red : primaryColor,
-                onTap: () async {
-                  if (audioProvider.isRecording) {
-                    await audioProvider.stopRecording();
-                  } else {
-                    final path = await audioProvider.startRecording();
-                    if (path != null && canvasProvider.currentNote != null) {
-                      canvasProvider.currentNote!.audioPath = path;
-                      canvasProvider.saveNote();
-                    }
-                  }
+                  );
                 },
               ),
+              _ToolIcon(
+                icon: Icons.add,
+                isActive: false,
+                onTap: () => _showColorPicker(context, canvasProvider),
+              ),
+              _vDivider(),
+
+              // Audio - DISABLED FOR NOW
+              // _ToolIcon(
+              //   icon: audioProvider.isRecording ? Icons.stop : Icons.mic,
+              //   isActive: audioProvider.isRecording,
+              //   color: audioProvider.isRecording ? Colors.red : primaryColor,
+              //   onTap: () async {
+              //     if (audioProvider.isRecording) {
+              //       await audioProvider.stopRecording();
+              //     } else {
+              //       final path = await audioProvider.startRecording();
+              //       if (path != null && canvasProvider.currentNote != null) {
+              //         canvasProvider.currentNote!.audioPath = path;
+              //         canvasProvider.saveNote();
+              //       }
+              //     }
+              //   },
+              // ),
             ],
+          ),
+        ),
           ),
         ),
       ],
     );
   }
 
-  bool _isPenType(CanvasTool tool) => [
-    CanvasTool.pen,
-    CanvasTool.monoline,
-    CanvasTool.fountain,
-    CanvasTool.reed,
-    CanvasTool.watercolor,
-    CanvasTool.pencil,
-    CanvasTool.marker,
-  ].contains(tool);
   Widget _vDivider() => Container(
     width: 1,
     height: 24,
     color: Colors.white10,
     margin: const EdgeInsets.symmetric(horizontal: 8),
   );
-}
-
-class _SubToolIcon extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool isActive;
-  final VoidCallback onTap;
-  const _SubToolIcon({
-    required this.label,
-    required this.icon,
-    required this.isActive,
-    required this.onTap,
-  });
-  @override
-  Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).colorScheme.primary;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 140,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isActive ? primaryColor : Colors.white70,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: isActive ? primaryColor : Colors.white70,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _PropertySlider extends StatelessWidget {

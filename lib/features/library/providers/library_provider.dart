@@ -5,12 +5,16 @@ import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/data/models/task_model.dart';
 import 'package:classlly/data/models/folder_model.dart';
 import 'package:classlly/data/models/note_models.dart';
+import 'package:classlly/data/models/course_model.dart';
+import 'package:intl/intl.dart';
+import 'package:classlly/core/services/notification_service.dart';
 
 enum LibraryView { dashboard, allNotes, courses, tasks, calendar, archive }
 
 class LibraryProvider with ChangeNotifier {
   final SupabaseRepository _remoteRepository = SupabaseRepository();
   final NotesRepository _localRepository = NotesRepository();
+  final NotificationService _notificationService = NotificationService();
   StreamSubscription? _syncSubscription;
 
   LibraryView _currentView = LibraryView.dashboard;
@@ -26,18 +30,25 @@ class LibraryProvider with ChangeNotifier {
   String? get currentFolderId => _currentFolderId;
 
   List<Task> get tasks => _localRepository.getAllTasks();
+  List<Course> get courses => _localRepository.getAllCourses();
+  List<Note> get deletedNotes => _localRepository.getDeletedNotes();
+  List<Task> get deletedTasks => _localRepository.getDeletedTasks();
+  List<Folder> get deletedFolders => _localRepository.getDeletedFolders();
 
-  void initSync() {
+  void initSync() async {
+    // Perform full background sync
+    await _remoteRepository.syncAll();
+    _lastSynced = DateTime.now();
+    notifyListeners();
+
+    // Keep listening for note changes specifically for real-time
     _syncSubscription?.cancel();
-    _syncSubscription = _remoteRepository.notesStream().listen((
-      remoteNotes,
-    ) async {
-      await _remoteRepository.syncNotes();
+    _syncSubscription = _remoteRepository.notesStream().listen((remoteNotes) {
       _lastSynced = DateTime.now();
       notifyListeners();
     });
 
-    // Seed some initial data if empty
+    // Seed initial data if empty
     if (tasks.isEmpty) {
       _seedInitialData();
     }
@@ -75,18 +86,129 @@ class LibraryProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addTask(
-    String title, {
-    DateTime? dueDate,
-    String? category,
-  }) async {
+  Future<void> saveCourse(Course course) async {
+    await _localRepository.saveCourse(course);
+    _scheduleCourseNotifications(course);
+    notifyListeners();
+  }
+
+  Future<void> deleteCourse(String courseId) async {
+    _cancelCourseNotifications(courseId);
+    await _localRepository.deleteCourse(courseId);
+    notifyListeners();
+  }
+
+  void _scheduleCourseNotifications(Course course) {
+    _cancelCourseNotifications(course.id);
+
+    // 1. Schedule Lecture
+    if (course.courseDay.isNotEmpty && course.courseTime.isNotEmpty) {
+      final time = _parseTimeString(course.courseTime);
+      if (time != null) {
+        _notificationService.scheduleNotification(
+          id: (course.id + 'lecture').hashCode,
+          title: 'Upcoming Lecture',
+          body: 'Your lecture for "${course.title}" starts at ${course.courseTime} in ${course.location}',
+          scheduledDate: _nextOccurrence(course.courseDay, time),
+          payload: 'course_${course.id}',
+        );
+      }
+    }
+
+    // 2. Schedule Seminar
+    if (course.seminarDay.isNotEmpty && course.seminarTime.isNotEmpty) {
+      final time = _parseTimeString(course.seminarTime);
+      if (time != null) {
+        _notificationService.scheduleNotification(
+          id: (course.id + 'seminar').hashCode,
+          title: 'Upcoming Seminar',
+          body: 'Your seminar for "${course.title}" starts at ${course.seminarTime} in ${course.seminarLocation}',
+          scheduledDate: _nextOccurrence(course.seminarDay, time),
+          payload: 'course_${course.id}',
+        );
+      }
+    }
+  }
+
+  void _cancelCourseNotifications(String courseId) {
+    _notificationService.cancelNotification((courseId + 'lecture').hashCode);
+    _notificationService.cancelNotification((courseId + 'seminar').hashCode);
+  }
+
+  DateTime _nextOccurrence(String dayName, TimeOfDay time) {
+    final days = {
+      'Monday': 1,
+      'Tuesday': 2,
+      'Wednesday': 3,
+      'Thursday': 4,
+      'Friday': 5,
+      'Saturday': 6,
+      'Sunday': 7,
+    };
+    final targetDay = days[dayName] ?? 1;
+    final now = DateTime.now();
+    
+    DateTime scheduled = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+    
+    while (scheduled.weekday != targetDay || scheduled.isBefore(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+    
+    return scheduled;
+  }
+
+  TimeOfDay? _parseTimeString(String timeStr) {
+    try {
+      final format = DateFormat.jm();
+      final dt = format.parse(timeStr);
+      return TimeOfDay(hour: dt.hour, minute: dt.minute);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<void> saveTask(Task task) async {
+    await _localRepository.saveTask(task);
+    _scheduleTaskReminders(task);
+    notifyListeners();
+  }
+
+  void _scheduleTaskReminders(Task task) {
+    final notificationId = task.id.hashCode;
+    _notificationService.cancelNotification(notificationId);
+
+    if (task.isCompleted || task.isDeleted) return;
+
+    if (task.reminderTime != null && task.reminderTime!.isAfter(DateTime.now())) {
+      _notificationService.scheduleNotification(
+        id: notificationId,
+        title: 'Task Reminder',
+        body: 'Reminder: ${task.title}',
+        scheduledDate: task.reminderTime!,
+        payload: 'task_${task.id}',
+      );
+    } else if (task.dueDate != null && task.dueDate!.isAfter(DateTime.now())) {
+      final reminder = task.dueDate!.subtract(const Duration(hours: 1));
+      if (reminder.isAfter(DateTime.now())) {
+        _notificationService.scheduleNotification(
+          id: notificationId,
+          title: 'Upcoming Deadline',
+          body: 'Your task "${task.title}" is due in 1 hour.',
+          scheduledDate: reminder,
+          payload: 'task_${task.id}',
+        );
+      }
+    }
+  }
+
+  Future<void> addTask(String title, {DateTime? dueDate, String? category}) async {
     final task = Task.create(
       title: title,
       dueDate: dueDate,
       category: category,
+      priority: category == 'Exam' ? 2 : 1,
     );
-    await _localRepository.saveTask(task);
-    notifyListeners();
+    await saveTask(task);
   }
 
   Future<void> createFolder(String title) async {
@@ -106,7 +228,32 @@ class LibraryProvider with ChangeNotifier {
   }
 
   Future<void> deleteFolder(String folderId) async {
+    final folder = _localRepository.getFolder(folderId);
+    if (folder != null) {
+      folder.isDeleted = true;
+      await _localRepository.saveFolder(folder);
+      notifyListeners();
+    }
+  }
+
+  Future<void> restoreFolder(String folderId) async {
+    final folder = _localRepository.getFolder(folderId);
+    if (folder != null) {
+      folder.isDeleted = false;
+      await _localRepository.saveFolder(folder);
+      notifyListeners();
+    }
+  }
+
+  Future<void> permanentlyDeleteFolder(String folderId) async {
     await _localRepository.deleteFolder(folderId);
+    notifyListeners();
+  }
+
+  Future<void> moveFolder(Folder folder, String? newParentId) async {
+    if (folder.id == newParentId) return;
+    folder.parentId = newParentId;
+    await _localRepository.saveFolder(folder);
     notifyListeners();
   }
 
@@ -128,13 +275,77 @@ class LibraryProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> moveNote(Note note, String? newFolderId) async {
+    note.notebookId = newFolderId;
+    await _localRepository.saveNote(note);
+    notifyListeners();
+  }
+
   Future<void> deleteNote(String noteId) async {
+    final note = _localRepository.getNote(noteId);
+    if (note != null) {
+      note.isDeleted = true;
+      await _localRepository.saveNote(note);
+      notifyListeners();
+    }
+  }
+
+  Future<void> restoreNote(String noteId) async {
+    final note = _localRepository.getNote(noteId);
+    if (note != null) {
+      note.isDeleted = false;
+      await _localRepository.saveNote(note);
+      notifyListeners();
+    }
+  }
+
+  Future<void> permanentlyDeleteNote(String noteId) async {
     await _localRepository.deleteNote(noteId);
+    notifyListeners();
+  }
+
+  Future<void> deleteTask(String taskId) async {
+    final task = _localRepository.getTask(taskId);
+    if (task != null) {
+      task.isDeleted = true;
+      await _localRepository.saveTask(task);
+      notifyListeners();
+    }
+  }
+
+  Future<void> restoreTask(String taskId) async {
+    final task = _localRepository.getTask(taskId);
+    if (task != null) {
+      task.isDeleted = false;
+      await _localRepository.saveTask(task);
+      notifyListeners();
+    }
+  }
+
+  Future<void> permanentlyDeleteTask(String taskId) async {
+    _notificationService.cancelNotification(taskId.hashCode);
+    await _localRepository.deleteTask(taskId);
+    notifyListeners();
+  }
+
+  Future<void> emptyTrash() async {
+    final notes = _localRepository.getDeletedNotes();
+    final tasks = _localRepository.getDeletedTasks();
+    final folders = _localRepository.getDeletedFolders();
+
+    for (var note in notes) await _localRepository.deleteNote(note.id);
+    for (var task in tasks) await _localRepository.deleteTask(task.id);
+    for (var folder in folders) await _localRepository.deleteFolder(folder.id);
     notifyListeners();
   }
 
   Future<void> toggleTask(Task task) async {
     task.isCompleted = !task.isCompleted;
+    if (task.isCompleted) {
+      _notificationService.cancelNotification(task.id.hashCode);
+    } else {
+      _scheduleTaskReminders(task);
+    }
     await _localRepository.saveTask(task);
     notifyListeners();
   }

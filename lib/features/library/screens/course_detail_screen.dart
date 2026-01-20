@@ -16,15 +16,36 @@ import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/features/library/screens/add_task_screen.dart';
 import 'package:classlly/features/canvas/providers/canvas_provider.dart';
 import 'package:classlly/features/canvas/screens/canvas_screen.dart';
+import 'package:classlly/features/library/widgets/empty_state.dart';
 
-class CourseDetailScreen extends StatelessWidget {
+class CourseDetailScreen extends StatefulWidget {
   final Course course;
 
   const CourseDetailScreen({super.key, required this.course});
 
+  @override
+  State<CourseDetailScreen> createState() => _CourseDetailScreenState();
+}
+
+class _CourseDetailScreenState extends State<CourseDetailScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   void _addNote(BuildContext context) {
-    final note = Note.create(title: '${course.title} Note');
-    note.tags = [course.title, course.id]; // Link to course
+    final note = Note.create(title: '${widget.course.title} Note');
+    note.tags = [widget.course.title, widget.course.id]; // Link to course
     Provider.of<CanvasProvider>(context, listen: false).setNote(note);
     Navigator.push(
       context,
@@ -35,21 +56,21 @@ class CourseDetailScreen extends StatelessWidget {
   void _addTask(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AddTaskScreen(initialCourseId: course.id),
+      builder: (context) => AddTaskScreen(initialCourseId: widget.course.id),
     );
   }
 
   void _addGrade(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => _AddGradeDialog(courseId: course.id),
+      builder: (context) => _AddGradeDialog(courseId: widget.course.id),
     );
   }
 
   void _addAttendance(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => _AddAttendanceDialog(courseId: course.id),
+      builder: (context) => _AddAttendanceDialog(courseId: widget.course.id),
     );
   }
 
@@ -77,22 +98,166 @@ class CourseDetailScreen extends StatelessWidget {
             if (MediaQuery.of(context).size.width > 900)
               const DashboardSidebar(),
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeaderSection(context, isDark, primaryColor),
-                    const SizedBox(height: 24),
-                    _buildQuickActions(context, isDark, primaryColor),
-                    const SizedBox(height: 32),
-                    _buildMainGrid(context, isDark, primaryColor),
-                  ],
-                ),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: NestedScrollView(
+                      headerSliverBuilder: (context, innerBoxIsScrolled) {
+                        return [
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.all(32),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildHeaderSection(
+                                      context, isDark, primaryColor),
+                                  const SizedBox(height: 24),
+                                  _buildQuickActions(
+                                      context, isDark, primaryColor),
+                                  const SizedBox(height: 24),
+                                  TabBar(
+                                    controller: _tabController,
+                                    isScrollable: true,
+                                    tabAlignment: TabAlignment.start,
+                                    dividerColor: Colors.transparent,
+                                    labelColor: primaryColor,
+                                    unselectedLabelColor: Colors.grey,
+                                    indicatorColor: primaryColor,
+                                    tabs: const [
+                                      Tab(text: 'Overview'),
+                                      Tab(text: 'Notes'),
+                                      Tab(text: 'Assignments'),
+                                      Tab(text: 'Info & Resources'),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ];
+                      },
+                      body: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildOverviewTab(context, isDark, primaryColor),
+                          _buildNotesTab(context, isDark, primaryColor),
+                          _buildTasksTab(context, isDark, primaryColor),
+                          _buildInfoTab(context, isDark, primaryColor),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildOverviewTab(
+      BuildContext context, bool isDark, Color primaryColor) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildPerformanceCharts(isDark, primaryColor),
+          const SizedBox(height: 32),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Recent Activity',
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildRecentNotesList(isDark, primaryColor, limit: 3),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 32),
+              Expanded(
+                child: _buildTasksCard(isDark, primaryColor),
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotesTab(BuildContext context, bool isDark, Color primaryColor) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: _buildRecentNotesList(isDark, primaryColor, limit: 100),
+    );
+  }
+
+  Widget _buildTasksTab(BuildContext context, bool isDark, Color primaryColor) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: _buildTasksCard(isDark, primaryColor, showAll: true),
+    );
+  }
+
+  Widget _buildInfoTab(BuildContext context, bool isDark, Color primaryColor) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Column(
+        children: [
+          _buildCourseInfoCard(isDark, primaryColor),
+          const SizedBox(height: 32),
+          _GlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Row(
+                    children: [
+                      Icon(Icons.folder_open, color: primaryColor),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Course Resources',
+                        style: GoogleFonts.spaceGrotesk(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                SizedBox(
+                  height: 200,
+                  child: Center(
+                    child: EmptyState(
+                      icon: Icons.attach_file,
+                      title: 'No resources yet',
+                      subtitle: 'Upload PDFs or add links to this course.',
+                      actionLabel: 'Add Resource',
+                      onAction: () {
+                         ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('File upload coming in next update!')),
+                          );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -103,7 +268,7 @@ class CourseDetailScreen extends StatelessWidget {
     Color primaryColor,
   ) {
     return SizedBox(
-      height: 50,
+      height: 40,
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
@@ -158,12 +323,13 @@ class CourseDetailScreen extends StatelessWidget {
     return ElevatedButton(
       onPressed: onTap,
       style: ElevatedButton.styleFrom(
-        backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+        backgroundColor:
+            isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
         foregroundColor: isDark ? Colors.white : Colors.black87,
         elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           side: BorderSide(
             color: isDark
                 ? Colors.white.withValues(alpha: 0.1)
@@ -173,11 +339,11 @@ class CourseDetailScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: primaryColor),
+          Icon(icon, size: 16, color: primaryColor),
           const SizedBox(width: 8),
           Text(
             label,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
           ),
         ],
       ),
@@ -219,7 +385,7 @@ class CourseDetailScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                course.title,
+                widget.course.title,
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 40,
                   fontWeight: FontWeight.w900,
@@ -236,30 +402,9 @@ class CourseDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    course.professor.isNotEmpty
-                        ? course.professor
+                    widget.course.professor.isNotEmpty
+                        ? widget.course.professor
                         : 'No Instructor',
-                    style: TextStyle(
-                      color: isDark
-                          ? const Color(0xFFAD8DCE)
-                          : Colors.grey[900],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Container(
-                    width: 4,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white24 : Colors.black26,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Text(
-                    course.credits > 0
-                        ? '${course.credits} Credits'
-                        : 'Credits TBD',
                     style: TextStyle(
                       color: isDark
                           ? const Color(0xFFAD8DCE)
@@ -279,7 +424,7 @@ class CourseDetailScreen extends StatelessWidget {
             ).listenable(),
             builder: (context, Box<Grade> gradeBox, _) {
               final courseGrades = gradeBox.values
-                  .where((g) => g.courseId == course.id)
+                  .where((g) => g.courseId == widget.course.id)
                   .toList();
               double avg = 0;
               if (courseGrades.isNotEmpty) {
@@ -301,7 +446,7 @@ class CourseDetailScreen extends StatelessWidget {
                 ).listenable(),
                 builder: (context, Box<Attendance> attBox, _) {
                   final courseAtt = attBox.values
-                      .where((a) => a.courseId == course.id)
+                      .where((a) => a.courseId == widget.course.id)
                       .toList();
                   double attendance = 0;
                   if (courseAtt.isNotEmpty) {
@@ -389,89 +534,10 @@ class CourseDetailScreen extends StatelessWidget {
                   size: 14,
                   color: Colors.greenAccent.shade400,
                 ),
-              const SizedBox(width: 2),
-              Text(
-                trend,
-                style: GoogleFonts.spaceGrotesk(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: (trend == 'N/A' || trend == '-')
-                      ? Colors.grey
-                      : Colors.greenAccent.shade400,
-                ),
-              ),
             ],
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildMainGrid(BuildContext context, bool isDark, Color primaryColor) {
-    // 2/3 left, 1/3 right layout
-    final isWide = MediaQuery.of(context).size.width > 1100;
-
-    return Flex(
-      direction: isWide ? Axis.horizontal : Axis.vertical,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: isWide ? 2 : 0,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionTitle(
-                'Performance History',
-                Icons.analytics_outlined,
-                primaryColor,
-              ),
-              const SizedBox(height: 16),
-              _buildPerformanceCharts(isDark, primaryColor),
-              const SizedBox(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildSectionTitle(
-                    'Recent Lecture Notes',
-                    Icons.edit_note,
-                    primaryColor,
-                  ),
-                  TextButton(onPressed: () {}, child: const Text('View All')),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildRecentNotesList(isDark, primaryColor), // Dynamic notes
-            ],
-          ),
-        ),
-        if (isWide) const SizedBox(width: 32) else const SizedBox(height: 32),
-        Expanded(
-          flex: isWide ? 1 : 0,
-          child: Column(
-            children: [
-              _buildCourseInfoCard(isDark, primaryColor),
-              const SizedBox(height: 32),
-              _buildTasksCard(isDark, primaryColor),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSectionTitle(String title, IconData icon, Color primaryColor) {
-    return Row(
-      children: [
-        Icon(icon, color: primaryColor, size: 24),
-        const SizedBox(width: 12),
-        Text(
-          title,
-          style: GoogleFonts.spaceGrotesk(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
     );
   }
 
@@ -503,7 +569,7 @@ class CourseDetailScreen extends StatelessWidget {
       ).listenable(),
       builder: (context, Box<Grade> box, _) {
         final courseGrades = box.values
-            .where((g) => g.courseId == course.id)
+            .where((g) => g.courseId == widget.course.id)
             .toList();
         double currentGrade = 0;
         if (courseGrades.isNotEmpty) {
@@ -586,24 +652,6 @@ class CourseDetailScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              RichText(
-                text: TextSpan(
-                  style: TextStyle(
-                    color: isDark ? Colors.grey[400] : Colors.grey[600],
-                    fontSize: 11,
-                  ),
-                  children: [
-                    const TextSpan(text: 'Goal: '),
-                    TextSpan(
-                      text: '95%',
-                      style: TextStyle(
-                        color: primaryColor,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         );
@@ -618,7 +666,7 @@ class CourseDetailScreen extends StatelessWidget {
       ).listenable(),
       builder: (context, Box<Grade> box, _) {
         final courseGrades =
-            box.values.where((g) => g.courseId == course.id).toList()
+            box.values.where((g) => g.courseId == widget.course.id).toList()
               ..sort((a, b) => a.date.compareTo(b.date));
 
         List<FlSpot> spots = [];
@@ -673,34 +721,6 @@ class CourseDetailScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 4),
-              if (courseGrades.isNotEmpty)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'START',
-                      style: TextStyle(
-                        fontSize: 9,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'NOW',
-                      style: TextStyle(
-                        fontSize: 9,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                )
-              else
-                Text(
-                  'No grade data',
-                  style: TextStyle(fontSize: 9, color: Colors.grey[600]),
-                ),
             ],
           ),
         );
@@ -715,7 +735,7 @@ class CourseDetailScreen extends StatelessWidget {
       ).listenable(),
       builder: (context, Box<Attendance> box, _) {
         final records =
-            box.values.where((r) => r.courseId == course.id).toList()
+            box.values.where((r) => r.courseId == widget.course.id).toList()
               ..sort((a, b) => a.date.compareTo(b.date));
 
         return _GlassCard(
@@ -767,27 +787,27 @@ class CourseDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRecentNotesList(bool isDark, Color primaryColor) {
+  Widget _buildRecentNotesList(bool isDark, Color primaryColor,
+      {int limit = 100}) {
     return ValueListenableBuilder(
       valueListenable: Hive.box<Note>(NotesRepository.boxName).listenable(),
       builder: (context, Box<Note> box, _) {
         final notes = box.values
             .where(
               (n) =>
-                  (n.tags?.contains(course.title) ?? false) ||
-                  (n.tags?.contains(course.id) ?? false),
+                  (n.tags?.contains(widget.course.title) ?? false) ||
+                  (n.tags?.contains(widget.course.id) ?? false),
             )
             .toList();
 
-        final displayNotes = notes.isEmpty
-            ? box.values.take(3).toList()
-            : notes.take(3).toList();
+        final displayNotes = notes.take(limit).toList();
 
         if (displayNotes.isEmpty) {
           return const Center(
-            child: Text(
-              'No notes found for this course.',
-              style: TextStyle(color: Colors.grey),
+            child: EmptyState(
+              icon: Icons.note_alt_outlined,
+              title: 'No notes yet',
+              subtitle: 'Start taking notes for this course!',
             ),
           );
         }
@@ -880,28 +900,6 @@ class CourseDetailScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            width: double.infinity,
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, color: primaryColor),
-                const SizedBox(width: 8),
-                Text(
-                  'Course Information',
-                  style: GoogleFonts.spaceGrotesk(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
-            ),
-          ),
           Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -921,8 +919,8 @@ class CourseDetailScreen extends StatelessWidget {
                 _infoRow(
                   Icons.person_outline,
                   'INSTRUCTOR',
-                  course.professor.isNotEmpty
-                      ? course.professor
+                  widget.course.professor.isNotEmpty
+                      ? widget.course.professor
                       : 'Not Assigned',
                   '',
                   isDark,
@@ -932,10 +930,12 @@ class CourseDetailScreen extends StatelessWidget {
                 _infoRow(
                   Icons.schedule,
                   'SCHEDULE',
-                  '${course.courseDay} ${course.courseTime}'.trim().isNotEmpty
-                      ? '${course.courseDay} at ${course.courseTime}'
+                  '${widget.course.courseDay} ${widget.course.courseTime}'
+                          .trim()
+                          .isNotEmpty
+                      ? '${widget.course.courseDay} at ${widget.course.courseTime}'
                       : 'TBD',
-                  course.courseFrequency,
+                  widget.course.courseFrequency,
                   isDark,
                   primaryColor,
                 ),
@@ -943,16 +943,18 @@ class CourseDetailScreen extends StatelessWidget {
                 _infoRow(
                   Icons.room_outlined,
                   'ROOM / LOCATION',
-                  course.location.isNotEmpty ? course.location : 'TBD',
+                  widget.course.location.isNotEmpty
+                      ? widget.course.location
+                      : 'TBD',
                   '',
                   isDark,
                   primaryColor,
                 ),
 
                 // --- Seminar Section (Only if teacher or location is provided) ---
-                if (course.seminarProfessor.isNotEmpty ||
-                    course.seminarLocation.isNotEmpty ||
-                    course.seminarDay.isNotEmpty) ...[
+                if (widget.course.seminarProfessor.isNotEmpty ||
+                    widget.course.seminarLocation.isNotEmpty ||
+                    widget.course.seminarDay.isNotEmpty) ...[
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 24.0),
                     child: Divider(height: 1, color: Colors.white10),
@@ -970,8 +972,8 @@ class CourseDetailScreen extends StatelessWidget {
                   _infoRow(
                     Icons.people_alt_outlined,
                     'SEMINAR TEACHER',
-                    course.seminarProfessor.isNotEmpty
-                        ? course.seminarProfessor
+                    widget.course.seminarProfessor.isNotEmpty
+                        ? widget.course.seminarProfessor
                         : 'Not Assigned',
                     '',
                     isDark,
@@ -981,12 +983,12 @@ class CourseDetailScreen extends StatelessWidget {
                   _infoRow(
                     Icons.calendar_today_outlined,
                     'SCHEDULE',
-                    '${course.seminarDay} ${course.seminarTime}'
+                    '${widget.course.seminarDay} ${widget.course.seminarTime}'
                             .trim()
                             .isNotEmpty
-                        ? '${course.seminarDay} at ${course.seminarTime}'
+                        ? '${widget.course.seminarDay} at ${widget.course.seminarTime}'
                         : 'TBD',
-                    course.seminarFrequency,
+                    widget.course.seminarFrequency,
                     isDark,
                     primaryColor,
                   ),
@@ -994,8 +996,8 @@ class CourseDetailScreen extends StatelessWidget {
                   _infoRow(
                     Icons.place_outlined,
                     'ROOM / LOCATION',
-                    course.seminarLocation.isNotEmpty
-                        ? course.seminarLocation
+                    widget.course.seminarLocation.isNotEmpty
+                        ? widget.course.seminarLocation
                         : 'TBD',
                     '',
                     isDark,
@@ -1067,70 +1069,76 @@ class CourseDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTasksCard(bool isDark, Color primaryColor) {
+  Widget _buildTasksCard(bool isDark, Color primaryColor,
+      {bool showAll = false}) {
     return ValueListenableBuilder(
       valueListenable: Hive.box<Task>(NotesRepository.taskBoxName).listenable(),
       builder: (context, Box<Task> box, _) {
         final tasks = box.values
-            .where((t) => t.courseId == course.id && !t.isCompleted)
+            .where((t) => t.courseId == widget.course.id && !t.isCompleted)
             .toList();
+
+        final displayTasks = showAll ? tasks : tasks.take(3).toList();
 
         return _GlassCard(
           child: Column(
             children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+              if (!showAll)
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.1)),
+                    ),
                   ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.event_repeat, color: primaryColor),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Upcoming Tasks',
-                          style: GoogleFonts.spaceGrotesk(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.event_repeat, color: primaryColor),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Upcoming Tasks',
+                            style: GoogleFonts.spaceGrotesk(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: primaryColor,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '${tasks.length} DUE',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
                           ),
                         ),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
                       ),
-                      decoration: BoxDecoration(
-                        color: primaryColor,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        '${tasks.length} DUE',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: tasks.isEmpty
-                    ? const Text(
-                        'No upcoming tasks',
-                        style: TextStyle(color: Colors.grey),
+                child: displayTasks.isEmpty
+                    ? const EmptyState(
+                        icon: Icons.check_circle_outline,
+                        title: 'No assignments',
+                        subtitle: 'You are all caught up!',
                       )
                     : Column(
-                        children: tasks
+                        children: displayTasks
                             .map(
                               (t) => Padding(
                                 padding: const EdgeInsets.only(bottom: 12.0),
@@ -1140,27 +1148,32 @@ class CourseDetailScreen extends StatelessWidget {
                             .toList(),
                       ),
               ),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-                  ),
-                ),
-                child: OutlinedButton(
-                  onPressed: () {},
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              if (!showAll && tasks.length > 3)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.1)),
                     ),
-                    foregroundColor: isDark ? Colors.white : Colors.black,
                   ),
-                  child: const Text('Show All Assignments'),
+                  child: OutlinedButton(
+                    onPressed: () {
+                      _tabController.animateTo(2); // Go to Tasks tab
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.1)),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      foregroundColor: isDark ? Colors.white : Colors.black,
+                    ),
+                    child: const Text('Show All Assignments'),
+                  ),
                 ),
-              ),
             ],
           ),
         );
@@ -1212,7 +1225,6 @@ class CourseDetailScreen extends StatelessWidget {
               height: 1.2,
             ),
           ),
-
           if (task.progress > 0) ...[
             const SizedBox(height: 12),
             ClipRRect(

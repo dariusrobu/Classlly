@@ -27,6 +27,8 @@ class Task extends HiveObject {
   int priority; // 0: Low, 1: Medium, 2: High
   @HiveField(10)
   DateTime? reminderTime;
+  @HiveField(11, defaultValue: false)
+  bool isDeleted;
 
   Task({
     required this.id,
@@ -40,6 +42,7 @@ class Task extends HiveObject {
     this.courseId,
     this.priority = 1,
     this.reminderTime,
+    this.isDeleted = false,
   });
 
   factory Task.create({
@@ -61,6 +64,7 @@ class Task extends HiveObject {
       courseId: courseId,
       priority: priority,
       reminderTime: reminderTime,
+      isDeleted: false,
     );
   }
 }

@@ -33,12 +33,15 @@ class Stroke extends HiveObject {
   final double width;
   @HiveField(3)
   final int createdAt;
+  @HiveField(4, defaultValue: 'pen')
+  final String toolType;
 
   Stroke({
     required this.points,
     required this.color,
     required this.width,
     required this.createdAt,
+    this.toolType = 'pen',
   });
 
   Map<String, dynamic> toJson() => {
@@ -46,6 +49,7 @@ class Stroke extends HiveObject {
     'color': color,
     'width': width,
     'createdAt': createdAt,
+    'toolType': toolType,
   };
 
   factory Stroke.fromJson(Map<String, dynamic> json) => Stroke(
@@ -55,6 +59,7 @@ class Stroke extends HiveObject {
     color: json['color'] as int,
     width: (json['width'] as num).toDouble(),
     createdAt: json['createdAt'] as int,
+    toolType: json['toolType'] as String? ?? 'pen',
   );
 }
 
@@ -213,10 +218,12 @@ class Note extends HiveObject {
   String? notebookId;
   @HiveField(8)
   String templateType;
-  @HiveField(9)
+  @HiveField(9, defaultValue: [])
   final List<ImageBlock> images;
   @HiveField(10)
   List<String>? tags;
+  @HiveField(11, defaultValue: false)
+  bool isDeleted;
 
   Note({
     required this.id,
@@ -230,6 +237,7 @@ class Note extends HiveObject {
     this.templateType = 'dot',
     required this.images,
     this.tags,
+    this.isDeleted = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -244,6 +252,7 @@ class Note extends HiveObject {
     'notebook_id': notebookId,
     'template_type': templateType,
     'tags': tags,
+    'is_deleted': isDeleted,
   };
 
   factory Note.fromJson(Map<String, dynamic> json) => Note(
@@ -268,6 +277,7 @@ class Note extends HiveObject {
     notebookId: json['notebook_id'] as String?,
     templateType: json['template_type'] as String? ?? 'dot',
     tags: (json['tags'] as List?)?.map((e) => e as String).toList(),
+    isDeleted: json['is_deleted'] as bool? ?? false,
   );
 
   factory Note.create({
@@ -287,6 +297,7 @@ class Note extends HiveObject {
       notebookId: notebookId,
       templateType: template,
       tags: [],
+      isDeleted: false,
     );
   }
 }

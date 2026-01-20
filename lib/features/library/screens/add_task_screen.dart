@@ -5,10 +5,14 @@ import 'package:classlly/data/models/task_model.dart';
 import 'package:classlly/data/models/course_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 
+import 'package:provider/provider.dart';
+import 'package:classlly/features/library/providers/library_provider.dart';
+
 class AddTaskScreen extends StatefulWidget {
   final Task? task;
   final String? initialCourseId;
-  const AddTaskScreen({super.key, this.task, this.initialCourseId});
+  final DateTime? initialDate;
+  const AddTaskScreen({super.key, this.task, this.initialCourseId, this.initialDate});
 
   @override
   State<AddTaskScreen> createState() => _AddTaskScreenState();
@@ -49,6 +53,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       _selectedCourseId = widget.task!.courseId;
     } else {
       _selectedCourseId = widget.initialCourseId;
+      _dueDate = widget.initialDate;
     }
   }
 
@@ -60,6 +65,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
 
   void _save() async {
     if (_formKey.currentState!.validate()) {
+      final provider = Provider.of<LibraryProvider>(context, listen: false);
       if (widget.task != null) {
         widget.task!.title = _titleController.text;
         widget.task!.description = _descController.text;
@@ -68,7 +74,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
         widget.task!.priority = _priority;
         widget.task!.courseId = _selectedCourseId;
         widget.task!.category = _taskType;
-        await widget.task!.save();
+        await provider.saveTask(widget.task!);
       } else {
         final newTask = Task.create(
           title: _titleController.text,
@@ -79,7 +85,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
           courseId: _selectedCourseId,
           category: _taskType,
         );
-        await _repository.saveTask(newTask);
+        await provider.saveTask(newTask);
       }
       if (mounted) Navigator.pop(context, true);
     }
@@ -415,7 +421,12 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                 ),
               )
               .toList(),
-          onChanged: (val) => setState(() => _taskType = val!),
+          onChanged: (val) => setState(() {
+            _taskType = val!;
+            if (_taskType == 'Exam') {
+              _priority = 2;
+            }
+          }),
         ),
       ),
     );
