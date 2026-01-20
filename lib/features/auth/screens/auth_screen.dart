@@ -55,7 +55,13 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() => _isLoading = true);
     try {
       await _authRepository.signInWithGoogle();
-      _navigateToLibrary();
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const ProfileSetupScreen(),
+        );
+      }
     } on AuthException catch (e) {
       _showError(e.message);
     } catch (e) {
@@ -69,7 +75,13 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() => _isLoading = true);
     try {
       await _authRepository.signInWithApple();
-      _navigateToLibrary();
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const ProfileSetupScreen(),
+        );
+      }
     } on AuthException catch (e) {
       _showError(e.message);
     } catch (e) {

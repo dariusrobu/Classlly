@@ -606,14 +606,18 @@ class _CanvasScreenState extends State<CanvasScreen> {
                     Container(
                       width: 6,
                       height: 6,
-                      decoration: const BoxDecoration(
-                        color: Colors.greenAccent,
+                      decoration: BoxDecoration(
+                        color: canvasProvider.isSyncing
+                            ? Colors.orange
+                            : Colors.greenAccent,
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'AUTO-SAVED AT ${DateFormat.Hm().format(DateTime.now())}',
+                      canvasProvider.isSyncing
+                          ? 'SYNCING...'
+                          : 'AUTO-SAVED AT ${DateFormat.Hm().format(DateTime.now())}',
                       style: TextStyle(
                         fontSize: 10,
                         color: Colors.grey[600],

@@ -46,11 +46,22 @@ class _TasksScreenState extends State<TasksScreen> {
                   _buildToolbar(context, allTasks.length),
                   Expanded(
                     // Kanban Board with To Do, High Priority, and Done columns
-                    child: _buildKanbanBoard(
-                      todoTasks,
-                      highPriorityTasks,
-                      doneTasks,
-                    ),
+                    child: allTasks.isEmpty
+                        ? EmptyState(
+                            icon: Icons.task_outlined,
+                            title: 'No tasks yet',
+                            subtitle: 'Create a task to stay organized.',
+                            actionLabel: 'Add Task',
+                            onAction: () => showDialog(
+                              context: context,
+                              builder: (context) => const AddTaskScreen(),
+                            ),
+                          )
+                        : _buildKanbanBoard(
+                            todoTasks,
+                            highPriorityTasks,
+                            doneTasks,
+                          ),
                   ),
                 ],
               ),

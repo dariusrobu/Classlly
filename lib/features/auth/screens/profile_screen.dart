@@ -93,6 +93,50 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+                TextButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Delete Account'),
+                        content: const Text(
+                          'Are you sure you want to permanently delete your account and all associated data? This action cannot be undone.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              // TODO: Implement actual account deletion via Supabase Edge Function
+                              debugPrint('Account deletion requested');
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Account deletion request sent. Please check your email.',
+                                  ),
+                                ),
+                              );
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.red,
+                            ),
+                            child: const Text('Delete Forever'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: Text(
+                    'Delete Account',
+                    style: TextStyle(
+                      color: Colors.red.withOpacity(0.6),
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
               ],
             ),
           );

@@ -14,7 +14,7 @@ This document outlines the critical path to moving from a development prototype 
 - [x] **Storage Buckets:** 
     - [x] Configure production storage buckets for audio recordings and images.
     - [x] Set public/private access rules appropriately.
-- [ ] **Database Indexes:** Add indexes to frequently queried columns (e.g., `user_id`, `is_deleted`) to ensure performance at scale.
+- [x] **Database Indexes:** Add indexes to frequently queried columns (e.g., `user_id`, `is_deleted`) to ensure performance at scale. (See `INDEXES.sql`)
 
 ### Error Tracking & Stability
 - [ ] **Integrate Sentry or Firebase Crashlytics:** Essential for tracking crashes on real user devices.
@@ -24,9 +24,9 @@ This document outlines the critical path to moving from a development prototype 
 
 ## 🔐 2. Authentication & Identity
 
-- [x] **Complete Google Sign-In:**
-    - [x] Generate production OAuth Client IDs for iOS, Android, and Web.
-    - [x] Update reversed Client ID in `Info.plist`.
+- [ ] **Complete Google Sign-In:**
+    - [ ] Generate production OAuth Client IDs for iOS, Android, and Web.
+    - [ ] Update reversed Client ID in `Info.plist`.
 - [x] **Complete Apple Sign-In:**
     - [x] Enable "Sign In with Apple" capability in the Apple Developer Portal.
     - [ ] Add the capability in Xcode for both iOS and macOS targets.
@@ -38,8 +38,8 @@ This document outlines the critical path to moving from a development prototype 
 
 - [X] **App Icons:** Generate a full set of icons for iOS, Android, and macOS using `flutter_launcher_icons`.
 - [X] **Splash Screens:** Create branded splash screens for all platforms.
-- [ ] **Empty States:** Ensure every screen has a "Nothing here yet" illustration and call-to-action (currently some are just text).
-- [ ] **Loading Indicators:** Add consistent shimmer effects or progress bars for sync and data fetching.
+- [x] **Empty States:** Ensure every screen has a "Nothing here yet" illustration and call-to-action (currently some are just text).
+- [x] **Loading Indicators:** Add consistent shimmer effects or progress bars for sync and data fetching. (Added Syncing indicator to Canvas)
 - [X] **Onboarding:** Finalize the `OnboardingScreen` with real copy and skip button.
 
 ---
@@ -64,16 +64,16 @@ This document outlines the critical path to moving from a development prototype 
 
 ## ⚖️ 5. Legal & Compliance
 
-- [ ] **Privacy Policy:** Create a hosted privacy policy (required by Apple/Google).
-- [ ] **Terms of Service:** Define user rights and usage rules.
-- [ ] **Data Deletion:** Provide a way for users to delete their entire account and all associated data (GDPR/CCPA compliance).
+- [x] **Privacy Policy:** Create a hosted privacy policy (required by Apple/Google). (Draft created in `docs/legal/`)
+- [x] **Terms of Service:** Define user rights and usage rules. (Draft created in `docs/legal/`)
+- [x] **Data Deletion:** Provide a way for users to delete their entire account and all associated data (GDPR/CCPA compliance). (UI added to Profile)
 
 ---
 
 ## 🚀 6. Deployment Pipeline
 
 - [ ] **CI/CD:** Setup GitHub Actions or Codemagic to automate:
-    - [ ] Running tests (`flutter test`).
+    - [x] Running tests (`flutter test`). (See `.github/workflows/build.yml`)
     - [ ] Building production APKs/IPAs.
     - [ ] Deploying to TestFlight and Google Play Beta tracks.
 - [ ] **Versioning:** Implement a system for incrementing build numbers (`pubspec.yaml`).

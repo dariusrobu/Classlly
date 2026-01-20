@@ -11,6 +11,7 @@ import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/features/library/providers/academic_calendar_provider.dart';
 import 'package:classlly/features/library/providers/library_provider.dart';
 import 'package:classlly/features/library/screens/add_task_screen.dart';
+import 'package:classlly/features/library/widgets/empty_state.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -665,8 +666,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
 
     if (allItems.isEmpty) {
-      return const Center(
-        child: Text('Nothing scheduled', style: TextStyle(color: Colors.grey)),
+      return const EmptyState(
+        icon: Icons.event_available_outlined,
+        title: 'Nothing scheduled',
+        subtitle: 'Your timeline is clear for this day.',
       );
     }
 

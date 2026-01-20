@@ -948,29 +948,14 @@ class _CoursesGrid extends StatelessWidget {
         }
 
         if (courses.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Center(
-              child: Column(
-                children: [
-                  const Text(
-                    'No courses yet',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  const SizedBox(height: 8),
-                  ElevatedButton(
-                    onPressed: () => showDialog(
-                      context: context,
-                      builder: (context) => const AddCourseScreen(),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text('Add Your First Course'),
-                  ),
-                ],
-              ),
+          return EmptyState(
+            icon: Icons.school_outlined,
+            title: 'No courses yet',
+            subtitle: 'Add your first course to start tracking your schedule.',
+            actionLabel: 'Add Course',
+            onAction: () => showDialog(
+              context: context,
+              builder: (context) => const AddCourseScreen(),
             ),
           );
         }
