@@ -890,6 +890,10 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
             box.values.where((r) => r.courseId == widget.course.id).toList()
               ..sort((a, b) => a.date.compareTo(b.date));
 
+        final displayRecords = records.length > 7
+            ? records.sublist(records.length - 7)
+            : records;
+
         return _GlassCard(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -925,35 +929,79 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                   ),
                 ],
               ),
-              const Spacer(),
+              const SizedBox(height: 16),
               if (records.isEmpty)
-                const Center(
-                  child: Text(
-                    'No records',
-                    style: TextStyle(color: Colors.grey, fontSize: 10),
+                const Expanded(
+                  child: Center(
+                    child: Text(
+                      'No records',
+                      style: TextStyle(color: Colors.grey, fontSize: 10),
+                    ),
                   ),
                 )
               else
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: records.take(8).map((r) {
-                    final isPresent = r.status == AttendanceStatus.present;
-                    return Container(
-                      width: 6,
-                      height: isPresent ? 40 : 15,
-                      decoration: BoxDecoration(
-                        color: isPresent
-                            ? primaryColor.withValues(alpha: 0.6)
-                            : Colors.redAccent.withValues(alpha: 0.4),
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(2),
+                Expanded(
+                  child: BarChart(
+                    BarChartData(
+                      gridData: const FlGridData(show: false),
+                      borderData: FlBorderData(show: false),
+                      titlesData: FlTitlesData(
+                        show: true,
+                        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (double value, TitleMeta meta) {
+                              if (value.toInt() >= 0 && value.toInt() < displayRecords.length) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    DateFormat('M/d').format(displayRecords[value.toInt()].date),
+                                    style: TextStyle(
+                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                      fontSize: 8,
+                                    ),
+                                  ),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            },
+                          ),
                         ),
                       ),
-                    );
-                  }).toList(),
+                      barGroups: displayRecords.asMap().entries.map((e) {
+                        final record = e.value;
+                        Color color;
+                        switch (record.status) {
+                          case AttendanceStatus.present:
+                            color = Colors.greenAccent;
+                            break;
+                          case AttendanceStatus.absent:
+                            color = Colors.redAccent;
+                            break;
+                          case AttendanceStatus.excused:
+                            color = Colors.orangeAccent;
+                            break;
+                          default:
+                            color = Colors.grey;
+                        }
+                        return BarChartGroupData(
+                          x: e.key,
+                          barRods: [
+                            BarChartRodData(
+                              toY: 1,
+                              color: color,
+                              width: 12,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
                 ),
-              const SizedBox(height: 8),
             ],
           ),
         );
