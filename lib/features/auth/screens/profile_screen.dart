@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:classlly/features/library/screens/settings_screen.dart';
 import 'package:classlly/features/auth/screens/personal_info_screen.dart';
 import 'package:classlly/features/auth/screens/academic_details_screen.dart';
+import 'package:classlly/features/auth/screens/onboarding_screen.dart';
 import 'package:classlly/data/models/student_profile_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 
@@ -82,7 +83,12 @@ class ProfileScreen extends StatelessWidget {
                   onPressed: () async {
                     await Supabase.instance.client.auth.signOut();
                     if (context.mounted) {
-                      Navigator.of(context).popUntil((route) => route.isFirst);
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => const OnboardingScreen(),
+                        ),
+                        (route) => false,
+                      );
                     }
                   },
                   child: const Text(

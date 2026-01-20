@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:classlly/data/repositories/auth_repository.dart';
 import 'package:classlly/features/auth/screens/signup_screen.dart';
+import 'package:classlly/features/auth/screens/profile_setup_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -59,7 +60,7 @@ class _AuthScreenState extends State<AuthScreen> {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) => const ProfileSetupScreen(),
+          builder: (context) => ProfileSetupScreen(),
         );
       }
     } on AuthException catch (e) {
@@ -79,7 +80,7 @@ class _AuthScreenState extends State<AuthScreen> {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) => const ProfileSetupScreen(),
+          builder: (context) => ProfileSetupScreen(),
         );
       }
     } on AuthException catch (e) {

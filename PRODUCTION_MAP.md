@@ -31,6 +31,7 @@ This document outlines the critical path to moving from a development prototype 
     - [x] Enable "Sign In with Apple" capability in the Apple Developer Portal.
     - [ ] Add the capability in Xcode for both iOS and macOS targets.
 - [ ] **Email Templates:** Customize the Supabase "Confirm Email" and "Password Reset" templates with Classlly branding.
+- [ ] **Configure SMTP / Email Delivery:** Set up a custom SMTP server (Resend, SendGrid, AWS SES) in Supabase. The default service is unreliable for production.
 
 ---
 
