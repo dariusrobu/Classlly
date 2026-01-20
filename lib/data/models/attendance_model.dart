@@ -22,7 +22,7 @@ class Attendance extends HiveObject {
   @HiveField(1)
   final String courseId;
   @HiveField(2)
-  final DateTime date;
+  DateTime date;
   @HiveField(3)
   AttendanceStatus status;
 
