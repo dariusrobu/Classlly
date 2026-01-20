@@ -111,13 +111,52 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                           return ListTile(
                             title: Text(grade.title, style: const TextStyle(fontWeight: FontWeight.bold)),
                             subtitle: Text('${DateFormat.yMMMd().format(grade.date)} • Weight: ${(grade.weight * 100).toInt()}%'),
-                            trailing: Text(
-                              '${grade.score}/${grade.maxScore}',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '${grade.score}/${grade.maxScore}',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                PopupMenuButton<String>(
+                                  icon: const Icon(Icons.more_vert, size: 18),
+                                  onSelected: (value) async {
+                                    if (value == 'edit') {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => _AddGradeDialog(
+                                          courseId: widget.course.id,
+                                          grade: grade,
+                                        ),
+                                      );
+                                    } else if (value == 'delete') {
+                                      final confirmed = await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Delete Grade'),
+                                          content: const Text('Are you sure you want to delete this grade record?'),
+                                          actions: [
+                                            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                                            TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+                                          ],
+                                        ),
+                                      );
+                                      if (confirmed == true) {
+                                        await grade.delete();
+                                      }
+                                    }
+                                  },
+                                  itemBuilder: (context) => [
+                                    const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                                    const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
+                                  ],
+                                ),
+                              ],
                             ),
                           );
                         },
@@ -174,12 +213,51 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                             ),
                             title: Text(DateFormat.yMMMd().format(record.date)),
                             subtitle: Text(DateFormat.jm().format(record.date)),
-                            trailing: Text(
-                              record.status.name.toUpperCase(),
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: color,
-                              ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  record.status.name.toUpperCase(),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: color,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                PopupMenuButton<String>(
+                                  icon: const Icon(Icons.more_vert, size: 18),
+                                  onSelected: (value) async {
+                                    if (value == 'edit') {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => _AddAttendanceDialog(
+                                          courseId: widget.course.id,
+                                          attendance: record,
+                                        ),
+                                      );
+                                    } else if (value == 'delete') {
+                                      final confirmed = await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Delete Record'),
+                                          content: const Text('Are you sure you want to delete this attendance record?'),
+                                          actions: [
+                                            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                                            TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+                                          ],
+                                        ),
+                                      );
+                                      if (confirmed == true) {
+                                        await record.delete();
+                                      }
+                                    }
+                                  },
+                                  itemBuilder: (context) => [
+                                    const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                                    const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
+                                  ],
+                                ),
+                              ],
                             ),
                           );
                         },
@@ -1399,29 +1477,45 @@ class _GlassContainer extends StatelessWidget {
 
 class _AddGradeDialog extends StatefulWidget {
   final String courseId;
-  const _AddGradeDialog({required this.courseId});
+  final Grade? grade;
+  const _AddGradeDialog({required this.courseId, this.grade});
 
   @override
   State<_AddGradeDialog> createState() => _AddGradeDialogState();
 }
 
 class _AddGradeDialogState extends State<_AddGradeDialog> {
-  final _titleController = TextEditingController();
-  final _scoreController = TextEditingController();
-  final _weightController = TextEditingController();
+  late TextEditingController _titleController;
+  late TextEditingController _scoreController;
+  late TextEditingController _weightController;
   final NotesRepository _repo = NotesRepository();
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.grade?.title ?? '');
+    _scoreController = TextEditingController(text: widget.grade?.score.toString() ?? '');
+    _weightController = TextEditingController(text: widget.grade != null ? (widget.grade!.weight * 100).toInt().toString() : '');
+  }
 
   void _save() async {
     if (_titleController.text.isNotEmpty && _scoreController.text.isNotEmpty) {
       final weightPercent = double.tryParse(_weightController.text) ?? 100;
-      final grade = Grade.create(
-        title: _titleController.text,
-        score: double.tryParse(_scoreController.text) ?? 0,
-        maxScore: 100.0, // Default to percentage based (out of 100)
-        weight: weightPercent / 100.0,
-        courseId: widget.courseId,
-      );
-      await _repo.saveGrade(grade);
+      if (widget.grade != null) {
+        widget.grade!.title = _titleController.text;
+        widget.grade!.score = double.tryParse(_scoreController.text) ?? 0;
+        widget.grade!.weight = weightPercent / 100.0;
+        await _repo.saveGrade(widget.grade!);
+      } else {
+        final grade = Grade.create(
+          title: _titleController.text,
+          score: double.tryParse(_scoreController.text) ?? 0,
+          maxScore: 100.0, // Default to percentage based (out of 100)
+          weight: weightPercent / 100.0,
+          courseId: widget.courseId,
+        );
+        await _repo.saveGrade(grade);
+      }
       if (mounted) Navigator.pop(context);
     }
   }
@@ -1429,7 +1523,7 @@ class _AddGradeDialogState extends State<_AddGradeDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Add Grade'),
+      title: Text(widget.grade != null ? 'Edit Grade' : 'Add Grade'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1467,31 +1561,45 @@ class _AddGradeDialogState extends State<_AddGradeDialog> {
 
 class _AddAttendanceDialog extends StatefulWidget {
   final String courseId;
-  const _AddAttendanceDialog({required this.courseId});
+  final Attendance? attendance;
+  const _AddAttendanceDialog({required this.courseId, this.attendance});
 
   @override
   State<_AddAttendanceDialog> createState() => _AddAttendanceDialogState();
 }
 
 class _AddAttendanceDialogState extends State<_AddAttendanceDialog> {
-  AttendanceStatus _status = AttendanceStatus.present;
-  DateTime _date = DateTime.now();
+  late AttendanceStatus _status;
+  late DateTime _date;
   final NotesRepository _repo = NotesRepository();
 
+  @override
+  void initState() {
+    super.initState();
+    _status = widget.attendance?.status ?? AttendanceStatus.present;
+    _date = widget.attendance?.date ?? DateTime.now();
+  }
+
   void _save() async {
-    final att = Attendance.create(
-      date: _date,
-      status: _status,
-      courseId: widget.courseId,
-    );
-    await _repo.saveAttendance(att);
+    if (widget.attendance != null) {
+      widget.attendance!.status = _status;
+      widget.attendance!.date = _date;
+      await _repo.saveAttendance(widget.attendance!);
+    } else {
+      final att = Attendance.create(
+        date: _date,
+        status: _status,
+        courseId: widget.courseId,
+      );
+      await _repo.saveAttendance(att);
+    }
     if (mounted) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Mark Attendance'),
+      title: Text(widget.attendance != null ? 'Edit Attendance' : 'Mark Attendance'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
