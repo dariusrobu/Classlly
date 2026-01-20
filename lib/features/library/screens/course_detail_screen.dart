@@ -844,6 +844,38 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // --- Basic Info ---
+                Row(
+                  children: [
+                    Expanded(
+                      child: _infoRow(
+                        Icons.calendar_view_day,
+                        'SEMESTER',
+                        widget.course.semester.isNotEmpty
+                            ? widget.course.semester
+                            : 'N/A',
+                        '',
+                        isDark,
+                        primaryColor,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _infoRow(
+                        Icons.stars,
+                        'CREDITS',
+                        '${widget.course.credits} ECTS',
+                        '',
+                        isDark,
+                        primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                const Divider(height: 1, color: Colors.white10),
+                const SizedBox(height: 24),
+
                 // --- Lecture Section ---
                 Text(
                   'LECTURE / COURSE',
