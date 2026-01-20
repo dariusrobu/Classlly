@@ -890,9 +890,21 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
             box.values.where((r) => r.courseId == widget.course.id).toList()
               ..sort((a, b) => a.date.compareTo(b.date));
 
-        final displayRecords = records.length > 7
-            ? records.sublist(records.length - 7)
-            : records;
+        List<FlSpot> spots = [];
+        if (records.isNotEmpty) {
+          int total = 0;
+          int attended = 0;
+          for (var i = 0; i < records.length; i++) {
+            total++;
+            if (records[i].status == AttendanceStatus.present ||
+                records[i].status == AttendanceStatus.excused) {
+              attended++;
+            }
+            spots.add(FlSpot(i.toDouble(), (attended / total) * 100));
+          }
+        } else {
+          spots = const [FlSpot(0, 100), FlSpot(1, 100)];
+        }
 
         return _GlassCard(
           padding: const EdgeInsets.all(16),
@@ -903,7 +915,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Attendance History',
+                    'Attendance Trend',
                     style: TextStyle(
                       color: isDark ? Colors.grey[400] : Colors.grey[600],
                       fontWeight: FontWeight.bold,
@@ -941,64 +953,39 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                 )
               else
                 Expanded(
-                  child: BarChart(
-                    BarChartData(
-                      gridData: const FlGridData(show: false),
-                      borderData: FlBorderData(show: false),
-                      titlesData: FlTitlesData(
+                  child: LineChart(
+                    LineChartData(
+                      gridData: FlGridData(
                         show: true,
-                        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            getTitlesWidget: (double value, TitleMeta meta) {
-                              if (value.toInt() >= 0 && value.toInt() < displayRecords.length) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: Text(
-                                    DateFormat('M/d').format(displayRecords[value.toInt()].date),
-                                    style: TextStyle(
-                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                                      fontSize: 8,
-                                    ),
-                                  ),
-                                );
-                              }
-                              return const SizedBox.shrink();
-                            },
+                        drawVerticalLine: false,
+                        horizontalInterval: 25,
+                        getDrawingHorizontalLine: (value) {
+                          return FlLine(
+                            color: isDark ? Colors.white10 : Colors.black12,
+                            strokeWidth: 1,
+                          );
+                        },
+                      ),
+                      titlesData: const FlTitlesData(show: false),
+                      borderData: FlBorderData(show: false),
+                      minY: 0,
+                      maxY: 105,
+                      minX: 0,
+                      maxX: (records.length - 1).toDouble(),
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: spots,
+                          isCurved: true,
+                          color: primaryColor,
+                          barWidth: 3,
+                          isStrokeCapRound: true,
+                          dotData: const FlDotData(show: false),
+                          belowBarData: BarAreaData(
+                            show: true,
+                            color: primaryColor.withValues(alpha: 0.1),
                           ),
                         ),
-                      ),
-                      barGroups: displayRecords.asMap().entries.map((e) {
-                        final record = e.value;
-                        Color color;
-                        switch (record.status) {
-                          case AttendanceStatus.present:
-                            color = Colors.greenAccent;
-                            break;
-                          case AttendanceStatus.absent:
-                            color = Colors.redAccent;
-                            break;
-                          case AttendanceStatus.excused:
-                            color = Colors.orangeAccent;
-                            break;
-                          default:
-                            color = Colors.grey;
-                        }
-                        return BarChartGroupData(
-                          x: e.key,
-                          barRods: [
-                            BarChartRodData(
-                              toY: 1,
-                              color: color,
-                              width: 12,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ],
-                        );
-                      }).toList(),
+                      ],
                     ),
                   ),
                 ),
