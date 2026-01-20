@@ -69,6 +69,12 @@ class LibraryProvider with ChangeNotifier {
         'day': 'Monday',
         'time': '10:00 AM',
         'color': const Color(0xFF3B82F6), // Blue
+        'frequency': 'Weekly',
+        'seminarProf': 'T.A. Ada Lovelace',
+        'seminarLoc': 'Room 202',
+        'seminarDay': 'Wednesday',
+        'seminarTime': '02:00 PM',
+        'seminarFreq': 'Weekly',
       },
       {
         'title': 'Calculus II',
@@ -77,6 +83,12 @@ class LibraryProvider with ChangeNotifier {
         'day': 'Tuesday',
         'time': '02:00 PM',
         'color': const Color(0xFFEF4444), // Red
+        'frequency': 'Weekly',
+        'seminarProf': '',
+        'seminarLoc': '',
+        'seminarDay': '',
+        'seminarTime': '',
+        'seminarFreq': '',
       },
       {
         'title': 'Physics: Mechanics',
@@ -85,6 +97,12 @@ class LibraryProvider with ChangeNotifier {
         'day': 'Wednesday',
         'time': '09:00 AM',
         'color': const Color(0xFF10B981), // Green
+        'frequency': 'Weekly',
+        'seminarProf': 'T.A. Albert Einstein',
+        'seminarLoc': 'Lab 1',
+        'seminarDay': 'Friday',
+        'seminarTime': '10:00 AM',
+        'seminarFreq': 'Bi-Weekly (odd)',
       },
       {
         'title': 'English Literature',
@@ -93,6 +111,12 @@ class LibraryProvider with ChangeNotifier {
         'day': 'Thursday',
         'time': '11:00 AM',
         'color': const Color(0xFFF59E0B), // Amber
+        'frequency': 'Weekly',
+        'seminarProf': '',
+        'seminarLoc': '',
+        'seminarDay': '',
+        'seminarTime': '',
+        'seminarFreq': '',
       },
       {
         'title': 'World History',
@@ -101,6 +125,12 @@ class LibraryProvider with ChangeNotifier {
         'day': 'Friday',
         'time': '01:00 PM',
         'color': const Color(0xFF8B5CF6), // Purple
+        'frequency': 'Weekly',
+        'seminarProf': '',
+        'seminarLoc': '',
+        'seminarDay': '',
+        'seminarTime': '',
+        'seminarFreq': '',
       },
     ];
 
@@ -116,6 +146,12 @@ class LibraryProvider with ChangeNotifier {
         color: data['color'] as Color,
         semester: 'Semester 1',
         credits: 6.0,
+        courseFrequency: data['frequency'] as String,
+        seminarProfessor: data['seminarProf'] as String,
+        seminarLocation: data['seminarLoc'] as String,
+        seminarDay: data['seminarDay'] as String,
+        seminarTime: data['seminarTime'] as String,
+        seminarFrequency: data['seminarFreq'] as String,
       );
       await _localRepository.saveCourse(course);
       createdCourses.add(course);
