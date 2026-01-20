@@ -114,6 +114,8 @@ class LibraryProvider with ChangeNotifier {
         courseDay: data['day'] as String,
         courseTime: data['time'] as String,
         color: data['color'] as Color,
+        semester: 'Semester 1',
+        credits: 6.0,
       );
       await _localRepository.saveCourse(course);
       createdCourses.add(course);

@@ -20,6 +20,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
   // Basic Info
   final _titleController = TextEditingController();
   final _creditsController = TextEditingController();
+  String _semester = 'Semester 1';
 
   // Course (Lecture) Info
   final _profController = TextEditingController();
@@ -71,6 +72,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
       final c = widget.course!;
       _titleController.text = c.title;
       _creditsController.text = c.credits.toString();
+      _semester = c.semester.isNotEmpty ? c.semester : 'Semester 1';
       _selectedColor = Color(c.color);
 
       // Course
@@ -127,7 +129,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
           schedule: schedule, // Legacy support
           location: _courseRoomController.text,
           color: _selectedColor.toARGB32(),
-          semester: widget.course!.semester,
+          semester: _semester,
           iconCodePoint: widget.course!.iconCodePoint,
           credits: credits,
           courseFrequency: _courseFrequency ?? '',
@@ -148,6 +150,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
           schedule: schedule,
           location: _courseRoomController.text,
           color: _selectedColor,
+          semester: _semester,
           credits: credits,
           courseFrequency: _courseFrequency ?? '',
           courseDay: _courseDay ?? '',
@@ -230,10 +233,25 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    _buildTextField(
-                      'Credits',
-                      _creditsController,
-                      keyboardType: TextInputType.number,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTextField(
+                            'Credits',
+                            _creditsController,
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildDropdown(
+                            'Semester',
+                            _semester,
+                            ['Semester 1', 'Semester 2'],
+                            (val) => setState(() => _semester = val!),
+                          ),
+                        ),
+                      ],
                     ),
 
                     const SizedBox(height: 24),
