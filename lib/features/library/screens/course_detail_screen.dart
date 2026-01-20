@@ -954,29 +954,59 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Percentage Indicator
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    // Percentage Indicator with Chart
+                    Stack(
+                      alignment: Alignment.center,
                       children: [
-                        Text(
-                          '${attendanceRate.toInt()}%',
-                          style: GoogleFonts.spaceGrotesk(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w900,
-                            color: attendanceRate >= 75
-                                ? Colors.green
-                                : (attendanceRate >= 50
-                                    ? Colors.orange
-                                    : Colors.red),
+                        SizedBox(
+                          width: 80,
+                          height: 80,
+                          child: PieChart(
+                            PieChartData(
+                              sectionsSpace: 0,
+                              centerSpaceRadius: 30,
+                              startDegreeOffset: 270,
+                              sections: [
+                                PieChartSectionData(
+                                  value: attendanceRate,
+                                  color: attendanceRate >= 75
+                                      ? Colors.green
+                                      : (attendanceRate >= 50
+                                          ? Colors.orange
+                                          : Colors.red),
+                                  radius: 8,
+                                  showTitle: false,
+                                ),
+                                PieChartSectionData(
+                                  value: 100 - attendanceRate,
+                                  color: isDark ? Colors.white10 : Colors.black12,
+                                  radius: 8,
+                                  showTitle: false,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        Text(
-                          'Rate',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.grey[500] : Colors.grey[700],
-                          ),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '${attendanceRate.toInt()}%',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                            ),
+                            Text(
+                              'Rate',
+                              style: TextStyle(
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.grey[500] : Colors.grey[700],
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
