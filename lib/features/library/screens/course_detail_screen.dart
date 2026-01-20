@@ -34,7 +34,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -127,8 +127,6 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                                     tabs: const [
                                       Tab(text: 'Overview'),
                                       Tab(text: 'Notes'),
-                                      Tab(text: 'Assignments'),
-                                      Tab(text: 'Info & Resources'),
                                     ],
                                   ),
                                 ],
@@ -142,8 +140,6 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                         children: [
                           _buildOverviewTab(context, isDark, primaryColor),
                           _buildNotesTab(context, isDark, primaryColor),
-                          _buildTasksTab(context, isDark, primaryColor),
-                          _buildInfoTab(context, isDark, primaryColor),
                         ],
                       ),
                     ),
@@ -200,65 +196,6 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 32),
       child: _buildRecentNotesList(isDark, primaryColor, limit: 100),
-    );
-  }
-
-  Widget _buildTasksTab(BuildContext context, bool isDark, Color primaryColor) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: _buildTasksCard(isDark, primaryColor, showAll: true),
-    );
-  }
-
-  Widget _buildInfoTab(BuildContext context, bool isDark, Color primaryColor) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Column(
-        children: [
-          _buildCourseInfoCard(isDark, primaryColor),
-          const SizedBox(height: 32),
-          _GlassCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Row(
-                    children: [
-                      Icon(Icons.folder_open, color: primaryColor),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Course Resources',
-                        style: GoogleFonts.spaceGrotesk(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1),
-                SizedBox(
-                  height: 200,
-                  child: Center(
-                    child: EmptyState(
-                      icon: Icons.attach_file,
-                      title: 'No resources yet',
-                      subtitle: 'Upload PDFs or add links to this course.',
-                      actionLabel: 'Add Resource',
-                      onAction: () {
-                         ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('File upload coming in next update!')),
-                          );
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -1148,32 +1085,6 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                             .toList(),
                       ),
               ),
-              if (!showAll && tasks.length > 3)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      top: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.1)),
-                    ),
-                  ),
-                  child: OutlinedButton(
-                    onPressed: () {
-                      _tabController.animateTo(2); // Go to Tasks tab
-                    },
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.1)),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      foregroundColor: isDark ? Colors.white : Colors.black,
-                    ),
-                    child: const Text('Show All Assignments'),
-                  ),
-                ),
             ],
           ),
         );
