@@ -162,6 +162,8 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
         children: [
           _buildPerformanceCharts(isDark, primaryColor),
           const SizedBox(height: 32),
+          _buildCourseInfoCard(isDark, primaryColor),
+          const SizedBox(height: 32),
           Row(
             children: [
               Expanded(
