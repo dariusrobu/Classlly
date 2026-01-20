@@ -890,21 +890,19 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
             box.values.where((r) => r.courseId == widget.course.id).toList()
               ..sort((a, b) => a.date.compareTo(b.date));
 
-        List<FlSpot> spots = [];
+        // Calculate stats
+        double attendanceRate = 0;
         if (records.isNotEmpty) {
-          int total = 0;
-          int attended = 0;
-          for (var i = 0; i < records.length; i++) {
-            total++;
-            if (records[i].status == AttendanceStatus.present ||
-                records[i].status == AttendanceStatus.excused) {
-              attended++;
-            }
-            spots.add(FlSpot(i.toDouble(), (attended / total) * 100));
-          }
-        } else {
-          spots = const [FlSpot(0, 100), FlSpot(1, 100)];
+          final present = records
+              .where((r) => r.status == AttendanceStatus.present || r.status == AttendanceStatus.excused)
+              .length;
+          attendanceRate = (present / records.length) * 100;
         }
+
+        // Get last 14 records for the grid
+        final recentRecords = records.length > 14
+            ? records.sublist(records.length - 14)
+            : records;
 
         return _GlassCard(
           padding: const EdgeInsets.all(16),
@@ -915,7 +913,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Attendance Trend',
+                    'Attendance Overview',
                     style: TextStyle(
                       color: isDark ? Colors.grey[400] : Colors.grey[600],
                       fontWeight: FontWeight.bold,
@@ -943,51 +941,94 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
               ),
               const SizedBox(height: 16),
               if (records.isEmpty)
-                const Expanded(
-                  child: Center(
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
                     child: Text(
-                      'No records',
-                      style: TextStyle(color: Colors.grey, fontSize: 10),
+                      'No records yet',
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                   ),
                 )
               else
-                Expanded(
-                  child: LineChart(
-                    LineChartData(
-                      gridData: FlGridData(
-                        show: true,
-                        drawVerticalLine: false,
-                        horizontalInterval: 25,
-                        getDrawingHorizontalLine: (value) {
-                          return FlLine(
-                            color: isDark ? Colors.white10 : Colors.black12,
-                            strokeWidth: 1,
-                          );
-                        },
-                      ),
-                      titlesData: const FlTitlesData(show: false),
-                      borderData: FlBorderData(show: false),
-                      minY: 0,
-                      maxY: 105,
-                      minX: 0,
-                      maxX: (records.length - 1).toDouble(),
-                      lineBarsData: [
-                        LineChartBarData(
-                          spots: spots,
-                          isCurved: true,
-                          color: primaryColor,
-                          barWidth: 3,
-                          isStrokeCapRound: true,
-                          dotData: const FlDotData(show: false),
-                          belowBarData: BarAreaData(
-                            show: true,
-                            color: primaryColor.withValues(alpha: 0.1),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Percentage Indicator
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${attendanceRate.toInt()}%',
+                          style: GoogleFonts.spaceGrotesk(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            color: attendanceRate >= 75
+                                ? Colors.green
+                                : (attendanceRate >= 50
+                                    ? Colors.orange
+                                    : Colors.red),
+                          ),
+                        ),
+                        Text(
+                          'Rate',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.grey[500] : Colors.grey[700],
                           ),
                         ),
                       ],
                     ),
-                  ),
+                    const SizedBox(width: 24),
+                    // Grid of Recent Sessions
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: recentRecords.map((r) {
+                              Color color;
+                              switch (r.status) {
+                                case AttendanceStatus.present:
+                                  color = Colors.green;
+                                  break;
+                                case AttendanceStatus.absent:
+                                  color = Colors.red;
+                                  break;
+                                case AttendanceStatus.excused:
+                                  color = Colors.orange;
+                                  break;
+                                default:
+                                  color = Colors.grey;
+                              }
+                              return Tooltip(
+                                message: '${DateFormat.MMMd().format(r.date)}: ${r.status.name.toUpperCase()}',
+                                child: Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: color.withValues(alpha: 0.8),
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Last ${recentRecords.length} sessions',
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: isDark ? Colors.grey[600] : Colors.grey[500],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
             ],
           ),
