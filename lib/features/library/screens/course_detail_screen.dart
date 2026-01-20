@@ -831,13 +831,19 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                   ),
                   InkWell(
                     onTap: () => _showGradeHistory(context),
-                    child: Text(
-                      'View All',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: primaryColor,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'View All',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: primaryColor,
+                          ),
+                        ),
+                        Icon(Icons.chevron_right, size: 16, color: primaryColor),
+                      ],
                     ),
                   ),
                 ],
@@ -902,13 +908,19 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                   ),
                   InkWell(
                     onTap: () => _showAttendanceHistory(context),
-                    child: Text(
-                      'View All',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: primaryColor,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'View All',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: primaryColor,
+                          ),
+                        ),
+                        Icon(Icons.chevron_right, size: 16, color: primaryColor),
+                      ],
                     ),
                   ),
                 ],
