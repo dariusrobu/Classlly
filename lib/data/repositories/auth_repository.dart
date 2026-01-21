@@ -127,6 +127,16 @@ class AuthRepository {
       idToken: idToken,
       nonce: rawNonce,
     );
+
+    // Apple only returns the name on the first sign in.
+    if (credential.givenName != null) {
+      final fullName = '${credential.givenName} ${credential.familyName ?? ''}'.trim();
+      await _supabase.auth.updateUser(
+        UserAttributes(
+          data: {'full_name': fullName},
+        ),
+      );
+    }
   }
 
   String _sha256ofString(String input) {
