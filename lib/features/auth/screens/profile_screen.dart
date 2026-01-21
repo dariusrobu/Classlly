@@ -138,7 +138,7 @@ class ProfileScreen extends StatelessWidget {
                   child: Text(
                     'Delete Account',
                     style: TextStyle(
-                      color: Colors.red.withOpacity(0.6),
+                      color: Colors.red.withValues(alpha: 0.6),
                       fontSize: 12,
                     ),
                   ),
@@ -158,9 +158,9 @@ class ProfileScreen extends StatelessWidget {
     User? user,
     StudentProfile profile,
   ) {
-    final name = user?.userMetadata?['full_name'] ?? 'Alex Johnson';
+    final name = profile.name ?? user?.userMetadata?['full_name'] ?? 'Alex';
     final initials =
-        name.split(' ').take(2).map((e) => e[0]).join().toUpperCase();
+        name.split(' ').take(2).map((e) => e.isNotEmpty ? e[0] : '').join().toUpperCase();
 
     return Column(
       children: [

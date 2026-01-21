@@ -34,7 +34,7 @@ class NotificationService {
       initSettings,
       onDidReceiveNotificationResponse: (details) {
         // Handle notification tap logic here
-        debugPrint("Notification tapped: ${details.payload}");
+        debugPrint('Notification tapped: ${details.payload}');
       },
     );
   }

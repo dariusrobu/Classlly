@@ -697,6 +697,9 @@ class _ClassllyUnifiedToolbarState extends State<_ClassllyUnifiedToolbar> {
     AudioProvider audioProvider,
   ) async {
     try {
+      final screenWidth = MediaQuery.of(context).size.width;
+      final screenHeight = MediaQuery.of(context).size.height;
+
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf'],
@@ -749,8 +752,8 @@ class _ClassllyUnifiedToolbarState extends State<_ClassllyUnifiedToolbar> {
           final matrix = widget.transformationController.value;
           final inverseMatrix = Matrix4.inverted(matrix);
           final screenCenter = Offset(
-            MediaQuery.of(context).size.width / 2,
-            MediaQuery.of(context).size.height / 2,
+            screenWidth / 2,
+            screenHeight / 2,
           );
           final canvasCenter = MatrixUtils.transformPoint(
             inverseMatrix,
@@ -779,7 +782,6 @@ class _ClassllyUnifiedToolbarState extends State<_ClassllyUnifiedToolbar> {
   Widget build(BuildContext context) {
     final canvasProvider = Provider.of<CanvasProvider>(context);
     final audioProvider = Provider.of<AudioProvider>(context);
-    final primaryColor = Theme.of(context).colorScheme.primary;
     final screenWidth = MediaQuery.of(context).size.width;
 
     final allColors = [
@@ -845,6 +847,8 @@ class _ClassllyUnifiedToolbarState extends State<_ClassllyUnifiedToolbar> {
                                                                             onTap: () async {
                                                                               print('DEBUG: Media icon tapped');
                                                                               try {
+                                                                                final sWidth = MediaQuery.of(context).size.width;
+                                                                                final sHeight = MediaQuery.of(context).size.height;
                                                                                 canvasProvider.setActiveTool(CanvasTool.image);
                                                                                 final picker = ImagePicker();
                                                                                 final xFile =
@@ -857,8 +861,8 @@ class _ClassllyUnifiedToolbarState extends State<_ClassllyUnifiedToolbar> {
                                                                                   final matrix = widget.transformationController.value;
                                                                                   final inverseMatrix = Matrix4.inverted(matrix);
                                                                                   final screenCenter = Offset(
-                                                                                    MediaQuery.of(context).size.width / 2,
-                                                                                    MediaQuery.of(context).size.height / 2,
+                                                                                    sWidth / 2,
+                                                                                    sHeight / 2,
                                                                                   );
                                                                                   final canvasCenter = MatrixUtils.transformPoint(
                                                                                     inverseMatrix,
@@ -1074,12 +1078,10 @@ class _ToolIcon extends StatelessWidget {
   final IconData icon;
   final bool isActive;
   final VoidCallback onTap;
-  final Color? color;
   const _ToolIcon({
     required this.icon,
     required this.isActive,
     required this.onTap,
-    this.color,
   });
   @override
   Widget build(BuildContext context) {
@@ -1096,7 +1098,7 @@ class _ToolIcon extends StatelessWidget {
         child: Icon(
           icon,
           size: 18,
-          color: color ?? (isActive ? primaryColor : Colors.white70),
+          color: isActive ? primaryColor : Colors.white70,
         ),
       ),
     );

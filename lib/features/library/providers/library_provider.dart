@@ -9,6 +9,7 @@ import 'package:classlly/data/models/note_models.dart';
 import 'package:classlly/data/models/course_model.dart';
 import 'package:classlly/data/models/grade_model.dart';
 import 'package:classlly/data/models/attendance_model.dart';
+import 'package:classlly/data/models/student_profile_model.dart';
 import 'package:intl/intl.dart';
 import 'package:classlly/core/services/notification_service.dart';
 
@@ -37,6 +38,7 @@ class LibraryProvider with ChangeNotifier {
   List<Note> get deletedNotes => _localRepository.getDeletedNotes();
   List<Task> get deletedTasks => _localRepository.getDeletedTasks();
   List<Folder> get deletedFolders => _localRepository.getDeletedFolders();
+  StudentProfile get studentProfile => _localRepository.getStudentProfile();
 
   void initSync() async {
     // Perform full background sync
@@ -282,7 +284,7 @@ class LibraryProvider with ChangeNotifier {
       final time = _parseTimeString(course.courseTime);
       if (time != null) {
         _notificationService.scheduleNotification(
-          id: (course.id + 'lecture').hashCode,
+          id: '${course.id}lecture'.hashCode,
           title: 'Upcoming Lecture',
           body: 'Your lecture for "${course.title}" starts at ${course.courseTime} in ${course.location}',
           scheduledDate: _nextOccurrence(course.courseDay, time),
@@ -296,7 +298,7 @@ class LibraryProvider with ChangeNotifier {
       final time = _parseTimeString(course.seminarTime);
       if (time != null) {
         _notificationService.scheduleNotification(
-          id: (course.id + 'seminar').hashCode,
+          id: '${course.id}seminar'.hashCode,
           title: 'Upcoming Seminar',
           body: 'Your seminar for "${course.title}" starts at ${course.seminarTime} in ${course.seminarLocation}',
           scheduledDate: _nextOccurrence(course.seminarDay, time),
@@ -307,11 +309,12 @@ class LibraryProvider with ChangeNotifier {
   }
 
   void _cancelCourseNotifications(String courseId) {
-    _notificationService.cancelNotification((courseId + 'lecture').hashCode);
-    _notificationService.cancelNotification((courseId + 'seminar').hashCode);
+    _notificationService.cancelNotification('${courseId}lecture'.hashCode);
+    _notificationService.cancelNotification('${courseId}seminar'.hashCode);
   }
 
   DateTime _nextOccurrence(String dayName, TimeOfDay time) {
+    // ...
     final days = {
       'Monday': 1,
       'Tuesday': 2,
@@ -509,9 +512,15 @@ class LibraryProvider with ChangeNotifier {
     final tasks = _localRepository.getDeletedTasks();
     final folders = _localRepository.getDeletedFolders();
 
-    for (var note in notes) await _localRepository.deleteNote(note.id);
-    for (var task in tasks) await _localRepository.deleteTask(task.id);
-    for (var folder in folders) await _localRepository.deleteFolder(folder.id);
+    for (var note in notes) {
+      await _localRepository.deleteNote(note.id);
+    }
+    for (var task in tasks) {
+      await _localRepository.deleteTask(task.id);
+    }
+    for (var folder in folders) {
+      await _localRepository.deleteFolder(folder.id);
+    }
     notifyListeners();
   }
 

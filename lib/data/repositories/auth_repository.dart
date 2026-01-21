@@ -4,7 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
-import 'dart:io';
 
 class AuthRepository {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -47,7 +46,6 @@ class AuthRepository {
     }
 
     // Mobile implementation (Android/iOS)
-    const webClientId = '153897807907-3lph5o2mo39475fp1jjqglnpur5l3eu3.apps.googleusercontent.com';
     const iosClientId = '153897807907-tllogka5ud9ploje6n0urqalhu0n7oku.apps.googleusercontent.com';
 
     final GoogleSignIn googleSignIn = GoogleSignIn(
@@ -65,7 +63,6 @@ class AuthRepository {
     }
 
     final idToken = googleAuth.idToken;
-    final accessToken = googleAuth.accessToken;
 
     if (idToken == null) {
       throw const AuthException('No ID Token found.');

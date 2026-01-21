@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:classlly/features/library/providers/library_provider.dart';
 import 'package:classlly/core/theme/app_theme.dart';
 import 'package:classlly/data/models/course_model.dart';
-import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:intl/intl.dart';
 
 class AddCourseScreen extends StatefulWidget {
@@ -37,7 +36,6 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
   TimeOfDay? _seminarTime;
 
   Color _selectedColor = Colors.blue;
-  final NotesRepository _repository = NotesRepository();
 
   final List<Color> _colors = [
     Colors.blue,

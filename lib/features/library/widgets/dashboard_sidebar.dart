@@ -23,106 +23,117 @@ class DashboardSidebar extends StatelessWidget {
           ),
         ),
       ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(32, 48, 32, 40),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [colorScheme.primary, colorScheme.secondary],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: colorScheme.primary.withValues(alpha: 0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
+      child: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(32, 48, 32, 40),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [colorScheme.primary, colorScheme.secondary],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: colorScheme.primary.withValues(alpha: 0.3),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.edit_note_rounded,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          const Text(
+                            'Classlly',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.edit_note_rounded,
-                    color: Colors.white,
-                    size: 28,
-                  ),
+                    ),
+                    SidebarItem(
+                      icon: Icons.grid_view_rounded,
+                      label: 'Dashboard',
+                      isActive: libraryProvider.currentView == LibraryView.dashboard,
+                      onTap: () =>
+                          _navigate(context, libraryProvider, LibraryView.dashboard),
+                    ),
+                    SidebarItem(
+                      icon: Icons.description_rounded,
+                      label: 'Notes',
+                      isActive: libraryProvider.currentView == LibraryView.allNotes,
+                      onTap: () =>
+                          _navigate(context, libraryProvider, LibraryView.allNotes),
+                    ),
+                    SidebarItem(
+                      icon: Icons.school_rounded,
+                      label: 'Courses',
+                      isActive: libraryProvider.currentView == LibraryView.courses,
+                      onTap: () =>
+                          _navigate(context, libraryProvider, LibraryView.courses),
+                    ),
+                    SidebarItem(
+                      icon: Icons.task_alt_rounded,
+                      label: 'Tasks',
+                      isActive: libraryProvider.currentView == LibraryView.tasks,
+                      onTap: () => _navigate(context, libraryProvider, LibraryView.tasks),
+                    ),
+                    SidebarItem(
+                      icon: Icons.calendar_today_rounded,
+                      label: 'Calendar',
+                      isActive: libraryProvider.currentView == LibraryView.calendar,
+                      onTap: () =>
+                          _navigate(context, libraryProvider, LibraryView.calendar),
+                    ),
+                    SidebarItem(
+                      icon: Icons.archive_rounded,
+                      label: 'Archive',
+                      isActive: libraryProvider.currentView == LibraryView.archive,
+                      onTap: () =>
+                          _navigate(context, libraryProvider, LibraryView.archive),
+                    ),
+                    SidebarItem(
+                      icon: Icons.settings_rounded,
+                      label: 'Settings',
+                      isActive: false,
+                      onTap: () {
+                        if (Scaffold.maybeOf(context)?.isDrawerOpen ?? false) {
+                          Navigator.pop(context);
+                        }
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 40),
+                    const Padding(padding: EdgeInsets.all(24), child: UserCard()),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                const Text(
-                  'Classlly',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SidebarItem(
-            icon: Icons.grid_view_rounded,
-            label: 'Dashboard',
-            isActive: libraryProvider.currentView == LibraryView.dashboard,
-            onTap: () =>
-                _navigate(context, libraryProvider, LibraryView.dashboard),
-          ),
-          SidebarItem(
-            icon: Icons.description_rounded,
-            label: 'Notes',
-            isActive: libraryProvider.currentView == LibraryView.allNotes,
-            onTap: () =>
-                _navigate(context, libraryProvider, LibraryView.allNotes),
-          ),
-          SidebarItem(
-            icon: Icons.school_rounded,
-            label: 'Courses',
-            isActive: libraryProvider.currentView == LibraryView.courses,
-            onTap: () =>
-                _navigate(context, libraryProvider, LibraryView.courses),
-          ),
-          SidebarItem(
-            icon: Icons.task_alt_rounded,
-            label: 'Tasks',
-            isActive: libraryProvider.currentView == LibraryView.tasks,
-            onTap: () => _navigate(context, libraryProvider, LibraryView.tasks),
-          ),
-          SidebarItem(
-            icon: Icons.calendar_today_rounded,
-            label: 'Calendar',
-            isActive: libraryProvider.currentView == LibraryView.calendar,
-            onTap: () =>
-                _navigate(context, libraryProvider, LibraryView.calendar),
-          ),
-          SidebarItem(
-            icon: Icons.archive_rounded,
-            label: 'Archive',
-            isActive: libraryProvider.currentView == LibraryView.archive,
-            onTap: () =>
-                _navigate(context, libraryProvider, LibraryView.archive),
-          ),
-          SidebarItem(
-            icon: Icons.settings_rounded,
-            label: 'Settings',
-            isActive: false,
-            onTap: () {
-              if (Scaffold.maybeOf(context)?.isDrawerOpen ?? false) {
-                Navigator.pop(context);
-              }
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
-            },
-          ),
-          const Spacer(),
-          const Padding(padding: EdgeInsets.all(24), child: UserCard()),
-        ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -220,6 +231,12 @@ class UserCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
+    final provider = Provider.of<LibraryProvider>(context);
+    final profile = provider.studentProfile;
+    final name = profile.name ?? 'Alex';
+    final initials =
+        name.split(' ').take(2).map((e) => e.isNotEmpty ? e[0] : '').join().toUpperCase();
+
     return GestureDetector(
       onTap: () {
         if (Scaffold.maybeOf(context)?.isDrawerOpen ?? false) {
@@ -258,9 +275,9 @@ class UserCard extends StatelessWidget {
               child: CircleAvatar(
                 radius: 20,
                 backgroundColor: colorScheme.primary,
-                child: const Text(
-                  'AJ',
-                  style: TextStyle(
+                child: Text(
+                  initials.isNotEmpty ? initials : '?',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
@@ -269,18 +286,18 @@ class UserCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Alex Johnson',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    name,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    'Computer Science',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                    profile.major.isNotEmpty ? profile.major : 'Student',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],

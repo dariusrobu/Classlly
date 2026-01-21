@@ -20,7 +20,7 @@ void main() async {
   // Global Error Handling
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
-    debugPrint("CRITICAL ERROR: ${details.exception}");
+    debugPrint('CRITICAL ERROR: ${details.exception}');
   };
 
   ErrorWidget.builder = (FlutterErrorDetails details) {

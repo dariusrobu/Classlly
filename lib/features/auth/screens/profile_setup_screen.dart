@@ -65,6 +65,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
       // Auto-load academic calendar if a template matches the selected university
       if (mounted) {
+        final navigator = Navigator.of(context);
+        final libraryProvider = Provider.of<LibraryProvider>(context, listen: false);
+        final calendarProvider = Provider.of<AcademicCalendarProvider>(context, listen: false);
+
         final selectedUni = _universityController.text.trim();
         final template = _availableTemplates.firstWhere(
           (t) => t['universityName'] == selectedUni,
@@ -72,13 +76,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         );
 
         if (template != null) {
-          await Provider.of<AcademicCalendarProvider>(context, listen: false)
-              .loadTemplate(template);
+          await calendarProvider.loadTemplate(template);
         }
 
-        Provider.of<LibraryProvider>(context, listen: false).initSync();
+        libraryProvider.initSync();
         // Navigate to LibraryScreen, removing all previous routes (Auth, SignUp, Setup)
-        Navigator.of(context).pushAndRemoveUntil(
+        navigator.pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const LibraryScreen()),
           (route) => false,
         );

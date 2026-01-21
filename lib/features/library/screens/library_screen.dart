@@ -94,7 +94,7 @@ class _MainContentSwitch extends StatelessWidget {
       case LibraryView.archive:
         return const _ArchiveView();
       case LibraryView.allNotes:
-        return _AllNotesView();
+        return const _AllNotesView();
     }
   }
 }
@@ -103,9 +103,11 @@ class _DashboardView extends StatelessWidget {
   const _DashboardView();
   @override
   Widget build(BuildContext context) {
+    final libraryProvider = Provider.of<LibraryProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final width = MediaQuery.of(context).size.width;
     final horizontalPadding = width > 600 ? 48.0 : 20.0;
+    final studentName = libraryProvider.studentProfile.name ?? 'Alex';
 
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(
@@ -125,9 +127,9 @@ class _DashboardView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Welcome back, Alex!',
-            style: TextStyle(
+          Text(
+            'Welcome back, $studentName!',
+            style: const TextStyle(
               fontSize: 36,
               fontWeight: FontWeight.w900,
               letterSpacing: -1,
@@ -1591,11 +1593,11 @@ class _DashboardStatsGrid extends StatelessWidget {
         int cols = width > 900 ? 2 : 1;
         double ratio;
         if (width > 900) {
-          ratio = 1.8;
+          ratio = 1.5;
         } else if (width > 600) {
-          ratio = 1.4;
+          ratio = 1.2;
         } else {
-          ratio = 1.2; // Give more height on small phones
+          ratio = 1.0; // Give more height on small phones
         }
 
         return GridView.count(

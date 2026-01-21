@@ -14,6 +14,8 @@ class StudentProfile extends HiveObject {
   String studentId;
   @HiveField(4, defaultValue: 0)
   int totalStudyTimeSeconds;
+  @HiveField(5)
+  String? name;
 
   StudentProfile({
     this.university = '',
@@ -21,5 +23,6 @@ class StudentProfile extends HiveObject {
     this.year = '',
     this.studentId = '',
     this.totalStudyTimeSeconds = 0,
+    this.name = 'Alex',
   });
 }

@@ -226,6 +226,7 @@ class NotesRepository {
   StudentProfile getStudentProfile() {
     if (_profileBox.isEmpty) {
       final defaultProfile = StudentProfile(
+        name: 'Alex',
         university: 'UBB Cluj-Napoca',
         major: 'Computer Science',
         year: 'Year 2',

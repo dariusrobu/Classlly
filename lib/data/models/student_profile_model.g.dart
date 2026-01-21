@@ -22,13 +22,14 @@ class StudentProfileAdapter extends TypeAdapter<StudentProfile> {
       year: fields[2] as String,
       studentId: fields[3] as String,
       totalStudyTimeSeconds: fields[4] == null ? 0 : fields[4] as int,
+      name: fields[5] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, StudentProfile obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.university)
       ..writeByte(1)
@@ -38,7 +39,9 @@ class StudentProfileAdapter extends TypeAdapter<StudentProfile> {
       ..writeByte(3)
       ..write(obj.studentId)
       ..writeByte(4)
-      ..write(obj.totalStudyTimeSeconds);
+      ..write(obj.totalStudyTimeSeconds)
+      ..writeByte(5)
+      ..write(obj.name);
   }
 
   @override
