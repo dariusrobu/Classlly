@@ -19,6 +19,13 @@ class TasksScreen extends StatefulWidget {
 class _TasksScreenState extends State<TasksScreen> {
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+    final cardBg = Theme.of(context).cardColor;
+    final dividerColor = Theme.of(context).dividerColor;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subTextColor = isDark ? Colors.grey : Colors.grey[700];
+
     return ValueListenableBuilder(
       valueListenable: Hive.box<Task>(NotesRepository.taskBoxName).listenable(),
       builder: (context, Box<Task> box, _) {
@@ -43,7 +50,7 @@ class _TasksScreenState extends State<TasksScreen> {
               flex: 3,
               child: Column(
                 children: [
-                  _buildToolbar(context, allTasks.length),
+                  _buildToolbar(context, allTasks.length, textColor, subTextColor),
                   Expanded(
                     // Kanban Board with To Do, High Priority, and Done columns
                     child: allTasks.isEmpty
@@ -61,6 +68,10 @@ class _TasksScreenState extends State<TasksScreen> {
                             todoTasks,
                             highPriorityTasks,
                             doneTasks,
+                            cardBg,
+                            dividerColor,
+                            textColor,
+                            subTextColor,
                           ),
                   ),
                 ],
@@ -69,11 +80,11 @@ class _TasksScreenState extends State<TasksScreen> {
             if (isLargeScreen)
               Container(
                 width: 320,
-                decoration: const BoxDecoration(
-                  border: Border(left: BorderSide(color: Color(0xFF2A2A2A))),
-                  color: Color(0xFF121212),
+                decoration: BoxDecoration(
+                  border: Border(left: BorderSide(color: dividerColor.withValues(alpha: 0.5))),
+                  color: scaffoldBg,
                 ),
-                child: _buildRightSidebar(context, tasksForAgenda),
+                child: _buildRightSidebar(context, tasksForAgenda, textColor, subTextColor, cardBg, dividerColor),
               ),
           ],
         );
@@ -81,7 +92,7 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  Widget _buildToolbar(BuildContext context, int totalTasks) {
+  Widget _buildToolbar(BuildContext context, int totalTasks, Color textColor, Color subTextColor) {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Row(
@@ -90,18 +101,18 @@ class _TasksScreenState extends State<TasksScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Task Dashboard',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: textColor,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 'You have $totalTasks tasks in total.',
-                style: const TextStyle(color: Colors.grey, fontSize: 14),
+                style: TextStyle(color: subTextColor, fontSize: 14),
               ),
             ],
           ),
@@ -115,25 +126,33 @@ class _TasksScreenState extends State<TasksScreen> {
     List<Task> todo,
     List<Task> highPriority,
     List<Task> done,
+    Color cardBg,
+    Color dividerColor,
+    Color textColor,
+    Color subTextColor,
   ) {
     return ListView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 24),
       children: [
-        _buildKanbanColumn('To Do', todo, Colors.grey),
+        _buildKanbanColumn('To Do', todo, Colors.grey, cardBg, dividerColor, textColor, subTextColor),
         const SizedBox(width: 24),
         _buildKanbanColumn(
           'High Priority',
           highPriority,
           const Color(0xFFEF4444),
+          cardBg,
+          dividerColor,
+          textColor,
+          subTextColor,
         ),
         const SizedBox(width: 24),
-        _buildKanbanColumn('Done', done, const Color(0xFF10B981)),
+        _buildKanbanColumn('Done', done, const Color(0xFF10B981), cardBg, dividerColor, textColor, subTextColor),
       ],
     );
   }
 
-  Widget _buildKanbanColumn(String title, List<Task> tasks, Color accentColor) {
+  Widget _buildKanbanColumn(String title, List<Task> tasks, Color accentColor, Color cardBg, Color dividerColor, Color textColor, Color subTextColor) {
     return SizedBox(
       width: 300,
       child: Column(
@@ -161,7 +180,7 @@ class _TasksScreenState extends State<TasksScreen> {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E1E),
+                    color: cardBg,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -181,7 +200,7 @@ class _TasksScreenState extends State<TasksScreen> {
             child: ListView.builder(
               itemCount: tasks.length,
               itemBuilder: (context, index) {
-                return _buildTaskCard(tasks[index]);
+                return _buildTaskCard(tasks[index], cardBg, dividerColor, textColor, subTextColor);
               },
             ),
           ),
@@ -190,14 +209,14 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  Widget _buildTaskCard(Task task) {
+  Widget _buildTaskCard(Task task, Color cardBg, Color dividerColor, Color textColor, Color subTextColor) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
+        color: cardBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF2A2A2A)),
+        border: Border.all(color: dividerColor.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,7 +250,7 @@ class _TasksScreenState extends State<TasksScreen> {
                   DateFormat('MMM d').format(task.dueDate!),
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[400],
+                    color: subTextColor,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -240,17 +259,17 @@ class _TasksScreenState extends State<TasksScreen> {
           const SizedBox(height: 12),
           Text(
             task.title,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 14,
-              color: Colors.white,
+              color: textColor,
             ),
           ),
           if (task.description?.isNotEmpty == true) ...[
             const SizedBox(height: 4),
             Text(
               task.description!,
-              style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+              style: TextStyle(fontSize: 12, color: subTextColor),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -268,7 +287,7 @@ class _TasksScreenState extends State<TasksScreen> {
                 task.priority == 2
                     ? 'High'
                     : (task.priority == 1 ? 'Medium' : 'Low'),
-                style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                style: TextStyle(fontSize: 12, color: subTextColor),
               ),
               const Spacer(),
               InkWell(
@@ -284,7 +303,7 @@ class _TasksScreenState extends State<TasksScreen> {
                   task.isCompleted ? Icons.check_circle : Icons.circle_outlined,
                   color: task.isCompleted
                       ? const Color(0xFF10B981)
-                      : Colors.grey[600],
+                      : subTextColor,
                   size: 20,
                 ),
               ),
@@ -295,7 +314,7 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  Widget _buildRightSidebar(BuildContext context, List<Task> tasks) {
+  Widget _buildRightSidebar(BuildContext context, List<Task> tasks, Color textColor, Color subTextColor, Color cardBg, Color dividerColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -307,18 +326,18 @@ class _TasksScreenState extends State<TasksScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Daily Agenda',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: textColor,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     DateFormat('EEEE, MMM d').format(DateTime.now()),
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    style: TextStyle(fontSize: 12, color: subTextColor),
                   ),
                 ],
               ),
@@ -387,7 +406,7 @@ class _TasksScreenState extends State<TasksScreen> {
                         ),
                       ),
                     ],
-                icon: const Icon(Icons.more_horiz, color: Colors.grey),
+                icon: Icon(Icons.more_horiz, color: subTextColor),
               ),
             ],
           ),
@@ -409,7 +428,7 @@ class _TasksScreenState extends State<TasksScreen> {
                   itemCount: tasks.length,
                   itemBuilder: (context, index) {
                     final task = tasks[index];
-                    return _buildTimelineItem(context, task, index == 0);
+                    return _buildTimelineItem(context, task, index == 0, textColor, subTextColor, cardBg, dividerColor);
                   },
                 ),
         ),
@@ -417,7 +436,7 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  Widget _buildTimelineItem(BuildContext context, Task task, bool isFirst) {
+  Widget _buildTimelineItem(BuildContext context, Task task, bool isFirst, Color textColor, Color subTextColor, Color cardBg, Color dividerColor) {
     final color = _getPriorityColor(task.priority);
     return IntrinsicHeight(
       child: Row(
@@ -429,13 +448,13 @@ class _TasksScreenState extends State<TasksScreen> {
                 width: 10,
                 height: 10,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF121212),
+                  color: Theme.of(context).scaffoldBackgroundColor,
                   border: Border.all(color: color, width: 2),
                   shape: BoxShape.circle,
                 ),
               ),
               Expanded(
-                child: Container(width: 2, color: const Color(0xFF2A2A2A)),
+                child: Container(width: 2, color: dividerColor.withValues(alpha: 0.5)),
               ),
             ],
           ),
@@ -453,11 +472,11 @@ class _TasksScreenState extends State<TasksScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey[600],
+                      color: subTextColor,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  _buildTaskCard(task),
+                  _buildTaskCard(task, cardBg, dividerColor, textColor, subTextColor),
                 ],
               ),
             ),
