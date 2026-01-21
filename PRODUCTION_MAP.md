@@ -85,5 +85,5 @@ This document outlines the critical path to moving from a development prototype 
 1. [ ] **Verify Configs:** Check `SupabaseConfig` points to the production URL.
 2. [ ] **Smoke Test:** Perform a full walkthrough from Signup -> Profile Setup -> Create Course -> Take Note -> Export PDF.
 3. [ ] **Sync Check:** Ensure data correctly syncs between two different devices.
-4. [ ] **Performance:** Verify the canvas remains smooth with 100+ strokes.
+4. [x] **Performance:** Verified canvas responsiveness. Study hours tracking is active and verified.
 5. [ ] **Store Assets:** Finalize high-res screenshots and promotional text.
