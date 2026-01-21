@@ -560,18 +560,33 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
             builder: (context, Box<Grade> gradeBox, _) {
               final courseGrades = gradeBox.values
                   .where((g) => g.courseId == widget.course.id)
-                  .toList();
+                  .toList()
+                ..sort((a, b) => a.date.compareTo(b.date));
+
               double avg = 0;
+              int gradeTrend = 0;
+
               if (courseGrades.isNotEmpty) {
+                // Calculate current average
                 double totalWeightedScore = 0;
                 double totalWeight = 0;
                 for (var g in courseGrades) {
-                  totalWeightedScore +=
-                      ((g.score / g.maxScore) * 100) * g.weight;
+                  totalWeightedScore += ((g.score / g.maxScore) * 100) * g.weight;
                   totalWeight += g.weight;
                 }
-                if (totalWeight > 0) {
-                  avg = totalWeightedScore / totalWeight;
+                avg = totalWeight > 0 ? totalWeightedScore / totalWeight : 0;
+
+                // Calculate previous average (excluding last)
+                if (courseGrades.length > 1) {
+                  double prevTotalWeightedScore = 0;
+                  double prevTotalWeight = 0;
+                  for (int i = 0; i < courseGrades.length - 1; i++) {
+                    final g = courseGrades[i];
+                    prevTotalWeightedScore += ((g.score / g.maxScore) * 100) * g.weight;
+                    prevTotalWeight += g.weight;
+                  }
+                  double prevAvg = prevTotalWeight > 0 ? prevTotalWeightedScore / prevTotalWeight : 0;
+                  gradeTrend = avg > prevAvg ? 1 : (avg < prevAvg ? -1 : 0);
                 }
               }
 
@@ -582,13 +597,26 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                 builder: (context, Box<Attendance> attBox, _) {
                   final courseAtt = attBox.values
                       .where((a) => a.courseId == widget.course.id)
-                      .toList();
+                      .toList()
+                    ..sort((a, b) => a.date.compareTo(b.date));
+
                   double attendance = 0;
+                  int attTrend = 0;
+
                   if (courseAtt.isNotEmpty) {
-                    final present = courseAtt
-                        .where((r) => r.status == AttendanceStatus.present)
+                    final presentCount = courseAtt
+                        .where((r) => r.status == AttendanceStatus.present || r.status == AttendanceStatus.excused)
                         .length;
-                    attendance = (present / courseAtt.length) * 100;
+                    attendance = (presentCount / courseAtt.length) * 100;
+
+                    if (courseAtt.length > 1) {
+                      final prevPresentCount = courseAtt
+                          .take(courseAtt.length - 1)
+                          .where((r) => r.status == AttendanceStatus.present || r.status == AttendanceStatus.excused)
+                          .length;
+                      double prevAttendance = (prevPresentCount / (courseAtt.length - 1)) * 100;
+                      attTrend = attendance > prevAttendance ? 1 : (attendance < prevAttendance ? -1 : 0);
+                    }
                   }
 
                   return Row(
@@ -596,17 +624,15 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                     children: [
                       _headerStatItem(
                         'CURRENT GRADE',
-                        courseGrades.isEmpty
-                            ? 'N/A'
-                            : '${avg.toStringAsFixed(1)}%',
-                        courseGrades.isEmpty ? '-' : 'Good',
+                        courseGrades.isEmpty ? 'N/A' : '${avg.toStringAsFixed(1)}%',
+                        gradeTrend,
                         isDark,
                       ),
                       const SizedBox(width: 16),
                       _headerStatItem(
                         'ATTENDANCE',
                         courseAtt.isEmpty ? 'N/A' : '${attendance.toInt()}%',
-                        courseAtt.isEmpty ? '-' : 'Steady',
+                        attTrend,
                         isDark,
                       ),
                     ],
@@ -623,7 +649,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
   Widget _headerStatItem(
     String label,
     String value,
-    String trend,
+    int trendDirection,
     bool isDark,
   ) {
     return Container(
@@ -663,11 +689,11 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                 ),
               ),
               const SizedBox(width: 8),
-              if (trend != '-' && trend != 'N/A')
+              if (trendDirection != 0)
                 Icon(
-                  Icons.trending_up,
+                  trendDirection > 0 ? Icons.trending_up : Icons.trending_down,
                   size: 14,
-                  color: Colors.greenAccent.shade400,
+                  color: trendDirection > 0 ? Colors.greenAccent.shade400 : Colors.redAccent,
                 ),
             ],
           ),
