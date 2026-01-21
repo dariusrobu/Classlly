@@ -411,7 +411,9 @@ class SupabaseRepository {
 
     final response = await _client.from('student_profiles').select().eq('user_id', user.id).maybeSingle();
     if (response != null) {
+      final fullName = user.userMetadata?['full_name'] as String? ?? 'Alex';
       final profile = StudentProfile(
+        name: fullName,
         university: response['university'] ?? '',
         major: response['major'] ?? '',
         year: response['year'] ?? '',
