@@ -40,6 +40,10 @@ class LibraryProvider with ChangeNotifier {
   List<Folder> get deletedFolders => _localRepository.getDeletedFolders();
   StudentProfile get studentProfile => _localRepository.getStudentProfile();
 
+  void refreshProfile() {
+    notifyListeners();
+  }
+
   void initSync() async {
     // Perform full background sync
     await _remoteRepository.syncAll();

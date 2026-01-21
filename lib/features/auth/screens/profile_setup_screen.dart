@@ -5,6 +5,7 @@ import 'package:classlly/features/library/screens/library_screen.dart';
 import 'package:classlly/features/library/providers/library_provider.dart';
 import 'package:classlly/features/library/providers/academic_calendar_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -53,7 +54,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     setState(() => _isLoading = true);
     try {
+      final user = Supabase.instance.client.auth.currentUser;
+      final fullName = user?.userMetadata?['full_name'] as String? ?? 'Student';
+
       final profile = StudentProfile(
+        name: fullName,
         university: _universityController.text.trim(),
         major: _majorController.text.trim(),
         year: _selectedYear,
@@ -92,6 +97,31 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           SnackBar(content: Text('Error saving profile: $e')),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _skipSetup() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      final fullName = user?.userMetadata?['full_name'] as String? ?? 'Student';
+
+      // Save minimal profile with just the name
+      final profile = StudentProfile(name: fullName);
+      final repo = NotesRepository();
+      await repo.saveStudentProfile(profile);
+
+      if (mounted) {
+        Provider.of<LibraryProvider>(context, listen: false).initSync();
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LibraryScreen()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      print('Error skipping setup: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -254,14 +284,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       ),
                     const SizedBox(height: 16),
                     TextButton(
-                      onPressed: () {
-                         // Skip logic
-                         Provider.of<LibraryProvider>(context, listen: false).initSync();
-                         Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (_) => const LibraryScreen()),
-                          (route) => false,
-                        );
-                      },
+                      onPressed: _skipSetup,
                       child: const Text('Skip for now'),
                     ),
                   ],

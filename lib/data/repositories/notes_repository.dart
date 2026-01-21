@@ -8,6 +8,7 @@ import 'package:classlly/data/models/folder_model.dart';
 import 'package:classlly/data/models/user_preferences_model.dart';
 import 'package:classlly/data/models/academic_calendar_model.dart';
 import 'package:classlly/data/models/student_profile_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class NotesRepository {
   static const String boxName = 'notes';
@@ -225,8 +226,11 @@ class NotesRepository {
   // --- Student Profile ---
   StudentProfile getStudentProfile() {
     if (_profileBox.isEmpty) {
+      final user = Supabase.instance.client.auth.currentUser;
+      final name = user?.userMetadata?['full_name'] as String? ?? 'Alex';
+
       final defaultProfile = StudentProfile(
-        name: 'Alex',
+        name: name,
         university: 'UBB Cluj-Napoca',
         major: 'Computer Science',
         year: 'Year 2',

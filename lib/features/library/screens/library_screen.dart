@@ -107,7 +107,8 @@ class _DashboardView extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final width = MediaQuery.of(context).size.width;
     final horizontalPadding = width > 600 ? 48.0 : 20.0;
-    final studentName = libraryProvider.studentProfile.name ?? 'Alex';
+    final profile = libraryProvider.studentProfile;
+    final studentName = profile.name ?? 'Alex';
 
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(

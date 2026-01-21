@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:classlly/core/theme/app_theme.dart';
+import 'package:classlly/data/repositories/notes_repository.dart';
+import 'package:provider/provider.dart';
+import 'package:classlly/features/library/providers/library_provider.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
   const PersonalInfoScreen({super.key});
@@ -19,9 +22,24 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   void initState() {
     super.initState();
     final user = Supabase.instance.client.auth.currentUser;
-    _nameController = TextEditingController(
-      text: user?.userMetadata?['full_name'] ?? '',
-    );
+    // Also try to get from local profile to be consistent
+    final repo = NotesRepository();
+    final profile = repo.getStudentProfile();
+    
+    String initialName = profile.name ?? '';
+    final supabaseName = user?.userMetadata?['full_name'] as String?;
+
+    // If local name is the default 'Alex' but Supabase has a different name, use Supabase
+    if ((initialName == 'Alex' || initialName.isEmpty) && 
+        supabaseName != null && 
+        supabaseName.isNotEmpty && 
+        supabaseName != 'Alex') {
+      initialName = supabaseName;
+    } else if (initialName.isEmpty && supabaseName != null) {
+      initialName = supabaseName;
+    }
+    
+    _nameController = TextEditingController(text: initialName);
     _emailController = TextEditingController(text: user?.email ?? '');
   }
 
@@ -36,12 +54,23 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isSaving = true);
       try {
+        // 1. Update Supabase
         await Supabase.instance.client.auth.updateUser(
           UserAttributes(
             data: {'full_name': _nameController.text},
           ),
         );
+
+        // 2. Update Local Profile
+        final repo = NotesRepository();
+        final profile = repo.getStudentProfile();
+        profile.name = _nameController.text;
+        await repo.saveStudentProfile(profile);
+
+        // 3. Notify Listeners
         if (mounted) {
+          Provider.of<LibraryProvider>(context, listen: false).refreshProfile();
+          
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Profile updated successfully')),
           );
