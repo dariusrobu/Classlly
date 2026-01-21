@@ -96,6 +96,15 @@ class AuthRepository {
       idToken: idToken,
       accessToken: idToken, 
     );
+
+    // Update user metadata with name from Google
+    if (googleUser.displayName != null) {
+      await _supabase.auth.updateUser(
+        UserAttributes(
+          data: {'full_name': googleUser.displayName},
+        ),
+      );
+    }
   }
 
   Future<void> signInWithApple() async {
