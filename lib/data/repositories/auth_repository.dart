@@ -49,9 +49,9 @@ class AuthRepository {
     const iosClientId = '153897807907-tllogka5ud9ploje6n0urqalhu0n7oku.apps.googleusercontent.com';
 
     final GoogleSignIn googleSignIn = GoogleSignIn(
-      // PURE iOS CONFIG: Use iosClientId only. Remove serverClientId.
-      // This ensures we get a standard iOS ID Token with a nonce we can extract.
-      clientId: (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) ? iosClientId : null,
+      // PURE iOS/macOS CONFIG: Use iosClientId only. Remove serverClientId.
+      // This ensures we get a standard iOS/macOS ID Token with a nonce we can extract.
+      clientId: (!kIsWeb && (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS)) ? iosClientId : null,
       scopes: ['email', 'profile'],
     );
 
@@ -98,7 +98,7 @@ class AuthRepository {
     );
 
     // Update user metadata with name from Google
-    if (googleUser.displayName != null) {
+    if (googleUser != null && googleUser.displayName != null) {
       await _supabase.auth.updateUser(
         UserAttributes(
           data: {'full_name': googleUser.displayName},
