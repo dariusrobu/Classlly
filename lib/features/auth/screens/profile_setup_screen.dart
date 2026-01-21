@@ -16,6 +16,7 @@ class ProfileSetupScreen extends StatefulWidget {
 
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _universityController = TextEditingController();
   final _majorController = TextEditingController();
   final _studentIdController = TextEditingController();
@@ -36,7 +37,16 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   @override
   void initState() {
     super.initState();
+    _loadUserInfo();
     _loadTemplates();
+  }
+
+  void _loadUserInfo() {
+    final user = Supabase.instance.client.auth.currentUser;
+    final metaName = user?.userMetadata?['full_name'] as String?;
+    if (metaName != null && metaName.isNotEmpty) {
+      _nameController.text = metaName;
+    }
   }
 
   Future<void> _loadTemplates() async {
@@ -54,11 +64,18 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     setState(() => _isLoading = true);
     try {
-      final user = Supabase.instance.client.auth.currentUser;
-      final fullName = user?.userMetadata?['full_name'] as String? ?? 'Student';
+      final name = _nameController.text.trim();
+      
+      // 1. Update Supabase Metadata
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(
+          data: {'full_name': name},
+        ),
+      );
 
+      // 2. Save Local Profile
       final profile = StudentProfile(
-        name: fullName,
+        name: name,
         university: _universityController.text.trim(),
         major: _majorController.text.trim(),
         year: _selectedYear,
@@ -106,10 +123,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     setState(() => _isLoading = true);
     try {
       final user = Supabase.instance.client.auth.currentUser;
-      final fullName = user?.userMetadata?['full_name'] as String? ?? 'Student';
+      // If the user entered a name but clicked skip, try to use it, otherwise fallback
+      String name = _nameController.text.trim();
+      if (name.isEmpty) {
+         name = user?.userMetadata?['full_name'] as String? ?? 'Student';
+      }
 
       // Save minimal profile with just the name
-      final profile = StudentProfile(name: fullName);
+      final profile = StudentProfile(name: name);
       final repo = NotesRepository();
       await repo.saveStudentProfile(profile);
 
@@ -175,6 +196,18 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       style: TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                     const SizedBox(height: 32),
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: InputDecoration(
+                        labelText: 'Full Name',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        prefixIcon: const Icon(Icons.person_outline),
+                      ),
+                      validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 16),
                     LayoutBuilder(
                       builder: (context, constraints) {
                         return Autocomplete<String>(
