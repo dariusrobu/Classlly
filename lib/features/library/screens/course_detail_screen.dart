@@ -710,7 +710,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
           crossAxisCount: count,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 1.4, // Made smaller height
+          childAspectRatio: 2.4, // Shorter height
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
           children: [
@@ -746,7 +746,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
         }
 
         return _GlassCard(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12), // Reduced padding
           child: Column(
             children: [
               Row(
@@ -757,10 +757,10 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                     style: TextStyle(
                       color: isDark ? Colors.grey[400] : Colors.grey[600],
                       fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                      fontSize: 11,
                     ),
                   ),
-                  Icon(Icons.edit_square, size: 14, color: primaryColor),
+                  Icon(Icons.edit_square, size: 12, color: primaryColor),
                 ],
               ),
               Expanded(
@@ -768,21 +768,23 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                   alignment: Alignment.center,
                   children: [
                     SizedBox(
-                      width: 70,
-                      height: 70,
+                      width: 50, // Reduced size
+                      height: 50,
                       child: PieChart(
                         PieChartData(
+                          sectionsSpace: 0,
+                          centerSpaceRadius: 20, // Reduced radius
                           sections: [
                             PieChartSectionData(
                               value: currentGrade,
                               color: primaryColor,
-                              radius: 8,
+                              radius: 6, // Thinner ring
                               showTitle: false,
                             ),
                             PieChartSectionData(
                               value: 100 - currentGrade,
                               color: Colors.white10,
-                              radius: 8,
+                              radius: 6,
                               showTitle: false,
                             ),
                           ],
@@ -796,14 +798,14 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                         Text(
                           '${currentGrade.toInt()}%',
                           style: GoogleFonts.spaceGrotesk(
-                            fontSize: 18,
+                            fontSize: 14, // Smaller font
                             fontWeight: FontWeight.w900,
                           ),
                         ),
                         const Text(
                           'GPA',
                           style: TextStyle(
-                            fontSize: 8,
+                            fontSize: 7,
                             fontWeight: FontWeight.bold,
                             color: Colors.grey,
                           ),
@@ -841,7 +843,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
         }
 
         return _GlassCard(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12), // Reduced padding
           child: Column(
             children: [
               Row(
@@ -852,7 +854,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                     style: TextStyle(
                       color: isDark ? Colors.grey[400] : Colors.grey[600],
                       fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                      fontSize: 11,
                     ),
                   ),
                   InkWell(
@@ -863,18 +865,18 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                         Text(
                           'View All',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 10,
                             fontWeight: FontWeight.bold,
                             color: primaryColor,
                           ),
                         ),
-                        Icon(Icons.chevron_right, size: 16, color: primaryColor),
+                        Icon(Icons.chevron_right, size: 14, color: primaryColor),
                       ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Expanded(
                 child: LineChart(
                   LineChartData(
@@ -882,7 +884,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                     titlesData: const FlTitlesData(show: false),
                     borderData: FlBorderData(show: false),
                     minY: 0,
-                    maxY: 5,
+                    maxY: 5.5, // Slightly higher to avoid clipping
                     lineBarsData: [
                       LineChartBarData(
                         spots: spots,
@@ -931,7 +933,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
             : records;
 
         return _GlassCard(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12), // Reduced padding
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -943,7 +945,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                     style: TextStyle(
                       color: isDark ? Colors.grey[400] : Colors.grey[600],
                       fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                      fontSize: 11,
                     ),
                   ),
                   InkWell(
@@ -954,137 +956,139 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                         Text(
                           'View All',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 10,
                             fontWeight: FontWeight.bold,
                             color: primaryColor,
                           ),
                         ),
-                        Icon(Icons.chevron_right, size: 16, color: primaryColor),
+                        Icon(Icons.chevron_right, size: 14, color: primaryColor),
                       ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               if (records.isEmpty)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
+                const Expanded(
+                  child: Center(
                     child: Text(
                       'No records yet',
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                      style: TextStyle(color: Colors.grey, fontSize: 10),
                     ),
                   ),
                 )
               else
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Percentage Indicator with Chart
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        SizedBox(
-                          width: 80,
-                          height: 80,
-                          child: PieChart(
-                            PieChartData(
-                              sectionsSpace: 0,
-                              centerSpaceRadius: 30,
-                              startDegreeOffset: 270,
-                              sections: [
-                                PieChartSectionData(
-                                  value: attendanceRate,
-                                  color: attendanceRate >= 75
-                                      ? Colors.green
-                                      : (attendanceRate >= 50
-                                          ? Colors.orange
-                                          : Colors.red),
-                                  radius: 8,
-                                  showTitle: false,
-                                ),
-                                PieChartSectionData(
-                                  value: 100 - attendanceRate,
-                                  color: isDark ? Colors.white10 : Colors.black12,
-                                  radius: 8,
-                                  showTitle: false,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '${attendanceRate.toInt()}%',
-                              style: GoogleFonts.spaceGrotesk(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                                color: isDark ? Colors.white : Colors.black87,
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Percentage Indicator with Chart
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SizedBox(
+                            width: 50, // Reduced size
+                            height: 50,
+                            child: PieChart(
+                              PieChartData(
+                                sectionsSpace: 0,
+                                centerSpaceRadius: 20, // Reduced radius
+                                startDegreeOffset: 270,
+                                sections: [
+                                  PieChartSectionData(
+                                    value: attendanceRate,
+                                    color: attendanceRate >= 75
+                                        ? Colors.green
+                                        : (attendanceRate >= 50
+                                            ? Colors.orange
+                                            : Colors.red),
+                                    radius: 6, // Thinner ring
+                                    showTitle: false,
+                                  ),
+                                  PieChartSectionData(
+                                    value: 100 - attendanceRate,
+                                    color: isDark ? Colors.white10 : Colors.black12,
+                                    radius: 6,
+                                    showTitle: false,
+                                  ),
+                                ],
                               ),
                             ),
+                          ),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '${attendanceRate.toInt()}%',
+                                style: GoogleFonts.spaceGrotesk(
+                                  fontSize: 12, // Smaller font
+                                  fontWeight: FontWeight.w900,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ),
+                              ),
+                              Text(
+                                'Rate',
+                                style: TextStyle(
+                                  fontSize: 6,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.grey[500] : Colors.grey[700],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 16),
+                      // Grid of Recent Sessions
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Wrap(
+                              spacing: 4,
+                              runSpacing: 4,
+                              children: recentRecords.map((r) {
+                                Color color;
+                                switch (r.status) {
+                                  case AttendanceStatus.present:
+                                    color = Colors.green;
+                                    break;
+                                  case AttendanceStatus.absent:
+                                    color = Colors.red;
+                                    break;
+                                  case AttendanceStatus.excused:
+                                    color = Colors.orange;
+                                    break;
+                                  default:
+                                    color = Colors.grey;
+                                }
+                                return Tooltip(
+                                  message: '${DateFormat.MMMd().format(r.date)}: ${r.status.name.toUpperCase()}',
+                                  child: Container(
+                                    width: 8, // Smaller squares
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: color.withValues(alpha: 0.8),
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 4),
                             Text(
-                              'Rate',
+                              'Last ${recentRecords.length} sessions',
                               style: TextStyle(
                                 fontSize: 8,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.grey[500] : Colors.grey[700],
+                                color: isDark ? Colors.grey[600] : Colors.grey[500],
                               ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                    const SizedBox(width: 24),
-                    // Grid of Recent Sessions
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: recentRecords.map((r) {
-                              Color color;
-                              switch (r.status) {
-                                case AttendanceStatus.present:
-                                  color = Colors.green;
-                                  break;
-                                case AttendanceStatus.absent:
-                                  color = Colors.red;
-                                  break;
-                                case AttendanceStatus.excused:
-                                  color = Colors.orange;
-                                  break;
-                                default:
-                                  color = Colors.grey;
-                              }
-                              return Tooltip(
-                                message: '${DateFormat.MMMd().format(r.date)}: ${r.status.name.toUpperCase()}',
-                                child: Container(
-                                  width: 12,
-                                  height: 12,
-                                  decoration: BoxDecoration(
-                                    color: color.withValues(alpha: 0.8),
-                                    borderRadius: BorderRadius.circular(3),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Last ${recentRecords.length} sessions',
-                            style: TextStyle(
-                              fontSize: 9,
-                              color: isDark ? Colors.grey[600] : Colors.grey[500],
-                            ),
-                          ),
-                        ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
             ],
           ),
