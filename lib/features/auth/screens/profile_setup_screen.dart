@@ -85,6 +85,18 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       final repo = NotesRepository();
       await repo.saveStudentProfile(profile);
 
+      // 3. Upsert to Supabase directly to prevent stale remote data from overwriting local on sync
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        await Supabase.instance.client.from('student_profiles').upsert({
+          'user_id': user.id,
+          'university': profile.university,
+          'major': profile.major,
+          'year': profile.year,
+          'student_id': profile.studentId,
+        });
+      }
+
       // Auto-load academic calendar if a template matches the selected university
       if (mounted) {
         final navigator = Navigator.of(context);

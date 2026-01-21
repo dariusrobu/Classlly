@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:classlly/core/theme/app_theme.dart';
 import 'package:classlly/data/models/student_profile_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:provider/provider.dart';
+import 'package:classlly/features/library/providers/library_provider.dart';
 
 class AcademicDetailsScreen extends StatefulWidget {
   const AcademicDetailsScreen({super.key});
@@ -46,6 +49,27 @@ class _AcademicDetailsScreenState extends State<AcademicDetailsScreen> {
       _profile.studentId = _studentIdController.text;
 
       await _repository.saveStudentProfile(_profile);
+
+      // Sync to Supabase
+      try {
+        final user = Supabase.instance.client.auth.currentUser;
+        if (user != null) {
+          await Supabase.instance.client.from('student_profiles').upsert({
+            'user_id': user.id,
+            'university': _profile.university,
+            'major': _profile.major,
+            'year': _profile.year,
+            'student_id': _profile.studentId,
+          });
+        }
+        
+        if (mounted) {
+          Provider.of<LibraryProvider>(context, listen: false).refreshProfile();
+        }
+      } catch (e) {
+        debugPrint('Error syncing academic details: $e');
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Academic details saved')),
