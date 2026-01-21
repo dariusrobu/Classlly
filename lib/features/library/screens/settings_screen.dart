@@ -456,6 +456,45 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildToggleRow(String title, String subtitle, bool val, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Row(
+        children: [
+          _iconBox(Icons.contrast, isDark),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.grey : Colors.grey[700],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: val,
+            onChanged: (v) {},
+            activeThumbColor: AppTheme.primaryPurple,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAcademicCalendar(BuildContext context, bool isDark) {
     final calendarProvider = Provider.of<AcademicCalendarProvider>(context);
     final periods = calendarProvider.periods;

@@ -99,7 +99,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final borderMuted = Theme.of(context).dividerColor.withValues(alpha: 0.5);
     final primary = Theme.of(context).colorScheme.primary;
     final textColor = isDark ? Colors.white : Colors.black87;
-    final subTextColor = isDark ? Colors.grey : Colors.grey[700];
+    final Color subTextColor = isDark ? Colors.grey : Colors.grey[700]!;
 
     final calendarProvider = Provider.of<AcademicCalendarProvider>(context);
     final libraryProvider = Provider.of<LibraryProvider>(context);
@@ -836,6 +836,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ],
     );
   }
+}
 
 class _AgendaItemData {
   final String time;

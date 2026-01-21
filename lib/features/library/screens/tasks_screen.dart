@@ -24,7 +24,7 @@ class _TasksScreenState extends State<TasksScreen> {
     final cardBg = Theme.of(context).cardColor;
     final dividerColor = Theme.of(context).dividerColor;
     final textColor = isDark ? Colors.white : Colors.black87;
-    final subTextColor = isDark ? Colors.grey : Colors.grey[700];
+    final Color subTextColor = isDark ? Colors.grey : Colors.grey[700]!;
 
     return ValueListenableBuilder(
       valueListenable: Hive.box<Task>(NotesRepository.taskBoxName).listenable(),
