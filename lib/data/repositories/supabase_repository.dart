@@ -435,4 +435,21 @@ class SupabaseRepository {
     if (user == null) return;
     await _client.from('notes').delete().eq('id', noteId);
   }
+
+  Future<bool> hasProfile() async {
+    final user = _client.auth.currentUser;
+    if (user == null) return false;
+
+    try {
+      final response = await _client
+          .from('student_profiles')
+          .select('id') // Select minimal data to check existence
+          .eq('user_id', user.id)
+          .maybeSingle();
+      return response != null;
+    } catch (e) {
+      print('Error checking profile existence: $e');
+      return false;
+    }
+  }
 }

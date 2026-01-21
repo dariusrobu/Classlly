@@ -1,6 +1,7 @@
 import 'package:classlly/data/repositories/auth_repository.dart';
 import 'package:classlly/features/auth/screens/signup_screen.dart';
 import 'package:classlly/features/auth/screens/profile_setup_screen.dart';
+import 'package:classlly/data/repositories/supabase_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -17,6 +18,7 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   final _authRepository = AuthRepository();
+  final _supabaseRepository = SupabaseRepository();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
@@ -33,7 +35,9 @@ class _AuthScreenState extends State<AuthScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      _navigateToLibrary();
+      // For email/password, we trust the user flow or check profile here if desired.
+      // But standard flow: check profile.
+      await _checkProfileAndNavigate();
     } on AuthException catch (e) {
       _showError(e.message);
     } catch (e) {
@@ -55,13 +59,7 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() => _isLoading = true);
     try {
       await _authRepository.signInWithGoogle();
-      if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const ProfileSetupScreen(),
-        );
-      }
+      await _checkProfileAndNavigate();
     } on AuthException catch (e) {
       _showError(e.message);
     } catch (e) {
@@ -75,19 +73,32 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() => _isLoading = true);
     try {
       await _authRepository.signInWithApple();
-      if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const ProfileSetupScreen(),
-        );
-      }
+      await _checkProfileAndNavigate();
     } on AuthException catch (e) {
       _showError(e.message);
     } catch (e) {
       _showError('Apple Sign In Error: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _checkProfileAndNavigate() async {
+    if (!mounted) return;
+    
+    // Check if profile exists remotely
+    final hasProfile = await _supabaseRepository.hasProfile();
+    
+    if (!mounted) return;
+
+    if (hasProfile) {
+      _navigateToLibrary();
+    } else {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const ProfileSetupScreen(),
+      );
     }
   }
 
