@@ -190,8 +190,9 @@ class DrawingPainter extends CustomPainter {
       );
     }
 
-    final inputPoints =
-        points.map((p) => fh.Vec(p.x, p.y, p.pressure)).toList();
+    final inputPoints = points
+        .map((p) => fh.Vec(p.x, p.y, p.pressure))
+        .toList();
     final outlinePoints = fh.getStroke(inputPoints, options: options);
 
     if (outlinePoints.isEmpty) return;

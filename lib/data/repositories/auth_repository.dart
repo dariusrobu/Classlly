@@ -26,10 +26,7 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
-    return await _supabase.auth.signUp(
-      email: email,
-      password: password,
-    );
+    return await _supabase.auth.signUp(email: email, password: password);
   }
 
   Future<void> signOut() async {
@@ -39,19 +36,23 @@ class AuthRepository {
   Future<void> signInWithGoogle() async {
     // Web implementation
     if (kIsWeb) {
-      await _supabase.auth.signInWithOAuth(
-        OAuthProvider.google,
-      );
+      await _supabase.auth.signInWithOAuth(OAuthProvider.google);
       return;
     }
 
     // Mobile implementation (Android/iOS)
-    const iosClientId = '153897807907-tllogka5ud9ploje6n0urqalhu0n7oku.apps.googleusercontent.com';
+    const iosClientId =
+        '153897807907-tllogka5ud9ploje6n0urqalhu0n7oku.apps.googleusercontent.com';
 
     final GoogleSignIn googleSignIn = GoogleSignIn(
       // PURE iOS/macOS CONFIG: Use iosClientId only. Remove serverClientId.
       // This ensures we get a standard iOS/macOS ID Token with a nonce we can extract.
-      clientId: (!kIsWeb && (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS)) ? iosClientId : null,
+      clientId:
+          (!kIsWeb &&
+              (defaultTargetPlatform == TargetPlatform.iOS ||
+                  defaultTargetPlatform == TargetPlatform.macOS))
+          ? iosClientId
+          : null,
       scopes: ['email', 'profile'],
     );
 
@@ -78,7 +79,8 @@ class AuthRepository {
           final normalized = base64Url.normalize(payload);
           final resp = utf8.decode(base64Url.decode(normalized));
           final payloadMap = jsonDecode(resp);
-          if (payloadMap is Map<String, dynamic> && payloadMap.containsKey('nonce')) {
+          if (payloadMap is Map<String, dynamic> &&
+              payloadMap.containsKey('nonce')) {
             googleNonce = payloadMap['nonce'];
             debugPrint('✅ Extracted Nonce: $googleNonce');
           }
@@ -88,33 +90,29 @@ class AuthRepository {
       }
     }
 
-    // MAGIC FIX: Use idToken as BOTH parameters. 
-    // This forces Supabase to validate the JWT locally and bypasses the Google UserInfo 
-    // endpoint which often causes the 'passed nonce' mismatch on iOS.
+    // Use standard signInWithIdToken.
+    // Ensure "Skip nonce checks" is ENABLED in Supabase Dashboard -> Authentication -> Providers -> Google
+    // to avoid "Bad ID Token" or "Nonce mismatch" errors on iOS/macOS.
     await _supabase.auth.signInWithIdToken(
       provider: OAuthProvider.google,
       idToken: idToken,
-      accessToken: idToken, 
+      accessToken: googleAuth.accessToken,
     );
 
     // Update user metadata with name from Google
     if (googleUser != null && googleUser.displayName != null) {
       await _supabase.auth.updateUser(
-        UserAttributes(
-          data: {'full_name': googleUser.displayName},
-        ),
+        UserAttributes(data: {'full_name': googleUser.displayName}),
       );
     }
   }
 
   Future<void> signInWithApple() async {
     if (kIsWeb) {
-       await _supabase.auth.signInWithOAuth(
-        OAuthProvider.apple,
-      );
+      await _supabase.auth.signInWithOAuth(OAuthProvider.apple);
       return;
     }
-    
+
     final rawNonce = _supabase.auth.generateRawNonce();
     final hashedNonce = _sha256ofString(rawNonce);
 
@@ -128,7 +126,9 @@ class AuthRepository {
 
     final idToken = credential.identityToken;
     if (idToken == null) {
-      throw const AuthException('Could not find ID Token from generated credential.');
+      throw const AuthException(
+        'Could not find ID Token from generated credential.',
+      );
     }
 
     await _supabase.auth.signInWithIdToken(
@@ -139,11 +139,10 @@ class AuthRepository {
 
     // Apple only returns the name on the first sign in.
     if (credential.givenName != null) {
-      final fullName = '${credential.givenName} ${credential.familyName ?? ''}'.trim();
+      final fullName = '${credential.givenName} ${credential.familyName ?? ''}'
+          .trim();
       await _supabase.auth.updateUser(
-        UserAttributes(
-          data: {'full_name': fullName},
-        ),
+        UserAttributes(data: {'full_name': fullName}),
       );
     }
   }

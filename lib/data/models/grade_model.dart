@@ -1,5 +1,6 @@
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
+import 'package:classlly/core/utils/json_utils.dart';
 
 part 'grade_model.g.dart';
 
@@ -29,6 +30,26 @@ class Grade extends HiveObject {
     required this.weight,
     required this.date,
   });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'course_id': courseId,
+    'title': title,
+    'score': score,
+    'max_score': maxScore,
+    'weight': weight,
+    'date': date.toIso8601String(),
+  };
+
+  factory Grade.fromJson(Map<String, dynamic> json) => Grade(
+    id: JsonUtils.asString(json['id']),
+    courseId: JsonUtils.asString(json['course_id']),
+    title: JsonUtils.asString(json['title'], defaultValue: 'Untitled Grade'),
+    score: JsonUtils.asDouble(json['score']),
+    maxScore: JsonUtils.asDouble(json['max_score'], defaultValue: 100.0),
+    weight: JsonUtils.asDouble(json['weight'], defaultValue: 1.0),
+    date: JsonUtils.asDateTime(json['date']),
+  );
 
   factory Grade.create({
     required String courseId,

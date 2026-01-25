@@ -24,28 +24,39 @@ class NotesRepository {
   static const String profileBoxName = 'profile';
 
   static Future<void> init() async {
-    Hive.registerAdapter(StrokePointAdapter());
-    Hive.registerAdapter(StrokeAdapter());
-    Hive.registerAdapter(TextBlockAdapter());
-    Hive.registerAdapter(NoteAdapter());
-    Hive.registerAdapter(NotebookAdapter());
-    Hive.registerAdapter(ImageBlockAdapter());
-    Hive.registerAdapter(TaskAdapter());
+    _registerAdapters();
+    await openBoxes();
+  }
 
-    // New Adapters
-    Hive.registerAdapter(CourseAdapter());
-    Hive.registerAdapter(GradeAdapter());
-    Hive.registerAdapter(AttendanceAdapter());
-    Hive.registerAdapter(AttendanceStatusAdapter());
-    Hive.registerAdapter(FolderAdapter());
-    Hive.registerAdapter(FolderTypeAdapter());
-    Hive.registerAdapter(UserPreferencesAdapter());
-    Hive.registerAdapter(AcademicPeriodAdapter());
-    Hive.registerAdapter(AcademicPeriodTypeAdapter());
-    Hive.registerAdapter(AcademicEventAdapter());
-    Hive.registerAdapter(AcademicEventTypeAdapter());
-    Hive.registerAdapter(StudentProfileAdapter());
+  static void _registerAdapters() {
+    _safeRegisterAdapter(StrokePointAdapter());
+    _safeRegisterAdapter(StrokeAdapter());
+    _safeRegisterAdapter(TextBlockAdapter());
+    _safeRegisterAdapter(NoteAdapter());
+    _safeRegisterAdapter(NotebookAdapter());
+    _safeRegisterAdapter(ImageBlockAdapter());
+    _safeRegisterAdapter(TaskAdapter());
+    _safeRegisterAdapter(CourseAdapter());
+    _safeRegisterAdapter(GradeAdapter());
+    _safeRegisterAdapter(AttendanceStatusAdapter());
+    _safeRegisterAdapter(AttendanceAdapter());
+    _safeRegisterAdapter(FolderTypeAdapter());
+    _safeRegisterAdapter(FolderAdapter());
+    _safeRegisterAdapter(UserPreferencesAdapter());
+    _safeRegisterAdapter(AcademicPeriodTypeAdapter());
+    _safeRegisterAdapter(AcademicPeriodAdapter());
+    _safeRegisterAdapter(AcademicEventTypeAdapter());
+    _safeRegisterAdapter(AcademicEventAdapter());
+    _safeRegisterAdapter(StudentProfileAdapter());
+  }
 
+  static void _safeRegisterAdapter<T>(TypeAdapter<T> adapter) {
+    if (!Hive.isAdapterRegistered(adapter.typeId)) {
+      Hive.registerAdapter(adapter);
+    }
+  }
+
+  static Future<void> openBoxes() async {
     await Hive.openBox<Note>(boxName);
     await Hive.openBox<Notebook>(notebookBoxName);
     await Hive.openBox<Task>(taskBoxName);
@@ -68,9 +79,11 @@ class NotesRepository {
   Box<Folder> get _folderBox => Hive.box<Folder>(folderBoxName);
   Box<UserPreferences> get _prefsBox =>
       Hive.box<UserPreferences>(preferencesBoxName);
-  Box<AcademicPeriod> get _periodsBox => Hive.box<AcademicPeriod>(periodsBoxName);
+  Box<AcademicPeriod> get _periodsBox =>
+      Hive.box<AcademicPeriod>(periodsBoxName);
   Box<AcademicEvent> get _eventsBox => Hive.box<AcademicEvent>(eventsBoxName);
-  Box<StudentProfile> get _profileBox => Hive.box<StudentProfile>(profileBoxName);
+  Box<StudentProfile> get _profileBox =>
+      Hive.box<StudentProfile>(profileBoxName);
 
   // --- Notes ---
   List<Note> getAllNotes({String? notebookId}) {
@@ -84,9 +97,7 @@ class NotesRepository {
 
   List<Note> getNotesInFolder(String? folderId) {
     final notes = _box.values.where((n) => !n.isDeleted).toList();
-    return notes
-        .where((n) => n.notebookId == folderId)
-        .toList()
+    return notes.where((n) => n.notebookId == folderId).toList()
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
   }
 
@@ -103,21 +114,17 @@ class NotesRepository {
 
   // --- Tasks ---
   List<Task> getAllTasks() {
-    return _taskBox.values.where((t) => !t.isDeleted).toList()
-      ..sort(
-        (a, b) => (a.dueDate ?? DateTime.now()).compareTo(
-          b.dueDate ?? DateTime.now(),
-        ),
-      );
+    return _taskBox.values.where((t) => !t.isDeleted).toList()..sort(
+      (a, b) =>
+          (a.dueDate ?? DateTime.now()).compareTo(b.dueDate ?? DateTime.now()),
+    );
   }
 
   List<Task> getDeletedTasks() {
-    return _taskBox.values.where((t) => t.isDeleted).toList()
-      ..sort(
-        (a, b) => (a.dueDate ?? DateTime.now()).compareTo(
-          b.dueDate ?? DateTime.now(),
-        ),
-      );
+    return _taskBox.values.where((t) => t.isDeleted).toList()..sort(
+      (a, b) =>
+          (a.dueDate ?? DateTime.now()).compareTo(b.dueDate ?? DateTime.now()),
+    );
   }
 
   // --- Courses ---
@@ -143,6 +150,10 @@ class NotesRepository {
     await _gradeBox.put(grade.id, grade);
   }
 
+  Future<void> deleteGrade(String id) async {
+    await _gradeBox.delete(id);
+  }
+
   // --- Attendance ---
   List<Attendance> getAttendanceForCourse(String courseId) {
     return _attendanceBox.values.where((a) => a.courseId == courseId).toList()
@@ -153,6 +164,10 @@ class NotesRepository {
     await _attendanceBox.put(attendance.id, attendance);
   }
 
+  Future<void> deleteAttendance(String id) async {
+    await _attendanceBox.delete(id);
+  }
+
   // --- Folders ---
   List<Folder> getFolders({String? parentId, required FolderType type}) {
     return _folderBox.values
@@ -161,12 +176,11 @@ class NotesRepository {
   }
 
   List<Folder> getDeletedFolders() {
-    return _folderBox.values.where((f) => f.isDeleted).toList()
-      ..sort(
-        (a, b) => (b.updatedAt ?? DateTime.now()).compareTo(
-          a.updatedAt ?? DateTime.now(),
-        ),
-      );
+    return _folderBox.values.where((f) => f.isDeleted).toList()..sort(
+      (a, b) => (b.updatedAt ?? DateTime.now()).compareTo(
+        a.updatedAt ?? DateTime.now(),
+      ),
+    );
   }
 
   Future<void> saveFolder(Folder folder) async {
@@ -211,8 +225,7 @@ class NotesRepository {
   }
 
   List<AcademicEvent> getAllEvents() {
-    return _eventsBox.values.toList()
-      ..sort((a, b) => a.date.compareTo(b.date));
+    return _eventsBox.values.toList()..sort((a, b) => a.date.compareTo(b.date));
   }
 
   Future<void> saveEvent(AcademicEvent event) async {
@@ -231,10 +244,10 @@ class NotesRepository {
 
       final defaultProfile = StudentProfile(
         name: name,
-        university: 'UBB Cluj-Napoca',
-        major: 'Computer Science',
-        year: 'Year 2',
-        studentId: 'STUD-12345',
+        university: '',
+        major: '',
+        year: '',
+        studentId: '',
       );
       _profileBox.put('student_profile', defaultProfile);
       return defaultProfile;

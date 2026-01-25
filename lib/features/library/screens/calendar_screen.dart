@@ -9,9 +9,11 @@ import 'package:classlly/data/models/task_model.dart';
 import 'package:classlly/data/models/course_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/features/library/providers/academic_calendar_provider.dart';
-import 'package:classlly/features/library/providers/library_provider.dart';
+import 'package:classlly/features/library/providers/task_provider.dart';
+import 'package:classlly/features/library/providers/course_provider.dart';
 import 'package:classlly/features/library/screens/add_task_screen.dart';
 import 'package:classlly/features/library/widgets/empty_state.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -39,7 +41,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       }
     }
 
-    // 2. Add Tasks
+    // 3. Add Tasks
     for (var task in tasks) {
       if (task.dueDate != null && isSameDay(task.dueDate!, day)) {
         events.add(task);
@@ -102,235 +104,241 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final Color subTextColor = isDark ? Colors.grey : Colors.grey[700]!;
 
     final calendarProvider = Provider.of<AcademicCalendarProvider>(context);
-    final libraryProvider = Provider.of<LibraryProvider>(context);
+    final taskProvider = Provider.of<TaskProvider>(context);
+    final courseProvider = Provider.of<CourseProvider>(context);
     final weekInfo = calendarProvider.getWeekInfo(_selectedDay);
 
     return Container(
       color: scaffoldBg,
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Main Calendar Area
-          Expanded(
-            child: Column(
-              children: [
-                _buildCalendarHeader(context, weekInfo, primary, textColor, subTextColor, cardBg, borderMuted),
-                Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.fromLTRB(32, 0, 32, 32),
-                    decoration: BoxDecoration(
-                      color: cardBg,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: borderMuted),
+          _buildCalendarHeader(
+            context,
+            weekInfo,
+            primary,
+            textColor,
+            subTextColor,
+            cardBg,
+            borderMuted,
+          ),
+
+          // Calendar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: borderMuted),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: TableCalendar(
+                  firstDay: DateTime.utc(2023, 1, 1),
+                  lastDay: DateTime.utc(2030, 12, 31),
+                  focusedDay: _focusedDay,
+                  calendarFormat: CalendarFormat.month,
+                  startingDayOfWeek: StartingDayOfWeek.monday,
+                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                  eventLoader: (day) => _getEventsForDay(
+                    day,
+                    calendarProvider,
+                    taskProvider.tasks,
+                    courseProvider.courses,
+                  ),
+                  onDaySelected: (selectedDay, focusedDay) {
+                    setState(() {
+                      _selectedDay = selectedDay;
+                      _focusedDay = focusedDay;
+                    });
+                  },
+                  onPageChanged: (focusedDay) {
+                    setState(() {
+                      _focusedDay = focusedDay;
+                    });
+                  },
+                  availableGestures: AvailableGestures.all,
+                  headerVisible: false,
+                  daysOfWeekHeight: 50,
+                  rowHeight:
+                      100, // Increased row height for even better visibility
+                  calendarStyle: CalendarStyle(
+                    outsideDaysVisible: true,
+                    tableBorder: TableBorder.all(
+                      color: borderMuted,
+                      width: 0.5,
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(24),
-                      child: TableCalendar(
-                        firstDay: DateTime.utc(2023, 1, 1),
-                        lastDay: DateTime.utc(2030, 12, 31),
-                        focusedDay: _focusedDay,
-                        calendarFormat: CalendarFormat.month,
-                        startingDayOfWeek: StartingDayOfWeek.monday,
-                        selectedDayPredicate: (day) =>
-                            isSameDay(_selectedDay, day),
-                        eventLoader: (day) => _getEventsForDay(
-                          day,
-                          calendarProvider,
-                          libraryProvider.tasks,
-                          NotesRepository().getAllCourses(),
-                        ),
-                        onDaySelected: (selectedDay, focusedDay) {
-                          setState(() {
-                            _selectedDay = selectedDay;
-                            _focusedDay = focusedDay;
-                          });
-                        },
-                        onPageChanged: (focusedDay) {
-                          setState(() {
-                            _focusedDay = focusedDay;
-                          });
-                        },
-                        availableGestures: AvailableGestures.all,
-                        headerVisible: false,
-                        daysOfWeekHeight: 50,
-                        rowHeight: 120,
-                        calendarStyle: CalendarStyle(
-                          outsideDaysVisible: true,
-                          tableBorder: TableBorder.all(
-                            color: borderMuted,
-                            width: 0.5,
-                          ),
-                          defaultTextStyle: TextStyle(color: subTextColor),
-                          weekendTextStyle: TextStyle(color: subTextColor),
-                          outsideTextStyle: TextStyle(
-                            color: subTextColor.withValues(alpha: 0.5),
-                          ),
-                          todayDecoration: const BoxDecoration(),
-                          todayTextStyle: TextStyle(
-                            color: primary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          selectedDecoration: const BoxDecoration(),
-                          selectedTextStyle: TextStyle(
-                            color: textColor,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          markerDecoration: BoxDecoration(
-                            color: primary,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        daysOfWeekStyle: DaysOfWeekStyle(
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(color: borderMuted),
-                            ),
-                          ),
-                          weekdayStyle: TextStyle(
-                            color: subTextColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                          weekendStyle: TextStyle(
-                            color: subTextColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                        calendarBuilders: CalendarBuilders(
-                          defaultBuilder: (context, day, focusedDay) {
-                            return _buildCell(day, Colors.transparent, false, textColor);
-                          },
-                          selectedBuilder: (context, day, focusedDay) {
-                            return _buildCell(day, primary, true, Colors.white);
-                          },
-                          outsideBuilder: (context, day, focusedDay) {
-                            return _buildCell(day, Colors.black26, false, subTextColor.withValues(alpha: 0.5));
-                          },
-                          markerBuilder: (context, day, events) {
-                            if (events.isEmpty) return null;
-                            return _buildMarkers(day, events);
-                          },
-                        ),
-                      ),
+                    defaultTextStyle: TextStyle(color: subTextColor),
+                    weekendTextStyle: TextStyle(color: subTextColor),
+                    outsideTextStyle: TextStyle(
+                      color: subTextColor.withValues(alpha: 0.5),
+                    ),
+                    todayDecoration: const BoxDecoration(),
+                    todayTextStyle: TextStyle(
+                      color: primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    selectedDecoration: const BoxDecoration(),
+                    selectedTextStyle: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    markerDecoration: BoxDecoration(
+                      color: primary,
+                      shape: BoxShape.circle,
                     ),
                   ),
+                  daysOfWeekStyle: DaysOfWeekStyle(
+                    decoration: BoxDecoration(
+                      border: Border(bottom: BorderSide(color: borderMuted)),
+                    ),
+                    weekdayStyle: TextStyle(
+                      color: subTextColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                    weekendStyle: TextStyle(
+                      color: subTextColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                  calendarBuilders: CalendarBuilders(
+                    defaultBuilder: (context, day, focusedDay) {
+                      return _buildCell(
+                        day,
+                        Colors.transparent,
+                        false,
+                        textColor,
+                      );
+                    },
+                    selectedBuilder: (context, day, focusedDay) {
+                      return _buildCell(day, primary, true, Colors.white);
+                    },
+                    outsideBuilder: (context, day, focusedDay) {
+                      return _buildCell(
+                        day,
+                        Colors.black26,
+                        false,
+                        subTextColor.withValues(alpha: 0.5),
+                      );
+                    },
+                    markerBuilder: (context, day, events) {
+                      if (events.isEmpty) return null;
+                      return _buildMarkers(day, events);
+                    },
+                  ),
                 ),
-              ],
+              ),
             ),
           ),
 
-          // Right Daily Agenda Sidebar
-          Container(
-            width: 360,
-            decoration: BoxDecoration(
-              border: Border(left: BorderSide(color: borderMuted)),
-            ),
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Daily Agenda',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          DateFormat('EEEE, MMM d').format(_selectedDay),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: subTextColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                    PopupMenuButton<String>(
-                      onSelected: (value) {
-                        if (value == 'add') {
-                          showDialog(
-                            context: context,
-                            builder: (context) => const AddTaskScreen(),
-                          );
-                        } else if (value == 'calendar') {
-                          // Already in calendar view
-                        } else if (value == 'clear') {
-                          final box = Hive.box<Task>(
-                            NotesRepository.taskBoxName,
-                          );
-                          final today = DateTime.now();
-                          final completedToday =
-                              box.values
-                                  .where(
-                                    (t) =>
-                                        !t.isDeleted &&
-                                        t.isCompleted &&
-                                        t.dueDate != null &&
-                                        t.dueDate!.year == today.year &&
-                                        t.dueDate!.month == today.month &&
-                                        t.dueDate!.day == today.day,
-                                  )
-                                  .toList();
-                          for (var task in completedToday) {
-                            libraryProvider.deleteTask(task.id);
-                          }
-                        }
-                      },
-                      itemBuilder:
-                          (context) => [
-                            const PopupMenuItem(
-                              value: 'add',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.add, size: 18),
-                                  SizedBox(width: 8),
-                                  Text('Add Task'),
-                                ],
-                              ),
+          const SizedBox(height: 24),
+
+          // Daily Agenda
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            AppLocalizations.of(context)!.dailyAgenda,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
                             ),
-                            const PopupMenuItem(
-                              value: 'clear',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete_sweep, size: 18),
-                                  SizedBox(width: 8),
-                                  Text('Clear Completed'),
-                                ],
-                              ),
-                            ),
-                          ],
-                      icon: Icon(
-                        Icons.more_horiz,
-                        color: subTextColor,
-                        size: 20,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            DateFormat('EEEE, MMM d').format(_selectedDay),
+                            style: TextStyle(fontSize: 12, color: subTextColor),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                Expanded(
-                  child: _buildAgendaTimeline(
-                    context,
-                    _selectedDay,
-                    weekInfo,
-                    primary,
-                    borderMuted,
-                    cardBg,
-                    scaffoldBg,
-                    textColor,
-                    subTextColor,
+                      PopupMenuButton<String>(
+                        onSelected: (value) {
+                          if (value == 'add') {
+                            showDialog(
+                              context: context,
+                              builder: (context) => const AddTaskScreen(),
+                            );
+                          } else if (value == 'clear') {
+                            final box = Hive.box<Task>(
+                              NotesRepository.taskBoxName,
+                            );
+                            final today = DateTime.now();
+                            final completedToday = box.values
+                                .where(
+                                  (t) =>
+                                      !t.isDeleted &&
+                                      t.isCompleted &&
+                                      t.dueDate != null &&
+                                      t.dueDate!.year == today.year &&
+                                      t.dueDate!.month == today.month &&
+                                      t.dueDate!.day == today.day,
+                                )
+                                .toList();
+                            for (var task in completedToday) {
+                              taskProvider.deleteTask(task.id);
+                            }
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'add',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.add, size: 18),
+                                const SizedBox(width: 8),
+                                Text(AppLocalizations.of(context)!.addTask),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'clear',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.delete_sweep, size: 18),
+                                const SizedBox(width: 8),
+                                Text(AppLocalizations.of(context)!.clearCompleted),
+                              ],
+                            ),
+                          ),
+                        ],
+                        icon: Icon(
+                          Icons.more_horiz,
+                          color: subTextColor,
+                          size: 20,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 24),
+                  Expanded(
+                    child: _buildAgendaTimeline(
+                      context,
+                      _selectedDay,
+                      weekInfo,
+                      primary,
+                      borderMuted,
+                      cardBg,
+                      scaffoldBg,
+                      textColor,
+                      subTextColor,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -352,23 +360,38 @@ class _CalendarScreenState extends State<CalendarScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              Text(
-                DateFormat('MMMM yyyy').format(_focusedDay),
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
+              if (MediaQuery.of(context).size.width <= 1000)
+                Padding(
+                  padding: const EdgeInsets.only(right: 16),
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.menu,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                weekInfo != null
-                    ? 'Week ${weekInfo['week']} (${weekInfo['label']} Week) • ${weekInfo['periodName']}'
-                    : 'Manage your academic schedule and deadlines.',
-                style: TextStyle(fontSize: 14, color: subTextColor),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    DateFormat('MMMM yyyy').format(_focusedDay),
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    weekInfo != null
+                        ? '${AppLocalizations.of(context)!.week} ${weekInfo['week']} (${weekInfo['label']} ${AppLocalizations.of(context)!.week}) • ${weekInfo['periodName']}'
+                        : AppLocalizations.of(context)!.academicScheduleDesc,
+                    style: TextStyle(fontSize: 14, color: subTextColor),
+                  ),
+                ],
               ),
             ],
           ),
@@ -384,7 +407,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  Widget _buildViewToggle(Color cardBg, Color borderMuted, Color textColor, Color subTextColor) {
+  Widget _buildViewToggle(
+    Color cardBg,
+    Color borderMuted,
+    Color textColor,
+    Color subTextColor,
+  ) {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -394,22 +422,38 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
       child: Row(
         children: [
-          _toggleBtn('Month', true, () {
-            // Static month view
-          }, textColor, subTextColor, cardBg),
+          _toggleBtn(
+            AppLocalizations.of(context)!.month,
+            true,
+            () {
+              // Static month view
+            },
+            textColor,
+            subTextColor,
+            cardBg,
+          ),
         ],
       ),
     );
   }
 
-  Widget _toggleBtn(String label, bool active, VoidCallback onTap, Color textColor, Color subTextColor, Color cardBg) {
+  Widget _toggleBtn(
+    String label,
+    bool active,
+    VoidCallback onTap,
+    Color textColor,
+    Color subTextColor,
+    Color cardBg,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: active ? (isDark ? const Color(0xFF121212) : Colors.grey[200]) : Colors.transparent,
+          color: active
+              ? (isDark ? const Color(0xFF121212) : Colors.grey[200])
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           boxShadow: active
               ? [
@@ -432,7 +476,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  Widget _buildNavButtons(Color primary, Color cardBg, Color borderMuted, Color subTextColor) {
+  Widget _buildNavButtons(
+    Color primary,
+    Color cardBg,
+    Color borderMuted,
+    Color subTextColor,
+  ) {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -465,7 +514,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 });
               },
               child: Text(
-                'Today',
+                AppLocalizations.of(context)!.today,
                 style: TextStyle(
                   color: primary,
                   fontSize: 13,
@@ -492,7 +541,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  Widget _buildCell(DateTime day, Color color, bool isSelected, Color textColor) {
+  Widget _buildCell(
+    DateTime day,
+    Color color,
+    bool isSelected,
+    Color textColor,
+  ) {
     return Container(
       padding: const EdgeInsets.all(8),
       child: Column(
@@ -551,6 +605,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
             markerColor = e.type == AcademicEventType.holiday
                 ? Colors.red
                 : Colors.green;
+          } else if (e is AcademicPeriod) {
+            title = e.name;
+            switch (e.type) {
+              case AcademicPeriodType.teaching:
+                markerColor = Colors.blue;
+                break;
+              case AcademicPeriodType.exam:
+                markerColor = Colors.redAccent;
+                break;
+              case AcademicPeriodType.session:
+                markerColor = Colors.purple;
+                break;
+              case AcademicPeriodType.retake:
+                markerColor = Colors.deepOrange;
+                break;
+              case AcademicPeriodType.holiday:
+                markerColor = Colors.green;
+                break;
+            }
           }
 
           return Container(
@@ -592,31 +665,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
     Color subTextColor,
   ) {
     // ... existing setup ...
-    final calendarProvider = Provider.of<AcademicCalendarProvider>(context);
-    final libraryProvider = Provider.of<LibraryProvider>(context);
-    final courses = NotesRepository().getAllCourses();
+    final taskProvider = Provider.of<TaskProvider>(context);
+    final courseProvider = Provider.of<CourseProvider>(context);
+    final courses = courseProvider.courses;
 
     final allItems = <_AgendaItemData>[];
-
-    // ... (logic to populate allItems remains the same) ...
-    // Add Academic Periods/Events
-    for (var p in calendarProvider.periods) {
-      if ((selectedDay.isAtSameMomentAs(p.startDate) ||
-              selectedDay.isAfter(p.startDate)) &&
-          (selectedDay.isAtSameMomentAs(p.endDate) ||
-              selectedDay.isBefore(p.endDate))) {
-        allItems.add(
-          _AgendaItemData(
-            time: 'All Day',
-            title: p.name,
-            subtitle: p.type.name.toUpperCase(),
-            type: 'PERIOD',
-            color: primary,
-            icon: Icons.event_note,
-          ),
-        );
-      }
-    }
 
     // Add Courses
     final dayName = DateFormat('EEEE').format(selectedDay);
@@ -632,7 +685,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               _AgendaItemData(
                 time: c.courseTime,
                 title: c.title,
-                subtitle: 'Lecture • ${c.location}',
+                subtitle: '${AppLocalizations.of(context)!.lecture} • ${c.location}',
                 type: 'CLASS',
                 color: Color(c.color),
                 icon: Icons.school,
@@ -650,7 +703,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               _AgendaItemData(
                 time: c.seminarTime,
                 title: c.title,
-                subtitle: 'Seminar • ${c.seminarLocation}',
+                subtitle: '${AppLocalizations.of(context)!.seminar} • ${c.seminarLocation}',
                 type: 'MEETING',
                 color: Color(c.color).withValues(alpha: 0.7),
                 icon: Icons.groups,
@@ -662,7 +715,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
 
     // Add Tasks
-    for (var t in libraryProvider.tasks) {
+    for (var t in taskProvider.tasks) {
       if (t.dueDate != null && isSameDay(t.dueDate!, selectedDay)) {
         allItems.add(
           _AgendaItemData(
@@ -680,10 +733,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
 
     if (allItems.isEmpty) {
-      return const EmptyState(
+      return EmptyState(
         icon: Icons.event_available_outlined,
-        title: 'Nothing scheduled',
-        subtitle: 'Your timeline is clear for this day.',
+        title: AppLocalizations.of(context)!.nothingScheduled,
+        subtitle: AppLocalizations.of(context)!.timelineClear,
       );
     }
 
@@ -699,6 +752,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           child: Container(width: 2, color: borderMuted),
         ),
         ListView.builder(
+          physics: const AlwaysScrollableScrollPhysics(),
           itemCount: allItems.length,
           itemBuilder: (context, index) {
             final item = allItems[index];

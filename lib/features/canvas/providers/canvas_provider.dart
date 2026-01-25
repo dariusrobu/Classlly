@@ -25,6 +25,8 @@ enum CanvasTool {
   image,
 }
 
+enum EraserMode { pixel, object }
+
 class NoteStateSnapshot {
   final List<Stroke> strokes;
   final List<TextBlock> textBlocks;
@@ -48,6 +50,9 @@ class CanvasProvider with ChangeNotifier {
 
   CanvasTool _activeTool = CanvasTool.pen;
   CanvasTool get activeTool => _activeTool;
+
+  EraserMode _eraserMode = EraserMode.pixel;
+  EraserMode get eraserMode => _eraserMode;
 
   Color _currentColor = AppTheme.noteColors[0];
   Color get currentColor => _currentColor;
@@ -105,6 +110,19 @@ class CanvasProvider with ChangeNotifier {
   final Stopwatch _studyStopwatch = Stopwatch();
   bool _isSyncing = false;
   bool get isSyncing => _isSyncing;
+
+  bool _isStylusOnly = false;
+  bool get isStylusOnly => _isStylusOnly;
+
+  void toggleStylusOnly() {
+    _isStylusOnly = !_isStylusOnly;
+    notifyListeners();
+  }
+
+  void setEraserMode(EraserMode mode) {
+    _eraserMode = mode;
+    notifyListeners();
+  }
 
   bool get canUndo => _undoStack.isNotEmpty;
   bool get canRedo => _redoStack.isNotEmpty;
@@ -338,6 +356,13 @@ class CanvasProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void clearSelection() {
+    _selectedStrokes = [];
+    _selectedTextBlocks = [];
+    _selectedImages = [];
+    notifyListeners();
+  }
+
   void setActiveTool(CanvasTool tool) {
     _activeTool = tool;
     if (tool != CanvasTool.select) {
@@ -390,6 +415,16 @@ class CanvasProvider with ChangeNotifier {
 
   void updateStroke(Offset offset, double pressure) {
     if (_currentNote == null || !_isPenType(_activeTool)) return;
+
+    // Performance: Don't add point if it's too close to the last one
+    if (_activePoints.isNotEmpty) {
+      final last = _activePoints.last;
+      if ((last.x - offset.dx).abs() < 1.0 &&
+          (last.y - offset.dy).abs() < 1.0) {
+        return;
+      }
+    }
+
     _activePoints.add(
       StrokePoint(x: offset.dx, y: offset.dy, pressure: pressure),
     );
@@ -427,7 +462,7 @@ class CanvasProvider with ChangeNotifier {
       points: pointsToSave,
       color: strokeColor.toARGB32(),
       width: strokeWidth,
-      createdAt: timestamp ?? DateTime.now().millisecondsSinceEpoch,
+      createdAt: timestamp ?? -1,
       toolType: _activeTool.name,
     );
 
@@ -528,38 +563,138 @@ class CanvasProvider with ChangeNotifier {
   void eraseAt(Offset offset) {
     if (_currentNote == null || _activeTool != CanvasTool.eraser) return;
 
-    bool erased = false;
-    _currentNote!.strokes.removeWhere((stroke) {
-      for (var point in stroke.points) {
-        if ((Offset(point.x, point.y) - offset).distance < 10.0) {
-          if (!erased) _takeSnapshot();
-          erased = true;
-          return true;
+    final eraserRadius = _currentWidth * 5.0;
+    final radiusSq = eraserRadius * eraserRadius;
+    bool contentChanged = false;
+
+    // 1. Handle Strokes
+    if (_eraserMode == EraserMode.object) {
+      final initialCount = _currentNote!.strokes.length;
+      _currentNote!.strokes.removeWhere((stroke) {
+        // Check if any point is within eraser radius
+        for (final p in stroke.points) {
+          if ((Offset(p.x, p.y) - offset).distanceSquared < radiusSq) {
+            return true;
+          }
+        }
+        return false;
+      });
+      if (_currentNote!.strokes.length != initialCount) {
+        if (!contentChanged) _takeSnapshot();
+        contentChanged = true;
+      }
+    } else {
+      // Pixel Eraser (Split Strokes)
+      final List<Stroke> newStrokes = [];
+      bool strokesChanged = false;
+
+      for (final stroke in _currentNote!.strokes) {
+        // Optimization: Check bounding box first
+        bool fastCheck = false;
+        for (final p in stroke.points) {
+          if ((p.x - offset.dx).abs() < eraserRadius &&
+              (p.y - offset.dy).abs() < eraserRadius) {
+            fastCheck = true;
+            break;
+          }
+        }
+
+        if (!fastCheck) {
+          newStrokes.add(stroke);
+          continue;
+        }
+
+        // Check if any point is actually inside the circle
+        bool isHit = false;
+        for (final p in stroke.points) {
+          if ((Offset(p.x, p.y) - offset).distanceSquared < radiusSq) {
+            isHit = true;
+            break;
+          }
+        }
+
+        if (!isHit) {
+          newStrokes.add(stroke);
+          continue;
+        }
+
+        // Hit detected: Split the stroke
+        if (!strokesChanged) {
+          if (!contentChanged) _takeSnapshot();
+          contentChanged = true;
+          strokesChanged = true;
+        }
+
+        List<StrokePoint> currentSegment = [];
+        for (final p in stroke.points) {
+          if ((Offset(p.x, p.y) - offset).distanceSquared >= radiusSq) {
+            currentSegment.add(p);
+          } else {
+            // Point is inside eraser, end current segment
+            if (currentSegment.isNotEmpty) {
+              if (currentSegment.length > 1) {
+                newStrokes.add(
+                  Stroke(
+                    points: List.from(currentSegment),
+                    color: stroke.color,
+                    width: stroke.width,
+                    createdAt: stroke.createdAt,
+                    toolType: stroke.toolType,
+                  ),
+                );
+              }
+              currentSegment = [];
+            }
+          }
+        }
+        // Add trailing segment
+        if (currentSegment.isNotEmpty) {
+          if (currentSegment.length > 1) {
+            newStrokes.add(
+              Stroke(
+                points: List.from(currentSegment),
+                color: stroke.color,
+                width: stroke.width,
+                createdAt: stroke.createdAt,
+                toolType: stroke.toolType,
+              ),
+            );
+          }
         }
       }
-      return false;
-    });
 
+      if (strokesChanged) {
+        _currentNote!.strokes.clear();
+        _currentNote!.strokes.addAll(newStrokes);
+      }
+    }
+
+    // 2. Handle Text Blocks (Standard Erasure)
     _currentNote!.textBlocks.removeWhere((block) {
-      if ((Offset(block.x, block.y) - offset).distance < 30.0) {
-        if (!erased) _takeSnapshot();
-        erased = true;
+      if ((Offset(block.x, block.y) - offset).distance < 30.0 + eraserRadius) {
+        if (!contentChanged) {
+          _takeSnapshot();
+          contentChanged = true;
+        }
         return true;
       }
       return false;
     });
 
+    // 3. Handle Images (Standard Erasure)
     _currentNote!.images.removeWhere((img) {
       final rect = Rect.fromLTWH(img.x, img.y, img.width, img.height);
       if (rect.contains(offset)) {
-        if (!erased) _takeSnapshot();
-        erased = true;
+        if (!contentChanged) {
+          _takeSnapshot();
+          contentChanged = true;
+        }
         return true;
       }
       return false;
     });
 
-    if (erased) {
+    if (contentChanged) {
       saveNote();
       notifyListeners();
     }
@@ -577,7 +712,7 @@ class CanvasProvider with ChangeNotifier {
       text: '',
       x: offset.dx,
       y: offset.dy,
-      createdAt: timestamp ?? DateTime.now().millisecondsSinceEpoch,
+      createdAt: timestamp ?? -1,
     );
     _currentNote!.textBlocks.add(block);
     notifyListeners();
@@ -587,24 +722,21 @@ class CanvasProvider with ChangeNotifier {
     String base64Data,
     Offset offset, {
     int? timestamp,
-    AudioProvider? audioProvider,
+    double? width,
+    double? height,
   }) {
     if (_currentNote == null) return;
-    print('DEBUG: Adding image to note ${_currentNote!.id} at $offset');
     _takeSnapshot();
     final img = ImageBlock(
       id: const Uuid().v4(),
       base64Data: base64Data,
       x: offset.dx,
       y: offset.dy,
-      createdAt:
-          timestamp ??
-          (audioProvider?.isRecording == true
-              ? audioProvider!.elapsedRecordingMillis
-              : DateTime.now().millisecondsSinceEpoch),
+      width: width ?? 300,
+      height: height ?? 300,
+      createdAt: timestamp ?? -1,
     );
     _currentNote!.images.add(img);
-    print('DEBUG: Note now has ${_currentNote!.images.length} images');
     saveNote();
     notifyListeners();
   }
@@ -613,13 +745,67 @@ class CanvasProvider with ChangeNotifier {
     if (_currentNote == null) return;
     final index = _currentNote!.textBlocks.indexWhere((b) => b.id == id);
     if (index != -1) {
-      _currentNote!.textBlocks[index] = TextBlock(
+      final oldBlock = _currentNote!.textBlocks[index];
+      final newBlock = TextBlock(
         id: id,
         text: text,
-        x: _currentNote!.textBlocks[index].x,
-        y: _currentNote!.textBlocks[index].y,
-        createdAt: _currentNote!.textBlocks[index].createdAt,
+        x: oldBlock.x,
+        y: oldBlock.y,
+        createdAt: oldBlock.createdAt,
+        color: oldBlock.color,
+        fontSize: oldBlock.fontSize,
+        isBold: oldBlock.isBold,
+        hasBackground: oldBlock.hasBackground,
+        isItalic: oldBlock.isItalic,
+        isUnderline: oldBlock.isUnderline,
       );
+      _currentNote!.textBlocks[index] = newBlock;
+
+      // Update selection if needed
+      final selIndex = _selectedTextBlocks.indexWhere((b) => b.id == id);
+      if (selIndex != -1) {
+        _selectedTextBlocks[selIndex] = newBlock;
+      }
+
+      saveNote();
+      notifyListeners();
+    }
+  }
+
+  void updateTextBlockStyle(
+    String id, {
+    int? color,
+    double? fontSize,
+    bool? isBold,
+    bool? hasBackground,
+    bool? isItalic,
+    bool? isUnderline,
+  }) {
+    if (_currentNote == null) return;
+    final index = _currentNote!.textBlocks.indexWhere((b) => b.id == id);
+    if (index != -1) {
+      final oldBlock = _currentNote!.textBlocks[index];
+      final newBlock = TextBlock(
+        id: id,
+        text: oldBlock.text,
+        x: oldBlock.x,
+        y: oldBlock.y,
+        createdAt: oldBlock.createdAt,
+        color: color ?? oldBlock.color,
+        fontSize: fontSize ?? oldBlock.fontSize,
+        isBold: isBold ?? oldBlock.isBold,
+        hasBackground: hasBackground ?? oldBlock.hasBackground,
+        isItalic: isItalic ?? oldBlock.isItalic,
+        isUnderline: isUnderline ?? oldBlock.isUnderline,
+      );
+      _currentNote!.textBlocks[index] = newBlock;
+
+      // Update selection if needed
+      final selIndex = _selectedTextBlocks.indexWhere((b) => b.id == id);
+      if (selIndex != -1) {
+        _selectedTextBlocks[selIndex] = newBlock;
+      }
+
       saveNote();
       notifyListeners();
     }
@@ -629,13 +815,28 @@ class CanvasProvider with ChangeNotifier {
     if (_currentNote == null) return;
     final index = _currentNote!.textBlocks.indexWhere((b) => b.id == id);
     if (index != -1) {
-      _currentNote!.textBlocks[index] = TextBlock(
+      final oldBlock = _currentNote!.textBlocks[index];
+      final newBlock = TextBlock(
         id: id,
-        text: _currentNote!.textBlocks[index].text,
+        text: oldBlock.text,
         x: offset.dx,
         y: offset.dy,
-        createdAt: _currentNote!.textBlocks[index].createdAt,
+        createdAt: oldBlock.createdAt,
+        color: oldBlock.color,
+        fontSize: oldBlock.fontSize,
+        isBold: oldBlock.isBold,
+        hasBackground: oldBlock.hasBackground,
+        isItalic: oldBlock.isItalic,
+        isUnderline: oldBlock.isUnderline,
       );
+      _currentNote!.textBlocks[index] = newBlock;
+
+      // Update selection if needed
+      final selIndex = _selectedTextBlocks.indexWhere((b) => b.id == id);
+      if (selIndex != -1) {
+        _selectedTextBlocks[selIndex] = newBlock;
+      }
+
       saveNote();
       notifyListeners();
     }
@@ -669,12 +870,19 @@ class CanvasProvider with ChangeNotifier {
     for (var block in _selectedTextBlocks) {
       final index = _currentNote!.textBlocks.indexOf(block);
       if (index != -1) {
+        final oldBlock = _currentNote!.textBlocks[index];
         _currentNote!.textBlocks[index] = TextBlock(
           id: block.id,
           text: block.text,
           x: block.x + delta.dx,
           y: block.y + delta.dy,
           createdAt: block.createdAt,
+          color: oldBlock.color,
+          fontSize: oldBlock.fontSize,
+          isBold: oldBlock.isBold,
+          hasBackground: oldBlock.hasBackground,
+          isItalic: oldBlock.isItalic,
+          isUnderline: oldBlock.isUnderline,
         );
         _selectedTextBlocks[_selectedTextBlocks.indexOf(block)] =
             _currentNote!.textBlocks[index];
@@ -726,13 +934,17 @@ class CanvasProvider with ChangeNotifier {
         }
       }
     }
+    // If nothing found, clear selection
+    _selectedStrokes = [];
+    _selectedTextBlocks = [];
+    _selectedImages = [];
+    notifyListeners();
   }
 
   void _jumpToTimestamp(int timestamp, AudioProvider audio) {
-    // Audio disabled for now
-    // if (timestamp < 36000000) {
-    //   audio.seek(Duration(milliseconds: timestamp));
-    // }
+    if (timestamp != -1) {
+      audio.seek(Duration(milliseconds: timestamp));
+    }
   }
 
   Future<void> saveNote() async {

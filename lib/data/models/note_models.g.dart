@@ -108,13 +108,19 @@ class TextBlockAdapter extends TypeAdapter<TextBlock> {
       x: fields[2] as double,
       y: fields[3] as double,
       createdAt: fields[4] as int,
+      color: fields[5] == null ? 4278190080 : fields[5] as int,
+      fontSize: fields[6] == null ? 16.0 : fields[6] as double,
+      isBold: fields[7] == null ? false : fields[7] as bool,
+      hasBackground: fields[8] == null ? false : fields[8] as bool,
+      isItalic: fields[9] == null ? false : fields[9] as bool,
+      isUnderline: fields[10] == null ? false : fields[10] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, TextBlock obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -124,7 +130,19 @@ class TextBlockAdapter extends TypeAdapter<TextBlock> {
       ..writeByte(3)
       ..write(obj.y)
       ..writeByte(4)
-      ..write(obj.createdAt);
+      ..write(obj.createdAt)
+      ..writeByte(5)
+      ..write(obj.color)
+      ..writeByte(6)
+      ..write(obj.fontSize)
+      ..writeByte(7)
+      ..write(obj.isBold)
+      ..writeByte(8)
+      ..write(obj.hasBackground)
+      ..writeByte(9)
+      ..write(obj.isItalic)
+      ..writeByte(10)
+      ..write(obj.isUnderline);
   }
 
   @override
@@ -259,13 +277,14 @@ class NoteAdapter extends TypeAdapter<Note> {
       images: fields[9] == null ? [] : (fields[9] as List).cast<ImageBlock>(),
       tags: (fields[10] as List?)?.cast<String>(),
       isDeleted: fields[11] == null ? false : fields[11] as bool,
+      type: fields[12] == null ? 'drawing' : fields[12] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, Note obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(13)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -289,7 +308,9 @@ class NoteAdapter extends TypeAdapter<Note> {
       ..writeByte(10)
       ..write(obj.tags)
       ..writeByte(11)
-      ..write(obj.isDeleted);
+      ..write(obj.isDeleted)
+      ..writeByte(12)
+      ..write(obj.type);
   }
 
   @override

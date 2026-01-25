@@ -110,6 +110,8 @@ class AcademicPeriodTypeAdapter extends TypeAdapter<AcademicPeriodType> {
         return AcademicPeriodType.session;
       case 3:
         return AcademicPeriodType.retake;
+      case 4:
+        return AcademicPeriodType.holiday;
       default:
         return AcademicPeriodType.teaching;
     }
@@ -129,6 +131,9 @@ class AcademicPeriodTypeAdapter extends TypeAdapter<AcademicPeriodType> {
         break;
       case AcademicPeriodType.retake:
         writer.writeByte(3);
+        break;
+      case AcademicPeriodType.holiday:
+        writer.writeByte(4);
         break;
     }
   }

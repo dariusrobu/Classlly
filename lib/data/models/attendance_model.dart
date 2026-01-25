@@ -1,5 +1,6 @@
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
+import 'package:classlly/core/utils/json_utils.dart';
 
 part 'attendance_model.g.dart';
 
@@ -32,6 +33,23 @@ class Attendance extends HiveObject {
     required this.date,
     required this.status,
   });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'course_id': courseId,
+    'date': date.toIso8601String(),
+    'status': status.name,
+  };
+
+  factory Attendance.fromJson(Map<String, dynamic> json) => Attendance(
+    id: JsonUtils.asString(json['id']),
+    courseId: JsonUtils.asString(json['course_id']),
+    date: JsonUtils.asDateTime(json['date']),
+    status: AttendanceStatus.values.firstWhere(
+      (s) => s.name == JsonUtils.asString(json['status']),
+      orElse: () => AttendanceStatus.present,
+    ),
+  );
 
   factory Attendance.create({
     required String courseId,

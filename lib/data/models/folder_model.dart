@@ -1,5 +1,6 @@
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
+import 'package:classlly/core/utils/json_utils.dart';
 
 part 'folder_model.g.dart';
 
@@ -40,6 +41,28 @@ class Folder extends HiveObject {
     createdAt ??= DateTime.now();
     updatedAt ??= DateTime.now();
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'parent_id': parentId,
+    'type': type == FolderType.resource ? 'resource' : 'notebook',
+    'created_at': createdAt?.toIso8601String(),
+    'updated_at': updatedAt?.toIso8601String(),
+    'is_deleted': isDeleted,
+  };
+
+  factory Folder.fromJson(Map<String, dynamic> json) => Folder(
+    id: JsonUtils.asString(json['id']),
+    title: JsonUtils.asString(json['title'], defaultValue: 'Untitled Folder'),
+    parentId: JsonUtils.asString(json['parent_id']),
+    type: JsonUtils.asString(json['type']) == 'resource'
+        ? FolderType.resource
+        : FolderType.notebook,
+    createdAt: JsonUtils.asDateTime(json['created_at']),
+    updatedAt: JsonUtils.asDateTime(json['updated_at']),
+    isDeleted: JsonUtils.asBool(json['is_deleted']),
+  );
 
   factory Folder.create({
     required String title,

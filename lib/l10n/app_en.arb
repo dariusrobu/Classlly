@@ -1,0 +1,116 @@
+{
+  "@@locale": "en",
+  "appTitle": "Classlly",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "welcomeBack": "Welcome back, {name}!",
+  "@welcomeBack": {
+    "description": "Welcome message on dashboard",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "dashboard": "Dashboard",
+  "notes": "Notes",
+  "courses": "Courses",
+  "tasks": "Tasks",
+  "calendar": "Calendar",
+  "archive": "Archive",
+  "settings": "Settings",
+  "recentNotes": "Recent Notes",
+  "dailyAgenda": "Daily Agenda",
+  "performanceOverview": "Performance Overview",
+  "attendance": "Attendance",
+  "noNotesYet": "No notes yet",
+  "addNote": "Add Note",
+  "addTask": "Add Task",
+  "addGrade": "Add Grade",
+  "markAttendance": "Mark Attendance",
+  "taskDashboard": "Task Dashboard",
+  "totalTasks": "You have {count} tasks in total.",
+  "@totalTasks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noTasksYet": "No tasks yet",
+  "todo": "To Do",
+  "highPriority": "High Priority",
+  "done": "Done",
+  "priority": "Priority",
+  "high": "High",
+  "medium": "Medium",
+  "low": "Low",
+  "description": "Description",
+  "category": "Category",
+  "noDueDate": "No due date",
+  "delete": "Delete",
+  "edit": "Edit",
+  "clearCompleted": "Clear Completed",
+  "viewCalendar": "View Calendar",
+  "freeDay": "Free day!",
+  "noTasksScheduled": "You have no tasks scheduled for today.",
+  "nothingScheduled": "Nothing scheduled",
+  "timelineClear": "Your timeline is clear for this day.",
+  "today": "Today",
+  "month": "Month",
+  "week": "Week",
+  "academicScheduleDesc": "Manage your academic schedule and deadlines.",
+  "cancel": "Cancel",
+  "save": "Save",
+  "none": "None",
+  "untitled": "Untitled",
+  "allDay": "All Day",
+  "lecture": "Lecture",
+  "seminar": "Seminar",
+  "appearance": "Appearance",
+  "appearanceDesc": "Customize how Classlly looks and feels on your device.",
+  "interfaceTheme": "Interface Theme",
+  "themeDesc": "Choose between light, dark, or system default.",
+  "light": "Light",
+  "dark": "Dark",
+  "system": "System",
+  "accentColor": "Accent Color",
+  "accentColorDesc": "Select the glowing accent used for buttons and highlights.",
+  "academicCalendar": "Academic Calendar",
+  "calendarDesc": "Manage your teaching periods, exams, holidays, and free days.",
+  "periods": "Periods",
+  "loadTemplate": "Load Template",
+  "clearCalendar": "Clear Calendar",
+  "clearCalendarConfirm": "Are you sure you want to delete all periods and events? This cannot be undone.",
+  "clearAll": "Clear All",
+  "addPeriod": "Add Period",
+  "noPeriodsAdded": "No periods added yet.",
+  "holidaysFreeDays": "Holidays & Free Days",
+  "addEvent": "Add Event",
+  "noEventsAdded": "No events added yet.",
+  "notifications": "Notifications",
+  "notificationsDesc": "Stay updated with your schedule and deadlines.",
+  "lectureReminders": "Lecture Reminders",
+  "lectureRemindersDesc": "Get notified before your classes start.",
+  "taskDeadlines": "Task Deadlines",
+  "taskDeadlinesDesc": "Stay on top of your assignments and exams.",
+  "appUpdates": "App Updates",
+  "appUpdatesDesc": "Receive news about new features and improvements.",
+  "syncCloud": "Sync & Cloud",
+  "syncCloudDesc": "Your academic data is secured and synchronized via Classlly Cloud.",
+  "cloudSyncTitle": "Classlly Cloud Sync",
+  "lastSynced": "Last synced: {time}",
+  "@lastSynced": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "syncNow": "Sync Now",
+  "never": "Never",
+  "supabaseSecurity": "Supabase ensures your data is encrypted and only accessible by you using Row Level Security (RLS). Google Drive and iCloud backups can be enabled in our web dashboard.",
+  "workspace": "Workspace",
+  "close": "Close"
+}

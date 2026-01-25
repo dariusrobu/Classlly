@@ -41,7 +41,9 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
       body: ValueListenableBuilder(
-        valueListenable: Hive.box<StudentProfile>(NotesRepository.profileBoxName).listenable(),
+        valueListenable: Hive.box<StudentProfile>(
+          NotesRepository.profileBoxName,
+        ).listenable(),
         builder: (context, box, _) {
           final repo = NotesRepository();
           final profile = repo.getStudentProfile();
@@ -50,7 +52,13 @@ class ProfileScreen extends StatelessWidget {
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                _buildProfileHeader(context, isDark, colorScheme, user, profile),
+                _buildProfileHeader(
+                  context,
+                  isDark,
+                  colorScheme,
+                  user,
+                  profile,
+                ),
                 const SizedBox(height: 32),
                 _buildStatsRow(isDark, profile),
                 const SizedBox(height: 32),
@@ -112,17 +120,34 @@ class ProfileScreen extends StatelessWidget {
                             child: const Text('Cancel'),
                           ),
                           TextButton(
-                            onPressed: () {
-                              // TODO: Implement actual account deletion via Supabase Edge Function
-                              debugPrint('Account deletion requested');
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Account deletion request sent. Please check your email.',
+                            onPressed: () async {
+                              // 1. Sign out of Supabase
+                              await Supabase.instance.client.auth.signOut();
+
+                              // 2. Clear all local Hive boxes
+                              await Hive.deleteFromDisk();
+
+                              // 3. Re-init Hive boxes so they are ready for next user
+                              await NotesRepository.openBoxes();
+
+                              // 4. Navigate back to Auth Screen
+                              if (context.mounted) {
+                                Navigator.pop(context); // Close dialog
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(
+                                    builder: (context) => const AuthScreen(),
                                   ),
-                                ),
-                              );
+                                  (route) => false,
+                                );
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Account deactivated and local data cleared.',
+                                    ),
+                                  ),
+                                );
+                              }
                             },
                             style: TextButton.styleFrom(
                               foregroundColor: Colors.red,
@@ -157,8 +182,12 @@ class ProfileScreen extends StatelessWidget {
     StudentProfile profile,
   ) {
     final name = profile.name ?? user?.userMetadata?['full_name'] ?? 'Alex';
-    final initials =
-        name.split(' ').take(2).map((e) => e.isNotEmpty ? e[0] : '').join().toUpperCase();
+    final initials = name
+        .split(' ')
+        .take(2)
+        .map((e) => e.isNotEmpty ? e[0] : '')
+        .join()
+        .toUpperCase();
 
     return Column(
       children: [
@@ -228,10 +257,13 @@ class ProfileScreen extends StatelessWidget {
     final coursesCount = repo.getAllCourses().length;
     final tasks = repo.getAllTasks();
     final completedTasks = tasks.where((t) => t.isCompleted).length;
-    final taskCompletion =
-        tasks.isNotEmpty ? (completedTasks / tasks.length * 100).toInt() : 0;
+    final taskCompletion = tasks.isNotEmpty
+        ? (completedTasks / tasks.length * 100).toInt()
+        : 0;
 
-    final studyHours = (profile.totalStudyTimeSeconds / 3600).toStringAsFixed(1);
+    final studyHours = (profile.totalStudyTimeSeconds / 3600).toStringAsFixed(
+      1,
+    );
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,

@@ -1,5 +1,6 @@
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
+import 'package:classlly/core/utils/json_utils.dart';
 
 part 'note_models.g.dart';
 
@@ -17,9 +18,9 @@ class StrokePoint extends HiveObject {
   Map<String, dynamic> toJson() => {'x': x, 'y': y, 'p': pressure};
 
   factory StrokePoint.fromJson(Map<String, dynamic> json) => StrokePoint(
-    x: (json['x'] as num).toDouble(),
-    y: (json['y'] as num).toDouble(),
-    pressure: (json['p'] as num?)?.toDouble() ?? 1.0,
+    x: JsonUtils.asDouble(json['x']),
+    y: JsonUtils.asDouble(json['y']),
+    pressure: JsonUtils.asDouble(json['p'], defaultValue: 1.0),
   );
 }
 
@@ -53,13 +54,11 @@ class Stroke extends HiveObject {
   };
 
   factory Stroke.fromJson(Map<String, dynamic> json) => Stroke(
-    points: (json['points'] as List)
-        .map((e) => StrokePoint.fromJson(e))
-        .toList(),
-    color: json['color'] as int,
-    width: (json['width'] as num).toDouble(),
-    createdAt: json['createdAt'] as int,
-    toolType: json['toolType'] as String? ?? 'pen',
+    points: JsonUtils.asList(json['points'], (e) => StrokePoint.fromJson(e)),
+    color: JsonUtils.asInt(json['color']),
+    width: JsonUtils.asDouble(json['width']),
+    createdAt: JsonUtils.asInt(json['createdAt']),
+    toolType: JsonUtils.asString(json['toolType'], defaultValue: 'pen'),
   );
 }
 
@@ -75,6 +74,18 @@ class TextBlock extends HiveObject {
   final double y;
   @HiveField(4)
   final int createdAt;
+  @HiveField(5, defaultValue: 0xFF000000)
+  final int color;
+  @HiveField(6, defaultValue: 16.0)
+  final double fontSize;
+  @HiveField(7, defaultValue: false)
+  final bool isBold;
+  @HiveField(8, defaultValue: false)
+  final bool hasBackground;
+  @HiveField(9, defaultValue: false)
+  final bool isItalic;
+  @HiveField(10, defaultValue: false)
+  final bool isUnderline;
 
   TextBlock({
     required this.id,
@@ -82,6 +93,12 @@ class TextBlock extends HiveObject {
     required this.x,
     required this.y,
     required this.createdAt,
+    this.color = 0xFF000000,
+    this.fontSize = 16.0,
+    this.isBold = false,
+    this.hasBackground = false,
+    this.isItalic = false,
+    this.isUnderline = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -90,14 +107,26 @@ class TextBlock extends HiveObject {
     'x': x,
     'y': y,
     'createdAt': createdAt,
+    'color': color,
+    'fontSize': fontSize,
+    'isBold': isBold,
+    'hasBackground': hasBackground,
+    'isItalic': isItalic,
+    'isUnderline': isUnderline,
   };
 
   factory TextBlock.fromJson(Map<String, dynamic> json) => TextBlock(
-    id: json['id'] as String,
-    text: json['text'] as String,
-    x: (json['x'] as num).toDouble(),
-    y: (json['y'] as num).toDouble(),
-    createdAt: json['createdAt'] as int,
+    id: JsonUtils.asString(json['id']),
+    text: JsonUtils.asString(json['text']),
+    x: JsonUtils.asDouble(json['x']),
+    y: JsonUtils.asDouble(json['y']),
+    createdAt: JsonUtils.asInt(json['createdAt']),
+    color: JsonUtils.asInt(json['color'], defaultValue: 0xFF000000),
+    fontSize: JsonUtils.asDouble(json['fontSize'], defaultValue: 16.0),
+    isBold: JsonUtils.asBool(json['isBold']),
+    hasBackground: JsonUtils.asBool(json['hasBackground']),
+    isItalic: JsonUtils.asBool(json['isItalic']),
+    isUnderline: JsonUtils.asBool(json['isUnderline']),
   );
 }
 
@@ -131,11 +160,11 @@ class Notebook extends HiveObject {
   };
 
   factory Notebook.fromJson(Map<String, dynamic> json) => Notebook(
-    id: json['id'] as String,
-    title: json['title'] as String,
-    color: json['color'] as int,
-    createdAt: DateTime.parse(json['created_at'] as String),
-    updatedAt: DateTime.parse(json['updated_at'] as String),
+    id: JsonUtils.asString(json['id']),
+    title: JsonUtils.asString(json['title']),
+    color: JsonUtils.asInt(json['color']),
+    createdAt: JsonUtils.asDateTime(json['created_at']),
+    updatedAt: JsonUtils.asDateTime(json['updated_at']),
   );
 
   factory Notebook.create({required String title, int? color}) {
@@ -188,13 +217,13 @@ class ImageBlock extends HiveObject {
   };
 
   factory ImageBlock.fromJson(Map<String, dynamic> json) => ImageBlock(
-    id: json['id'] as String,
-    base64Data: json['data'] as String,
-    x: (json['x'] as num).toDouble(),
-    y: (json['y'] as num).toDouble(),
-    width: (json['w'] as num).toDouble(),
-    height: (json['h'] as num).toDouble(),
-    createdAt: json['createdAt'] as int,
+    id: JsonUtils.asString(json['id']),
+    base64Data: JsonUtils.asString(json['data']),
+    x: JsonUtils.asDouble(json['x']),
+    y: JsonUtils.asDouble(json['y']),
+    width: JsonUtils.asDouble(json['w'], defaultValue: 300.0),
+    height: JsonUtils.asDouble(json['h'], defaultValue: 300.0),
+    createdAt: JsonUtils.asInt(json['createdAt']),
   );
 }
 
@@ -224,6 +253,11 @@ class Note extends HiveObject {
   List<String>? tags;
   @HiveField(11, defaultValue: false)
   bool isDeleted;
+  @HiveField(12, defaultValue: 'drawing')
+  final String type;
+
+  static const String typeDrawing = 'drawing';
+  static const String typeText = 'text';
 
   Note({
     required this.id,
@@ -238,6 +272,7 @@ class Note extends HiveObject {
     required this.images,
     this.tags,
     this.isDeleted = false,
+    this.type = 'drawing',
   });
 
   Map<String, dynamic> toJson() => {
@@ -253,37 +288,51 @@ class Note extends HiveObject {
     'template_type': templateType,
     'tags': tags,
     'is_deleted': isDeleted,
+    'type': type,
   };
 
-  factory Note.fromJson(Map<String, dynamic> json) => Note(
-    id: json['id'] as String,
-    title: json['title'] as String,
-    strokes:
-        (json['strokes'] as List?)?.map((e) => Stroke.fromJson(e)).toList() ??
-        [],
-    textBlocks:
-        (json['textBlocks'] as List?)
-            ?.map((e) => TextBlock.fromJson(e))
-            .toList() ??
-        [],
-    images:
-        (json['images'] as List?)
-            ?.map((e) => ImageBlock.fromJson(e))
-            .toList() ??
-        [],
-    audioPath: json['audioPath'] as String?,
-    createdAt: DateTime.parse(json['created_at'] as String),
-    updatedAt: DateTime.parse(json['updated_at'] as String),
-    notebookId: json['notebook_id'] as String?,
-    templateType: json['template_type'] as String? ?? 'dot',
-    tags: (json['tags'] as List?)?.map((e) => e as String).toList(),
-    isDeleted: json['is_deleted'] as bool? ?? false,
-  );
+  factory Note.fromJson(Map<String, dynamic> json) {
+    final content = json['content'] as Map<String, dynamic>? ?? {};
+    return Note(
+      id: JsonUtils.asString(json['id']),
+      title: JsonUtils.asString(json['title']),
+      strokes: JsonUtils.asList(
+        json['strokes'] ?? content['strokes'],
+        (e) => Stroke.fromJson(e),
+      ),
+      textBlocks: JsonUtils.asList(
+        json['textBlocks'] ?? content['textBlocks'],
+        (e) => TextBlock.fromJson(e),
+      ),
+      images: JsonUtils.asList(
+        json['images'] ?? content['images'],
+        (e) => ImageBlock.fromJson(e),
+      ),
+      audioPath: (json['audioPath'] ?? content['audioPath']) as String?,
+      createdAt: JsonUtils.asDateTime(json['created_at']),
+      updatedAt: JsonUtils.asDateTime(json['updated_at']),
+      notebookId: (json['notebook_id'] ?? content['notebook_id']) as String?,
+      templateType: JsonUtils.asString(
+        json['template_type'] ?? content['template_type'],
+        defaultValue: 'dot',
+      ),
+      tags: JsonUtils.asList(
+        json['tags'] ?? content['tags'],
+        (e) => e as String,
+      ),
+      isDeleted: JsonUtils.asBool(json['is_deleted'] ?? content['is_deleted']),
+      type: JsonUtils.asString(
+        json['type'] ?? content['type'],
+        defaultValue: 'drawing',
+      ),
+    );
+  }
 
   factory Note.create({
     String title = 'Untitled',
     String? notebookId,
     String template = 'dot',
+    String type = 'drawing',
   }) {
     final now = DateTime.now();
     return Note(
@@ -298,6 +347,7 @@ class Note extends HiveObject {
       templateType: template,
       tags: [],
       isDeleted: false,
+      type: type,
     );
   }
 }

@@ -24,59 +24,71 @@ class AcademicCalendarProvider with ChangeNotifier {
   }
 
   Future<void> loadTemplate(Map<String, dynamic> calendarData) async {
-    // Clear existing calendar data before loading a new one
-    await clearCalendar();
-    
-    final List<dynamic> eventsData = calendarData['events'];
-    
-    for (var event in eventsData) {
-      final String typeStr = event['type'];
-      final String name = event['name'];
-      final DateTime start = DateTime.parse(event['start']);
-      final DateTime end = DateTime.parse(event['end']);
+    try {
+      debugPrint('Loading template: ${calendarData['universityName']}');
+      // Clear existing calendar data before loading a new one
+      await clearCalendar();
 
-      if (typeStr == 'break') {
-        // Map 'break' to AcademicEvent (Holiday/FreeDay)
-        await addEvent(
-          name: name,
-          date: start, // Templates seem to have ranges for breaks, we'll use start for now or add ranges to our model later
-          type: AcademicEventType.holiday,
-        );
-      } else {
-        // Map other types to AcademicPeriod
-        AcademicPeriodType? periodType;
-        switch (typeStr) {
-          case 'teaching':
-            periodType = AcademicPeriodType.teaching;
-            break;
-          case 'exam':
-            periodType = AcademicPeriodType.exam;
-            break;
-          case 'retake':
-            periodType = AcademicPeriodType.retake;
-            break;
-          case 'session':
-            periodType = AcademicPeriodType.session;
-            break;
-        }
+      final List<dynamic> eventsData = calendarData['events'];
+      debugPrint('Template has ${eventsData.length} events/periods.');
 
-        if (periodType != null) {
+      for (var event in eventsData) {
+        final String typeStr = event['type'];
+        final String name = event['name'];
+        final DateTime start = DateTime.parse(event['start']);
+        final DateTime end = DateTime.parse(event['end']);
+
+        if (typeStr == 'break') {
+          debugPrint('Adding break as holiday period: $name');
           await addPeriod(
             name: name,
             startDate: start,
             endDate: end,
-            type: periodType,
+            type: AcademicPeriodType.holiday,
           );
+        } else {
+          // Map other types to AcademicPeriod
+          AcademicPeriodType? periodType;
+          switch (typeStr) {
+            case 'teaching':
+              periodType = AcademicPeriodType.teaching;
+              break;
+            case 'exam':
+              periodType = AcademicPeriodType.exam;
+              break;
+            case 'retake':
+              periodType = AcademicPeriodType.retake;
+              break;
+            case 'session':
+              periodType = AcademicPeriodType.session;
+              break;
+          }
+
+          if (periodType != null) {
+            debugPrint('Adding period: $name ($typeStr)');
+            await addPeriod(
+              name: name,
+              startDate: start,
+              endDate: end,
+              type: periodType,
+            );
+          }
         }
       }
+      debugPrint('Template loaded successfully.');
+    } catch (e, stack) {
+      debugPrint('Error loading template: $e');
+      debugPrint(stack.toString());
     }
   }
 
   Future<void> clearCalendar() async {
-    for (var period in _periods) {
+    final allPeriods = _repository.getAllPeriods();
+    for (var period in allPeriods) {
       await _repository.deletePeriod(period.id);
     }
-    for (var event in _events) {
+    final allEvents = _repository.getAllEvents();
+    for (var event in allEvents) {
       await _repository.deleteEvent(event.id);
     }
     _loadData();
@@ -84,11 +96,19 @@ class AcademicCalendarProvider with ChangeNotifier {
 
   Future<List<dynamic>> getAvailableTemplates() async {
     try {
-      final String content = await rootBundle.loadString('assets/data/academic_calendars.json');
+      debugPrint(
+        'Fetching templates from assets/data/academic_calendars.json...',
+      );
+      final String content = await rootBundle.loadString(
+        'assets/data/academic_calendars.json',
+      );
       final data = jsonDecode(content);
-      return data['calendars'];
-    } catch (e) {
+      final calendars = data['calendars'] as List<dynamic>;
+      debugPrint('Found ${calendars.length} templates.');
+      return calendars;
+    } catch (e, stack) {
       debugPrint('Error loading templates from assets: $e');
+      debugPrint(stack.toString());
     }
     return [];
   }
@@ -124,11 +144,7 @@ class AcademicCalendarProvider with ChangeNotifier {
     required DateTime date,
     required AcademicEventType type,
   }) async {
-    final event = AcademicEvent.create(
-      name: name,
-      date: date,
-      type: type,
-    );
+    final event = AcademicEvent.create(name: name, date: date, type: type);
     await _repository.saveEvent(event);
     _loadData();
   }
@@ -198,7 +214,7 @@ class AcademicCalendarProvider with ChangeNotifier {
 
     // Calculate difference in days from the reference Monday
     final diffDays = normalizedDate.difference(referenceMonday).inDays;
-    
+
     // Calculate week number (1-based)
     final weekNum = (diffDays / 7).floor() + 1;
     final isOdd = weekNum % 2 != 0;

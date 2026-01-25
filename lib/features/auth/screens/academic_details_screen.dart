@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:classlly/core/theme/app_theme.dart';
 import 'package:classlly/data/models/student_profile_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:classlly/features/library/providers/library_provider.dart';
+import 'package:classlly/features/library/providers/profile_provider.dart';
 
 class AcademicDetailsScreen extends StatefulWidget {
   const AcademicDetailsScreen({super.key});
@@ -62,18 +61,18 @@ class _AcademicDetailsScreenState extends State<AcademicDetailsScreen> {
             'student_id': _profile.studentId,
           });
         }
-        
+
         if (mounted) {
-          Provider.of<LibraryProvider>(context, listen: false).refreshProfile();
+          Provider.of<ProfileProvider>(context, listen: false).refreshProfile();
         }
       } catch (e) {
         debugPrint('Error syncing academic details: $e');
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Academic details saved')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Academic details saved')));
         Navigator.pop(context);
       }
     }
@@ -107,7 +106,11 @@ class _AcademicDetailsScreenState extends State<AcademicDetailsScreen> {
               const SizedBox(height: 24),
               _buildFieldLabel('Major / Course', isDark),
               const SizedBox(height: 8),
-              _buildTextField(_majorController, 'e.g. Computer Science', isDark),
+              _buildTextField(
+                _majorController,
+                'e.g. Computer Science',
+                isDark,
+              ),
               const SizedBox(height: 24),
               _buildFieldLabel('Current Year', isDark),
               const SizedBox(height: 8),
@@ -123,7 +126,7 @@ class _AcademicDetailsScreenState extends State<AcademicDetailsScreen> {
                 child: ElevatedButton(
                   onPressed: _save,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryPurple,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -131,10 +134,7 @@ class _AcademicDetailsScreenState extends State<AcademicDetailsScreen> {
                   ),
                   child: const Text(
                     'Update Academic Info',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -170,10 +170,9 @@ class _AcademicDetailsScreenState extends State<AcademicDetailsScreen> {
         hintText: hint,
         hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.black38),
         filled: true,
-        fillColor:
-            isDark
-                ? Colors.white.withValues(alpha: 0.05)
-                : Colors.black.withValues(alpha: 0.03),
+        fillColor: isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.black.withValues(alpha: 0.03),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,

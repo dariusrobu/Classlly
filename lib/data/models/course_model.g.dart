@@ -34,13 +34,15 @@ class CourseAdapter extends TypeAdapter<Course> {
       seminarFrequency: fields[14] as String,
       seminarDay: fields[15] as String,
       seminarTime: fields[16] as String,
+      cachedAverageGrade: fields[17] == null ? 0.0 : fields[17] as double,
+      cachedAttendanceRate: fields[18] == null ? 0.0 : fields[18] as double,
     );
   }
 
   @override
   void write(BinaryWriter writer, Course obj) {
     writer
-      ..writeByte(17)
+      ..writeByte(19)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -74,7 +76,11 @@ class CourseAdapter extends TypeAdapter<Course> {
       ..writeByte(15)
       ..write(obj.seminarDay)
       ..writeByte(16)
-      ..write(obj.seminarTime);
+      ..write(obj.seminarTime)
+      ..writeByte(17)
+      ..write(obj.cachedAverageGrade)
+      ..writeByte(18)
+      ..write(obj.cachedAttendanceRate);
   }
 
   @override

@@ -23,13 +23,17 @@ class UserPreferencesAdapter extends TypeAdapter<UserPreferences> {
       highContrast: fields[3] as bool,
       syncEnabled: fields[4] as bool,
       savedColors: fields[5] == null ? [] : (fields[5] as List).cast<int>(),
+      lectureReminders: fields[6] == null ? true : fields[6] as bool,
+      taskDeadlines: fields[7] == null ? true : fields[7] as bool,
+      appUpdates: fields[8] == null ? false : fields[8] as bool,
+      hasCompletedOnboarding: fields[9] == null ? false : fields[9] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserPreferences obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.themeMode)
       ..writeByte(1)
@@ -41,7 +45,15 @@ class UserPreferencesAdapter extends TypeAdapter<UserPreferences> {
       ..writeByte(4)
       ..write(obj.syncEnabled)
       ..writeByte(5)
-      ..write(obj.savedColors);
+      ..write(obj.savedColors)
+      ..writeByte(6)
+      ..write(obj.lectureReminders)
+      ..writeByte(7)
+      ..write(obj.taskDeadlines)
+      ..writeByte(8)
+      ..write(obj.appUpdates)
+      ..writeByte(9)
+      ..write(obj.hasCompletedOnboarding);
   }
 
   @override

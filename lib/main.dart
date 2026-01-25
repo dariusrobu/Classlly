@@ -8,11 +8,18 @@ import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/features/canvas/providers/canvas_provider.dart';
 import 'package:classlly/features/audio/providers/audio_provider.dart';
 import 'package:classlly/features/library/screens/library_screen.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:classlly/features/library/providers/library_provider.dart';
 import 'package:classlly/features/library/providers/academic_calendar_provider.dart';
+import 'package:classlly/features/library/providers/profile_provider.dart';
+import 'package:classlly/features/library/providers/task_provider.dart';
+import 'package:classlly/features/library/providers/course_provider.dart';
+import 'package:classlly/features/library/providers/notes_provider.dart';
+import 'package:classlly/core/services/cloud_storage_service.dart';
+import 'package:classlly/core/services/supabase_cloud_service.dart';
 import 'package:classlly/features/auth/screens/onboarding_screen.dart';
-import 'package:classlly/core/services/notification_service.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -61,7 +68,7 @@ void main() async {
   // Initialize Notifications
   final notificationService = NotificationService();
   await notificationService.init();
-  await notificationService.requestPermissions();
+  // await notificationService.requestPermissions(); // Request when needed instead
 
   // Initialize Hive
   await Hive.initFlutter();
@@ -75,11 +82,20 @@ void main() async {
 
   final app = MultiProvider(
     providers: [
+      Provider<CloudStorageService>(create: (_) => SupabaseCloudService()),
       ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ChangeNotifierProvider(create: (_) => CanvasProvider()),
       ChangeNotifierProvider(create: (_) => AudioProvider()),
-      ChangeNotifierProvider(create: (_) => LibraryProvider()),
+      ChangeNotifierProvider(
+        create: (context) => LibraryProvider(
+          cloudService: context.read<CloudStorageService>(),
+        ),
+      ),
       ChangeNotifierProvider(create: (_) => AcademicCalendarProvider()),
+      ChangeNotifierProvider(create: (_) => ProfileProvider()),
+      ChangeNotifierProvider(create: (_) => TaskProvider()),
+      ChangeNotifierProvider(create: (_) => CourseProvider()),
+      ChangeNotifierProvider(create: (_) => NotesProvider()),
     ],
     child: const ClassllyApp(),
   );
@@ -98,22 +114,76 @@ class ThemeProvider with ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
   Color _accentColor = AppTheme.primaryPurple;
 
+  ThemeProvider() {
+    _loadPreferences();
+  }
+
   ThemeMode get themeMode => _themeMode;
   Color get accentColor => _accentColor;
 
+  void _loadPreferences() {
+    try {
+      final repository = NotesRepository();
+      final prefs = repository.getPreferences();
+
+      _themeMode = _parseThemeMode(prefs.themeMode);
+      _accentColor = Color(prefs.accentColor);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading preferences: $e');
+    }
+  }
+
+  ThemeMode _parseThemeMode(String mode) {
+    switch (mode) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      default:
+        return ThemeMode.system;
+    }
+  }
+
+  String _themeModeToString(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return 'light';
+      case ThemeMode.dark:
+        return 'dark';
+      default:
+        return 'system';
+    }
+  }
+
   void setThemeMode(ThemeMode mode) {
     _themeMode = mode;
+    _savePreferences();
     notifyListeners();
   }
 
   void setAccentColor(Color color) {
     _accentColor = color;
+    _savePreferences();
     notifyListeners();
   }
 
   void toggleTheme(bool isDark) {
     _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+    _savePreferences();
     notifyListeners();
+  }
+
+  void _savePreferences() {
+    try {
+      final repository = NotesRepository();
+      final prefs = repository.getPreferences();
+      prefs.themeMode = _themeModeToString(_themeMode);
+      prefs.accentColor = _accentColor.toARGB32();
+      repository.savePreferences(prefs);
+    } catch (e) {
+      debugPrint('Error saving preferences: $e');
+    }
   }
 }
 
@@ -123,6 +193,9 @@ class ClassllyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final repo = NotesRepository();
+    final prefs = repo.getPreferences();
+    final isLoggedIn = Supabase.instance.client.auth.currentUser != null;
 
     return MaterialApp(
       title: 'Classlly',
@@ -131,18 +204,20 @@ class ClassllyApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme(themeProvider.accentColor),
       themeMode: themeProvider.themeMode,
       localizationsDelegates: const [
+        AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
+        FlutterQuillLocalizations.delegate,
       ],
       supportedLocales: const [
         Locale('en', 'GB'), // English (UK) - Starts on Monday
         Locale('ro', 'RO'), // Romanian - Starts on Monday
       ],
       locale: const Locale('en', 'GB'),
-      home: Supabase.instance.client.auth.currentUser == null
-          ? const OnboardingScreen()
-          : const LibraryScreen(),
+      home: (isLoggedIn || prefs.hasCompletedOnboarding)
+          ? const LibraryScreen()
+          : const OnboardingScreen(),
     );
   }
 }

@@ -82,23 +82,25 @@ class _CanvasScreenState extends State<CanvasScreen> {
 
     return CallbackShortcuts(
       bindings: {
-        const SingleActivator(LogicalKeyboardKey.keyZ, control: true):
-            () => canvasProvider.undo(),
+        const SingleActivator(LogicalKeyboardKey.keyZ, control: true): () =>
+            canvasProvider.undo(),
         const SingleActivator(
           LogicalKeyboardKey.keyZ,
           control: true,
           shift: true,
-        ): () => canvasProvider.redo(),
-        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true):
-            () => canvasProvider.undo(),
+        ): () =>
+            canvasProvider.redo(),
+        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true): () =>
+            canvasProvider.undo(),
         const SingleActivator(
           LogicalKeyboardKey.keyZ,
           meta: true,
           shift: true,
-        ): () => canvasProvider.redo(),
+        ): () =>
+            canvasProvider.redo(),
       },
       child: Scaffold(
-        backgroundColor: isDark ? const Color(0xFF0F0F11) : Colors.grey[300],
+        backgroundColor: isDark ? Colors.black : Colors.grey[300],
         body: Stack(
           children: [
             Row(
@@ -114,133 +116,132 @@ class _CanvasScreenState extends State<CanvasScreen> {
                         isDark,
                         primaryColor,
                       ),
-                    Expanded(
-                      child: Stack(
-                        children: [
-                          Listener(
-                            onPointerSignal: _handleScroll,
-                            child: InteractiveViewer(
-                              transformationController:
-                                  _transformationController,
-                              constrained: false,
-                              boundaryMargin: const EdgeInsets.all(500),
-                              minScale: 0.1,
-                              maxScale: 5.0,
-                              panEnabled: isHandTool,
-                              scaleEnabled: true,
-                              child: Container(
-                                padding: const EdgeInsets.all(100),
-                                child: SizedBox(
-                                  width: pageWidth,
-                                  height: pagesHeight + 200,
-                                  child: Column(
-                                    children: [
-                                      SizedBox(
-                                        height: pagesHeight,
-                                        child: Stack(
-                                          children: [
-                                            Column(
-                                              children: [
-                                                for (
-                                                  int i = 0;
-                                                  i < _pageCount;
-                                                  i++
-                                                )
-                                                  _buildPage(
-                                                    i,
-                                                    isDark,
-                                                    canvasProvider
-                                                            .currentNote
-                                                            ?.templateType ??
-                                                        'dot',
-                                                  ),
-                                              ],
-                                            ),
-                                            const Positioned.fill(
-                                              child: CanvasGestureDetector(),
-                                            ),
-                                            // Image Layer
-                                            ...canvasProvider
-                                                    .currentNote
-                                                    ?.images
-                                                    .map(
-                                                      (img) =>
-                                                          _buildImageWidget(
-                                                            img,
-                                                            canvasProvider,
-                                                            primaryColor,
-                                                          ),
-                                                    ) ??
-                                                [],
-                                            // Text Layer
-                                            ...textBlocks.map(
-                                              (block) => TextBlockWidget(
-                                                key: ValueKey(block.id),
-                                                block: block,
+                      Expanded(
+                        child: Stack(
+                          children: [
+                            Listener(
+                              onPointerSignal: _handleScroll,
+                              child: InteractiveViewer(
+                                transformationController:
+                                    _transformationController,
+                                constrained: false,
+                                boundaryMargin: const EdgeInsets.all(500),
+                                minScale: 0.1,
+                                maxScale: 5.0,
+                                panEnabled: isHandTool,
+                                scaleEnabled: true,
+                                child: Container(
+                                  padding: const EdgeInsets.all(100),
+                                  child: SizedBox(
+                                    width: pageWidth,
+                                    height: pagesHeight + 200,
+                                    child: Column(
+                                      children: [
+                                        SizedBox(
+                                          height: pagesHeight,
+                                          child: Stack(
+                                            children: [
+                                              Column(
+                                                children: [
+                                                  for (
+                                                    int i = 0;
+                                                    i < _pageCount;
+                                                    i++
+                                                  )
+                                                    _buildPage(
+                                                      i,
+                                                      isDark,
+                                                      canvasProvider
+                                                              .currentNote
+                                                              ?.templateType ??
+                                                          'dot',
+                                                    ),
+                                                ],
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 40),
-                                      ElevatedButton.icon(
-                                        onPressed: () =>
-                                            setState(() => _pageCount++),
-                                        icon: const Icon(Icons.add),
-                                        label: const Text('Add Page'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: primaryColor,
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 24,
-                                            vertical: 12,
+                                              const Positioned.fill(
+                                                child: CanvasGestureDetector(),
+                                              ),
+                                              // Image Layer
+                                              ...canvasProvider
+                                                      .currentNote
+                                                      ?.images
+                                                      .map(
+                                                        (img) =>
+                                                            _buildImageWidget(
+                                                              img,
+                                                              canvasProvider,
+                                                              primaryColor,
+                                                            ),
+                                                      ) ??
+                                                  [],
+                                              // Text Layer
+                                              ...textBlocks.map(
+                                                (block) => TextBlockWidget(
+                                                  key: ValueKey(block.id),
+                                                  block: block,
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
+                                        ),
+                                        const SizedBox(height: 40),
+                                        ElevatedButton.icon(
+                                          onPressed: () =>
+                                              setState(() => _pageCount++),
+                                          icon: const Icon(Icons.add),
+                                          label: const Text('Add Page'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: primaryColor,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 24,
+                                              vertical: 12,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                          Positioned(
-                            bottom: 32,
-                            left: 0,
-                            right: 0,
-                            child: Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  // if (audioProvider.isPlaying ||
-                                  //     canvasProvider.playbackTime != null)
-                                  //   const Padding(
-                                  //     padding: EdgeInsets.only(bottom: 12),
-                                  //     child: PlaybackControl(),
-                                  //   ),
-                                  _ClassllyUnifiedToolbar(
-                                    transformationController:
-                                        _transformationController,
-                                  ),
-                                ],
+                            Positioned(
+                              bottom: 32,
+                              left: 0,
+                              right: 0,
+                              child: Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // if (audioProvider.isPlaying ||
+                                    //     canvasProvider.playbackTime != null)
+                                    //   const Padding(
+                                    //     padding: EdgeInsets.only(bottom: 12),
+                                    //     child: PlaybackControl(),
+                                    //   ),
+                                    _CanvasToolbars(
+                                      transformationController:
+                                          _transformationController,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 
@@ -282,8 +283,9 @@ class _CanvasScreenState extends State<CanvasScreen> {
           width: img.width,
           height: img.height,
           decoration: BoxDecoration(
-            border:
-                isSelected ? Border.all(color: primaryColor, width: 2) : null,
+            border: isSelected
+                ? Border.all(color: primaryColor, width: 2)
+                : null,
           ),
           child: Image.memory(
             base64Decode(img.base64Data),
@@ -315,89 +317,94 @@ class _CanvasScreenState extends State<CanvasScreen> {
           right: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
         ),
       ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 48),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const SizedBox(height: 48),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'OUTLINE & PAGES',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {},
+                    icon: Icon(Icons.add_circle, color: primaryColor, size: 18),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _pageCount,
+                  itemBuilder: (context, index) => _buildPageThumbnail(
+                    index,
+                    isDark,
+                    canvasProvider.currentNote?.templateType ?? 'dot',
+                    primaryColor,
+                  ),
+                ),
+              ),
+              const Divider(color: Colors.white10, height: 32),
               const Text(
-                'OUTLINE & PAGES',
+                'PAGE TEMPLATE',
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
                   color: Colors.grey,
                   letterSpacing: 1.2,
                 ),
               ),
-              IconButton(
-                onPressed: () {},
-                icon: Icon(Icons.add_circle, color: primaryColor, size: 18),
+              const SizedBox(height: 12),
+              _sidebarTemplateItem(
+                context,
+                'Dot Grid',
+                Icons.apps,
+                'dot',
+                canvasProvider,
               ),
+              _sidebarTemplateItem(
+                context,
+                'Squared',
+                Icons.grid_4x4,
+                'grid',
+                canvasProvider,
+              ),
+              _sidebarTemplateItem(
+                context,
+                'Lined',
+                Icons.reorder,
+                'lined',
+                canvasProvider,
+              ),
+              _sidebarTemplateItem(
+                context,
+                'Cornell',
+                Icons.dashboard_customize,
+                'cornell',
+                canvasProvider,
+              ),
+              _sidebarTemplateItem(
+                context,
+                'Blank',
+                Icons.check_box_outline_blank,
+                'blank',
+                canvasProvider,
+              ),
+              const SizedBox(height: 20),
             ],
           ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: ListView.builder(
-              itemCount: _pageCount,
-              itemBuilder: (context, index) => _buildPageThumbnail(
-                index,
-                isDark,
-                canvasProvider.currentNote?.templateType ?? 'dot',
-                primaryColor,
-              ),
-            ),
-          ),
-          const Divider(color: Colors.white10, height: 32),
-          const Text(
-            'PAGE TEMPLATE',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey,
-              letterSpacing: 1.2,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _sidebarTemplateItem(
-            context,
-            'Dot Grid',
-            Icons.apps,
-            'dot',
-            canvasProvider,
-          ),
-          _sidebarTemplateItem(
-            context,
-            'Squared',
-            Icons.grid_4x4,
-            'grid',
-            canvasProvider,
-          ),
-          _sidebarTemplateItem(
-            context,
-            'Lined',
-            Icons.reorder,
-            'lined',
-            canvasProvider,
-          ),
-          _sidebarTemplateItem(
-            context,
-            'Cornell',
-            Icons.dashboard_customize,
-            'cornell',
-            canvasProvider,
-          ),
-          _sidebarTemplateItem(
-            context,
-            'Blank',
-            Icons.check_box_outline_blank,
-            'blank',
-            canvasProvider,
-          ),
-          const SizedBox(height: 20),
-        ],
+        ),
       ),
     );
   }
@@ -417,7 +424,9 @@ class _CanvasScreenState extends State<CanvasScreen> {
         margin: const EdgeInsets.only(bottom: 4),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? primaryColor.withValues(alpha: 0.1) : Colors.transparent,
+          color: isActive
+              ? primaryColor.withValues(alpha: 0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -502,7 +511,8 @@ class _CanvasScreenState extends State<CanvasScreen> {
       height: pageHeight,
       margin: EdgeInsets.only(bottom: index == _pageCount - 1 ? 0 : pageGap),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0A0A0B) : Colors.white,
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        border: isDark ? Border.all(color: Colors.white12) : null,
         boxShadow: const [
           BoxShadow(
             color: Colors.black54,
@@ -514,7 +524,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
       child: CustomPaint(
         painter: CanvasTemplatePainter(
           type: template,
-          color: isDark ? const Color(0xFF1F2937) : Colors.grey[300]!,
+          color: isDark ? const Color(0xFF2D3748) : Colors.grey[300]!,
         ),
       ),
     );
@@ -522,17 +532,19 @@ class _CanvasScreenState extends State<CanvasScreen> {
 
   Widget _buildTopHeader(
     CanvasProvider canvasProvider,
+
     AudioProvider audioProvider,
+
     bool isDark,
+
     Color primaryColor,
   ) {
     return Container(
-      height: 72,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
       decoration: BoxDecoration(
         color: isDark
             ? const Color(0xFF0A0A0B).withValues(alpha: 0.8)
             : Colors.white.withValues(alpha: 0.8),
+
         border: Border(
           bottom: BorderSide(
             color: isDark
@@ -541,131 +553,214 @@ class _CanvasScreenState extends State<CanvasScreen> {
           ),
         ),
       ),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(
-              Icons.arrow_back_ios_new,
-              size: 20,
-              color: Colors.grey,
-            ),
-            onPressed: () => Navigator.pop(context),
-            tooltip: 'Back to Library',
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            icon: Icon(
-              _isSidebarVisible ? Icons.menu_open : Icons.menu,
-              color: Colors.grey,
-            ),
-            onPressed: () =>
-                setState(() => _isSidebarVisible = !_isSidebarVisible),
-            tooltip: 'Toggle Sidebar',
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            icon: Icon(
-              Icons.undo,
-              color: canvasProvider.canUndo ? Colors.grey : Colors.grey.withValues(alpha: 0.3),
-            ),
-            onPressed: canvasProvider.canUndo ? canvasProvider.undo : null,
-            tooltip: 'Undo',
-          ),
-          IconButton(
-            icon: Icon(
-              Icons.redo,
-              color: canvasProvider.canRedo ? Colors.grey : Colors.grey.withValues(alpha: 0.3),
-            ),
-            onPressed: canvasProvider.canRedo ? canvasProvider.redo : null,
-            tooltip: 'Redo',
-          ),
-          const VerticalDivider(width: 48, indent: 24, endIndent: 24),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    // Logic to edit title could go here
-                  },
-                  child: Text(
-                    canvasProvider.currentNote?.title.toUpperCase() ??
-                        'UNTITLED NOTE',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.grey,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
+
+      child: SafeArea(
+        bottom: false,
+
+        child: Container(
+          height: 72,
+
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(
+                  Icons.arrow_back_ios_new,
+
+                  size: 20,
+
+                  color: Colors.grey,
                 ),
-                const SizedBox(height: 2),
-                Row(
+
+                onPressed: () => Navigator.pop(context),
+
+                tooltip: 'Back to Library',
+              ),
+
+              const SizedBox(width: 8),
+
+              IconButton(
+                icon: Icon(
+                  _isSidebarVisible ? Icons.menu_open : Icons.menu,
+
+                  color: Colors.grey,
+                ),
+
+                onPressed: () =>
+                    setState(() => _isSidebarVisible = !_isSidebarVisible),
+
+                tooltip: 'Toggle Sidebar',
+              ),
+
+              const SizedBox(width: 8),
+
+              IconButton(
+                icon: Icon(
+                  Icons.undo,
+
+                  color: canvasProvider.canUndo
+                      ? Colors.grey
+                      : Colors.grey.withValues(alpha: 0.3),
+                ),
+
+                onPressed: canvasProvider.canUndo ? canvasProvider.undo : null,
+
+                tooltip: 'Undo',
+              ),
+
+              IconButton(
+                icon: Icon(
+                  Icons.redo,
+
+                  color: canvasProvider.canRedo
+                      ? Colors.grey
+                      : Colors.grey.withValues(alpha: 0.3),
+                ),
+
+                onPressed: canvasProvider.canRedo ? canvasProvider.redo : null,
+
+                tooltip: 'Redo',
+              ),
+
+              const VerticalDivider(width: 48, indent: 24, endIndent: 24),
+
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+
+                  crossAxisAlignment: CrossAxisAlignment.start,
+
                   children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: canvasProvider.isSyncing
-                            ? Colors.orange
-                            : Colors.greenAccent,
-                        shape: BoxShape.circle,
+                    GestureDetector(
+                      onTap: () {
+                        // Logic to edit title could go here
+                      },
+
+                      child: Text(
+                        canvasProvider.currentNote?.title.toUpperCase() ??
+                            'UNTITLED NOTE',
+
+                        style: const TextStyle(
+                          fontSize: 13,
+
+                          fontWeight: FontWeight.w900,
+
+                          color: Colors.grey,
+
+                          letterSpacing: 1.5,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      canvasProvider.isSyncing
-                          ? 'SYNCING...'
-                          : 'AUTO-SAVED AT ${DateFormat.Hm().format(DateTime.now())}',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
-                      ),
+
+                    const SizedBox(height: 2),
+
+                    Row(
+                      children: [
+                        Container(
+                          width: 6,
+
+                          height: 6,
+
+                          decoration: BoxDecoration(
+                            color: canvasProvider.isSyncing
+                                ? Colors.orange
+                                : Colors.greenAccent,
+
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+
+                        const SizedBox(width: 8),
+
+                        Text(
+                          canvasProvider.isSyncing
+                              ? 'SYNCING...'
+                              : 'AUTO-SAVED AT ${DateFormat.Hm().format(DateTime.now())}',
+
+                          style: TextStyle(
+                            fontSize: 10,
+
+                            color: Colors.grey[600],
+
+                            fontWeight: FontWeight.bold,
+
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          ElevatedButton.icon(
-            onPressed: () =>
-                PdfService().exportNote(canvasProvider.currentNote!),
-            icon: const Icon(Icons.ios_share_rounded, size: 18),
-            label: const Text(
-              'Export',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryColor,
-              foregroundColor: Colors.white,
-              elevation: 4,
-              shadowColor: primaryColor.withValues(alpha: 0.3),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
               ),
-            ),
+
+              IconButton(
+                icon: Icon(
+                  canvasProvider.isStylusOnly
+                      ? Icons.do_not_touch
+                      : Icons.touch_app,
+
+                  color: canvasProvider.isStylusOnly
+                      ? primaryColor
+                      : Colors.grey,
+                ),
+
+                onPressed: canvasProvider.toggleStylusOnly,
+
+                tooltip: 'Stylus Only Mode',
+              ),
+
+              const SizedBox(width: 16),
+
+              ElevatedButton.icon(
+                onPressed: () =>
+                    PdfService().exportNote(canvasProvider.currentNote!),
+
+                icon: const Icon(Icons.ios_share_rounded, size: 18),
+
+                label: const Text(
+                  'Export',
+
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+
+                  foregroundColor: Colors.white,
+
+                  elevation: 4,
+
+                  shadowColor: primaryColor.withValues(alpha: 0.3),
+
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+
+                    vertical: 12,
+                  ),
+
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _ClassllyUnifiedToolbar extends StatefulWidget {
+class _CanvasToolbars extends StatefulWidget {
   final TransformationController transformationController;
-  const _ClassllyUnifiedToolbar({required this.transformationController});
+  const _CanvasToolbars({required this.transformationController});
+
   @override
-  State<_ClassllyUnifiedToolbar> createState() =>
-      _ClassllyUnifiedToolbarState();
+  State<_CanvasToolbars> createState() => _CanvasToolbarsState();
 }
 
-class _ClassllyUnifiedToolbarState extends State<_ClassllyUnifiedToolbar> {
-
+class _CanvasToolbarsState extends State<_CanvasToolbars> {
   void _showColorPicker(BuildContext context, CanvasProvider provider) {
     showDialog(
       context: context,
@@ -720,22 +815,101 @@ class _ClassllyUnifiedToolbarState extends State<_ClassllyUnifiedToolbar> {
         return;
       }
 
-      // Simple dialog to pick page
+      // Visual dialog to pick page with thumbnails
       final pageNumber = await showDialog<int>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Pick Page'),
+          title: const Text('Insert PDF Page'),
+          backgroundColor: Theme.of(context).cardColor,
           content: SizedBox(
-            width: 300,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: document.pagesCount,
-              itemBuilder: (context, index) => ListTile(
-                title: Text('Page ${index + 1}'),
-                onTap: () => Navigator.pop(context, index + 1),
+            width: 500,
+            height: 600,
+            child: GridView.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.75,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
               ),
+              itemCount: document.pagesCount,
+              itemBuilder: (context, index) {
+                return FutureBuilder<Uint8List?>(
+                  future: () async {
+                    final page = await document.getPage(index + 1);
+                    final img = await page.render(
+                      width: page.width,
+                      height: page.height,
+                      format: PdfPageImageFormat.png,
+                    );
+                    await page.close();
+                    return img?.bytes;
+                  }(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white10,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      );
+                    }
+                    return GestureDetector(
+                      onTap: () => Navigator.pop(context, index + 1),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.white10),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(8),
+                                ),
+                                child: Image.memory(
+                                  snapshot.data!,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              decoration: const BoxDecoration(
+                                color: Colors.black26,
+                                borderRadius: BorderRadius.vertical(
+                                  bottom: Radius.circular(8),
+                                ),
+                              ),
+                              child: Text(
+                                'Page ${index + 1}',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 10),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
         ),
       );
 
@@ -751,10 +925,7 @@ class _ClassllyUnifiedToolbarState extends State<_ClassllyUnifiedToolbar> {
           // Calculate position
           final matrix = widget.transformationController.value;
           final inverseMatrix = Matrix4.inverted(matrix);
-          final screenCenter = Offset(
-            screenWidth / 2,
-            screenHeight / 2,
-          );
+          final screenCenter = Offset(screenWidth / 2, screenHeight / 2);
           final canvasCenter = MatrixUtils.transformPoint(
             inverseMatrix,
             screenCenter,
@@ -763,7 +934,11 @@ class _ClassllyUnifiedToolbarState extends State<_ClassllyUnifiedToolbar> {
           canvasProvider.addImage(
             base64Encode(pageImage.bytes),
             canvasCenter,
-            audioProvider: audioProvider,
+            width: page.width,
+            height: page.height,
+            timestamp: audioProvider.isRecording
+                ? audioProvider.elapsedRecordingMillis
+                : null,
           );
         }
         await page.close();
@@ -771,9 +946,9 @@ class _ClassllyUnifiedToolbarState extends State<_ClassllyUnifiedToolbar> {
       await document.close();
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking PDF: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error picking PDF: $e')));
       }
     }
   }
@@ -782,205 +957,239 @@ class _ClassllyUnifiedToolbarState extends State<_ClassllyUnifiedToolbar> {
   Widget build(BuildContext context) {
     final canvasProvider = Provider.of<CanvasProvider>(context);
     final audioProvider = Provider.of<AudioProvider>(context);
-    final screenWidth = MediaQuery.of(context).size.width;
+    final bool showTextToolbar =
+        canvasProvider.activeTool == CanvasTool.text ||
+        canvasProvider.selectedTextBlocks.isNotEmpty;
 
-    final allColors = [
-      ...AppTheme.noteColors,
-      ...canvasProvider.savedColors,
-    ];
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.2),
+            end: Offset.zero,
+          ).animate(animation),
+          child: child,
+        ),
+      ),
+      child: showTextToolbar
+          ? _TextToolsPanel(key: const ValueKey('text_toolbar'))
+          : Column(
+              key: const ValueKey('drawing_toolbar_col'),
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (canvasProvider.activeTool == CanvasTool.eraser)
+                  const _EraserSettingsPanel(),
+                _DrawingToolsPanel(
+                  key: const ValueKey('drawing_toolbar'),
+                  onPickColor: () => _showColorPicker(context, canvasProvider),
+                  onPickPdf: () =>
+                      _pickPdfSnippet(context, canvasProvider, audioProvider),
+                  transformationController: widget.transformationController,
+                ),
+              ],
+            ),
+    );
+  }
+}
 
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.bottomCenter,
-      children: [
-        ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: screenWidth - 32),
-          child: _GlassContainer(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            borderRadius: BorderRadius.circular(24),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Navigation & Selection
-                  _ToolIcon(
-                    icon: Icons.pan_tool,
-                    isActive: canvasProvider.activeTool == CanvasTool.hand,
-                    onTap: () => canvasProvider.setActiveTool(CanvasTool.hand),
-                  ),
-                  _ToolIcon(
-                    icon: Icons.gesture,
-                    isActive: canvasProvider.activeTool == CanvasTool.select,
-                    onTap: () => canvasProvider.setActiveTool(CanvasTool.select),
-                  ),
-                  _vDivider(),
+class _EraserSettingsPanel extends StatelessWidget {
+  const _EraserSettingsPanel();
 
-                  // Drawing
-                  _ToolIcon(
-                    icon: Icons.edit,
-                    isActive: canvasProvider.activeTool == CanvasTool.pencil,
-                    onTap: () => canvasProvider.setActiveTool(CanvasTool.pencil),
-                  ),
-                  _ToolIcon(
-                    icon: Icons.border_color,
-                    isActive: canvasProvider.activeTool == CanvasTool.highlighter,
-                    onTap: () =>
-                        canvasProvider.setActiveTool(CanvasTool.highlighter),
-                  ),
-                  _ToolIcon(
-                    icon: Icons.cleaning_services,
-                    isActive: canvasProvider.activeTool == CanvasTool.eraser,
-                    onTap: () => canvasProvider.setActiveTool(CanvasTool.eraser),
-                  ),
-                  _vDivider(),
+  @override
+  Widget build(BuildContext context) {
+    final canvasProvider = Provider.of<CanvasProvider>(context);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
-                  // Objects
-                  _ToolIcon(
-                    icon: Icons.text_fields,
-                    isActive: canvasProvider.activeTool == CanvasTool.text,
-                    onTap: () => canvasProvider.setActiveTool(CanvasTool.text),
-                  ),
-                                                                          _ToolIcon(
-                                                                            icon: Icons.image,
-                                                                            isActive: canvasProvider.activeTool == CanvasTool.image,
-                                                                            onTap: () async {
-                                                                              print('DEBUG: Media icon tapped');
-                                                                              try {
-                                                                                final sWidth = MediaQuery.of(context).size.width;
-                                                                                final sHeight = MediaQuery.of(context).size.height;
-                                                                                canvasProvider.setActiveTool(CanvasTool.image);
-                                                                                final picker = ImagePicker();
-                                                                                final xFile =
-                                                                                    await picker.pickImage(source: ImageSource.gallery);
-                                                                                if (xFile != null) {
-                                                                                  print('DEBUG: Image picked: ${xFile.path}');
-                                                                                  final bytes = await xFile.readAsBytes();
-                                                            
-                                                                                  // Calculate position based on current view center
-                                                                                  final matrix = widget.transformationController.value;
-                                                                                  final inverseMatrix = Matrix4.inverted(matrix);
-                                                                                  final screenCenter = Offset(
-                                                                                    sWidth / 2,
-                                                                                    sHeight / 2,
-                                                                                  );
-                                                                                  final canvasCenter = MatrixUtils.transformPoint(
-                                                                                    inverseMatrix,
-                                                                                    screenCenter,
-                                                                                  );
-                                                            
-                                                                                  canvasProvider.addImage(
-                                                                                    base64Encode(bytes),
-                                                                                    canvasCenter,
-                                                                                    audioProvider: audioProvider,
-                                                                                  );
-                                                                                } else {
-                                                                                  print('DEBUG: No image picked');
-                                                                                }
-                                                                              } catch (e) {
-                                                                                print('DEBUG: Error picking image: $e');
-                                                                                if (context.mounted) {
-                                                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                                                    SnackBar(content: Text('Failed to add image: $e')),
-                                                                                  );
-                                                                                }
-                                                                              }
-                                                                            },
-                                                                          ),
-                                                                          _ToolIcon(
-                                                                            icon: Icons.picture_as_pdf_outlined,
-                                                                            isActive: false,
-                                                                            onTap: () =>
-                                                                                _pickPdfSnippet(context, canvasProvider, audioProvider),
-                                                                          ),
-                                                                          _vDivider(),
-                  // Properties
-                  _PropertySlider(
-                    label: 'WIDTH',
-                    value: canvasProvider.currentWidth,
-                    min: 1,
-                    max: 20,
-                    onChanged: (v) => canvasProvider.setWidth(v),
-                  ),
-                  _PropertySlider(
-                    label: 'OPACITY',
-                    value: canvasProvider.currentOpacity,
-                    min: 0.1,
-                    max: 1.0,
-                    onChanged: (v) => canvasProvider.setOpacity(v),
-                  ),
-                  _vDivider(),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: _GlassContainer(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        borderRadius: BorderRadius.circular(20),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _EraserModeButton(
+              icon: Icons.auto_fix_normal,
+              label: 'Pixel',
+              isActive: canvasProvider.eraserMode == EraserMode.pixel,
+              onTap: () => canvasProvider.setEraserMode(EraserMode.pixel),
+              activeColor: primaryColor,
+            ),
+            const SizedBox(width: 12),
+            Container(width: 1, height: 16, color: Colors.white24),
+            const SizedBox(width: 12),
+            _EraserModeButton(
+              icon: Icons.delete_sweep,
+              label: 'Object',
+              isActive: canvasProvider.eraserMode == EraserMode.object,
+              onTap: () => canvasProvider.setEraserMode(EraserMode.object),
+              activeColor: primaryColor,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-                  // Colors
-              ...allColors.map(
-                (color) {
-                  final isSaved = canvasProvider.savedColors.contains(color);
-                  return GestureDetector(
-                    onLongPress: isSaved
-                        ? () {
-                            // Show delete confirmation
-                            showDialog(
-                              context: context,
-                              builder: (c) => AlertDialog(
-                                title: const Text('Delete Color'),
-                                content: const Text(
-                                    'Remove this color from your palette?'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(c),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      canvasProvider.removeColor(color);
-                                      Navigator.pop(c);
-                                    },
-                                    child: const Text('Delete'),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }
-                        : null,
-                    child: _ColorCircle(
-                      color: color,
-                      isSelected: canvasProvider.currentColor.toARGB32() ==
-                          color.toARGB32(),
-                      onTap: () => canvasProvider.setColor(color),
-                    ),
+class _EraserModeButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+  final Color activeColor;
+
+  const _EraserModeButton({
+    required this.icon,
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+    required this.activeColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: isActive ? activeColor : Colors.white70),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              color: isActive ? activeColor : Colors.white70,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TextToolsPanel extends StatelessWidget {
+  const _TextToolsPanel({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final canvasProvider = Provider.of<CanvasProvider>(context);
+    final allColors = [...AppTheme.noteColors, ...canvasProvider.savedColors];
+    final TextBlock? selectedBlock =
+        canvasProvider.selectedTextBlocks.isNotEmpty
+        ? canvasProvider.selectedTextBlocks.first
+        : null;
+
+    return _GlassContainer(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      borderRadius: BorderRadius.circular(32),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.text_fields, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            _vDivider(),
+            _ToolIcon(
+              icon: Icons.format_bold,
+              isActive: selectedBlock?.isBold ?? false,
+              onTap: () {
+                if (selectedBlock != null) {
+                  canvasProvider.updateTextBlockStyle(
+                    selectedBlock.id,
+                    isBold: !selectedBlock.isBold,
                   );
+                }
+              },
+            ),
+            _ToolIcon(
+              icon: Icons.format_italic,
+              isActive: selectedBlock?.isItalic ?? false,
+              onTap: () {
+                if (selectedBlock != null) {
+                  canvasProvider.updateTextBlockStyle(
+                    selectedBlock.id,
+                    isItalic: !selectedBlock.isItalic,
+                  );
+                }
+              },
+            ),
+            _ToolIcon(
+              icon: Icons.format_underlined,
+              isActive: selectedBlock?.isUnderline ?? false,
+              onTap: () {
+                if (selectedBlock != null) {
+                  canvasProvider.updateTextBlockStyle(
+                    selectedBlock.id,
+                    isUnderline: !selectedBlock.isUnderline,
+                  );
+                }
+              },
+            ),
+            _ToolIcon(
+              icon: Icons.format_paint,
+              isActive: selectedBlock?.hasBackground ?? false,
+              onTap: () {
+                if (selectedBlock != null) {
+                  canvasProvider.updateTextBlockStyle(
+                    selectedBlock.id,
+                    hasBackground: !selectedBlock.hasBackground,
+                  );
+                }
+              },
+            ),
+            _vDivider(),
+            _PropertySlider(
+              label: 'SIZE',
+              value: selectedBlock?.fontSize ?? 16.0,
+              min: 10,
+              max: 60,
+              onChanged: (val) {
+                if (selectedBlock != null) {
+                  canvasProvider.updateTextBlockStyle(
+                    selectedBlock.id,
+                    fontSize: val,
+                  );
+                }
+              },
+            ),
+            _vDivider(),
+            ...allColors.map(
+              (color) => _ColorCircle(
+                color: color,
+                isSelected: selectedBlock?.color == color.toARGB32(),
+                onTap: () {
+                  if (selectedBlock != null) {
+                    canvasProvider.updateTextBlockStyle(
+                      selectedBlock.id,
+                      color: color.toARGB32(),
+                    );
+                  }
                 },
               ),
-              _ToolIcon(
-                icon: Icons.add,
-                isActive: false,
-                onTap: () => _showColorPicker(context, canvasProvider),
+            ),
+            _vDivider(),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
               ),
-              _vDivider(),
-
-              // Audio - DISABLED FOR NOW
-              // _ToolIcon(
-              //   icon: audioProvider.isRecording ? Icons.stop : Icons.mic,
-              //   isActive: audioProvider.isRecording,
-              //   color: audioProvider.isRecording ? Colors.red : primaryColor,
-              //   onTap: () async {
-              //     if (audioProvider.isRecording) {
-              //       await audioProvider.stopRecording();
-              //     } else {
-              //       final path = await audioProvider.startRecording();
-              //       if (path != null && canvasProvider.currentNote != null) {
-              //         canvasProvider.currentNote!.audioPath = path;
-              //         canvasProvider.saveNote();
-              //       }
-              //     }
-              //   },
-              // ),
-            ],
-          ),
+              child: IconButton(
+                icon: const Icon(Icons.check, color: Colors.white, size: 20),
+                onPressed: () {
+                  canvasProvider.clearSelection();
+                  canvasProvider.setActiveTool(CanvasTool.select);
+                },
+                tooltip: 'Done',
+              ),
+            ),
+          ],
         ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -988,7 +1197,182 @@ class _ClassllyUnifiedToolbarState extends State<_ClassllyUnifiedToolbar> {
     width: 1,
     height: 24,
     color: Colors.white10,
-    margin: const EdgeInsets.symmetric(horizontal: 8),
+    margin: const EdgeInsets.symmetric(horizontal: 12),
+  );
+}
+
+class _DrawingToolsPanel extends StatelessWidget {
+  final VoidCallback onPickColor;
+  final VoidCallback onPickPdf;
+  final TransformationController transformationController;
+
+  const _DrawingToolsPanel({
+    super.key,
+    required this.onPickColor,
+    required this.onPickPdf,
+    required this.transformationController,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final canvasProvider = Provider.of<CanvasProvider>(context);
+    final audioProvider = Provider.of<AudioProvider>(context);
+    final allColors = [...AppTheme.noteColors, ...canvasProvider.savedColors];
+
+    return _GlassContainer(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      borderRadius: BorderRadius.circular(32),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Tools
+            _ToolIcon(
+              icon: Icons.pan_tool,
+              isActive: canvasProvider.activeTool == CanvasTool.hand,
+              onTap: () => canvasProvider.setActiveTool(CanvasTool.hand),
+            ),
+            _ToolIcon(
+              icon: Icons.gesture,
+              isActive: canvasProvider.activeTool == CanvasTool.select,
+              onTap: () => canvasProvider.setActiveTool(CanvasTool.select),
+            ),
+            _vDivider(),
+            _ToolIcon(
+              icon: Icons.edit,
+              isActive: canvasProvider.activeTool == CanvasTool.pencil,
+              onTap: () => canvasProvider.setActiveTool(CanvasTool.pencil),
+            ),
+            _ToolIcon(
+              icon: Icons.border_color,
+              isActive: canvasProvider.activeTool == CanvasTool.highlighter,
+              onTap: () => canvasProvider.setActiveTool(CanvasTool.highlighter),
+            ),
+            _ToolIcon(
+              icon: Icons.cleaning_services,
+              isActive: canvasProvider.activeTool == CanvasTool.eraser,
+              onTap: () => canvasProvider.setActiveTool(CanvasTool.eraser),
+            ),
+            _vDivider(),
+            // Insert
+            _ToolIcon(
+              icon: Icons.text_fields,
+              isActive: canvasProvider.activeTool == CanvasTool.text,
+              onTap: () => canvasProvider.setActiveTool(CanvasTool.text),
+            ),
+            _ToolIcon(
+              icon: Icons.image,
+              isActive: canvasProvider.activeTool == CanvasTool.image,
+              onTap: () async {
+                try {
+                  final sWidth = MediaQuery.of(context).size.width;
+                  final sHeight = MediaQuery.of(context).size.height;
+                  canvasProvider.setActiveTool(CanvasTool.image);
+                  const picker = ImagePicker();
+                  final xFile = await picker.pickImage(
+                    source: ImageSource.gallery,
+                  );
+                  if (xFile != null) {
+                    final bytes = await xFile.readAsBytes();
+                    final matrix = transformationController.value;
+                    final inverseMatrix = Matrix4.inverted(matrix);
+                    final screenCenter = Offset(sWidth / 2, sHeight / 2);
+                    final canvasCenter = MatrixUtils.transformPoint(
+                      inverseMatrix,
+                      screenCenter,
+                    );
+
+                    canvasProvider.addImage(
+                      base64Encode(bytes),
+                      canvasCenter,
+                      timestamp: audioProvider.isRecording
+                          ? audioProvider.elapsedRecordingMillis
+                          : null,
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to add image: $e')),
+                    );
+                  }
+                }
+              },
+            ),
+            _ToolIcon(
+              icon: Icons.picture_as_pdf_outlined,
+              isActive: false,
+              onTap: onPickPdf,
+            ),
+            _vDivider(),
+            // Properties
+            _PropertySlider(
+              label: 'WIDTH',
+              value: canvasProvider.currentWidth,
+              min: 1,
+              max: 20,
+              onChanged: (v) => canvasProvider.setWidth(v),
+            ),
+            _PropertySlider(
+              label: 'OPACITY',
+              value: canvasProvider.currentOpacity,
+              min: 0.1,
+              max: 1.0,
+              onChanged: (v) => canvasProvider.setOpacity(v),
+            ),
+            _vDivider(),
+            // Colors
+            ...allColors.map((color) {
+              final isSaved = canvasProvider.savedColors.contains(color);
+              return GestureDetector(
+                onLongPress: isSaved
+                    ? () {
+                        showDialog(
+                          context: context,
+                          builder: (c) => AlertDialog(
+                            title: const Text('Delete Color'),
+                            content: const Text(
+                              'Remove this color from your palette?',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(c),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  canvasProvider.removeColor(color);
+                                  Navigator.pop(c);
+                                },
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                    : null,
+                child: _ColorCircle(
+                  color: color,
+                  isSelected:
+                      canvasProvider.currentColor.toARGB32() ==
+                      color.toARGB32(),
+                  onTap: () => canvasProvider.setColor(color),
+                ),
+              );
+            }),
+            _ToolIcon(icon: Icons.add, isActive: false, onTap: onPickColor),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _vDivider() => Container(
+    width: 1,
+    height: 24,
+    color: Colors.white10,
+    margin: const EdgeInsets.symmetric(horizontal: 12),
   );
 }
 
@@ -1092,7 +1476,9 @@ class _ToolIcon extends StatelessWidget {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: isActive ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
+          color: isActive
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
@@ -1144,67 +1530,83 @@ class CanvasGestureDetector extends StatelessWidget {
     if (audioProvider.isPlaying) {
       playbackTime = audioProvider.currentPosition.inMilliseconds;
     }
+
     return IgnorePointer(
       ignoring: canvasProvider.activeTool == CanvasTool.hand,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (details) async {
+      child: Listener(
+        onPointerDown: (event) async {
+          if (canvasProvider.isStylusOnly &&
+              event.kind == PointerDeviceKind.touch) {
+            return;
+          }
+
+          final offset = event.localPosition;
+
           if (canvasProvider.activeTool == CanvasTool.text) {
             canvasProvider.addTextBlock(
-              details.localPosition,
+              offset,
               timestamp: audioProvider.isRecording
                   ? audioProvider.elapsedRecordingMillis
                   : null,
             );
           } else if (canvasProvider.activeTool == CanvasTool.select) {
-            canvasProvider.selectItemAt(details.localPosition, audioProvider);
+            canvasProvider.selectItemAt(offset, audioProvider);
+            canvasProvider.startResize(offset);
+            if (!canvasProvider.isResizing) canvasProvider.startMove();
           } else if (canvasProvider.activeTool == CanvasTool.image) {
-            final picker = ImagePicker();
+            const picker = ImagePicker();
             final xFile = await picker.pickImage(source: ImageSource.gallery);
             if (xFile != null) {
               final bytes = await xFile.readAsBytes();
               canvasProvider.addImage(
                 base64Encode(bytes),
-                details.localPosition,
+                offset,
                 timestamp: audioProvider.isRecording
                     ? audioProvider.elapsedRecordingMillis
                     : null,
               );
             }
-          }
-        },
-        onPanStart: (details) {
-          if (canvasProvider.activeTool == CanvasTool.select) {
-            canvasProvider.startResize(details.localPosition);
-            if (!canvasProvider.isResizing) canvasProvider.startMove();
-          }
-          if (canvasProvider.isResizing) return;
-          if (_isPenType(canvasProvider.activeTool)) {
+          } else if (_isPenType(canvasProvider.activeTool)) {
             canvasProvider.startStroke(
-              details.localPosition,
-              1.0,
+              offset,
+              event.pressureMin > 0
+                  ? event.pressure
+                  : 1.0, // Default pressure if not supported
               timestamp: audioProvider.isRecording
                   ? audioProvider.elapsedRecordingMillis
                   : null,
             );
           } else if (canvasProvider.activeTool == CanvasTool.eraser) {
-            canvasProvider.eraseAt(details.localPosition);
+            canvasProvider.eraseAt(offset);
           }
         },
-        onPanUpdate: (details) {
+        onPointerMove: (event) {
+          if (canvasProvider.isStylusOnly &&
+              event.kind == PointerDeviceKind.touch) {
+            return;
+          }
+          final offset = event.localPosition;
+
           if (canvasProvider.isResizing) {
-            canvasProvider.resizeSelection(details.localPosition);
+            canvasProvider.resizeSelection(offset);
             return;
           }
           if (_isPenType(canvasProvider.activeTool)) {
-            canvasProvider.updateStroke(details.localPosition, 1.0);
+            canvasProvider.updateStroke(
+              offset,
+              event.pressureMin > 0 ? event.pressure : 1.0,
+            );
           } else if (canvasProvider.activeTool == CanvasTool.eraser) {
-            canvasProvider.eraseAt(details.localPosition);
+            canvasProvider.eraseAt(offset);
           } else if (canvasProvider.activeTool == CanvasTool.select) {
-            canvasProvider.moveSelection(details.delta);
+            canvasProvider.moveSelection(event.delta);
           }
         },
-        onPanEnd: (details) {
+        onPointerUp: (event) {
+          if (canvasProvider.isStylusOnly &&
+              event.kind == PointerDeviceKind.touch) {
+            return;
+          }
           if (canvasProvider.isResizing) {
             canvasProvider.endResize();
             return;

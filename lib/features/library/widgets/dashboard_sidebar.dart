@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:classlly/features/library/providers/library_provider.dart';
+import 'package:classlly/features/library/providers/profile_provider.dart';
 import 'package:classlly/features/auth/screens/profile_screen.dart';
 import 'package:classlly/features/library/screens/settings_screen.dart';
+import 'package:classlly/core/theme/app_theme.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class DashboardSidebar extends StatelessWidget {
   const DashboardSidebar({super.key});
@@ -10,111 +13,135 @@ class DashboardSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final libraryProvider = Provider.of<LibraryProvider>(context);
-
-    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       width: 280,
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        border: Border(
-          right: BorderSide(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
-          ),
-        ),
-      ),
+      color: isDark ? AppTheme.sidebarDark : Theme.of(context).cardColor,
       child: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Theme.of(context).colorScheme.primary,
+                          Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.8),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.4),
+                          blurRadius: 20,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.school,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Classlly',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(32, 48, 32, 40),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [colorScheme.primary, colorScheme.secondary],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(14),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: colorScheme.primary.withValues(alpha: 0.3),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.edit_note_rounded,
-                              color: Colors.white,
-                              size: 28,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          const Text(
-                            'Classlly',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                        ],
+                    SidebarItem(
+                      icon: Icons.dashboard,
+                      label: AppLocalizations.of(context)!.dashboard,
+                      isActive:
+                          libraryProvider.currentView == LibraryView.dashboard,
+                      onTap: () => _navigate(
+                        context,
+                        libraryProvider,
+                        LibraryView.dashboard,
                       ),
                     ),
                     SidebarItem(
-                      icon: Icons.grid_view_rounded,
-                      label: 'Dashboard',
-                      isActive: libraryProvider.currentView == LibraryView.dashboard,
-                      onTap: () =>
-                          _navigate(context, libraryProvider, LibraryView.dashboard),
+                      icon: Icons.description,
+                      label: AppLocalizations.of(context)!.notes,
+                      isActive:
+                          libraryProvider.currentView == LibraryView.allNotes,
+                      onTap: () => _navigate(
+                        context,
+                        libraryProvider,
+                        LibraryView.allNotes,
+                      ),
                     ),
                     SidebarItem(
-                      icon: Icons.description_rounded,
-                      label: 'Notes',
-                      isActive: libraryProvider.currentView == LibraryView.allNotes,
-                      onTap: () =>
-                          _navigate(context, libraryProvider, LibraryView.allNotes),
+                      icon: Icons.book,
+                      label: AppLocalizations.of(context)!.courses,
+                      isActive:
+                          libraryProvider.currentView == LibraryView.courses,
+                      onTap: () => _navigate(
+                        context,
+                        libraryProvider,
+                        LibraryView.courses,
+                      ),
                     ),
                     SidebarItem(
-                      icon: Icons.school_rounded,
-                      label: 'Courses',
-                      isActive: libraryProvider.currentView == LibraryView.courses,
-                      onTap: () =>
-                          _navigate(context, libraryProvider, LibraryView.courses),
+                      icon: Icons.check_circle,
+                      label: AppLocalizations.of(context)!.tasks,
+                      isActive:
+                          libraryProvider.currentView == LibraryView.tasks,
+                      onTap: () => _navigate(
+                        context,
+                        libraryProvider,
+                        LibraryView.tasks,
+                      ),
                     ),
                     SidebarItem(
-                      icon: Icons.task_alt_rounded,
-                      label: 'Tasks',
-                      isActive: libraryProvider.currentView == LibraryView.tasks,
-                      onTap: () => _navigate(context, libraryProvider, LibraryView.tasks),
+                      icon: Icons.calendar_today,
+                      label: AppLocalizations.of(context)!.calendar,
+                      isActive:
+                          libraryProvider.currentView == LibraryView.calendar,
+                      onTap: () => _navigate(
+                        context,
+                        libraryProvider,
+                        LibraryView.calendar,
+                      ),
                     ),
                     SidebarItem(
-                      icon: Icons.calendar_today_rounded,
-                      label: 'Calendar',
-                      isActive: libraryProvider.currentView == LibraryView.calendar,
-                      onTap: () =>
-                          _navigate(context, libraryProvider, LibraryView.calendar),
+                      icon: Icons.folder,
+                      label: AppLocalizations.of(context)!.archive,
+                      isActive:
+                          libraryProvider.currentView == LibraryView.archive,
+                      onTap: () => _navigate(
+                        context,
+                        libraryProvider,
+                        LibraryView.archive,
+                      ),
                     ),
                     SidebarItem(
-                      icon: Icons.archive_rounded,
-                      label: 'Archive',
-                      isActive: libraryProvider.currentView == LibraryView.archive,
-                      onTap: () =>
-                          _navigate(context, libraryProvider, LibraryView.archive),
-                    ),
-                    SidebarItem(
-                      icon: Icons.settings_rounded,
-                      label: 'Settings',
+                      icon: Icons.settings,
+                      label: AppLocalizations.of(context)!.settings,
                       isActive: false,
                       onTap: () {
                         if (Scaffold.maybeOf(context)?.isDrawerOpen ?? false) {
@@ -122,17 +149,18 @@ class DashboardSidebar extends StatelessWidget {
                         }
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const SettingsScreen(),
+                          ),
                         );
                       },
                     ),
-                    const SizedBox(height: 40),
-                    const Padding(padding: EdgeInsets.all(24), child: UserCard()),
                   ],
                 ),
               ),
-            );
-          },
+            ),
+            const Padding(padding: EdgeInsets.all(16), child: UserCard()),
+          ],
         ),
       ),
     );
@@ -144,14 +172,9 @@ class DashboardSidebar extends StatelessWidget {
     LibraryView view,
   ) {
     provider.setView(view);
-
-    // If used in a drawer, close it
     if (Scaffold.maybeOf(context)?.isDrawerOpen ?? false) {
       Navigator.pop(context);
     }
-
-    // If we are not on the library screen (e.g. course detail), pop until we are.
-    // This assumes LibraryScreen is the root of the navigation stack for these views.
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).popUntil((route) => route.isFirst);
     }
@@ -163,58 +186,66 @@ class SidebarItem extends StatelessWidget {
   final String label;
   final bool isActive;
   final VoidCallback onTap;
+
   const SidebarItem({
     super.key,
     required this.icon,
     required this.label,
-    this.isActive = false,
+    required this.isActive,
     required this.onTap,
   });
+
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.only(bottom: 4),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: isActive
-                  ? colorScheme.primary.withValues(alpha: 0.08)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(16),
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: isActive
+                ? BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(context).colorScheme.primary,
+                        Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.8),
+                      ],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  )
+                : null,
             child: Row(
               children: [
                 Icon(
                   icon,
-                  color: isActive ? colorScheme.primary : Colors.grey[500],
-                  size: 22,
+                  size: 20,
+                  color: isActive ? Colors.white : Colors.grey[500],
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Text(
                   label,
                   style: TextStyle(
-                    color: isActive ? colorScheme.primary : Colors.grey[500],
-                    fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                    color: isActive ? Colors.white : Colors.grey[500],
                   ),
                 ),
-                if (isActive) ...[
-                  const Spacer(),
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
@@ -229,35 +260,25 @@ class UserCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final colorScheme = Theme.of(context).colorScheme;
-    final provider = Provider.of<LibraryProvider>(context);
+    final provider = Provider.of<ProfileProvider>(context);
     final profile = provider.studentProfile;
     final name = profile.name ?? 'Alex';
-    final initials =
-        name.split(' ').take(2).map((e) => e.isNotEmpty ? e[0] : '').join().toUpperCase();
+    final initials = name.isNotEmpty ? name[0].toUpperCase() : 'A';
 
     return GestureDetector(
       onTap: () {
-        if (Scaffold.maybeOf(context)?.isDrawerOpen ?? false) {
-          Navigator.pop(context);
-        }
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const ProfileScreen()),
         );
       },
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.03)
-              : Colors.black.withValues(alpha: 0.03),
-          borderRadius: BorderRadius.circular(20),
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.05)
-                : Colors.black.withValues(alpha: 0.05),
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.05),
           ),
         ),
         child: Row(
@@ -266,19 +287,24 @@ class UserCard extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: colorScheme.primary.withValues(alpha: 0.2),
-                  width: 2,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.2),
                 ),
               ),
-              child: CircleAvatar(
-                radius: 20,
-                backgroundColor: colorScheme.primary,
+              child: Center(
                 child: Text(
-                  initials.isNotEmpty ? initials : '?',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  initials +
+                      (name.split(' ').length > 1
+                          ? name.split(' ')[1][0].toUpperCase()
+                          : ''),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
@@ -292,7 +318,11 @@ class UserCard extends StatelessWidget {
                 children: [
                   Text(
                     name,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(

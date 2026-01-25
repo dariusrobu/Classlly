@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:classlly/core/theme/app_theme.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:provider/provider.dart';
-import 'package:classlly/features/library/providers/library_provider.dart';
+import 'package:classlly/features/library/providers/profile_provider.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
   const PersonalInfoScreen({super.key});
@@ -25,20 +24,20 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     // Also try to get from local profile to be consistent
     final repo = NotesRepository();
     final profile = repo.getStudentProfile();
-    
+
     String initialName = profile.name ?? '';
     final supabaseName = user?.userMetadata?['full_name'] as String?;
 
     // If local name is the default 'Alex' but Supabase has a different name, use Supabase
-    if ((initialName == 'Alex' || initialName.isEmpty) && 
-        supabaseName != null && 
-        supabaseName.isNotEmpty && 
+    if ((initialName == 'Alex' || initialName.isEmpty) &&
+        supabaseName != null &&
+        supabaseName.isNotEmpty &&
         supabaseName != 'Alex') {
       initialName = supabaseName;
     } else if (initialName.isEmpty && supabaseName != null) {
       initialName = supabaseName;
     }
-    
+
     _nameController = TextEditingController(text: initialName);
     _emailController = TextEditingController(text: user?.email ?? '');
   }
@@ -56,9 +55,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       try {
         // 1. Update Supabase
         await Supabase.instance.client.auth.updateUser(
-          UserAttributes(
-            data: {'full_name': _nameController.text},
-          ),
+          UserAttributes(data: {'full_name': _nameController.text}),
         );
 
         // 2. Update Local Profile
@@ -69,8 +66,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
         // 3. Notify Listeners
         if (mounted) {
-          Provider.of<LibraryProvider>(context, listen: false).refreshProfile();
-          
+          Provider.of<ProfileProvider>(context, listen: false).refreshProfile();
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Profile updated successfully')),
           );
@@ -78,9 +75,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: $e')));
         }
       } finally {
         if (mounted) setState(() => _isSaving = false);
@@ -129,7 +126,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _save,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryPurple,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -178,10 +175,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         hintText: hint,
         hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.black38),
         filled: true,
-        fillColor:
-            isDark
-                ? Colors.white.withValues(alpha: 0.05)
-                : Colors.black.withValues(alpha: 0.03),
+        fillColor: isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.black.withValues(alpha: 0.03),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,

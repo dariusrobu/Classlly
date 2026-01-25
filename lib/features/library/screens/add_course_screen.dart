@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:classlly/features/library/providers/library_provider.dart';
-import 'package:classlly/core/theme/app_theme.dart';
+import 'package:classlly/features/library/providers/course_provider.dart';
 import 'package:classlly/data/models/course_model.dart';
 import 'package:intl/intl.dart';
 
@@ -114,7 +113,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
 
   void _save() async {
     if (_formKey.currentState!.validate()) {
-      final provider = Provider.of<LibraryProvider>(context, listen: false);
+      final provider = Provider.of<CourseProvider>(context, listen: false);
       final credits = double.tryParse(_creditsController.text) ?? 0.0;
       final schedule = "${_courseDay ?? ''} ${_formatTime(_courseTime)}".trim();
 
@@ -257,12 +256,12 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                     const SizedBox(height: 16),
 
                     // --- Course (Lecture) Info ---
-                    const Text(
+                    Text(
                       'Course / Lecture Details',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
-                        color: AppTheme.primaryPurple,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -311,12 +310,12 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                     const SizedBox(height: 16),
 
                     // --- Seminar Info ---
-                    const Text(
+                    Text(
                       'Seminar Details',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
-                        color: AppTheme.primaryPurple,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -423,7 +422,9 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                       child: ElevatedButton(
                         onPressed: _save,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryPurple,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           shape: RoundedRectangleBorder(
@@ -547,7 +548,9 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                 Icon(
                   Icons.access_time,
                   size: 16,
-                  color: value != null ? AppTheme.primaryPurple : Colors.grey,
+                  color: value != null
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.grey,
                 ),
                 const SizedBox(width: 8),
                 Expanded(

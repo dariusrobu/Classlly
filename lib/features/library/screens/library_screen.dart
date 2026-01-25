@@ -2,36 +2,43 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:fl_chart/fl_chart.dart';
-import 'package:table_calendar/table_calendar.dart';
+
 import 'package:classlly/data/models/folder_model.dart';
 import 'package:classlly/data/models/note_models.dart';
-import 'package:classlly/data/models/task_model.dart';
 import 'package:classlly/data/models/course_model.dart';
-import 'package:classlly/data/models/grade_model.dart';
-import 'package:classlly/data/models/attendance_model.dart';
+import 'package:classlly/data/models/task_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/features/canvas/providers/canvas_provider.dart';
 import 'package:classlly/features/canvas/screens/canvas_screen.dart';
 import 'package:classlly/features/library/providers/library_provider.dart';
+import 'package:classlly/features/library/providers/task_provider.dart';
+import 'package:classlly/features/library/providers/notes_provider.dart';
 import 'package:classlly/features/library/screens/course_detail_screen.dart';
 import 'package:classlly/features/library/widgets/dashboard_sidebar.dart';
-import 'package:classlly/features/library/screens/add_task_screen.dart';
 import 'package:classlly/features/library/screens/add_course_screen.dart';
 import 'package:classlly/features/library/screens/tasks_screen.dart';
 import 'package:classlly/features/library/screens/calendar_screen.dart';
-
+import 'package:classlly/features/library/screens/dashboard_screen.dart';
 import 'package:classlly/features/library/widgets/empty_state.dart';
+import 'package:classlly/features/text_editor/screens/text_editor_screen.dart';
+import 'package:classlly/features/library/widgets/create_note_dialog.dart';
 
 class LibraryScreen extends StatelessWidget {
   const LibraryScreen({super.key});
 
   static void openNote(BuildContext context, Note note) {
-    Provider.of<CanvasProvider>(context, listen: false).setNote(note);
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const CanvasScreen()),
-    );
+    if (note.type == Note.typeText) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => TextEditorScreen(note: note)),
+      );
+    } else {
+      Provider.of<CanvasProvider>(context, listen: false).setNote(note);
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const CanvasScreen()),
+      );
+    }
   }
 
   @override
@@ -50,25 +57,8 @@ class LibraryScreen extends StatelessWidget {
           if (MediaQuery.of(context).size.width > 1000)
             const DashboardSidebar(),
           Expanded(
-            child: Column(
-              children: [
-                const _DashboardHeader(),
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: _MainContentSwitch(
-                          view: libraryProvider.currentView,
-                        ),
-                      ),
-                      if (MediaQuery.of(context).size.width > 1300 &&
-                          libraryProvider.currentView == LibraryView.dashboard)
-                        const _RightDashboardSidebar(),
-                    ],
-                  ),
-                ),
-              ],
+            child: SafeArea(
+              child: _MainContentSwitch(view: libraryProvider.currentView),
             ),
           ),
         ],
@@ -84,7 +74,7 @@ class _MainContentSwitch extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (view) {
       case LibraryView.dashboard:
-        return const _DashboardView();
+        return const DashboardScreen();
       case LibraryView.tasks:
         return const TasksScreen();
       case LibraryView.courses:
@@ -99,139 +89,165 @@ class _MainContentSwitch extends StatelessWidget {
   }
 }
 
-class _DashboardView extends StatelessWidget {
-  const _DashboardView();
-  @override
-  Widget build(BuildContext context) {
-    final libraryProvider = Provider.of<LibraryProvider>(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final width = MediaQuery.of(context).size.width;
-    final horizontalPadding = width > 600 ? 48.0 : 20.0;
-    final profile = libraryProvider.studentProfile;
-    final studentName = profile.name ?? 'Alex';
-
-    return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(
-        horizontal: horizontalPadding,
-        vertical: 40,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            DateFormat('EEEE, MMM d').format(DateTime.now()),
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.grey[500] : Colors.grey[700],
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Welcome back, $studentName!',
-            style: const TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -1,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'You have 3 lectures today. Ready to take some notes?',
-            style: TextStyle(
-              fontSize: 16,
-              color: isDark ? Colors.grey[500] : Colors.grey[700],
-            ),
-          ),
-          const SizedBox(height: 48),
-
-          const _SectionTitle(
-            title: 'Dashboard Overview',
-            subtitle: 'Track your progress and stay organized.',
-          ),
-          const SizedBox(height: 24),
-          const _DashboardStatsGrid(),
-          const SizedBox(height: 56),
-
-          const _SectionTitle(
-            title: 'Active Courses',
-            subtitle: 'Manage your academic progress and notes.',
-          ),
-          const SizedBox(height: 24),
-          const _CoursesGrid(),
-          const SizedBox(height: 56),
-          const _SectionTitle(
-            title: 'Recent Quick Notes',
-            subtitle: 'Pick up where you left off.',
-          ),
-          const SizedBox(height: 24),
-          const _RecentNotesList(),
-        ],
-      ),
-    );
-  }
-}
-
 class _ArchiveView extends StatelessWidget {
   const _ArchiveView();
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<LibraryProvider>(context);
-    final deletedNotes = provider.deletedNotes;
-    final deletedTasks = provider.deletedTasks;
-    final deletedFolders = provider.deletedFolders;
+    final libraryProvider = Provider.of<LibraryProvider>(context);
+    final notesProvider = Provider.of<NotesProvider>(context);
+    final taskProvider = Provider.of<TaskProvider>(context);
 
-    final isEmpty = deletedNotes.isEmpty && deletedTasks.isEmpty && deletedFolders.isEmpty;
+    final deletedNotes = notesProvider.deletedNotes;
+    final deletedTasks = taskProvider.deletedTasks;
+    final deletedFolders = notesProvider.deletedFolders;
+
+    final isEmpty =
+        deletedNotes.isEmpty && deletedTasks.isEmpty && deletedFolders.isEmpty;
 
     if (isEmpty) {
-      return const EmptyState(
-        icon: Icons.delete_outline,
-        title: 'Trash is empty',
-        subtitle: 'Deleted notes and tasks will appear here for 30 days before being permanently removed.',
+      return Column(
+        children: [
+          if (MediaQuery.of(context).size.width <= 1000)
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.menu,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                  ),
+                ],
+              ),
+            ),
+          const Expanded(
+            child: EmptyState(
+              icon: Icons.delete_outline,
+              title: 'Trash is empty',
+              subtitle:
+                  'Deleted notes and tasks will appear here for 30 days before being permanently removed.',
+            ),
+          ),
+        ],
       );
     }
 
     return ListView(
       padding: const EdgeInsets.all(32),
       children: [
+        if (MediaQuery.of(context).size.width <= 1000)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: Icon(
+                    Icons.menu,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
+              ],
+            ),
+          ),
         const _SectionTitle(
           title: 'Trash',
-          subtitle: 'Items here will be permanently deleted when you empty the trash.',
+          subtitle:
+              'Items here will be permanently deleted when you empty the trash.',
         ),
         const SizedBox(height: 32),
         if (deletedFolders.isNotEmpty) ...[
-          const Text('Folders', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text(
+            'Folders',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 16),
-          ...deletedFolders.map((f) => _ArchiveTile(
-                title: f.title,
-                icon: Icons.folder,
-                onRestore: () => provider.restoreFolder(f.id),
-                onDelete: () => provider.permanentlyDeleteFolder(f.id),
-              )),
+          ...deletedFolders.map(
+            (f) => _ArchiveTile(
+              title: f.title,
+              icon: Icons.folder,
+              onRestore: () => notesProvider.restoreFolder(f.id),
+              onDelete: () => notesProvider.permanentlyDeleteFolder(f.id),
+            ),
+          ),
           const SizedBox(height: 32),
         ],
         if (deletedNotes.isNotEmpty) ...[
-          const Text('Notes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text(
+            'Notes',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 16),
-          ...deletedNotes.map((n) => _ArchiveTile(
-                title: n.title,
-                icon: Icons.description,
-                onRestore: () => provider.restoreNote(n.id),
-                onDelete: () => provider.permanentlyDeleteNote(n.id),
-              )),
+          ...deletedNotes.map(
+            (n) => _ArchiveTile(
+              title: n.title,
+              icon: Icons.description,
+              onRestore: () => notesProvider.restoreNote(n.id),
+              onDelete: () => notesProvider.permanentlyDeleteNote(n.id),
+            ),
+          ),
           const SizedBox(height: 32),
         ],
         if (deletedTasks.isNotEmpty) ...[
-          const Text('Tasks', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text(
+            'Tasks',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 16),
-          ...deletedTasks.map((t) => _ArchiveTile(
-                title: t.title,
-                icon: Icons.check_circle,
-                onRestore: () => provider.restoreTask(t.id),
-                onDelete: () => provider.permanentlyDeleteTask(t.id),
-              )),
+          ...deletedTasks.map(
+            (t) => _ArchiveTile(
+              title: t.title,
+              icon: Icons.check_circle,
+              onRestore: () => taskProvider.restoreTask(t.id),
+              onDelete: () => taskProvider.permanentlyDeleteTask(t.id),
+            ),
+          ),
         ],
+        // Add Empty Trash button at the bottom
+        Padding(
+          padding: const EdgeInsets.only(top: 24.0),
+          child: ElevatedButton.icon(
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Empty Trash'),
+                  content: const Text(
+                    'Are you sure you want to permanently delete all items in the trash? This action cannot be undone.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        libraryProvider.emptyTrash();
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Trash emptied successfully'),
+                          ),
+                        );
+                      },
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                      child: const Text('Empty Trash'),
+                    ),
+                  ],
+                ),
+              );
+            },
+            icon: const Icon(Icons.delete_sweep, size: 18),
+            label: const Text('Empty Trash'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.withValues(alpha: 0.1),
+              foregroundColor: Colors.redAccent,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -286,14 +302,27 @@ class _CoursesView extends StatelessWidget {
     final isMobile = width < 600;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 16 : 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (width <= 1000)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: IconButton(
+                icon: Icon(
+                  Icons.menu,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              ),
+            ),
           Flex(
             direction: isMobile ? Axis.vertical : Axis.horizontal,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: isMobile ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+            crossAxisAlignment: isMobile
+                ? CrossAxisAlignment.start
+                : CrossAxisAlignment.center,
             children: [
               const Flexible(
                 child: _SectionTitle(
@@ -329,7 +358,7 @@ class _AllNotesView extends StatelessWidget {
   const _AllNotesView();
   @override
   Widget build(BuildContext context) {
-    final libraryProvider = Provider.of<LibraryProvider>(context);
+    final notesProvider = Provider.of<NotesProvider>(context);
     final colorScheme = Theme.of(context).colorScheme;
 
     return ValueListenableBuilder(
@@ -341,7 +370,7 @@ class _AllNotesView extends StatelessWidget {
           valueListenable: Hive.box<Note>(NotesRepository.boxName).listenable(),
           builder: (context, Box<Note> noteBox, _) {
             final repo = NotesRepository();
-            final currentFolderId = libraryProvider.currentFolderId;
+            final currentFolderId = notesProvider.currentFolderId;
 
             final folders = repo.getFolders(
               parentId: currentFolderId,
@@ -351,7 +380,6 @@ class _AllNotesView extends StatelessWidget {
 
             String title = 'My Notes';
             if (currentFolderId != null) {
-              // Find current folder name (inefficient but simple for now)
               final currentFolder = folderBox.values
                   .where((f) => !f.isDeleted && f.id == currentFolderId)
                   .firstOrNull;
@@ -363,10 +391,25 @@ class _AllNotesView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (MediaQuery.of(context).size.width <= 1000)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: IconButton(
+                        icon: Icon(
+                          Icons.menu,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                      ),
+                    ),
                   Flex(
-                    direction: MediaQuery.of(context).size.width < 700 ? Axis.vertical : Axis.horizontal,
+                    direction: MediaQuery.of(context).size.width < 700
+                        ? Axis.vertical
+                        : Axis.horizontal,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: MediaQuery.of(context).size.width < 700 ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+                    crossAxisAlignment: MediaQuery.of(context).size.width < 700
+                        ? CrossAxisAlignment.start
+                        : CrossAxisAlignment.center,
                     children: [
                       Row(
                         mainAxisSize: MainAxisSize.min,
@@ -375,7 +418,6 @@ class _AllNotesView extends StatelessWidget {
                             IconButton(
                               icon: const Icon(Icons.arrow_back),
                               onPressed: () {
-                                // Find parent of current folder to go back
                                 final currentFolder = folderBox.values
                                     .where(
                                       (f) =>
@@ -383,7 +425,7 @@ class _AllNotesView extends StatelessWidget {
                                           f.id == currentFolderId,
                                     )
                                     .firstOrNull;
-                                libraryProvider.navigateToFolder(
+                                notesProvider.navigateToFolder(
                                   currentFolder?.parentId,
                                 );
                               },
@@ -397,26 +439,27 @@ class _AllNotesView extends StatelessWidget {
                           ),
                         ],
                       ),
-                      if (MediaQuery.of(context).size.width < 700) const SizedBox(height: 16),
+                      if (MediaQuery.of(context).size.width < 700)
+                        const SizedBox(height: 16),
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           _HeaderButton(
                             icon: Icons.create_new_folder_outlined,
                             label: 'New Folder',
-                            onPressed: () => _showCreateFolderDialog(
-                              context,
-                              libraryProvider,
-                            ),
+                            onPressed: () =>
+                                _showCreateFolderDialog(context, notesProvider),
                           ),
                           const SizedBox(width: 12),
                           _HeaderButton(
                             icon: Icons.note_add_outlined,
                             label: 'New Note',
                             onPressed: () async {
-                              final note = await libraryProvider
-                                  .createNoteInCurrentFolder();
-                              if (context.mounted) {
+                              final note = await showDialog<Note>(
+                                context: context,
+                                builder: (context) => const CreateNoteDialog(),
+                              );
+                              if (note != null && context.mounted) {
                                 LibraryScreen.openNote(context, note);
                               }
                             },
@@ -435,9 +478,11 @@ class _AllNotesView extends StatelessWidget {
                             'Organize your studies by creating folders or starting a new note.',
                         actionLabel: 'New Note',
                         onAction: () async {
-                          final note = await libraryProvider
-                              .createNoteInCurrentFolder();
-                          if (context.mounted) {
+                          final note = await showDialog<Note>(
+                            context: context,
+                            builder: (context) => const CreateNoteDialog(),
+                          );
+                          if (note != null && context.mounted) {
                             LibraryScreen.openNote(context, note);
                           }
                         },
@@ -470,7 +515,7 @@ class _AllNotesView extends StatelessWidget {
                           final folder = folders[index];
                           return GestureDetector(
                             onTap: () =>
-                                libraryProvider.navigateToFolder(folder.id),
+                                notesProvider.navigateToFolder(folder.id),
                             child: Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
@@ -508,19 +553,19 @@ class _AllNotesView extends StatelessWidget {
                                           if (value == 'rename') {
                                             _showRenameFolderDialog(
                                               context,
-                                              libraryProvider,
+                                              notesProvider,
                                               folder,
                                             );
                                           } else if (value == 'move') {
                                             _showMoveDialog(
                                               context,
-                                              libraryProvider,
+                                              notesProvider,
                                               folderToMove: folder,
                                             );
                                           } else if (value == 'delete') {
                                             _showDeleteFolderDialog(
                                               context,
-                                              libraryProvider,
+                                              notesProvider,
                                               folder,
                                             );
                                           }
@@ -538,8 +583,9 @@ class _AllNotesView extends StatelessWidget {
                                             value: 'delete',
                                             child: Text(
                                               'Delete',
-                                              style:
-                                                  TextStyle(color: Colors.red),
+                                              style: TextStyle(
+                                                color: Colors.red,
+                                              ),
                                             ),
                                           ),
                                         ],
@@ -592,7 +638,7 @@ class _AllNotesView extends StatelessWidget {
     );
   }
 
-  void _showCreateFolderDialog(BuildContext context, LibraryProvider provider) {
+  void _showCreateFolderDialog(BuildContext context, NotesProvider provider) {
     final controller = TextEditingController();
     showDialog(
       context: context,
@@ -627,7 +673,7 @@ class _AllNotesView extends StatelessWidget {
 
   void _showRenameFolderDialog(
     BuildContext context,
-    LibraryProvider provider,
+    NotesProvider provider,
     Folder folder,
   ) {
     final controller = TextEditingController(text: folder.title);
@@ -664,7 +710,7 @@ class _AllNotesView extends StatelessWidget {
 
   void _showDeleteFolderDialog(
     BuildContext context,
-    LibraryProvider provider,
+    NotesProvider provider,
     Folder folder,
   ) {
     showDialog(
@@ -697,7 +743,7 @@ class _AllNotesView extends StatelessWidget {
 
   void _showMoveDialog(
     BuildContext context,
-    LibraryProvider provider, {
+    NotesProvider provider, {
     Folder? folderToMove,
     Note? noteToMove,
   }) {
@@ -717,7 +763,6 @@ class _AllNotesView extends StatelessWidget {
                     .where((f) => !f.isDeleted && f.type == FolderType.notebook)
                     .toList();
 
-                // Remove the folder itself and its children if we are moving a folder (to prevent circular loops)
                 if (folderToMove != null) {
                   folders.removeWhere((f) => f.id == folderToMove.id);
                 }
@@ -769,171 +814,6 @@ class _AllNotesView extends StatelessWidget {
   }
 }
 
-class _DashboardHeader extends StatelessWidget {
-  const _DashboardHeader();
-  @override
-  Widget build(BuildContext context) {
-    final libraryProvider = Provider.of<LibraryProvider>(context);
-    final isArchive = libraryProvider.currentView == LibraryView.archive;
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.9),
-        border: Border(
-          bottom: BorderSide(color: Theme.of(context).dividerColor),
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          child: Row(
-            children: [
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  if (MediaQuery.of(context).size.width <= 1000) {
-                    return IconButton(
-                      icon: const Icon(Icons.menu),
-                      onPressed: () => Scaffold.of(context).openDrawer(),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-              const Spacer(),
-
-          if (isArchive)
-            ElevatedButton.icon(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Empty Trash'),
-                    content: const Text(
-                      'Are you sure you want to permanently delete all items in the trash? This action cannot be undone.',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          libraryProvider.emptyTrash();
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Trash emptied successfully'),
-                            ),
-                          );
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.red,
-                        ),
-                        child: const Text('Empty Trash'),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              icon: const Icon(Icons.delete_sweep, size: 18),
-              label: const Text('Empty Trash'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red.withValues(alpha: 0.1),
-                foregroundColor: Colors.redAccent,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            )
-          else
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'note') {
-                  LibraryScreen.openNote(context, Note.create());
-                }
-                if (value == 'task') {
-                  showDialog(
-                    context: context,
-                    builder: (context) => const AddTaskScreen(),
-                  );
-                }
-                if (value == 'course') {
-                  showDialog(
-                    context: context,
-                    builder: (context) => const AddCourseScreen(),
-                  );
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'note',
-                  child: Row(
-                    children: [
-                      Icon(Icons.description, size: 18),
-                      SizedBox(width: 8),
-                      Text('New Note'),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'task',
-                  child: Row(
-                    children: [
-                      Icon(Icons.check_circle, size: 18),
-                      SizedBox(width: 8),
-                      Text('New Task'),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'course',
-                  child: Row(
-                    children: [
-                      Icon(Icons.school, size: 18),
-                      SizedBox(width: 8),
-                      Text('New Course'),
-                    ],
-                  ),
-                ),
-              ],
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: MediaQuery.of(context).size.width > 600 ? 20 : 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: colorScheme.primary,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.add, size: 18, color: Colors.white),
-                    if (MediaQuery.of(context).size.width > 600) ...[
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Quick Add',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
-        ),
-      ),
-    );
-  }
-}
-
 class _CoursesGrid extends StatelessWidget {
   final bool fullList;
   const _CoursesGrid({this.fullList = false});
@@ -965,18 +845,26 @@ class _CoursesGrid extends StatelessWidget {
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            int crossAxisCount = constraints.maxWidth > 1200
+            final width = constraints.maxWidth;
+            int crossAxisCount = width > 1200
                 ? 4
-                : (constraints.maxWidth > 800
-                      ? 3
-                      : (constraints.maxWidth > 500 ? 2 : 1));
+                : (width > 800 ? 3 : (width > 500 ? 2 : 1));
+
+            // Adjust aspect ratio based on column count to ensure cards look good on all screens
+            double aspectRatio = 1.2;
+            if (crossAxisCount == 1) {
+              aspectRatio = 1.8; // Wider cards for single column
+            } else if (crossAxisCount == 2) {
+              aspectRatio = 1.3;
+            }
+
             return GridView.count(
               crossAxisCount: crossAxisCount,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 20,
               crossAxisSpacing: 20,
-              childAspectRatio: 1.2,
+              childAspectRatio: aspectRatio,
               children: courses.map((c) => _CourseCard(course: c)).toList(),
             );
           },
@@ -1082,37 +970,39 @@ class _CourseCard extends StatelessWidget {
                   ),
                 ],
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: 0.65, // Mock value
-                backgroundColor: isDark ? Colors.black : Colors.grey[200],
-                valueColor: AlwaysStoppedAnimation(color),
-                minHeight: 4,
-              ),
+            ValueListenableBuilder(
+              valueListenable: Hive.box<Task>(
+                NotesRepository.taskBoxName,
+              ).listenable(),
+              builder: (context, Box<Task> taskBox, _) {
+                final courseTasks = taskBox.values
+                    .where((t) => !t.isDeleted && t.courseId == course.id)
+                    .toList();
+                double progress = 0.0;
+                if (courseTasks.isNotEmpty) {
+                  final completed = courseTasks
+                      .where((t) => t.isCompleted)
+                      .length;
+                  progress = completed / courseTasks.length;
+                }
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    backgroundColor: isDark ? Colors.black : Colors.grey[200],
+                    valueColor: AlwaysStoppedAnimation(color),
+                    minHeight: 4,
+                  ),
+                );
+              },
             ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _RecentNotesList extends StatelessWidget {
-  const _RecentNotesList();
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: Hive.box<Note>(NotesRepository.boxName).listenable(),
-      builder: (context, Box<Note> box, _) {
-        var notes = box.values.where((n) => !n.isDeleted).toList()
-          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-        return Column(
-          children: notes.take(5).map((n) => _RecentNoteItem(note: n)).toList(),
-        );
-      },
     );
   }
 }
@@ -1125,10 +1015,7 @@ class _RecentNoteItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
-    final libraryProvider = Provider.of<LibraryProvider>(
-      context,
-      listen: false,
-    );
+    final notesProvider = Provider.of<NotesProvider>(context, listen: false);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -1198,11 +1085,11 @@ class _RecentNoteItem extends StatelessWidget {
                   ),
                   onSelected: (value) {
                     if (value == 'rename') {
-                      _showRenameDialog(context, libraryProvider);
+                      _showRenameDialog(context, notesProvider);
                     } else if (value == 'move') {
-                      _showMoveDialog(context, libraryProvider);
+                      _showMoveDialog(context, notesProvider);
                     } else if (value == 'delete') {
-                      _showDeleteDialog(context, libraryProvider);
+                      _showDeleteDialog(context, notesProvider);
                     }
                   },
                   itemBuilder: (context) => [
@@ -1225,7 +1112,7 @@ class _RecentNoteItem extends StatelessWidget {
     );
   }
 
-  void _showMoveDialog(BuildContext context, LibraryProvider provider) {
+  void _showMoveDialog(BuildContext context, NotesProvider provider) {
     showDialog(
       context: context,
       builder: (context) {
@@ -1239,7 +1126,7 @@ class _RecentNoteItem extends StatelessWidget {
               ).listenable(),
               builder: (context, Box<Folder> box, _) {
                 final folders = box.values
-                    .where((f) => f.type == FolderType.notebook)
+                    .where((f) => !f.isDeleted && f.type == FolderType.notebook)
                     .toList();
 
                 return ListView(
@@ -1280,7 +1167,7 @@ class _RecentNoteItem extends StatelessWidget {
     );
   }
 
-  void _showRenameDialog(BuildContext context, LibraryProvider provider) {
+  void _showRenameDialog(BuildContext context, NotesProvider provider) {
     final controller = TextEditingController(text: note.title);
     showDialog(
       context: context,
@@ -1313,7 +1200,7 @@ class _RecentNoteItem extends StatelessWidget {
     );
   }
 
-  void _showDeleteDialog(BuildContext context, LibraryProvider provider) {
+  void _showDeleteDialog(BuildContext context, NotesProvider provider) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1342,192 +1229,6 @@ class _RecentNoteItem extends StatelessWidget {
     );
   }
 }
-
-class _RightDashboardSidebar extends StatelessWidget {
-  const _RightDashboardSidebar();
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 360,
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        border: Border(
-          left: BorderSide(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
-          ),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Calendar',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 24),
-          const _MiniCalendar(),
-          const SizedBox(height: 48),
-          const Text(
-            'Upcoming Deadlines',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: ValueListenableBuilder(
-              valueListenable: Hive.box<Task>(
-                NotesRepository.taskBoxName,
-              ).listenable(),
-              builder: (context, Box<Task> box, _) {
-                final deadlines =
-                    box.values
-                        .where(
-                          (t) =>
-                              !t.isDeleted &&
-                              !t.isCompleted &&
-                              t.dueDate != null,
-                        )
-                        .toList()
-                      ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
-                final displayDeadlines = deadlines.take(3).toList();
-
-                if (displayDeadlines.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No upcoming deadlines',
-                      style: TextStyle(color: Colors.grey, fontSize: 13),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  itemCount: displayDeadlines.length,
-                  itemBuilder: (context, index) {
-                    final task = displayDeadlines[index];
-                    final isTomorrow =
-                        task.dueDate!.day ==
-                        DateTime.now().add(const Duration(days: 1)).day;
-                    return _DeadlineTile(
-                      title: task.title,
-                      time: isTomorrow
-                          ? 'Tomorrow, ${DateFormat.Hm().format(task.dueDate!)}'
-                          : DateFormat.yMMMd().add_Hm().format(task.dueDate!),
-                      color: isTomorrow
-                          ? Colors.redAccent
-                          : Theme.of(context).colorScheme.primary,
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-
-        ],
-      ),
-    );
-  }
-}
-
-class _MiniCalendar extends StatelessWidget {
-  const _MiniCalendar();
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
-        ),
-      ),
-      child: TableCalendar(
-        firstDay: DateTime.utc(2023, 1, 1),
-        lastDay: DateTime.utc(2030, 12, 31),
-        focusedDay: DateTime.now(),
-        calendarFormat: CalendarFormat.month,
-        startingDayOfWeek: StartingDayOfWeek.monday,
-        headerStyle: const HeaderStyle(
-          formatButtonVisible: false,
-          titleCentered: true,
-          titleTextStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          leftChevronIcon: Icon(Icons.chevron_left, size: 20),
-          rightChevronIcon: Icon(Icons.chevron_right, size: 20),
-        ),
-        calendarStyle: CalendarStyle(
-          todayDecoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary,
-            shape: BoxShape.circle,
-          ),
-          selectedDecoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.secondary,
-            shape: BoxShape.circle,
-          ),
-          weekendTextStyle: const TextStyle(fontSize: 12, color: Colors.grey),
-          outsideTextStyle: const TextStyle(fontSize: 12, color: Colors.grey),
-        ),
-        daysOfWeekStyle: const DaysOfWeekStyle(
-          weekdayStyle: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey,
-          ),
-          weekendStyle: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey,
-          ),
-        ),
-        rowHeight: 36,
-        availableGestures: AvailableGestures.all,
-      ),
-    );
-  }
-}
-
-class _DeadlineTile extends StatelessWidget {
-  final String title;
-  final String time;
-  final Color color;
-  const _DeadlineTile({
-    required this.title,
-    required this.time,
-    required this.color,
-  });
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Row(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  time,
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-
 
 class _SectionTitle extends StatelessWidget {
   final String title;
@@ -1576,587 +1277,6 @@ class _HeaderButton extends StatelessWidget {
       label: Text(label),
       style: ElevatedButton.styleFrom(
         backgroundColor: Theme.of(context).cardColor,
-      ),
-    );
-  }
-}
-
-class _DashboardStatsGrid extends StatelessWidget {
-  const _DashboardStatsGrid();
-
-  @override
-  Widget build(BuildContext context) {
-    // 4 columns on wide screens, 2 on medium, 1 on small
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        // User requested 2x2 layout for overview stats
-        int cols = width > 900 ? 2 : 1;
-        double ratio;
-        if (width > 900) {
-          ratio = 1.5;
-        } else if (width > 600) {
-          ratio = 1.2;
-        } else {
-          ratio = 1.0; // Give more height on small phones
-        }
-
-        return GridView.count(
-          crossAxisCount: cols,
-          crossAxisSpacing: 20,
-          mainAxisSpacing: 20,
-          shrinkWrap: true,
-          childAspectRatio: ratio,
-          physics: const NeverScrollableScrollPhysics(),
-          children: const [
-            _RecentNotesCard(),
-            _GradeOverviewCard(),
-            _AttendanceCard(),
-            _TasksSummaryCard(),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _DashboardCard extends StatelessWidget {
-  final Widget child;
-  const _DashboardCard({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: child,
-    );
-  }
-}
-
-class _RecentNotesCard extends StatelessWidget {
-  const _RecentNotesCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final provider = Provider.of<LibraryProvider>(context);
-    final colorScheme = Theme.of(context).colorScheme;
-    return ValueListenableBuilder(
-      valueListenable: Hive.box<Note>(NotesRepository.boxName).listenable(),
-      builder: (context, Box<Note> box, _) {
-        final notes = box.values.where((n) => !n.isDeleted).toList()
-          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-        final recentNotes = notes.take(3).toList();
-
-        return _DashboardCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.history_edu, color: colorScheme.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Recent Notes',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.grey[200]
-                          : Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              if (recentNotes.isEmpty)
-                Expanded(
-                  child: EmptyState(
-                    icon: Icons.note_add_outlined,
-                    title: 'No notes yet',
-                    subtitle:
-                        'Create your first note to start organizing your studies.',
-                    actionLabel: 'Create Note',
-                    onAction: () async {
-                      final note = await provider.createNoteInCurrentFolder();
-                      if (context.mounted) {
-                        LibraryScreen.openNote(context, note);
-                      }
-                    },
-                  ),
-                )
-              else
-                Expanded(
-                  child: ListView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: recentNotes.length,
-                    itemBuilder: (context, index) {
-                      final note = recentNotes[index];
-                      return _miniNoteItem(
-                        context,
-                        note.title.isNotEmpty ? note.title : 'Untitled',
-                        '${DateFormat.Md().format(note.updatedAt)} • ${note.strokes.length} strokes',
-                        Icons.description_outlined,
-                        colorScheme.primary,
-                        onTap: () => LibraryScreen.openNote(context, note),
-                      );
-                    },
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _miniNoteItem(
-    BuildContext context,
-    String title,
-    String meta,
-    IconData icon,
-    Color color, {
-    VoidCallback? onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    meta,
-                    style: TextStyle(color: Colors.grey[500], fontSize: 11),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right, size: 18, color: Colors.grey[600]),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _GradeOverviewCard extends StatelessWidget {
-  const _GradeOverviewCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return ValueListenableBuilder(
-      valueListenable: Hive.box<Grade>(
-        NotesRepository.gradeBoxName,
-      ).listenable(),
-      builder: (context, Box<Grade> box, _) {
-        final grades = box.values.toList()
-          ..sort((a, b) => a.date.compareTo(b.date));
-        double avg = 0;
-        if (grades.isNotEmpty) {
-          avg =
-              grades
-                  .map((g) => (g.score / g.maxScore) * 100)
-                  .reduce((a, b) => a + b) /
-              grades.length;
-        }
-
-        final spots = grades.asMap().entries.map((e) {
-          return FlSpot(
-            e.key.toDouble(),
-            (e.value.score / e.value.maxScore) * 6,
-          ); // Scale to 0-6 for chart
-        }).toList();
-
-        if (spots.isEmpty) {
-          // Dummy data for empty state
-          spots.addAll(const [FlSpot(0, 3), FlSpot(1, 3)]);
-        }
-
-        return _DashboardCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Grade Overview',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.grey[200]
-                          : Colors.black87,
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        grades.isEmpty
-                            ? 'No Data'
-                            : (avg >= 90
-                                  ? 'Excellent'
-                                  : (avg >= 80 ? 'Good' : 'Average')),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colorScheme.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          'Avg: ${avg.toStringAsFixed(1)}%',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: LineChart(
-                  LineChartData(
-                    gridData: const FlGridData(show: false),
-                    titlesData: const FlTitlesData(show: false),
-                    borderData: FlBorderData(show: false),
-                    minX: 0,
-                    maxX: (spots.length - 1).toDouble() + 0.5,
-                    minY: 0,
-                    maxY: 6,
-                    lineBarsData: [
-                      LineChartBarData(
-                        spots: spots,
-                        isCurved: true,
-                        color: colorScheme.primary,
-                        barWidth: 3,
-                        isStrokeCapRound: true,
-                        dotData: const FlDotData(show: false),
-                        belowBarData: BarAreaData(
-                          show: true,
-                          color: colorScheme.primary.withValues(alpha: 0.2),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Start',
-                    style: TextStyle(fontSize: 10, color: Colors.grey),
-                  ),
-                  Text(
-                    'Current',
-                    style: TextStyle(fontSize: 10, color: Colors.grey),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _AttendanceCard extends StatelessWidget {
-  const _AttendanceCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: Hive.box<Attendance>(
-        NotesRepository.attendanceBoxName,
-      ).listenable(),
-      builder: (context, Box<Attendance> box, _) {
-        final records = box.values.toList();
-        double attendance = 0;
-        int percentage = 0;
-
-        if (records.isNotEmpty) {
-          final present = records
-              .where((r) => r.status == AttendanceStatus.present)
-              .length;
-          attendance = present / records.length;
-          percentage = (attendance * 100).toInt();
-        } else {
-          // Placeholder if no data
-          attendance = 0;
-          percentage = 0;
-        }
-
-        return _DashboardCard(
-          child: Stack(
-            children: [
-              Text(
-                'Attendance',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.grey[200]
-                      : Colors.black87,
-                ),
-              ),
-              Center(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 100,
-                      height: 100,
-                      child: CircularProgressIndicator(
-                        value: attendance,
-                        strokeWidth: 10,
-                        backgroundColor:
-                            Theme.of(context).brightness == Brightness.dark
-                            ? Colors.grey[800]
-                            : Colors.grey[200],
-                        color: percentage > 75
-                            ? Colors.greenAccent
-                            : (percentage > 50
-                                  ? Colors.amber
-                                  : Colors.redAccent),
-                        strokeCap: StrokeCap.round,
-                      ),
-                    ),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '$percentage%',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Text(
-                          'PRESENT',
-                          style: TextStyle(fontSize: 9, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: Text(
-                    percentage > 90
-                        ? 'Perfect Attendance!'
-                        : (records.isEmpty
-                              ? 'No records yet.'
-                              : 'Keep tracking!'),
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _TasksSummaryCard extends StatelessWidget {
-  const _TasksSummaryCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final provider = Provider.of<LibraryProvider>(context);
-    final colorScheme = Theme.of(context).colorScheme;
-    return ValueListenableBuilder(
-      valueListenable: Hive.box<Task>(NotesRepository.taskBoxName).listenable(),
-      builder: (context, Box<Task> box, _) {
-        final tasks = box.values.where((t) => !t.isDeleted).toList();
-        final completed = tasks.where((t) => t.isCompleted).length;
-        final total = tasks.length;
-        final pendingTasks = tasks.where((t) => !t.isCompleted).toList();
-        final displayTasks = pendingTasks.take(3).toList();
-        final completionRate = total > 0 ? (completed / total) * 100 : 0.0;
-
-        return _DashboardCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Tasks',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.grey[200]
-                              : Colors.black87,
-                        ),
-                      ),
-                      Text(
-                        '${completionRate.toInt()}% Completed',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${pendingTasks.length} Pending',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              if (displayTasks.isEmpty)
-                Expanded(
-                  child: EmptyState(
-                    icon: Icons.check_circle_outline,
-                    title: 'All caught up!',
-                    subtitle: 'No pending tasks. Relax or create a new one.',
-                    actionLabel: 'Add Task',
-                    onAction: () => showDialog(
-                      context: context,
-                      builder: (context) => const AddTaskScreen(),
-                    ),
-                  ),
-                )
-              else
-                Expanded(
-                  child: ListView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: displayTasks.length,
-                    itemBuilder: (context, index) {
-                      final task = displayTasks[index];
-                      return _taskItem(
-                        context,
-                        task.title,
-                        task.isCompleted,
-                        colorScheme.primary,
-                        onTap: () => provider.toggleTask(task),
-                      );
-                    },
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _taskItem(
-    BuildContext context,
-    String title,
-    bool isCompleted,
-    Color primaryColor, {
-    VoidCallback? onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
-        child: Row(
-          children: [
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                color: isCompleted ? primaryColor : Colors.transparent,
-                border: Border.all(
-                  color: isCompleted ? primaryColor : Colors.grey,
-                ),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: isCompleted
-                  ? const Icon(Icons.check, size: 14, color: Colors.white)
-                  : null,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  decoration: isCompleted ? TextDecoration.lineThrough : null,
-                  color: isCompleted ? Colors.grey : null,
-                  fontSize: 13,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

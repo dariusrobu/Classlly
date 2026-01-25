@@ -1,5 +1,6 @@
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
+import 'package:classlly/core/utils/json_utils.dart';
 
 part 'task_model.g.dart';
 
@@ -44,6 +45,36 @@ class Task extends HiveObject {
     this.reminderTime,
     this.isDeleted = false,
   });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'description': description,
+    'is_completed': isCompleted,
+    'due_date': dueDate?.toIso8601String(),
+    'category': category,
+    'progress': progress,
+    'created_at': createdAt.toIso8601String(),
+    'course_id': courseId,
+    'priority': priority,
+    'reminder_time': reminderTime?.toIso8601String(),
+    'is_deleted': isDeleted,
+  };
+
+  factory Task.fromJson(Map<String, dynamic> json) => Task(
+    id: JsonUtils.asString(json['id']),
+    title: JsonUtils.asString(json['title'], defaultValue: 'Untitled Task'),
+    description: JsonUtils.asString(json['description']),
+    isCompleted: JsonUtils.asBool(json['is_completed']),
+    dueDate: json['due_date'] != null ? JsonUtils.asDateTime(json['due_date']) : null,
+    category: JsonUtils.asString(json['category']),
+    progress: JsonUtils.asDouble(json['progress']),
+    createdAt: JsonUtils.asDateTime(json['created_at']),
+    courseId: JsonUtils.asString(json['course_id']),
+    priority: JsonUtils.asInt(json['priority'], defaultValue: 1),
+    reminderTime: json['reminder_time'] != null ? JsonUtils.asDateTime(json['reminder_time']) : null,
+    isDeleted: JsonUtils.asBool(json['is_deleted']),
+  );
 
   factory Task.create({
     required String title,

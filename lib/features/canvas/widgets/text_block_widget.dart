@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:classlly/data/models/note_models.dart';
 import 'package:classlly/features/canvas/providers/canvas_provider.dart';
+import 'package:classlly/features/audio/providers/audio_provider.dart';
 
 class TextBlockWidget extends StatefulWidget {
   final TextBlock block;
@@ -34,7 +35,23 @@ class _TextBlockWidgetState extends State<TextBlockWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final canvasProvider = Provider.of<CanvasProvider>(context, listen: false);
+    final canvasProvider = Provider.of<CanvasProvider>(context);
+
+    // Auto-exit editing if deselected externally (e.g. tapping canvas background)
+    if (!canvasProvider.selectedTextBlocks.contains(widget.block) &&
+        _isEditing) {
+      // We must schedule this to avoid setState during build, or just do it?
+      // Better to do it in a post-frame callback or just use the FocusNode to check?
+      // Actually, if we just unfocus, the keyboard closes.
+      // Let's use a post-frame callback to avoid build errors.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _isEditing) {
+          setState(() => _isEditing = false);
+          _focusNode.unfocus();
+        }
+      });
+    }
+
     return Positioned(
       left: widget.block.x,
       top: widget.block.y,
@@ -51,6 +68,16 @@ class _TextBlockWidgetState extends State<TextBlockWidget> {
           }
         },
         onTap: () {
+          final audioProvider = Provider.of<AudioProvider>(
+            context,
+            listen: false,
+          );
+          // Select this block by simulating a tap inside it
+          canvasProvider.selectItemAt(
+            Offset(widget.block.x + 10, widget.block.y + 10),
+            audioProvider,
+          );
+
           setState(() {
             _isEditing = true;
             _focusNode.requestFocus();
@@ -65,21 +92,30 @@ class _TextBlockWidgetState extends State<TextBlockWidget> {
               enabled: _isEditing,
               maxLines: null,
               style: TextStyle(
-                fontSize: 16,
-                color: Theme.of(context).textTheme.bodyMedium?.color,
+                fontSize: widget.block.fontSize,
+                color: Color(widget.block.color),
+                fontWeight: widget.block.isBold
+                    ? FontWeight.bold
+                    : FontWeight.normal,
+                fontStyle: widget.block.isItalic
+                    ? FontStyle.italic
+                    : FontStyle.normal,
+                decoration: widget.block.isUnderline
+                    ? TextDecoration.underline
+                    : TextDecoration.none,
               ),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 border: InputBorder.none,
                 isDense: true,
-                contentPadding: EdgeInsets.all(4),
+                contentPadding: const EdgeInsets.all(4),
+                filled: widget.block.hasBackground,
+                fillColor: widget.block.hasBackground
+                    ? Colors.yellow.withValues(alpha: 0.3)
+                    : null,
               ),
               onChanged: (text) =>
                   canvasProvider.updateTextBlock(widget.block.id, text),
               onSubmitted: (_) => setState(() => _isEditing = false),
-              onTapOutside: (_) {
-                setState(() => _isEditing = false);
-                _focusNode.unfocus();
-              },
             ),
           ),
         ),

@@ -31,7 +31,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     'Year 4',
     'Master',
     'PhD',
-    'Other'
+    'Other',
   ];
 
   @override
@@ -50,7 +50,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   }
 
   Future<void> _loadTemplates() async {
-    final provider = Provider.of<AcademicCalendarProvider>(context, listen: false);
+    final provider = Provider.of<AcademicCalendarProvider>(
+      context,
+      listen: false,
+    );
     final templates = await provider.getAvailableTemplates();
     if (mounted) {
       setState(() {
@@ -65,12 +68,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     setState(() => _isLoading = true);
     try {
       final name = _nameController.text.trim();
-      
+
       // 1. Update Supabase Metadata
       await Supabase.instance.client.auth.updateUser(
-        UserAttributes(
-          data: {'full_name': name},
-        ),
+        UserAttributes(data: {'full_name': name}),
       );
 
       // 2. Save Local Profile
@@ -85,7 +86,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       final repo = NotesRepository();
       await repo.saveStudentProfile(profile);
 
-      // 3. Upsert to Supabase directly to prevent stale remote data from overwriting local on sync
+      // 3. Mark Onboarding as complete
+      final prefs = repo.getPreferences();
+      prefs.hasCompletedOnboarding = true;
+      await repo.savePreferences(prefs);
+
+      // 4. Upsert to Supabase directly to prevent stale remote data from overwriting local on sync
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
         await Supabase.instance.client.from('student_profiles').upsert({
@@ -100,8 +106,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       // Auto-load academic calendar if a template matches the selected university
       if (mounted) {
         final navigator = Navigator.of(context);
-        final libraryProvider = Provider.of<LibraryProvider>(context, listen: false);
-        final calendarProvider = Provider.of<AcademicCalendarProvider>(context, listen: false);
+        final libraryProvider = Provider.of<LibraryProvider>(
+          context,
+          listen: false,
+        );
+        final calendarProvider = Provider.of<AcademicCalendarProvider>(
+          context,
+          listen: false,
+        );
 
         final selectedUni = _universityController.text.trim();
         final template = _availableTemplates.firstWhere(
@@ -122,9 +134,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving profile: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving profile: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -138,13 +150,29 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       // If the user entered a name but clicked skip, try to use it, otherwise fallback
       String name = _nameController.text.trim();
       if (name.isEmpty) {
-         name = user?.userMetadata?['full_name'] as String? ?? 'Student';
+        name = user?.userMetadata?['full_name'] as String? ?? 'Student';
       }
 
       // Save minimal profile with just the name
       final profile = StudentProfile(name: name);
       final repo = NotesRepository();
       await repo.saveStudentProfile(profile);
+
+      // Mark Onboarding as complete
+      final prefs = repo.getPreferences();
+      prefs.hasCompletedOnboarding = true;
+      await repo.savePreferences(prefs);
+
+      // Sync minimal profile to Supabase so hasProfile() returns true on other devices
+      if (user != null) {
+        await Supabase.instance.client.from('student_profiles').upsert({
+          'user_id': user.id,
+          'university': '',
+          'major': '',
+          'year': '',
+          'student_id': '',
+        });
+      }
 
       if (mounted) {
         Provider.of<LibraryProvider>(context, listen: false).initSync();
@@ -225,49 +253,59 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         return Autocomplete<String>(
                           optionsBuilder: (TextEditingValue textEditingValue) {
                             if (textEditingValue.text == '') {
-                              return _availableTemplates.map((t) => t['universityName'] as String);
+                              return _availableTemplates.map(
+                                (t) => t['universityName'] as String,
+                              );
                             }
                             return _availableTemplates
                                 .map((t) => t['universityName'] as String)
                                 .where((String option) {
-                              return option.toLowerCase().contains(
+                                  return option.toLowerCase().contains(
                                     textEditingValue.text.toLowerCase(),
                                   );
-                            });
+                                });
                           },
                           onSelected: (String selection) {
                             _universityController.text = selection;
                           },
-                          fieldViewBuilder: (
-                            BuildContext context,
-                            TextEditingController fieldTextEditingController,
-                            FocusNode fieldFocusNode,
-                            VoidCallback onFieldSubmitted,
-                          ) {
-                            // Sync the external controller with the autocomplete one
-                            if (fieldTextEditingController.text != _universityController.text) {
-                                fieldTextEditingController.text = _universityController.text;
-                            }
-                            // Listen to changes to update our controller
-                            fieldTextEditingController.addListener(() {
-                                _universityController.text = fieldTextEditingController.text;
-                            });
+                          fieldViewBuilder:
+                              (
+                                BuildContext context,
+                                TextEditingController
+                                fieldTextEditingController,
+                                FocusNode fieldFocusNode,
+                                VoidCallback onFieldSubmitted,
+                              ) {
+                                // Sync the external controller with the autocomplete one
+                                if (fieldTextEditingController.text !=
+                                    _universityController.text) {
+                                  fieldTextEditingController.text =
+                                      _universityController.text;
+                                }
+                                // Listen to changes to update our controller
+                                fieldTextEditingController.addListener(() {
+                                  _universityController.text =
+                                      fieldTextEditingController.text;
+                                });
 
-                            return TextFormField(
-                              controller: fieldTextEditingController,
-                              focusNode: fieldFocusNode,
-                              decoration: InputDecoration(
-                                labelText: 'University / Institution',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                prefixIcon: const Icon(Icons.school_outlined),
-                              ),
-                              validator: (v) => v?.isEmpty == true ? 'Required' : null,
-                            );
-                          },
+                                return TextFormField(
+                                  controller: fieldTextEditingController,
+                                  focusNode: fieldFocusNode,
+                                  decoration: InputDecoration(
+                                    labelText: 'University / Institution',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    prefixIcon: const Icon(
+                                      Icons.school_outlined,
+                                    ),
+                                  ),
+                                  validator: (v) =>
+                                      v?.isEmpty == true ? 'Required' : null,
+                                );
+                              },
                         );
-                      }
+                      },
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -291,10 +329,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         ),
                         prefixIcon: const Icon(Icons.calendar_today_outlined),
                       ),
-                      items: _years.map((y) => DropdownMenuItem(
-                        value: y,
-                        child: Text(y),
-                      )).toList(),
+                      items: _years
+                          .map(
+                            (y) => DropdownMenuItem(value: y, child: Text(y)),
+                          )
+                          .toList(),
                       onChanged: (val) => setState(() => _selectedYear = val!),
                     ),
                     const SizedBox(height: 16),
@@ -315,7 +354,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       ElevatedButton(
                         onPressed: _saveProfile,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           shape: RoundedRectangleBorder(
@@ -324,7 +365,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         ),
                         child: const Text(
                           'Complete Setup',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     const SizedBox(height: 16),

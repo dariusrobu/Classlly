@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
+import 'package:classlly/core/utils/json_utils.dart';
 
 part 'course_model.g.dart';
 
@@ -45,6 +46,12 @@ class Course extends HiveObject {
   @HiveField(16)
   String seminarTime;
 
+  @HiveField(17, defaultValue: 0.0)
+  double cachedAverageGrade;
+
+  @HiveField(18, defaultValue: 0.0)
+  double cachedAttendanceRate;
+
   Course({
     required this.id,
     required this.title,
@@ -63,7 +70,53 @@ class Course extends HiveObject {
     this.seminarFrequency = '',
     this.seminarDay = '',
     this.seminarTime = '',
+    this.cachedAverageGrade = 0.0,
+    this.cachedAttendanceRate = 0.0,
   });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'professor': professor,
+    'schedule': schedule,
+    'location': location,
+    'color': color,
+    'semester': semester,
+    'icon_code': iconCodePoint,
+    'credits': credits,
+    'course_frequency': courseFrequency,
+    'course_day': courseDay,
+    'course_time': courseTime,
+    'seminar_professor': seminarProfessor,
+    'seminar_location': seminarLocation,
+    'seminar_frequency': seminarFrequency,
+    'seminar_day': seminarDay,
+    'seminar_time': seminarTime,
+    'cached_average_grade': cachedAverageGrade,
+    'cached_attendance_rate': cachedAttendanceRate,
+  };
+
+  factory Course.fromJson(Map<String, dynamic> json) => Course(
+    id: JsonUtils.asString(json['id']),
+    title: JsonUtils.asString(json['title'], defaultValue: 'Untitled Course'),
+    professor: JsonUtils.asString(json['professor']),
+    schedule: JsonUtils.asString(json['schedule']),
+    location: JsonUtils.asString(json['location']),
+    color: JsonUtils.asInt(json['color'], defaultValue: 0xFF3B82F6),
+    semester: JsonUtils.asString(json['semester']),
+    iconCodePoint: JsonUtils.asInt(json['icon_code'], defaultValue: 0xe559),
+    credits: JsonUtils.asDouble(json['credits']),
+    courseFrequency: JsonUtils.asString(json['course_frequency']),
+    courseDay: JsonUtils.asString(json['course_day']),
+    courseTime: JsonUtils.asString(json['course_time']),
+    seminarProfessor: JsonUtils.asString(json['seminar_professor']),
+    seminarLocation: JsonUtils.asString(json['seminar_location']),
+    seminarFrequency: JsonUtils.asString(json['seminar_frequency']),
+    seminarDay: JsonUtils.asString(json['seminar_day']),
+    seminarTime: JsonUtils.asString(json['seminar_time']),
+    cachedAverageGrade: JsonUtils.asDouble(json['cached_average_grade']),
+    cachedAttendanceRate: JsonUtils.asDouble(json['cached_attendance_rate']),
+  );
 
   factory Course.create({
     required String title,

@@ -36,18 +36,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
         return;
       }
-      
+
       // Update metadata with full name
       await Supabase.instance.client.auth.updateUser(
-        UserAttributes(
-          data: {'full_name': _fullNameController.text.trim()},
-        ),
+        UserAttributes(data: {'full_name': _fullNameController.text.trim()}),
       );
 
       if (mounted) {
         // Close the SignUp Dialog
         Navigator.pop(context);
-        
+
         // Show Profile Setup Dialog
         showDialog(
           context: context,
@@ -147,7 +145,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         prefixIcon: const Icon(Icons.email_outlined),
                       ),
                       keyboardType: TextInputType.emailAddress,
-                      validator: (v) => v?.contains('@') != true ? 'Invalid email' : null,
+                      validator: (v) =>
+                          v?.contains('@') != true ? 'Invalid email' : null,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -160,7 +159,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         prefixIcon: const Icon(Icons.lock_outline),
                       ),
                       obscureText: true,
-                      validator: (v) => (v?.length ?? 0) < 6 ? 'Too short' : null,
+                      validator: (v) =>
+                          (v?.length ?? 0) < 6 ? 'Too short' : null,
                     ),
                     const SizedBox(height: 32),
                     if (_isLoading)
@@ -169,7 +169,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ElevatedButton(
                         onPressed: _handleSignUp,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           shape: RoundedRectangleBorder(
@@ -178,14 +180,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                         child: const Text(
                           'Create Account',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('Already have an account? ', style: TextStyle(color: Colors.grey)),
+                        const Text(
+                          'Already have an account? ',
+                          style: TextStyle(color: Colors.grey),
+                        ),
                         TextButton(
                           onPressed: () => Navigator.pop(context),
                           child: const Text('Sign In'),

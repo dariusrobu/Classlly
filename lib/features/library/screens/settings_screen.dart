@@ -7,6 +7,10 @@ import 'package:classlly/features/library/widgets/dashboard_sidebar.dart';
 import 'package:classlly/data/models/academic_calendar_model.dart';
 import 'package:classlly/features/library/providers/library_provider.dart';
 import 'package:classlly/features/library/providers/academic_calendar_provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:classlly/data/models/user_preferences_model.dart';
+import 'package:classlly/data/repositories/notes_repository.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -22,7 +26,7 @@ class SettingsScreen extends StatelessWidget {
       // On mobile, show a standard AppBar. On desktop, the custom header is used.
       appBar: isMobile
           ? AppBar(
-              title: const Text('Settings'),
+              title: Text(AppLocalizations.of(context)!.settings),
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               elevation: 0,
               iconTheme: IconThemeData(
@@ -38,74 +42,78 @@ class SettingsScreen extends StatelessWidget {
 
           // Main Content
           Expanded(
-            child: Column(
-              children: [
-                if (!isMobile) _buildHeader(context, isDark),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isMobile ? 24 : 60,
-                      vertical: 40,
-                    ),
-                    child: Center(
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 800),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildSectionHeader(
-                              'Appearance',
-                              'Customize how Classlly looks and feels on your device.',
-                              isDark,
-                            ),
-                            const SizedBox(height: 24),
-                            _buildGlassPanel(
-                              isDark: isDark,
-                              child: Column(
-                                children: [
-                                  _buildThemeRow(context, isDark),
-                                  Divider(
-                                    height: 1,
-                                    color: isDark
-                                        ? Colors.white10
-                                        : Colors.black.withValues(alpha: 0.05),
-                                  ),
-                                  _buildAccentColorRow(context, isDark),
-                                ],
+            child: SafeArea(
+              child: Column(
+                children: [
+                  _buildHeader(context, isDark, isMobile),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isMobile ? 24 : 60,
+                        vertical: 40,
+                      ),
+                      child: Center(
+                        child: Container(
+                          constraints: const BoxConstraints(maxWidth: 800),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildSectionHeader(
+                                AppLocalizations.of(context)!.appearance,
+                                AppLocalizations.of(context)!.appearanceDesc,
+                                isDark,
                               ),
-                            ),
-                            const SizedBox(height: 48),
-                            _buildSectionHeader(
-                              'Academic Calendar',
-                              'Manage your teaching periods, exams, holidays, and free days.',
-                              isDark,
-                            ),
-                            const SizedBox(height: 24),
-                            _buildAcademicCalendar(context, isDark),
-                            const SizedBox(height: 48),
-                            _buildSectionHeader(
-                              'Notifications',
-                              'Stay updated with your schedule and deadlines.',
-                              isDark,
-                            ),
-                            const SizedBox(height: 24),
-                            _buildNotificationSettings(isDark),
-                            const SizedBox(height: 48),
-                            _buildSectionHeader(
-                              'Sync & Cloud',
-                              'Your academic data is secured and synchronized via Classlly Cloud.',
-                              isDark,
-                            ),
-                            const SizedBox(height: 24),
-                            _buildCloudSyncCard(context, isDark),
-                            const SizedBox(height: 100),
-                          ],
+                              const SizedBox(height: 24),
+                              _buildGlassPanel(
+                                isDark: isDark,
+                                child: Column(
+                                  children: [
+                                    _buildThemeRow(context, isDark),
+                                    Divider(
+                                      height: 1,
+                                      color: isDark
+                                          ? Colors.white10
+                                          : Colors.black.withValues(
+                                              alpha: 0.05,
+                                            ),
+                                    ),
+                                    _buildAccentColorRow(context, isDark),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 48),
+                              _buildSectionHeader(
+                                AppLocalizations.of(context)!.academicCalendar,
+                                AppLocalizations.of(context)!.calendarDesc,
+                                isDark,
+                              ),
+                              const SizedBox(height: 24),
+                              _buildAcademicCalendar(context, isDark),
+                              const SizedBox(height: 48),
+                              _buildSectionHeader(
+                                AppLocalizations.of(context)!.notifications,
+                                AppLocalizations.of(context)!.notificationsDesc,
+                                isDark,
+                              ),
+                              const SizedBox(height: 24),
+                              _buildNotificationSettings(isDark),
+                              const SizedBox(height: 48),
+                              _buildSectionHeader(
+                                AppLocalizations.of(context)!.syncCloud,
+                                AppLocalizations.of(context)!.syncCloudDesc,
+                                isDark,
+                              ),
+                              const SizedBox(height: 24),
+                              _buildCloudSyncCard(context, isDark),
+                              const SizedBox(height: 100),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -113,7 +121,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, bool isDark) {
+  Widget _buildHeader(BuildContext context, bool isDark, bool isMobile) {
     final textColor = isDark ? Colors.white : Colors.black;
     final subColor = isDark ? Colors.grey : Colors.grey[800];
 
@@ -131,8 +139,16 @@ class SettingsScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
+          if (isMobile)
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: IconButton(
+                onPressed: () => Scaffold.of(context).openDrawer(),
+                icon: Icon(Icons.menu, color: subColor),
+              ),
+            ),
           Text(
-            'Settings',
+            AppLocalizations.of(context)!.settings,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -140,10 +156,10 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
           const VerticalDivider(width: 32, indent: 24, endIndent: 24),
-          Text('Workspace', style: TextStyle(fontSize: 12, color: subColor)),
+          Text(AppLocalizations.of(context)!.workspace, style: TextStyle(fontSize: 12, color: subColor)),
           Icon(Icons.chevron_right, size: 14, color: subColor),
           Text(
-            'Appearance',
+            AppLocalizations.of(context)!.appearance,
             style: TextStyle(
               fontSize: 12,
               color: isDark ? Colors.white70 : Colors.black87,
@@ -213,14 +229,14 @@ class SettingsScreen extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Row(
         children: [
-          _iconBox(Icons.dark_mode, isDark),
+          _iconBox(context, Icons.dark_mode, isDark),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Interface Theme',
+                  AppLocalizations.of(context)!.interfaceTheme,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
@@ -228,7 +244,7 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Choose between light, dark, or system default.',
+                  AppLocalizations.of(context)!.themeDesc,
                   style: TextStyle(
                     fontSize: 12,
                     color: isDark ? Colors.grey : Colors.grey[700],
@@ -250,7 +266,8 @@ class SettingsScreen extends StatelessWidget {
                 GestureDetector(
                   onTap: () => themeProvider.setThemeMode(ThemeMode.light),
                   child: _themeBtn(
-                    'Light',
+                    context,
+                    AppLocalizations.of(context)!.light,
                     themeProvider.themeMode == ThemeMode.light,
                     isDark,
                   ),
@@ -258,7 +275,8 @@ class SettingsScreen extends StatelessWidget {
                 GestureDetector(
                   onTap: () => themeProvider.setThemeMode(ThemeMode.dark),
                   child: _themeBtn(
-                    'Dark',
+                    context,
+                    AppLocalizations.of(context)!.dark,
                     themeProvider.themeMode == ThemeMode.dark,
                     isDark,
                   ),
@@ -266,7 +284,8 @@ class SettingsScreen extends StatelessWidget {
                 GestureDetector(
                   onTap: () => themeProvider.setThemeMode(ThemeMode.system),
                   child: _themeBtn(
-                    'System',
+                    context,
+                    AppLocalizations.of(context)!.system,
                     themeProvider.themeMode == ThemeMode.system,
                     isDark,
                   ),
@@ -279,11 +298,18 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _themeBtn(String label, bool active, bool isDark) {
+  Widget _themeBtn(
+    BuildContext context,
+    String label,
+    bool active,
+    bool isDark,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: active ? AppTheme.primaryPurple : Colors.transparent,
+        color: active
+            ? Theme.of(context).colorScheme.primary
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -307,7 +333,7 @@ class SettingsScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Accent Color',
+            AppLocalizations.of(context)!.accentColor,
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 15,
@@ -315,46 +341,24 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
           Text(
-            'Select the glowing accent used for buttons and highlights.',
+            AppLocalizations.of(context)!.accentColorDesc,
             style: TextStyle(
               fontSize: 12,
               color: isDark ? Colors.grey : Colors.grey[700],
             ),
           ),
           const SizedBox(height: 20),
-          Row(
-            children: [
-              _colorDot(
-                AppTheme.primaryPurple,
-                themeProvider.accentColor == AppTheme.primaryPurple,
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: AppTheme.accentColors.map((color) {
+              return _colorDot(
+                color,
+                themeProvider.accentColor.toARGB32() == color.toARGB32(),
                 isDark,
-                () => themeProvider.setAccentColor(AppTheme.primaryPurple),
-              ),
-              _colorDot(
-                Colors.blue,
-                themeProvider.accentColor == Colors.blue,
-                isDark,
-                () => themeProvider.setAccentColor(Colors.blue),
-              ),
-              _colorDot(
-                Colors.teal,
-                themeProvider.accentColor == Colors.teal,
-                isDark,
-                () => themeProvider.setAccentColor(Colors.teal),
-              ),
-              _colorDot(
-                Colors.orange,
-                themeProvider.accentColor == Colors.orange,
-                isDark,
-                () => themeProvider.setAccentColor(Colors.orange),
-              ),
-              _colorDot(
-                Colors.pink,
-                themeProvider.accentColor == Colors.pink,
-                isDark,
-                () => themeProvider.setAccentColor(Colors.pink),
-              ),
-            ],
+                () => themeProvider.setAccentColor(color),
+              );
+            }).toList(),
           ),
         ],
       ),
@@ -392,7 +396,7 @@ class SettingsScreen extends StatelessWidget {
     final libraryProvider = Provider.of<LibraryProvider>(context);
     final lastSynced = libraryProvider.lastSynced != null
         ? DateFormat('MMM d, HH:mm').format(libraryProvider.lastSynced!)
-        : 'Never';
+        : AppLocalizations.of(context)!.never;
 
     return _buildGlassPanel(
       isDark: isDark,
@@ -402,14 +406,14 @@ class SettingsScreen extends StatelessWidget {
           children: [
             Row(
               children: [
-                _iconBox(Icons.cloud_done_rounded, isDark, size: 48),
+                _iconBox(context, Icons.cloud_done_rounded, isDark, size: 48),
                 const SizedBox(width: 20),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Classlly Cloud Sync',
+                        AppLocalizations.of(context)!.cloudSyncTitle,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -417,7 +421,7 @@ class SettingsScreen extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Last synced: $lastSynced',
+                        AppLocalizations.of(context)!.lastSynced(lastSynced),
                         style: TextStyle(
                           fontSize: 12,
                           color: isDark ? Colors.grey : Colors.grey[700],
@@ -429,9 +433,9 @@ class SettingsScreen extends StatelessWidget {
                 ElevatedButton.icon(
                   onPressed: () => libraryProvider.initSync(),
                   icon: const Icon(Icons.sync, size: 16),
-                  label: const Text('Sync Now'),
+                  label: Text(AppLocalizations.of(context)!.syncNow),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryPurple,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -443,7 +447,7 @@ class SettingsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'Supabase ensures your data is encrypted and only accessible by you using Row Level Security (RLS). Google Drive and iCloud backups can be enabled in our web dashboard.',
+              AppLocalizations.of(context)!.supabaseSecurity,
               style: TextStyle(
                 fontSize: 11,
                 color: isDark ? Colors.white54 : Colors.black54,
@@ -456,12 +460,19 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildToggleRow(String title, String subtitle, bool val, bool isDark) {
+  Widget _buildToggleRow(
+    BuildContext context,
+    String title,
+    String subtitle,
+    bool val,
+    bool isDark,
+    ValueChanged<bool> onChanged,
+  ) {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Row(
         children: [
-          _iconBox(Icons.contrast, isDark),
+          _iconBox(context, Icons.contrast, isDark),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -487,8 +498,8 @@ class SettingsScreen extends StatelessWidget {
           ),
           Switch(
             value: val,
-            onChanged: (v) {},
-            activeThumbColor: AppTheme.primaryPurple,
+            onChanged: onChanged,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
         ],
       ),
@@ -511,7 +522,7 @@ class SettingsScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Periods',
+                  AppLocalizations.of(context)!.periods,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -521,9 +532,9 @@ class SettingsScreen extends StatelessWidget {
                 TextButton.icon(
                   onPressed: () => _showLoadTemplateDialog(context),
                   icon: const Icon(Icons.download, size: 16),
-                  label: const Text('Load Template'),
+                  label: Text(AppLocalizations.of(context)!.loadTemplate),
                   style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.primaryPurple,
+                    foregroundColor: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 TextButton.icon(
@@ -531,14 +542,14 @@ class SettingsScreen extends StatelessWidget {
                     showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
-                        title: const Text('Clear Calendar'),
-                        content: const Text(
-                          'Are you sure you want to delete all periods and events? This cannot be undone.',
+                        title: Text(AppLocalizations.of(context)!.clearCalendar),
+                        content: Text(
+                          AppLocalizations.of(context)!.clearCalendarConfirm,
                         ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(context),
-                            child: const Text('Cancel'),
+                            child: Text(AppLocalizations.of(context)!.cancel),
                           ),
                           TextButton(
                             onPressed: () {
@@ -548,17 +559,21 @@ class SettingsScreen extends StatelessWidget {
                               ).clearCalendar();
                               Navigator.pop(context);
                             },
-                            child: const Text(
-                              'Clear All',
-                              style: TextStyle(color: Colors.red),
+                            child: Text(
+                              AppLocalizations.of(context)!.clearAll,
+                              style: const TextStyle(color: Colors.red),
                             ),
                           ),
                         ],
                       ),
                     );
                   },
-                  icon: const Icon(Icons.delete_sweep, size: 16, color: Colors.redAccent),
-                  label: const Text('Clear'),
+                  icon: const Icon(
+                    Icons.delete_sweep,
+                    size: 16,
+                    color: Colors.redAccent,
+                  ),
+                  label: Text(AppLocalizations.of(context)!.delete),
                   style: TextButton.styleFrom(
                     foregroundColor: Colors.redAccent,
                   ),
@@ -566,9 +581,9 @@ class SettingsScreen extends StatelessWidget {
                 TextButton.icon(
                   onPressed: () => _showAddPeriodDialog(context),
                   icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Add Period'),
+                  label: Text(AppLocalizations.of(context)!.addPeriod),
                   style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.primaryPurple,
+                    foregroundColor: Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ],
@@ -577,7 +592,7 @@ class SettingsScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Text(
-                  'No periods added yet.',
+                  AppLocalizations.of(context)!.noPeriodsAdded,
                   style: TextStyle(
                     color: isDark ? Colors.white54 : Colors.black54,
                     fontStyle: FontStyle.italic,
@@ -600,7 +615,7 @@ class SettingsScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Holidays & Free Days',
+                  AppLocalizations.of(context)!.holidaysFreeDays,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -610,9 +625,9 @@ class SettingsScreen extends StatelessWidget {
                 TextButton.icon(
                   onPressed: () => _showAddEventDialog(context),
                   icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Add Event'),
+                  label: Text(AppLocalizations.of(context)!.addEvent),
                   style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.primaryPurple,
+                    foregroundColor: Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ],
@@ -621,7 +636,7 @@ class SettingsScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Text(
-                  'No events added yet.',
+                  AppLocalizations.of(context)!.noEventsAdded,
                   style: TextStyle(
                     color: isDark ? Colors.white54 : Colors.black54,
                     fontStyle: FontStyle.italic,
@@ -652,13 +667,15 @@ class SettingsScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppTheme.primaryPurple.withValues(alpha: 0.1),
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               _getPeriodIcon(period.type),
               size: 20,
-              color: AppTheme.primaryPurple,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
           const SizedBox(width: 16),
@@ -687,7 +704,9 @@ class SettingsScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+              color: isDark
+                  ? Colors.white10
+                  : Colors.black.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
@@ -779,6 +798,8 @@ class SettingsScreen extends StatelessWidget {
         return Icons.event_note;
       case AcademicPeriodType.retake:
         return Icons.restore;
+      case AcademicPeriodType.holiday:
+        return Icons.celebration;
     }
   }
 
@@ -794,7 +815,7 @@ class SettingsScreen extends StatelessWidget {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
-            title: const Text('Add Academic Period'),
+            title: Text(AppLocalizations.of(context)!.addPeriod),
             content: Form(
               key: formKey,
               child: Column(
@@ -803,21 +824,19 @@ class SettingsScreen extends StatelessWidget {
                   TextFormField(
                     controller: nameController,
                     decoration: const InputDecoration(labelText: 'Period Name'),
-                    validator:
-                        (v) =>
-                            v == null || v.isEmpty ? 'Please enter a name' : null,
+                    validator: (v) =>
+                        v == null || v.isEmpty ? 'Please enter a name' : null,
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<AcademicPeriodType>(
                     initialValue: type,
                     decoration: const InputDecoration(labelText: 'Type'),
-                    items:
-                        AcademicPeriodType.values.map((t) {
-                          return DropdownMenuItem(
-                            value: t,
-                            child: Text(t.name.toUpperCase()),
-                          );
-                        }).toList(),
+                    items: AcademicPeriodType.values.map((t) {
+                      return DropdownMenuItem(
+                        value: t,
+                        child: Text(t.name.toUpperCase()),
+                      );
+                    }).toList(),
                     onChanged: (v) {
                       if (v != null) setState(() => type = v);
                     },
@@ -870,7 +889,7 @@ class SettingsScreen extends StatelessWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
+                child: Text(AppLocalizations.of(context)!.cancel),
               ),
               ElevatedButton(
                 onPressed: () {
@@ -887,7 +906,7 @@ class SettingsScreen extends StatelessWidget {
                     Navigator.pop(context);
                   }
                 },
-                child: const Text('Add'),
+                child: Text(AppLocalizations.of(context)!.addNote.split(' ')[0]),
               ),
             ],
           );
@@ -907,7 +926,7 @@ class SettingsScreen extends StatelessWidget {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
-            title: const Text('Add Event'),
+            title: Text(AppLocalizations.of(context)!.addEvent),
             content: Form(
               key: formKey,
               child: Column(
@@ -916,21 +935,19 @@ class SettingsScreen extends StatelessWidget {
                   TextFormField(
                     controller: nameController,
                     decoration: const InputDecoration(labelText: 'Event Name'),
-                    validator:
-                        (v) =>
-                            v == null || v.isEmpty ? 'Please enter a name' : null,
+                    validator: (v) =>
+                        v == null || v.isEmpty ? 'Please enter a name' : null,
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<AcademicEventType>(
                     initialValue: type,
                     decoration: const InputDecoration(labelText: 'Type'),
-                    items:
-                        AcademicEventType.values.map((t) {
-                          return DropdownMenuItem(
-                            value: t,
-                            child: Text(t.name.toUpperCase()),
-                          );
-                        }).toList(),
+                    items: AcademicEventType.values.map((t) {
+                      return DropdownMenuItem(
+                        value: t,
+                        child: Text(t.name.toUpperCase()),
+                      );
+                    }).toList(),
                     onChanged: (v) {
                       if (v != null) setState(() => type = v);
                     },
@@ -956,7 +973,7 @@ class SettingsScreen extends StatelessWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
+                child: Text(AppLocalizations.of(context)!.cancel),
               ),
               ElevatedButton(
                 onPressed: () {
@@ -972,7 +989,7 @@ class SettingsScreen extends StatelessWidget {
                     Navigator.pop(context);
                   }
                 },
-                child: const Text('Add'),
+                child: Text(AppLocalizations.of(context)!.addNote.split(' ')[0]),
               ),
             ],
           );
@@ -982,12 +999,15 @@ class SettingsScreen extends StatelessWidget {
   }
 
   void _showLoadTemplateDialog(BuildContext context) {
-    final provider = Provider.of<AcademicCalendarProvider>(context, listen: false);
+    final provider = Provider.of<AcademicCalendarProvider>(
+      context,
+      listen: false,
+    );
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Load Academic Template'),
+        title: Text(AppLocalizations.of(context)!.loadTemplate),
         content: SizedBox(
           width: 400,
           child: FutureBuilder<List<dynamic>>(
@@ -999,7 +1019,9 @@ class SettingsScreen extends StatelessWidget {
                   child: Center(child: CircularProgressIndicator()),
                 );
               }
-              if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+              if (snapshot.hasError ||
+                  !snapshot.hasData ||
+                  snapshot.data!.isEmpty) {
                 return const Text('Could not load templates.');
               }
 
@@ -1017,7 +1039,9 @@ class SettingsScreen extends StatelessWidget {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Loaded ${t['universityName']} template'),
+                          content: Text(
+                            'Loaded ${t['universityName']} template',
+                          ),
                         ),
                       );
                     },
@@ -1030,14 +1054,19 @@ class SettingsScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text(AppLocalizations.of(context)!.close),
           ),
         ],
       ),
     );
   }
 
-  Widget _iconBox(IconData icon, bool isDark, {double size = 40}) {
+  Widget _iconBox(
+    BuildContext context,
+    IconData icon,
+    bool isDark, {
+    double size = 40,
+  }) {
     return Container(
       width: size,
       height: size,
@@ -1047,43 +1076,79 @@ class SettingsScreen extends StatelessWidget {
             : Colors.black.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Icon(icon, size: 20, color: AppTheme.primaryPurple),
+      child: Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
     );
   }
 
   Widget _buildNotificationSettings(bool isDark) {
-    return _buildGlassPanel(
-      isDark: isDark,
-      child: Column(
-        children: [
-          _buildToggleRow(
-            'Lecture Reminders',
-            'Get notified before your classes start.',
-            true,
-            isDark,
+    return ValueListenableBuilder(
+      valueListenable: Hive.box<UserPreferences>(
+        NotesRepository.preferencesBoxName,
+      ).listenable(),
+      builder: (context, Box<UserPreferences> box, _) {
+        final prefs = box.get('user_prefs') ?? UserPreferences();
+
+        void savePrefs() {
+          if (prefs.isInBox) {
+            prefs.save();
+          } else {
+            box.put('user_prefs', prefs);
+          }
+        }
+
+        return _buildGlassPanel(
+          isDark: isDark,
+          child: Column(
+            children: [
+              _buildToggleRow(
+                context,
+                AppLocalizations.of(context)!.lectureReminders,
+                AppLocalizations.of(context)!.lectureRemindersDesc,
+                prefs.lectureReminders,
+                isDark,
+                (val) {
+                  prefs.lectureReminders = val;
+                  savePrefs();
+                },
+              ),
+              Divider(
+                height: 1,
+                color: isDark
+                    ? Colors.white10
+                    : Colors.black.withValues(alpha: 0.05),
+              ),
+              _buildToggleRow(
+                context,
+                AppLocalizations.of(context)!.taskDeadlines,
+                AppLocalizations.of(context)!.taskDeadlinesDesc,
+                prefs.taskDeadlines,
+                isDark,
+                (val) {
+                  prefs.taskDeadlines = val;
+                  savePrefs();
+                },
+              ),
+              Divider(
+                height: 1,
+                color: isDark
+                    ? Colors.white10
+                    : Colors.black.withValues(alpha: 0.05),
+              ),
+              _buildToggleRow(
+                context,
+                AppLocalizations.of(context)!.appUpdates,
+                AppLocalizations.of(context)!.appUpdatesDesc,
+                prefs.appUpdates,
+                isDark,
+                (val) {
+                  prefs.appUpdates = val;
+                  savePrefs();
+                },
+              ),
+            ],
           ),
-          Divider(
-            height: 1,
-            color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-          ),
-          _buildToggleRow(
-            'Task Deadlines',
-            'Stay on top of your assignments and exams.',
-            true,
-            isDark,
-          ),
-          Divider(
-            height: 1,
-            color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-          ),
-          _buildToggleRow(
-            'App Updates',
-            'Receive news about new features and improvements.',
-            false,
-            isDark,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

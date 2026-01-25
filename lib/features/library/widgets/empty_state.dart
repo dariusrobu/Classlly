@@ -72,7 +72,9 @@ class EmptyState extends StatelessWidget {
                       ),
                     ),
                   ],
-                  if (actionLabel != null && onAction != null && !isCompact) ...[
+                  if (actionLabel != null &&
+                      onAction != null &&
+                      !isCompact) ...[
                     const SizedBox(height: 32),
                     ElevatedButton(
                       onPressed: onAction,

@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:classlly/core/theme/app_theme.dart';
 import 'package:classlly/data/models/task_model.dart';
 import 'package:classlly/data/models/course_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 
 import 'package:provider/provider.dart';
-import 'package:classlly/features/library/providers/library_provider.dart';
+import 'package:classlly/features/library/providers/task_provider.dart';
 
 class AddTaskScreen extends StatefulWidget {
-  final Task? task;
+  final Task? taskToEdit;
   final String? initialCourseId;
   final DateTime? initialDate;
-  const AddTaskScreen({super.key, this.task, this.initialCourseId, this.initialDate});
+  const AddTaskScreen({
+    super.key,
+    this.taskToEdit,
+    this.initialCourseId,
+    this.initialDate,
+  });
 
   @override
   State<AddTaskScreen> createState() => _AddTaskScreenState();
@@ -23,7 +27,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
   DateTime? _dueDate;
-  DateTime? _reminderTime;
+  Duration? _reminderOffset;
   int _priority = 1; // 0: Low, 1: Medium, 2: High
   String _taskType = 'Assignment';
   String? _selectedCourseId;
@@ -39,18 +43,34 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     'Other',
   ];
 
+  final Map<Duration?, String> _reminderOptions = {
+    null: 'None',
+    const Duration(hours: 1): '1 hour before',
+    const Duration(hours: 2): '2 hours before',
+    const Duration(days: 1): '1 day before',
+    const Duration(days: 7): '1 week before',
+  };
+
   @override
   void initState() {
     super.initState();
     _loadCourses();
-    if (widget.task != null) {
-      _titleController.text = widget.task!.title;
-      _descController.text = widget.task!.description ?? '';
-      _dueDate = widget.task!.dueDate;
-      _reminderTime = widget.task!.reminderTime;
-      _priority = widget.task!.priority;
-      _taskType = widget.task!.category ?? 'Assignment';
-      _selectedCourseId = widget.task!.courseId;
+    if (widget.taskToEdit != null) {
+      _titleController.text = widget.taskToEdit!.title;
+      _descController.text = widget.taskToEdit!.description ?? '';
+      _dueDate = widget.taskToEdit!.dueDate;
+      _priority = widget.taskToEdit!.priority;
+      _taskType = widget.taskToEdit!.category ?? 'Assignment';
+      _selectedCourseId = widget.taskToEdit!.courseId;
+
+      if (widget.taskToEdit!.reminderTime != null && _dueDate != null) {
+        final diff = _dueDate!.difference(widget.taskToEdit!.reminderTime!);
+        // Find closest matching offset
+        _reminderOffset = _reminderOptions.keys.firstWhere(
+          (d) => d != null && (d.inMinutes - diff.inMinutes).abs() < 5,
+          orElse: () => null,
+        );
+      }
     } else {
       _selectedCourseId = widget.initialCourseId;
       _dueDate = widget.initialDate;
@@ -65,22 +85,28 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
 
   void _save() async {
     if (_formKey.currentState!.validate()) {
-      final provider = Provider.of<LibraryProvider>(context, listen: false);
-      if (widget.task != null) {
-        widget.task!.title = _titleController.text;
-        widget.task!.description = _descController.text;
-        widget.task!.dueDate = _dueDate;
-        widget.task!.reminderTime = _reminderTime;
-        widget.task!.priority = _priority;
-        widget.task!.courseId = _selectedCourseId;
-        widget.task!.category = _taskType;
-        await provider.saveTask(widget.task!);
+      final provider = Provider.of<TaskProvider>(context, listen: false);
+
+      DateTime? reminderTime;
+      if (_dueDate != null && _reminderOffset != null) {
+        reminderTime = _dueDate!.subtract(_reminderOffset!);
+      }
+
+      if (widget.taskToEdit != null) {
+        widget.taskToEdit!.title = _titleController.text;
+        widget.taskToEdit!.description = _descController.text;
+        widget.taskToEdit!.dueDate = _dueDate;
+        widget.taskToEdit!.reminderTime = reminderTime;
+        widget.taskToEdit!.priority = _priority;
+        widget.taskToEdit!.courseId = _selectedCourseId;
+        widget.taskToEdit!.category = _taskType;
+        await provider.saveTask(widget.taskToEdit!);
       } else {
         final newTask = Task.create(
           title: _titleController.text,
           description: _descController.text,
           dueDate: _dueDate,
-          reminderTime: _reminderTime,
+          reminderTime: reminderTime,
           priority: _priority,
           courseId: _selectedCourseId,
           category: _taskType,
@@ -118,7 +144,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
             backgroundColor: Colors.transparent,
             appBar: AppBar(
               title: Text(
-                widget.task != null ? 'Edit Task' : 'New Task',
+                widget.taskToEdit != null ? 'Edit Task' : 'New Task',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -163,7 +189,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                         hintText: 'Description (Optional)',
                         hintStyle: const TextStyle(fontSize: 14),
                         filled: true,
-                        fillColor: Theme.of(context).cardColor.withValues(alpha: 0.5),
+                        fillColor: Theme.of(
+                          context,
+                        ).cardColor.withValues(alpha: 0.5),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide.none,
@@ -204,13 +232,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildDateTimePicker(
-                            'Reminder',
-                            _reminderTime,
-                            (d) => setState(() => _reminderTime = d),
-                          ),
-                        ),
+                        Expanded(child: _buildReminderSelector()),
                       ],
                     ),
 
@@ -261,7 +283,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                       child: ElevatedButton(
                         onPressed: _save,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryPurple,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           shape: RoundedRectangleBorder(
@@ -270,7 +294,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                           elevation: 0,
                         ),
                         child: Text(
-                          widget.task != null ? 'Save Changes' : 'Create Task',
+                          widget.taskToEdit != null
+                              ? 'Save Changes'
+                              : 'Create Task',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -376,7 +402,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                 Icon(
                   Icons.event,
                   size: 16,
-                  color: value != null ? AppTheme.primaryPurple : Colors.grey,
+                  color: value != null
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.grey,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -398,6 +426,51 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildReminderSelector() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 8),
+          const Text(
+            'Reminder',
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          DropdownButtonHideUnderline(
+            child: DropdownButton<Duration?>(
+              value: _reminderOffset,
+              isExpanded: true,
+              icon: const Icon(
+                Icons.notifications_active_outlined,
+                size: 16,
+                color: Colors.grey,
+              ),
+              items: _reminderOptions.entries.map((e) {
+                return DropdownMenuItem<Duration?>(
+                  value: e.key,
+                  child: Text(
+                    e.value,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                );
+              }).toList(),
+              onChanged: (val) => setState(() => _reminderOffset = val),
+            ),
+          ),
+          const SizedBox(height: 4),
+        ],
       ),
     );
   }

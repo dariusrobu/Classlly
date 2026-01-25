@@ -24,14 +24,7 @@ class SupabaseRepository {
         .eq('user_id', user.id)
         .map((data) {
           return data.map((e) {
-            final content = e['content'] as Map<String, dynamic>;
-            return Note.fromJson({
-              'id': e['id'],
-              'title': e['title'],
-              'created_at': e['created_at'],
-              'updated_at': e['updated_at'],
-              ...content,
-            });
+            return Note.fromJson(e);
           }).toList();
         });
   }
@@ -62,8 +55,10 @@ class SupabaseRepository {
     if (user == null) return;
 
     try {
-      final response =
-          await _client.from('notes').select().eq('user_id', user.id);
+      final response = await _client
+          .from('notes')
+          .select()
+          .eq('user_id', user.id);
       final List remoteData = response as List;
 
       final Map<String, dynamic> remoteNotesMap = {
@@ -72,23 +67,15 @@ class SupabaseRepository {
 
       // 1. Sync Remote to Local
       for (var e in remoteData) {
-        final content = e['content'] as Map<String, dynamic>;
-        final remoteNote = Note.fromJson({
-          'id': e['id'],
-          'title': e['title'],
-          'created_at': e['created_at'],
-          'updated_at': e['updated_at'],
-          ...content,
-        });
+        final remoteNote = Note.fromJson(e);
 
         final localNote = _localRepository.getNote(remoteNote.id);
         if (localNote == null ||
             remoteNote.updatedAt.isAfter(localNote.updatedAt)) {
           // Use Hive's internal save to avoid setting updatedAt to 'now' again
-          await Hive.box<Note>(NotesRepository.boxName).put(
-            remoteNote.id,
-            remoteNote,
-          );
+          await Hive.box<Note>(
+            NotesRepository.boxName,
+          ).put(remoteNote.id, remoteNote);
         }
       }
 
@@ -107,14 +94,17 @@ class SupabaseRepository {
   }
 
   Future<void> _upsertNote(Note note, String userId) async {
+    final json = note.toJson();
     final content = {
-      'strokes': note.strokes.map((s) => s.toJson()).toList(),
-      'textBlocks': note.textBlocks.map((t) => t.toJson()).toList(),
-      'images': note.images.map((i) => i.toJson()).toList(),
-      'audioPath': note.audioPath,
-      'notebook_id': note.notebookId,
-      'template_type': note.templateType,
-      'tags': note.tags,
+      'strokes': json['strokes'],
+      'textBlocks': json['textBlocks'],
+      'images': json['images'],
+      'audioPath': json['audioPath'],
+      'notebook_id': json['notebook_id'],
+      'template_type': json['template_type'],
+      'tags': json['tags'],
+      'is_deleted': json['is_deleted'],
+      'type': json['type'],
     };
 
     await _client.from('notes').upsert({
@@ -132,39 +122,24 @@ class SupabaseRepository {
     final user = _client.auth.currentUser;
     if (user == null) return;
 
-    final response =
-        await _client.from('courses').select().eq('user_id', user.id);
+    final response = await _client
+        .from('courses')
+        .select()
+        .eq('user_id', user.id);
     final List remoteData = response as List;
 
     for (var e in remoteData) {
-      final course = Course(
-        id: e['id'],
-        title: e['title'],
-        professor: e['professor'] ?? '',
-        schedule: e['schedule'] ?? '',
-        color: e['color'] ?? 0xFF7C3AED,
-        iconCodePoint: e['icon_code'] ?? 0xe559,
-        courseDay: e['course_day'] ?? '',
-        courseTime: e['course_time'] ?? '',
-      );
-      await Hive.box<Course>(NotesRepository.courseBoxName).put(
-        course.id,
-        course,
-      );
+      final course = Course.fromJson(e);
+      await Hive.box<Course>(
+        NotesRepository.courseBoxName,
+      ).put(course.id, course);
     }
 
     final localCourses = _localRepository.getAllCourses();
     for (var c in localCourses) {
       await _client.from('courses').upsert({
-        'id': c.id,
+        ...c.toJson(),
         'user_id': user.id,
-        'title': c.title,
-        'professor': c.professor,
-        'schedule': c.schedule,
-        'color': c.color,
-        'icon_code': c.iconCodePoint,
-        'course_day': c.courseDay,
-        'course_time': c.courseTime,
       });
     }
   }
@@ -174,38 +149,22 @@ class SupabaseRepository {
     final user = _client.auth.currentUser;
     if (user == null) return;
 
-    final response = await _client.from('tasks').select().eq('user_id', user.id);
+    final response = await _client
+        .from('tasks')
+        .select()
+        .eq('user_id', user.id);
     final List remoteData = response as List;
 
     for (var e in remoteData) {
-      final task = Task(
-        id: e['id'],
-        title: e['title'],
-        description: e['description'] ?? '',
-        dueDate: e['due_date'] != null ? DateTime.parse(e['due_date']) : null,
-        isCompleted: e['is_completed'] ?? false,
-        courseId: e['course_id'],
-        priority: e['priority'] ?? 1,
-        createdAt:
-            e['created_at'] != null
-                ? DateTime.parse(e['created_at'])
-                : DateTime.now(),
-      );
+      final task = Task.fromJson(e);
       await Hive.box<Task>(NotesRepository.taskBoxName).put(task.id, task);
     }
 
     final localTasks = _localRepository.getAllTasks();
     for (var t in localTasks) {
       await _client.from('tasks').upsert({
-        'id': t.id,
+        ...t.toJson(),
         'user_id': user.id,
-        'title': t.title,
-        'description': t.description,
-        'due_date': t.dueDate?.toIso8601String(),
-        'is_completed': t.isCompleted,
-        'course_id': t.courseId,
-        'priority': t.priority,
-        'created_at': t.createdAt.toIso8601String(),
       });
     }
   }
@@ -216,8 +175,10 @@ class SupabaseRepository {
     if (user == null) return;
 
     try {
-      final response =
-          await _client.from('folders').select().eq('user_id', user.id);
+      final response = await _client
+          .from('folders')
+          .select()
+          .eq('user_id', user.id);
       final List remoteData = response as List;
 
       final Map<String, dynamic> remoteFoldersMap = {
@@ -226,31 +187,16 @@ class SupabaseRepository {
 
       // 1. Sync Remote to Local
       for (var e in remoteData) {
-        final remoteFolder = Folder(
-          id: e['id'],
-          title: e['title'],
-          parentId: e['parent_id'],
-          type:
-              e['type'] == 'resource' ? FolderType.resource : FolderType.notebook,
-          createdAt:
-              e['created_at'] != null
-                  ? DateTime.parse(e['created_at'])
-                  : DateTime.now(),
-          updatedAt:
-              e['updated_at'] != null
-                  ? DateTime.parse(e['updated_at'])
-                  : DateTime.now(),
-        );
+        final remoteFolder = Folder.fromJson(e);
 
-        final localFolder = Hive.box<Folder>(NotesRepository.folderBoxName).get(
-          remoteFolder.id,
-        );
+        final localFolder = Hive.box<Folder>(
+          NotesRepository.folderBoxName,
+        ).get(remoteFolder.id);
         if (localFolder == null ||
             remoteFolder.updatedAt!.isAfter(localFolder.updatedAt!)) {
-          await Hive.box<Folder>(NotesRepository.folderBoxName).put(
-            remoteFolder.id,
-            remoteFolder,
-          );
+          await Hive.box<Folder>(
+            NotesRepository.folderBoxName,
+          ).put(remoteFolder.id, remoteFolder);
         }
       }
 
@@ -268,13 +214,8 @@ class SupabaseRepository {
         if (remoteData == null ||
             f.updatedAt!.isAfter(DateTime.parse(remoteData['updated_at']))) {
           await _client.from('folders').upsert({
-            'id': f.id,
+            ...f.toJson(),
             'user_id': user.id,
-            'title': f.title,
-            'parent_id': f.parentId,
-            'type': f.type == FolderType.resource ? 'resource' : 'notebook',
-            'created_at': f.createdAt!.toIso8601String(),
-            'updated_at': f.updatedAt!.toIso8601String(),
           });
         }
       }
@@ -289,50 +230,38 @@ class SupabaseRepository {
     if (user == null) return;
 
     // Sync Periods
-    final pResp = await _client.from('academic_periods').select().eq('user_id', user.id);
+    final pResp = await _client
+        .from('academic_periods')
+        .select()
+        .eq('user_id', user.id);
     for (var e in (pResp as List)) {
-      final period = AcademicPeriod(
-        id: e['id'],
-        name: e['name'],
-        startDate: DateTime.parse(e['start_date']),
-        endDate: DateTime.parse(e['end_date']),
-        type: AcademicPeriodType.values.firstWhere((t) => t.name == e['type']),
-      );
+      final period = AcademicPeriod.fromJson(e);
       await _localRepository.savePeriod(period);
     }
 
     final localPeriods = _localRepository.getAllPeriods();
     for (var p in localPeriods) {
       await _client.from('academic_periods').upsert({
-        'id': p.id,
+        ...p.toJson(),
         'user_id': user.id,
-        'name': p.name,
-        'start_date': p.startDate.toIso8601String(),
-        'end_date': p.endDate.toIso8601String(),
-        'type': p.type.name,
       });
     }
 
     // Sync Events
-    final eResp = await _client.from('academic_events').select().eq('user_id', user.id);
+    final eResp = await _client
+        .from('academic_events')
+        .select()
+        .eq('user_id', user.id);
     for (var e in (eResp as List)) {
-      final event = AcademicEvent(
-        id: e['id'],
-        name: e['name'],
-        date: DateTime.parse(e['date']),
-        type: AcademicEventType.values.firstWhere((t) => t.name == e['type']),
-      );
+      final event = AcademicEvent.fromJson(e);
       await _localRepository.saveEvent(event);
     }
 
     final localEvents = _localRepository.getAllEvents();
     for (var ev in localEvents) {
       await _client.from('academic_events').upsert({
-        'id': ev.id,
+        ...ev.toJson(),
         'user_id': user.id,
-        'name': ev.name,
-        'date': ev.date.toIso8601String(),
-        'type': ev.type.name,
       });
     }
   }
@@ -342,17 +271,12 @@ class SupabaseRepository {
     final user = _client.auth.currentUser;
     if (user == null) return;
 
-    final response = await _client.from('grades').select().eq('user_id', user.id);
+    final response = await _client
+        .from('grades')
+        .select()
+        .eq('user_id', user.id);
     for (var e in (response as List)) {
-      final grade = Grade(
-        id: e['id'],
-        courseId: e['course_id'],
-        title: e['title'],
-        score: (e['score'] as num).toDouble(),
-        maxScore: (e['max_score'] as num).toDouble(),
-        date: DateTime.parse(e['date']),
-        weight: (e['weight'] as num).toDouble(),
-      );
+      final grade = Grade.fromJson(e);
       await _localRepository.saveGrade(grade);
     }
 
@@ -361,14 +285,8 @@ class SupabaseRepository {
       final localGrades = _localRepository.getGradesForCourse(c.id);
       for (var g in localGrades) {
         await _client.from('grades').upsert({
-          'id': g.id,
+          ...g.toJson(),
           'user_id': user.id,
-          'course_id': g.courseId,
-          'title': g.title,
-          'score': g.score,
-          'max_score': g.maxScore,
-          'date': g.date.toIso8601String(),
-          'weight': g.weight,
         });
       }
     }
@@ -378,14 +296,12 @@ class SupabaseRepository {
     final user = _client.auth.currentUser;
     if (user == null) return;
 
-    final response = await _client.from('attendance').select().eq('user_id', user.id);
+    final response = await _client
+        .from('attendance')
+        .select()
+        .eq('user_id', user.id);
     for (var e in (response as List)) {
-      final att = Attendance(
-        id: e['id'],
-        courseId: e['course_id'],
-        date: DateTime.parse(e['date']),
-        status: AttendanceStatus.values.firstWhere((s) => s.name == e['status']),
-      );
+      final att = Attendance.fromJson(e);
       await _localRepository.saveAttendance(att);
     }
 
@@ -394,11 +310,8 @@ class SupabaseRepository {
       final localAtt = _localRepository.getAttendanceForCourse(c.id);
       for (var a in localAtt) {
         await _client.from('attendance').upsert({
-          'id': a.id,
+          ...a.toJson(),
           'user_id': user.id,
-          'course_id': a.courseId,
-          'date': a.date.toIso8601String(),
-          'status': a.status.name,
         });
       }
     }
@@ -409,26 +322,24 @@ class SupabaseRepository {
     final user = _client.auth.currentUser;
     if (user == null) return;
 
-    final response = await _client.from('student_profiles').select().eq('user_id', user.id).maybeSingle();
+    final response = await _client
+        .from('student_profiles')
+        .select()
+        .eq('user_id', user.id)
+        .maybeSingle();
     if (response != null) {
-      final fullName = user.userMetadata?['full_name'] as String? ?? 'Alex';
-      final profile = StudentProfile(
-        name: fullName,
-        university: response['university'] ?? '',
-        major: response['major'] ?? '',
-        year: response['year'] ?? '',
-        studentId: response['student_id'] ?? '',
-      );
+      final profile = StudentProfile.fromJson(response);
+      // Keep Supabase's full_name if available in metadata
+      final fullName = user.userMetadata?['full_name'] as String?;
+      if (fullName != null) profile.name = fullName;
+      
       await _localRepository.saveStudentProfile(profile);
     }
 
     final localProfile = _localRepository.getStudentProfile();
     await _client.from('student_profiles').upsert({
+      ...localProfile.toJson(),
       'user_id': user.id,
-      'university': localProfile.university,
-      'major': localProfile.major,
-      'year': localProfile.year,
-      'student_id': localProfile.studentId,
     });
   }
 
@@ -445,7 +356,7 @@ class SupabaseRepository {
     try {
       final response = await _client
           .from('student_profiles')
-          .select('id') // Select minimal data to check existence
+          .select('user_id') // Select minimal data to check existence
           .eq('user_id', user.id)
           .maybeSingle();
       return response != null;
