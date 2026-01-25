@@ -52,6 +52,6 @@
 *   **Navigation:** (Inferred) Standard Navigator or named routes.
 
 ## Current Status
-*   **Active Development:** Phase 21 (Academic Stats Logic).
+*   **Active Development:** Phase 22 (Refining PDF Snippets & Collaboration).
 *   **Known Issues:** Shape recognition is temporarily disabled.
-*   **Next Steps:** Implement logic for academic stats, PDF snippet insertion, and collaboration features.
+*   **Next Steps:** Implement advanced PDF cropping for snippets, real-time presence for collaboration, and further localization.
