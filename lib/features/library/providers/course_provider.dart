@@ -5,12 +5,14 @@ import 'package:classlly/data/models/course_model.dart';
 import 'package:classlly/data/models/grade_model.dart';
 import 'package:classlly/data/models/attendance_model.dart';
 import 'package:classlly/core/services/notification_service.dart';
+import 'package:classlly/core/services/widget_service.dart';
 
 import 'package:classlly/core/utils/grade_utils.dart';
 
 class CourseProvider with ChangeNotifier {
   final NotesRepository _localRepository;
   final NotificationService _notificationService;
+  final WidgetService _widgetService = WidgetService();
 
   CourseProvider({NotesRepository? repository, NotificationService? notificationService})
       : _localRepository = repository ?? NotesRepository(),
@@ -92,6 +94,7 @@ class CourseProvider with ChangeNotifier {
     await _localRepository.saveCourse(course);
     _scheduleCourseNotifications(course);
     await recalculateStats();
+    _widgetService.refreshUpNextWidget();
     notifyListeners();
   }
 
@@ -99,6 +102,7 @@ class CourseProvider with ChangeNotifier {
     _cancelCourseNotifications(courseId);
     await _localRepository.deleteCourse(courseId);
     await recalculateStats();
+    _widgetService.refreshUpNextWidget();
     notifyListeners();
   }
 

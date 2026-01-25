@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/data/models/task_model.dart';
 import 'package:classlly/core/services/notification_service.dart';
+import 'package:classlly/core/services/widget_service.dart';
 
 class TaskProvider with ChangeNotifier {
   final NotesRepository _localRepository;
   final NotificationService _notificationService;
+  final WidgetService _widgetService = WidgetService();
 
   TaskProvider({NotesRepository? repository, NotificationService? notificationService})
       : _localRepository = repository ?? NotesRepository(),
@@ -18,6 +20,7 @@ class TaskProvider with ChangeNotifier {
     await _notificationService.requestPermissions();
     await _localRepository.saveTask(task);
     _scheduleTaskReminders(task);
+    _widgetService.refreshUpNextWidget();
     notifyListeners();
   }
 
@@ -83,6 +86,7 @@ class TaskProvider with ChangeNotifier {
       _scheduleTaskReminders(task);
     }
     await _localRepository.saveTask(task);
+    _widgetService.refreshUpNextWidget();
     notifyListeners();
   }
 }

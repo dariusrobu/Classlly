@@ -21,6 +21,28 @@ import 'package:classlly/features/auth/screens/onboarding_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:classlly/l10n/app_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
+import 'package:home_widget/home_widget.dart';
+
+@pragma('vm:entry-point')
+Future<void> backgroundCallback(Uri? uri) async {
+  if (uri?.host == 'completeTask') {
+    // Logic to complete the next task
+    // Note: Since this runs in a separate isolate, we'd need to init Hive and Repo
+    await Hive.initFlutter();
+    await NotesRepository.init();
+    final repo = NotesRepository();
+    final tasks = repo.getAllTasks();
+    if (tasks.isNotEmpty) {
+      final nextTask = tasks.first;
+      nextTask.isCompleted = true;
+      await repo.saveTask(nextTask);
+      
+      // Refresh widget data after change
+      // Since providers aren't available here, we'd use WidgetService directly
+      // but WidgetService also needs data. For now, we'll assume the app refreshes on next open.
+    }
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -80,6 +102,8 @@ void main() async {
     url: SupabaseConfig.url,
     anonKey: SupabaseConfig.anonKey,
   );
+
+  HomeWidget.registerInteractivityCallback(backgroundCallback);
 
   final app = MultiProvider(
     providers: [
