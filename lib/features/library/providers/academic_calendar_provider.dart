@@ -5,7 +5,7 @@ import 'package:classlly/data/models/academic_calendar_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 
 class AcademicCalendarProvider with ChangeNotifier {
-  final NotesRepository _repository = NotesRepository();
+  final NotesRepository _repository;
 
   List<AcademicPeriod> _periods = [];
   List<AcademicEvent> _events = [];
@@ -13,7 +13,8 @@ class AcademicCalendarProvider with ChangeNotifier {
   List<AcademicPeriod> get periods => _periods;
   List<AcademicEvent> get events => _events;
 
-  AcademicCalendarProvider() {
+  AcademicCalendarProvider({NotesRepository? repository})
+      : _repository = repository ?? NotesRepository() {
     _loadData();
   }
 

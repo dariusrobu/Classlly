@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:classlly/data/models/student_profile_model.dart';
+import 'package:classlly/data/models/course_model.dart';
+import 'package:classlly/data/models/task_model.dart';
+import 'package:classlly/data/models/note_models.dart';
+import 'package:classlly/data/repositories/notes_repository.dart';
+import 'package:classlly/features/auth/screens/auth_screen.dart';
 import 'package:classlly/features/library/screens/settings_screen.dart';
 import 'package:classlly/features/auth/screens/personal_info_screen.dart';
 import 'package:classlly/features/auth/screens/academic_details_screen.dart';
-import 'package:classlly/features/auth/screens/auth_screen.dart';
-import 'package:classlly/data/models/student_profile_model.dart';
-import 'package:classlly/data/repositories/notes_repository.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:provider/provider.dart';
+import 'package:classlly/features/library/providers/course_provider.dart';
+import 'package:classlly/l10n/app_localizations.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -20,7 +26,7 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: Text(AppLocalizations.of(context)!.profile),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -60,12 +66,12 @@ class ProfileScreen extends StatelessWidget {
                   profile,
                 ),
                 const SizedBox(height: 32),
-                _buildStatsRow(isDark, profile),
+                _buildStatsRow(context, isDark, profile),
                 const SizedBox(height: 32),
-                _buildMenuSection(context, 'Account', [
+                _buildMenuSection(context, AppLocalizations.of(context)!.account, [
                   _MenuItem(
                     icon: Icons.person_outline,
-                    label: 'Personal Information',
+                    label: AppLocalizations.of(context)!.personalInfo,
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -75,7 +81,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   _MenuItem(
                     icon: Icons.school_outlined,
-                    label: 'Academic Details',
+                    label: AppLocalizations.of(context)!.academicDetails,
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -97,9 +103,9 @@ class ProfileScreen extends StatelessWidget {
                       );
                     }
                   },
-                  child: const Text(
-                    'Log Out',
-                    style: TextStyle(
+                  child: Text(
+                    AppLocalizations.of(context)!.logOut,
+                    style: const TextStyle(
                       color: Colors.red,
                       fontWeight: FontWeight.bold,
                     ),
@@ -110,14 +116,14 @@ class ProfileScreen extends StatelessWidget {
                     showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
-                        title: const Text('Delete Account'),
-                        content: const Text(
-                          'Are you sure you want to permanently delete your account and all associated data? This action cannot be undone.',
+                        title: Text(AppLocalizations.of(context)!.deleteAccount),
+                        content: Text(
+                          AppLocalizations.of(context)!.deleteAccountConfirm,
                         ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(context),
-                            child: const Text('Cancel'),
+                            child: Text(AppLocalizations.of(context)!.cancel),
                           ),
                           TextButton(
                             onPressed: () async {
@@ -152,14 +158,14 @@ class ProfileScreen extends StatelessWidget {
                             style: TextButton.styleFrom(
                               foregroundColor: Colors.red,
                             ),
-                            child: const Text('Delete Forever'),
+                            child: Text(AppLocalizations.of(context)!.deleteForever),
                           ),
                         ],
                       ),
                     );
                   },
                   child: Text(
-                    'Delete Account',
+                    AppLocalizations.of(context)!.deleteAccount,
                     style: TextStyle(
                       color: Colors.red.withValues(alpha: 0.6),
                       fontSize: 12,
@@ -251,28 +257,70 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsRow(bool isDark, StudentProfile profile) {
-    final repo = NotesRepository();
-    final notesCount = repo.getAllNotes().length;
-    final coursesCount = repo.getAllCourses().length;
-    final tasks = repo.getAllTasks();
-    final completedTasks = tasks.where((t) => t.isCompleted).length;
-    final taskCompletion = tasks.isNotEmpty
-        ? (completedTasks / tasks.length * 100).toInt()
-        : 0;
+  Widget _buildStatsRow(BuildContext context, bool isDark, StudentProfile profile) {
+    return ValueListenableBuilder(
+      valueListenable: Hive.box<Note>(NotesRepository.boxName).listenable(),
+      builder: (context, noteBox, _) {
+        return ValueListenableBuilder(
+          valueListenable: Hive.box<Course>(
+            NotesRepository.courseBoxName,
+          ).listenable(),
+          builder: (context, courseBox, _) {
+            return ValueListenableBuilder(
+              valueListenable: Hive.box<Task>(
+                NotesRepository.taskBoxName,
+              ).listenable(),
+              builder: (context, taskBox, _) {
+                final repo = NotesRepository();
+                final notesCount = repo.getAllNotes().length;
+                final coursesCount = repo.getAllCourses().length;
 
-    final studyHours = (profile.totalStudyTimeSeconds / 3600).toStringAsFixed(
-      1,
-    );
+                final studyHours = (profile.totalStudyTimeSeconds / 3600)
+                    .toStringAsFixed(1);
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _statItem(coursesCount.toString(), 'Courses'),
-        _statItem(notesCount.toString(), 'Notes'),
-        _statItem(studyHours, 'Study Hrs'),
-        _statItem('$taskCompletion%', 'Tasks'),
-      ],
+                return Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _statItem(
+                          coursesCount.toString(),
+                          AppLocalizations.of(context)!.courses,
+                        ),
+                        _statItem(
+                          notesCount.toString(),
+                          AppLocalizations.of(context)!.notes,
+                        ),
+                        Consumer<CourseProvider>(
+                          builder: (context, cp, _) => _statItem(
+                            cp.totalGPA.toStringAsFixed(2),
+                            'GPA',
+                          ),
+                        ),
+                        _statItem(
+                          studyHours,
+                          AppLocalizations.of(context)!.studyHrs,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Consumer<CourseProvider>(
+                      builder: (context, cp, _) => Text(
+                        '${cp.totalCreditsEarned.toStringAsFixed(1)} ${AppLocalizations.of(context)!.credits}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 

@@ -39,8 +39,14 @@ class NoteStateSnapshot {
 }
 
 class CanvasProvider with ChangeNotifier {
-  final NotesRepository _repository = NotesRepository();
-  final SupabaseRepository _remoteRepository = SupabaseRepository();
+  final NotesRepository _repository;
+  final SupabaseRepository _remoteRepository;
+
+  CanvasProvider({
+    NotesRepository? repository,
+    SupabaseRepository? remoteRepository,
+  })  : _repository = repository ?? NotesRepository(),
+        _remoteRepository = remoteRepository ?? SupabaseRepository();
 
   final List<NoteStateSnapshot> _undoStack = [];
   final List<NoteStateSnapshot> _redoStack = [];

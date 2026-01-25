@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:classlly/features/auth/screens/auth_screen.dart';
+import 'package:classlly/l10n/app_localizations.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -71,7 +72,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       const SizedBox(height: 60),
                       Text(
-                        _pages[index]['title']!,
+                        index == 0
+                            ? AppLocalizations.of(context)!.onboardingTitle1
+                            : (index == 1
+                                ? AppLocalizations.of(context)!.onboardingTitle2
+                                : AppLocalizations.of(context)!.onboardingTitle3),
                         textAlign: TextAlign.center,
                         style: GoogleFonts.spaceGrotesk(
                           fontSize: 32,
@@ -80,7 +85,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       const SizedBox(height: 20),
                       Text(
-                        _pages[index]['desc']!,
+                        index == 0
+                            ? AppLocalizations.of(context)!.onboardingDesc1
+                            : (index == 1
+                                ? AppLocalizations.of(context)!.onboardingDesc2
+                                : AppLocalizations.of(context)!.onboardingDesc3),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 16,
@@ -103,9 +112,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     MaterialPageRoute(builder: (context) => const AuthScreen()),
                   );
                 },
-                child: const Text(
-                  'Skip',
-                  style: TextStyle(
+                child: Text(
+                  AppLocalizations.of(context)!.skip,
+                  style: const TextStyle(
                     color: Colors.grey,
                     fontWeight: FontWeight.bold,
                   ),
@@ -165,8 +174,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                     child: Text(
                       _currentPage == _pages.length - 1
-                          ? 'Get Started'
-                          : 'Next',
+                          ? AppLocalizations.of(context)!.getStarted
+                          : AppLocalizations.of(context)!.next,
                     ),
                   ),
                 ],

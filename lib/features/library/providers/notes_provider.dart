@@ -11,6 +11,7 @@ class NotesProvider with ChangeNotifier {
       : _localRepository = repository ?? NotesRepository();
 
   String? get currentFolderId => _currentFolderId;
+  List<Note> get notes => _localRepository.getAllNotes();
   List<Note> get deletedNotes => _localRepository.getDeletedNotes();
   List<Folder> get deletedFolders => _localRepository.getDeletedFolders();
 

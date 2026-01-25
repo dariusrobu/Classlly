@@ -6,6 +6,8 @@ import 'package:classlly/data/models/grade_model.dart';
 import 'package:classlly/data/models/attendance_model.dart';
 import 'package:classlly/core/services/notification_service.dart';
 
+import 'package:classlly/core/utils/grade_utils.dart';
+
 class CourseProvider with ChangeNotifier {
   final NotesRepository _localRepository;
   final NotificationService _notificationService;
@@ -15,6 +17,35 @@ class CourseProvider with ChangeNotifier {
         _notificationService = notificationService ?? NotificationService();
 
   List<Course> get courses => _localRepository.getAllCourses();
+
+  double get totalGPA {
+    final allCourses = courses;
+    if (allCourses.isEmpty) return 0.0;
+
+    double totalWeightedGradePoints = 0;
+    double totalCredits = 0;
+
+    for (var course in allCourses) {
+      if (course.credits > 0) {
+        final gp = GradeUtils.percentageToGradePoint(course.cachedAverageGrade);
+        totalWeightedGradePoints += gp * course.credits;
+        totalCredits += course.credits;
+      }
+    }
+
+    return totalCredits > 0 ? totalWeightedGradePoints / totalCredits : 0.0;
+  }
+
+  double get totalCreditsEarned {
+    final allCourses = courses;
+    double earned = 0;
+    for (var course in allCourses) {
+      if (course.cachedAverageGrade >= 60) {
+        earned += course.credits;
+      }
+    }
+    return earned;
+  }
 
   Future<void> recalculateStats() async {
     final allCourses = _localRepository.getAllCourses();

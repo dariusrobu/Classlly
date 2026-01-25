@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:classlly/features/library/providers/course_provider.dart';
 import 'package:classlly/data/models/course_model.dart';
 import 'package:intl/intl.dart';
+import 'package:classlly/l10n/app_localizations.dart';
 
 class AddCourseScreen extends StatefulWidget {
   final Course? course; // If provided, we are editing
@@ -191,7 +192,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
             backgroundColor: Colors.transparent,
             appBar: AppBar(
               title: Text(
-                widget.course != null ? 'Edit Course' : 'New Course',
+                widget.course != null ? AppLocalizations.of(context)!.editCourse : AppLocalizations.of(context)!.newCourse,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -218,15 +219,15 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                     // --- Basic Info ---
                     TextFormField(
                       controller: _titleController,
-                      validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                      validator: (v) => v?.isEmpty == true ? AppLocalizations.of(context)!.none : null,
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
-                      decoration: const InputDecoration(
-                        hintText: 'Course Title',
+                      decoration: InputDecoration(
+                        hintText: AppLocalizations.of(context)!.courseTitle,
                         border: InputBorder.none,
-                        hintStyle: TextStyle(color: Colors.grey),
+                        hintStyle: const TextStyle(color: Colors.grey),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -234,7 +235,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                       children: [
                         Expanded(
                           child: _buildTextField(
-                            'Credits',
+                            AppLocalizations.of(context)!.credits,
                             _creditsController,
                             keyboardType: TextInputType.number,
                           ),
@@ -242,9 +243,9 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: _buildDropdown(
-                            'Semester',
+                            AppLocalizations.of(context)!.semester,
                             _semester,
-                            ['Semester 1', 'Semester 2'],
+                            ['${AppLocalizations.of(context)!.semester} 1', '${AppLocalizations.of(context)!.semester} 2'],
                             (val) => setState(() => _semester = val!),
                           ),
                         ),
@@ -257,7 +258,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
 
                     // --- Course (Lecture) Info ---
                     Text(
-                      'Course / Lecture Details',
+                      AppLocalizations.of(context)!.courseLectureDetails,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -265,19 +266,23 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildTextField('Professor', _profController),
+                    _buildTextField(AppLocalizations.of(context)!.professor, _profController),
                     const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(
-                          child: _buildTextField('Room', _courseRoomController),
+                          child: _buildTextField(AppLocalizations.of(context)!.room, _courseRoomController),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: _buildDropdown(
-                            'Frequency',
+                            AppLocalizations.of(context)!.frequency,
                             _courseFrequency,
-                            _frequencies,
+                            [
+                              AppLocalizations.of(context)!.weekly,
+                              AppLocalizations.of(context)!.biWeeklyOdd,
+                              AppLocalizations.of(context)!.biWeeklyEven,
+                            ],
                             (val) => setState(() => _courseFrequency = val),
                           ),
                         ),
@@ -288,16 +293,24 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                       children: [
                         Expanded(
                           child: _buildDropdown(
-                            'Day',
+                            AppLocalizations.of(context)!.day,
                             _courseDay,
-                            _days,
+                            [
+                              AppLocalizations.of(context)!.monday,
+                              AppLocalizations.of(context)!.tuesday,
+                              AppLocalizations.of(context)!.wednesday,
+                              AppLocalizations.of(context)!.thursday,
+                              AppLocalizations.of(context)!.friday,
+                              AppLocalizations.of(context)!.saturday,
+                              AppLocalizations.of(context)!.sunday,
+                            ],
                             (val) => setState(() => _courseDay = val),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: _buildTimePicker(
-                            'Time',
+                            AppLocalizations.of(context)!.time,
                             _courseTime,
                             (val) => setState(() => _courseTime = val),
                           ),
@@ -311,7 +324,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
 
                     // --- Seminar Info ---
                     Text(
-                      'Seminar Details',
+                      AppLocalizations.of(context)!.seminarDetails,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -319,22 +332,26 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildTextField('Seminar Teacher', _seminarProfController),
+                    _buildTextField(AppLocalizations.of(context)!.seminarTeacher, _seminarProfController),
                     const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(
                           child: _buildTextField(
-                            'Room',
+                            AppLocalizations.of(context)!.room,
                             _seminarRoomController,
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: _buildDropdown(
-                            'Frequency',
+                            AppLocalizations.of(context)!.frequency,
                             _seminarFrequency,
-                            _frequencies,
+                            [
+                              AppLocalizations.of(context)!.weekly,
+                              AppLocalizations.of(context)!.biWeeklyOdd,
+                              AppLocalizations.of(context)!.biWeeklyEven,
+                            ],
                             (val) => setState(() => _seminarFrequency = val),
                           ),
                         ),
@@ -345,16 +362,24 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                       children: [
                         Expanded(
                           child: _buildDropdown(
-                            'Day',
+                            AppLocalizations.of(context)!.day,
                             _seminarDay,
-                            _days,
+                            [
+                              AppLocalizations.of(context)!.monday,
+                              AppLocalizations.of(context)!.tuesday,
+                              AppLocalizations.of(context)!.wednesday,
+                              AppLocalizations.of(context)!.thursday,
+                              AppLocalizations.of(context)!.friday,
+                              AppLocalizations.of(context)!.saturday,
+                              AppLocalizations.of(context)!.sunday,
+                            ],
                             (val) => setState(() => _seminarDay = val),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: _buildTimePicker(
-                            'Time',
+                            AppLocalizations.of(context)!.time,
                             _seminarTime,
                             (val) => setState(() => _seminarTime = val),
                           ),
@@ -367,9 +392,9 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                     const SizedBox(height: 16),
 
                     // --- Color ---
-                    const Text(
-                      'Course Color',
-                      style: TextStyle(
+                    Text(
+                      AppLocalizations.of(context)!.courseColor,
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                         color: Colors.grey,
@@ -434,8 +459,8 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                         ),
                         child: Text(
                           widget.course != null
-                              ? 'Save Changes'
-                              : 'Create Course',
+                              ? AppLocalizations.of(context)!.saveChanges
+                              : AppLocalizations.of(context)!.createCourse,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -555,7 +580,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    value != null ? _formatTime(value) : 'Select',
+                    value != null ? _formatTime(value) : AppLocalizations.of(context)!.select,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: value != null

@@ -19,6 +19,7 @@ import 'package:classlly/features/library/providers/course_provider.dart';
 import 'package:classlly/features/canvas/providers/canvas_provider.dart';
 import 'package:classlly/features/canvas/screens/canvas_screen.dart';
 import 'package:classlly/features/library/widgets/empty_state.dart';
+import 'package:classlly/l10n/app_localizations.dart';
 
 class CourseDetailScreen extends StatefulWidget {
   final Course course;
@@ -46,7 +47,9 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
   }
 
   void _addNote(BuildContext context) {
-    final note = Note.create(title: '${widget.course.title} Note');
+    final note = Note.create(
+      title: AppLocalizations.of(context)!.noteTitle,
+    );
     note.tags = [widget.course.title, widget.course.id]; // Link to course
     Provider.of<CanvasProvider>(context, listen: false).setNote(note);
     Navigator.push(
@@ -98,7 +101,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  'Grade History',
+                  AppLocalizations.of(context)!.gradeHistory,
                   style: GoogleFonts.spaceGrotesk(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -107,7 +110,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
               ),
               Expanded(
                 child: grades.isEmpty
-                    ? const Center(child: Text('No grades recorded'))
+                    ? Center(child: Text(AppLocalizations.of(context)!.noGradesRecorded))
                     : ListView.builder(
                         itemCount: grades.length,
                         itemBuilder: (context, index) {
@@ -120,7 +123,10 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                               ),
                             ),
                             subtitle: Text(
-                              '${DateFormat.yMMMd().format(grade.date)} • Weight: ${(grade.weight * 100).toInt()}%',
+                              AppLocalizations.of(context)!.gradeMetadata(
+                                DateFormat.yMMMd().format(grade.date),
+                                (grade.weight * 100).toInt(),
+                              ),
                             ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -151,22 +157,22 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                                       final confirmed = await showDialog<bool>(
                                         context: context,
                                         builder: (context) => AlertDialog(
-                                          title: const Text('Delete Grade'),
-                                          content: const Text(
-                                            'Are you sure you want to delete this grade record?',
+                                          title: Text(AppLocalizations.of(context)!.deleteGrade),
+                                          content: Text(
+                                            AppLocalizations.of(context)!.deleteGradeConfirm,
                                           ),
                                           actions: [
                                             TextButton(
                                               onPressed: () =>
                                                   Navigator.pop(context, false),
-                                              child: const Text('Cancel'),
+                                              child: Text(AppLocalizations.of(context)!.cancel),
                                             ),
                                             TextButton(
                                               onPressed: () =>
                                                   Navigator.pop(context, true),
-                                              child: const Text(
-                                                'Delete',
-                                                style: TextStyle(
+                                              child: Text(
+                                                AppLocalizations.of(context)!.delete,
+                                                style: const TextStyle(
                                                   color: Colors.red,
                                                 ),
                                               ),
@@ -174,7 +180,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                                           ],
                                         ),
                                       );
-                                      if (confirmed == true) {
+                                      if (confirmed == true && context.mounted) {
                                         final courseProvider =
                                             Provider.of<CourseProvider>(
                                               context,
@@ -234,7 +240,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  'Attendance History',
+                  AppLocalizations.of(context)!.attendanceHistory,
                   style: GoogleFonts.spaceGrotesk(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -243,7 +249,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
               ),
               Expanded(
                 child: records.isEmpty
-                    ? const Center(child: Text('No attendance records'))
+                    ? Center(child: Text(AppLocalizations.of(context)!.noAttendanceRecords))
                     : ListView.builder(
                         itemCount: records.length,
                         itemBuilder: (context, index) {
@@ -291,22 +297,22 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                                       final confirmed = await showDialog<bool>(
                                         context: context,
                                         builder: (context) => AlertDialog(
-                                          title: const Text('Delete Record'),
-                                          content: const Text(
-                                            'Are you sure you want to delete this attendance record?',
+                                          title: Text(AppLocalizations.of(context)!.deleteRecord),
+                                          content: Text(
+                                            AppLocalizations.of(context)!.deleteAttendanceConfirm,
                                           ),
                                           actions: [
                                             TextButton(
                                               onPressed: () =>
                                                   Navigator.pop(context, false),
-                                              child: const Text('Cancel'),
+                                              child: Text(AppLocalizations.of(context)!.cancel),
                                             ),
                                             TextButton(
                                               onPressed: () =>
                                                   Navigator.pop(context, true),
-                                              child: const Text(
-                                                'Delete',
-                                                style: TextStyle(
+                                              child: Text(
+                                                AppLocalizations.of(context)!.delete,
+                                                style: const TextStyle(
                                                   color: Colors.red,
                                                 ),
                                               ),
@@ -412,9 +418,9 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                                       labelColor: primaryColor,
                                       unselectedLabelColor: Colors.grey,
                                       indicatorColor: primaryColor,
-                                      tabs: const [
-                                        Tab(text: 'Overview'),
-                                        Tab(text: 'Notes'),
+                                      tabs: [
+                                        Tab(text: AppLocalizations.of(context)!.overview),
+                                        Tab(text: AppLocalizations.of(context)!.notes),
                                       ],
                                     ),
                                   ],
@@ -463,7 +469,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Recent Activity',
+                      AppLocalizations.of(context)!.recentActivity,
                       style: GoogleFonts.spaceGrotesk(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -503,7 +509,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
         children: [
           _actionButton(
             context,
-            'Add Note',
+            AppLocalizations.of(context)!.addNote,
             Icons.edit_note,
             () => _addNote(context),
             isDark,
@@ -512,7 +518,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
           const SizedBox(width: 12),
           _actionButton(
             context,
-            'Add Task',
+            AppLocalizations.of(context)!.addTask,
             Icons.check_circle_outline,
             () => _addTask(context),
             isDark,
@@ -521,7 +527,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
           const SizedBox(width: 12),
           _actionButton(
             context,
-            'Add Grade',
+            AppLocalizations.of(context)!.addGrade,
             Icons.grade_outlined,
             () => _addGrade(context),
             isDark,
@@ -530,7 +536,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
           const SizedBox(width: 12),
           _actionButton(
             context,
-            'Mark Attendance',
+            AppLocalizations.of(context)!.markAttendance,
             Icons.person_add_alt_1_outlined,
             () => _addAttendance(context),
             isDark,
@@ -605,7 +611,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                         Icon(Icons.arrow_back, size: 16, color: primaryColor),
                         const SizedBox(width: 8),
                         Text(
-                          'BACK TO COURSES',
+                          AppLocalizations.of(context)!.backToCourses,
                           style: GoogleFonts.spaceGrotesk(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -639,7 +645,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                   Text(
                     widget.course.professor.isNotEmpty
                         ? widget.course.professor
-                        : 'No Instructor',
+                        : AppLocalizations.of(context)!.noInstructor,
                     style: TextStyle(
                       color: isDark
                           ? const Color(0xFFAD8DCE)
@@ -740,7 +746,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       _headerStatItem(
-                        'CURRENT GRADE',
+                        AppLocalizations.of(context)!.currentGrade,
                         courseGrades.isEmpty
                             ? 'N/A'
                             : '${NumberFormat('0.##').format(avg)}%',
@@ -749,7 +755,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                       ),
                       const SizedBox(width: 16),
                       _headerStatItem(
-                        'ATTENDANCE',
+                        AppLocalizations.of(context)!.attendance.toUpperCase(),
                         courseAtt.isEmpty ? 'N/A' : '${attendance.toInt()}%',
                         attTrend,
                         isDark,
@@ -1773,7 +1779,7 @@ class _GlassContainer extends StatelessWidget {
 class AddGradeDialog extends StatefulWidget {
   final String courseId;
   final Grade? grade;
-  const AddGradeDialog({required this.courseId, this.grade});
+  const AddGradeDialog({super.key, required this.courseId, this.grade});
 
   @override
   State<AddGradeDialog> createState() => AddGradeDialogState();

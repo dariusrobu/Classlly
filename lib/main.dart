@@ -16,9 +16,10 @@ import 'package:classlly/features/library/providers/course_provider.dart';
 import 'package:classlly/features/library/providers/notes_provider.dart';
 import 'package:classlly/core/services/cloud_storage_service.dart';
 import 'package:classlly/core/services/supabase_cloud_service.dart';
+import 'package:classlly/core/services/notification_service.dart';
 import 'package:classlly/features/auth/screens/onboarding_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:classlly/l10n/app_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 
 void main() async {

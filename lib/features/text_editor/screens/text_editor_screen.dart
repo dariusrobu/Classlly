@@ -183,12 +183,12 @@ class _TextEditorScreenState extends State<TextEditorScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: QuillEditor.basic(
                   controller: _quillController,
-                  config: QuillEditorConfig(
+                  config: const QuillEditorConfig(
                     placeholder: 'Start typing...',
                     autoFocus: true,
                     expands: false, // Let it scroll naturally
                     scrollable: true,
-                    padding: const EdgeInsets.only(bottom: 50),
+                    padding: EdgeInsets.only(bottom: 50),
                   ),
                   focusNode: _editorFocusNode,
                 ),

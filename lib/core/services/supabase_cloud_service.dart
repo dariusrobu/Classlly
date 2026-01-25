@@ -37,7 +37,6 @@ class SupabaseCloudService implements CloudStorageService {
 
     try {
       final prefs = _localRepository.getPreferences();
-      final lastSync = prefs.lastSyncTimestamp;
 
       await Future.wait([
         syncNotes(),

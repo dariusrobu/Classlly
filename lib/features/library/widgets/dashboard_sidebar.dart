@@ -5,7 +5,7 @@ import 'package:classlly/features/library/providers/profile_provider.dart';
 import 'package:classlly/features/auth/screens/profile_screen.dart';
 import 'package:classlly/features/library/screens/settings_screen.dart';
 import 'package:classlly/core/theme/app_theme.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:classlly/l10n/app_localizations.dart';
 
 class DashboardSidebar extends StatelessWidget {
   const DashboardSidebar({super.key});

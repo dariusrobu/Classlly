@@ -1,7 +1,8 @@
-import 'package:classlly/features/auth/screens/profile_setup_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:classlly/data/repositories/auth_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:classlly/data/repositories/auth_repository.dart';
+import 'package:classlly/l10n/app_localizations.dart';
+import 'package:classlly/features/auth/screens/profile_setup_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -96,9 +97,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
           child: Scaffold(
             backgroundColor: Colors.transparent,
             appBar: AppBar(
-              title: const Text(
-                'Create Account',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              title: Text(
+                AppLocalizations.of(context)!.createAccount,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               backgroundColor: Colors.transparent,
               elevation: 0,
@@ -118,15 +119,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
-                      'Join Classlly to sync your notes across devices.',
-                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                    Text(
+                      AppLocalizations.of(context)!.joinClasslly,
+                      style: const TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                     const SizedBox(height: 32),
                     TextFormField(
                       controller: _fullNameController,
                       decoration: InputDecoration(
-                        labelText: 'Full Name',
+                        labelText: AppLocalizations.of(context)!.fullName,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -138,7 +139,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     TextFormField(
                       controller: _emailController,
                       decoration: InputDecoration(
-                        labelText: 'Email',
+                        labelText: AppLocalizations.of(context)!.email,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -152,7 +153,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     TextFormField(
                       controller: _passwordController,
                       decoration: InputDecoration(
-                        labelText: 'Password',
+                        labelText: AppLocalizations.of(context)!.password,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -178,9 +179,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text(
-                          'Create Account',
-                          style: TextStyle(
+                        child: Text(
+                          AppLocalizations.of(context)!.createAccount,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -190,13 +191,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
-                          'Already have an account? ',
-                          style: TextStyle(color: Colors.grey),
+                        Text(
+                          AppLocalizations.of(context)!.alreadyHaveAccount,
+                          style: const TextStyle(color: Colors.grey),
                         ),
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text('Sign In'),
+                          child: Text(AppLocalizations.of(context)!.signIn),
                         ),
                       ],
                     ),

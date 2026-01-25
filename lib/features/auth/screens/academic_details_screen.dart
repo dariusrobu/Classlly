@@ -4,6 +4,7 @@ import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:classlly/features/library/providers/profile_provider.dart';
+import 'package:classlly/l10n/app_localizations.dart';
 
 class AcademicDetailsScreen extends StatefulWidget {
   const AcademicDetailsScreen({super.key});
@@ -72,7 +73,7 @@ class _AcademicDetailsScreenState extends State<AcademicDetailsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Academic details saved')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.academicDetailsSaved)));
         Navigator.pop(context);
       }
     }
@@ -85,7 +86,7 @@ class _AcademicDetailsScreenState extends State<AcademicDetailsScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Academic Details'),
+        title: Text(AppLocalizations.of(context)!.academicDetails),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
@@ -100,11 +101,11 @@ class _AcademicDetailsScreenState extends State<AcademicDetailsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildFieldLabel('University', isDark),
+              _buildFieldLabel(AppLocalizations.of(context)!.university, isDark),
               const SizedBox(height: 8),
               _buildTextField(_universityController, 'e.g. UBB Cluj', isDark),
               const SizedBox(height: 24),
-              _buildFieldLabel('Major / Course', isDark),
+              _buildFieldLabel(AppLocalizations.of(context)!.majorCourse, isDark),
               const SizedBox(height: 8),
               _buildTextField(
                 _majorController,
@@ -112,11 +113,11 @@ class _AcademicDetailsScreenState extends State<AcademicDetailsScreen> {
                 isDark,
               ),
               const SizedBox(height: 24),
-              _buildFieldLabel('Current Year', isDark),
+              _buildFieldLabel(AppLocalizations.of(context)!.currentYear, isDark),
               const SizedBox(height: 8),
               _buildTextField(_yearController, 'e.g. Year 2', isDark),
               const SizedBox(height: 24),
-              _buildFieldLabel('Student ID (Optional)', isDark),
+              _buildFieldLabel(AppLocalizations.of(context)!.studentIdOptional, isDark),
               const SizedBox(height: 8),
               _buildTextField(_studentIdController, 'e.g. STUD-12345', isDark),
               const SizedBox(height: 48),
@@ -132,9 +133,9 @@ class _AcademicDetailsScreenState extends State<AcademicDetailsScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: const Text(
-                    'Update Academic Info',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  child: Text(
+                    AppLocalizations.of(context)!.updateAcademicInfo,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -182,7 +183,7 @@ class _AcademicDetailsScreenState extends State<AcademicDetailsScreen> {
           vertical: 16,
         ),
       ),
-      validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+      validator: (v) => v == null || v.isEmpty ? AppLocalizations.of(context)!.none : null,
     );
   }
 }

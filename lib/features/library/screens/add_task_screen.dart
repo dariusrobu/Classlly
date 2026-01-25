@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:classlly/data/models/task_model.dart';
 import 'package:classlly/data/models/course_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
+import 'package:classlly/l10n/app_localizations.dart';
 
 import 'package:provider/provider.dart';
 import 'package:classlly/features/library/providers/task_provider.dart';
@@ -33,15 +34,6 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   String? _selectedCourseId;
   final NotesRepository _repository = NotesRepository();
   List<Course> _courses = [];
-
-  final List<String> _taskTypes = [
-    'Assignment',
-    'Exam',
-    'Reading',
-    'Project',
-    'Personal',
-    'Other',
-  ];
 
   final Map<Duration?, String> _reminderOptions = {
     null: 'None',
@@ -144,7 +136,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
             backgroundColor: Colors.transparent,
             appBar: AppBar(
               title: Text(
-                widget.taskToEdit != null ? 'Edit Task' : 'New Task',
+                widget.taskToEdit != null ? AppLocalizations.of(context)!.editTask : AppLocalizations.of(context)!.newTask,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -170,15 +162,15 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                   children: [
                     TextFormField(
                       controller: _titleController,
-                      validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                      validator: (v) => v?.isEmpty == true ? AppLocalizations.of(context)!.none : null,
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
-                      decoration: const InputDecoration(
-                        hintText: 'Task Name',
+                      decoration: InputDecoration(
+                        hintText: AppLocalizations.of(context)!.taskName,
                         border: InputBorder.none,
-                        hintStyle: TextStyle(color: Colors.grey),
+                        hintStyle: const TextStyle(color: Colors.grey),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -186,7 +178,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                       controller: _descController,
                       maxLines: 2,
                       decoration: InputDecoration(
-                        hintText: 'Description (Optional)',
+                        hintText: AppLocalizations.of(context)!.descriptionOptional,
                         hintStyle: const TextStyle(fontSize: 14),
                         filled: true,
                         fillColor: Theme.of(
@@ -201,9 +193,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    const Text(
-                      'Priority',
-                      style: TextStyle(
+                    Text(
+                      AppLocalizations.of(context)!.priority,
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                         color: Colors.grey,
@@ -213,9 +205,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                     _buildPrioritySelector(),
 
                     const SizedBox(height: 24),
-                    const Text(
-                      'Schedule',
-                      style: TextStyle(
+                    Text(
+                      AppLocalizations.of(context)!.schedule,
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                         color: Colors.grey,
@@ -226,7 +218,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                       children: [
                         Expanded(
                           child: _buildDateTimePicker(
-                            'Due Date',
+                            AppLocalizations.of(context)!.dueDate,
                             _dueDate,
                             (d) => setState(() => _dueDate = d),
                           ),
@@ -243,9 +235,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Type',
-                                style: TextStyle(
+                              Text(
+                                AppLocalizations.of(context)!.type,
+                                style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
                                   color: Colors.grey,
@@ -261,9 +253,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Course',
-                                style: TextStyle(
+                              Text(
+                                AppLocalizations.of(context)!.courses.split(' ')[0], // Course
+                                style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
                                   color: Colors.grey,
@@ -295,8 +287,8 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                         ),
                         child: Text(
                           widget.taskToEdit != null
-                              ? 'Save Changes'
-                              : 'Create Task',
+                              ? AppLocalizations.of(context)!.saveChanges
+                              : AppLocalizations.of(context)!.createTask,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -316,7 +308,11 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
 
   Widget _buildPrioritySelector() {
     final colors = [Colors.blue, Colors.orange, Colors.redAccent];
-    final labels = ['Low', 'Medium', 'High'];
+    final labels = [
+      AppLocalizations.of(context)!.low,
+      AppLocalizations.of(context)!.medium,
+      AppLocalizations.of(context)!.high
+    ];
 
     return Row(
       children: List.generate(3, (index) {
@@ -411,7 +407,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                   child: Text(
                     value != null
                         ? DateFormat('MMM d, HH:mm').format(value)
-                        : 'Select',
+                        : AppLocalizations.of(context)!.select,
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: value != null
@@ -431,6 +427,14 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   }
 
   Widget _buildReminderSelector() {
+    final reminderOptions = {
+      null: AppLocalizations.of(context)!.none,
+      const Duration(hours: 1): AppLocalizations.of(context)!.oneHourBefore,
+      const Duration(hours: 2): AppLocalizations.of(context)!.twoHoursBefore,
+      const Duration(days: 1): AppLocalizations.of(context)!.oneDayBefore,
+      const Duration(days: 7): AppLocalizations.of(context)!.oneWeekBefore,
+    };
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
@@ -441,9 +445,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 8),
-          const Text(
-            'Reminder',
-            style: TextStyle(fontSize: 12, color: Colors.grey),
+          Text(
+            AppLocalizations.of(context)!.reminder,
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
           DropdownButtonHideUnderline(
             child: DropdownButton<Duration?>(
@@ -454,7 +458,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                 size: 16,
                 color: Colors.grey,
               ),
-              items: _reminderOptions.entries.map((e) {
+              items: reminderOptions.entries.map((e) {
                 return DropdownMenuItem<Duration?>(
                   value: e.key,
                   child: Text(
@@ -476,6 +480,15 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   }
 
   Widget _buildTypeSelector() {
+    final taskTypes = [
+      AppLocalizations.of(context)!.assignment,
+      AppLocalizations.of(context)!.exam,
+      AppLocalizations.of(context)!.reading,
+      AppLocalizations.of(context)!.project,
+      AppLocalizations.of(context)!.personal,
+      AppLocalizations.of(context)!.other,
+    ];
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
@@ -486,7 +499,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
         child: DropdownButton<String>(
           value: _taskType,
           isExpanded: true,
-          items: _taskTypes
+          items: taskTypes
               .map(
                 (t) => DropdownMenuItem(
                   value: t,
@@ -496,7 +509,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
               .toList(),
           onChanged: (val) => setState(() {
             _taskType = val!;
-            if (_taskType == 'Exam') {
+            if (_taskType == AppLocalizations.of(context)!.exam) {
               _priority = 2;
             }
           }),
@@ -515,7 +528,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedCourseId,
-          hint: const Text('None', style: TextStyle(fontSize: 14)),
+          hint: Text(AppLocalizations.of(context)!.none, style: const TextStyle(fontSize: 14)),
           isExpanded: true,
           items: _courses
               .map(

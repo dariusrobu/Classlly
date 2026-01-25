@@ -5,6 +5,7 @@ import 'package:classlly/data/models/note_models.dart';
 import 'package:classlly/features/library/providers/notes_provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
+import 'package:classlly/l10n/app_localizations.dart';
 
 class CreateNoteDialog extends StatefulWidget {
   final String? initialCourseId;
@@ -38,7 +39,7 @@ class _CreateNoteDialogState extends State<CreateNoteDialog> {
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     return AlertDialog(
-      title: const Text('Create New Note'),
+      title: Text(AppLocalizations.of(context)!.createNewNote),
       content: SizedBox(
         width: 400,
         child: Column(
@@ -48,10 +49,10 @@ class _CreateNoteDialogState extends State<CreateNoteDialog> {
             TextField(
               controller: _titleController,
               autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Note Title',
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.noteTitle,
                 hintText: 'e.g., Lecture 1 - Introduction',
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 24),
@@ -66,9 +67,9 @@ class _CreateNoteDialogState extends State<CreateNoteDialog> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Course (Optional)',
-                      style: TextStyle(
+                    Text(
+                      AppLocalizations.of(context)!.courseOptional,
+                      style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: Colors.grey,
@@ -85,9 +86,9 @@ class _CreateNoteDialogState extends State<CreateNoteDialog> {
                         ),
                       ),
                       items: [
-                        const DropdownMenuItem(
+                        DropdownMenuItem(
                           value: null,
-                          child: Text('None'),
+                          child: Text(AppLocalizations.of(context)!.none),
                         ),
                         ...courses.map(
                           (c) => DropdownMenuItem(
@@ -104,9 +105,9 @@ class _CreateNoteDialogState extends State<CreateNoteDialog> {
                 );
               },
             ),
-            const Text(
-              'Note Type',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context)!.noteType,
+              style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 color: Colors.grey,
@@ -117,7 +118,7 @@ class _CreateNoteDialogState extends State<CreateNoteDialog> {
               children: [
                 Expanded(
                   child: _TypeSelectionCard(
-                    label: 'Drawing',
+                    label: AppLocalizations.of(context)!.drawing,
                     icon: Icons.draw,
                     isSelected: _selectedType == Note.typeDrawing,
                     onTap: () =>
@@ -129,7 +130,7 @@ class _CreateNoteDialogState extends State<CreateNoteDialog> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _TypeSelectionCard(
-                    label: 'Text',
+                    label: AppLocalizations.of(context)!.text,
                     icon: Icons.text_fields,
                     isSelected: _selectedType == Note.typeText,
                     onTap: () => setState(() => _selectedType = Note.typeText),
@@ -145,12 +146,12 @@ class _CreateNoteDialogState extends State<CreateNoteDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(AppLocalizations.of(context)!.cancel),
         ),
         ElevatedButton(
           onPressed: () async {
             final title = _titleController.text.trim().isEmpty
-                ? 'Untitled Note'
+                ? AppLocalizations.of(context)!.untitled
                 : _titleController.text.trim();
 
             final notesProvider = Provider.of<NotesProvider>(
@@ -176,7 +177,7 @@ class _CreateNoteDialogState extends State<CreateNoteDialog> {
               Navigator.pop(context, note);
             }
           },
-          child: const Text('Create'),
+          child: Text(AppLocalizations.of(context)!.create),
         ),
       ],
     );

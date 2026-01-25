@@ -8,7 +8,7 @@ import 'package:classlly/features/library/providers/library_provider.dart';
 import 'package:classlly/features/library/providers/task_provider.dart';
 import 'package:classlly/features/library/screens/add_task_screen.dart';
 import 'package:classlly/features/library/widgets/empty_state.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:classlly/l10n/app_localizations.dart';
 
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});

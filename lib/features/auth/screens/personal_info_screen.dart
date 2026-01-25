@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:provider/provider.dart';
 import 'package:classlly/features/library/providers/profile_provider.dart';
+import 'package:classlly/l10n/app_localizations.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
   const PersonalInfoScreen({super.key});
@@ -69,7 +70,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           Provider.of<ProfileProvider>(context, listen: false).refreshProfile();
 
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Profile updated successfully')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.profileUpdated)),
           );
           Navigator.pop(context);
         }
@@ -92,7 +93,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Personal Information'),
+        title: Text(AppLocalizations.of(context)!.personalInfo),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
@@ -107,15 +108,15 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildFieldLabel('Full Name', isDark),
+              _buildFieldLabel(AppLocalizations.of(context)!.fullName, isDark),
               const SizedBox(height: 8),
-              _buildTextField(_nameController, 'Enter your full name', isDark),
+              _buildTextField(_nameController, AppLocalizations.of(context)!.enterFullName, isDark),
               const SizedBox(height: 24),
-              _buildFieldLabel('Email Address', isDark),
+              _buildFieldLabel(AppLocalizations.of(context)!.emailAddress, isDark),
               const SizedBox(height: 8),
               _buildTextField(
                 _emailController,
-                'Email',
+                AppLocalizations.of(context)!.email,
                 isDark,
                 enabled: false,
               ), // Email usually not editable directly
@@ -134,9 +135,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                   ),
                   child: _isSaving
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Save Changes',
-                          style: TextStyle(
+                      : Text(
+                          AppLocalizations.of(context)!.saveChanges,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -187,7 +188,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           vertical: 16,
         ),
       ),
-      validator: (v) => v == null || v.isEmpty ? 'Field cannot be empty' : null,
+      validator: (v) => v == null || v.isEmpty ? AppLocalizations.of(context)!.fieldCannotBeEmpty : null,
     );
   }
 }

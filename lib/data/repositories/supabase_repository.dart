@@ -11,8 +11,11 @@ import 'package:classlly/data/models/student_profile_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 
 class SupabaseRepository {
-  final SupabaseClient _client = Supabase.instance.client;
+  final SupabaseClient _client;
   final NotesRepository _localRepository = NotesRepository();
+
+  SupabaseRepository({SupabaseClient? client})
+      : _client = client ?? Supabase.instance.client;
 
   Stream<List<Note>> notesStream() {
     final user = _client.auth.currentUser;

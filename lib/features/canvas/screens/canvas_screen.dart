@@ -711,6 +711,8 @@ class _CanvasScreenState extends State<CanvasScreen> {
               ),
 
               const SizedBox(width: 16),
+              const _AvatarStack(),
+              const SizedBox(width: 16),
 
               ElevatedButton.icon(
                 onPressed: () =>
@@ -974,7 +976,7 @@ class _CanvasToolbarsState extends State<_CanvasToolbars> {
         ),
       ),
       child: showTextToolbar
-          ? _TextToolsPanel(key: const ValueKey('text_toolbar'))
+          ? const _TextToolsPanel(key: ValueKey('text_toolbar'))
           : Column(
               key: const ValueKey('drawing_toolbar_col'),
               mainAxisSize: MainAxisSize.min,
@@ -1269,7 +1271,7 @@ class _DrawingToolsPanel extends StatelessWidget {
                   final sWidth = MediaQuery.of(context).size.width;
                   final sHeight = MediaQuery.of(context).size.height;
                   canvasProvider.setActiveTool(CanvasTool.image);
-                  const picker = ImagePicker();
+                        final picker = ImagePicker();
                   final xFile = await picker.pickImage(
                     source: ImageSource.gallery,
                   );
@@ -1554,7 +1556,7 @@ class CanvasGestureDetector extends StatelessWidget {
             canvasProvider.startResize(offset);
             if (!canvasProvider.isResizing) canvasProvider.startMove();
           } else if (canvasProvider.activeTool == CanvasTool.image) {
-            const picker = ImagePicker();
+                  final picker = ImagePicker();
             final xFile = await picker.pickImage(source: ImageSource.gallery);
             if (xFile != null) {
               final bytes = await xFile.readAsBytes();
@@ -1703,3 +1705,53 @@ class PlaybackControl extends StatelessWidget {
     );
   }
 }
+
+class _AvatarStack extends StatelessWidget {
+  const _AvatarStack();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _avatar('A', Colors.blue),
+        const SizedBox(width: -8),
+        _avatar('B', Colors.green),
+        const SizedBox(width: -8),
+        _avatar('C', Colors.orange),
+        const SizedBox(width: 8),
+        Text(
+          '+2',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _avatar(String initial, Color color) {
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.2),
+        shape: BoxShape.circle,
+        border: Border.all(color: color, width: 1.5),
+      ),
+      child: Center(
+        child: Text(
+          initial,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ),
+    );
+  }
+}
+

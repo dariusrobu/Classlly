@@ -5,6 +5,7 @@ import 'package:classlly/data/models/course_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:provider/provider.dart';
 import 'package:classlly/features/library/providers/course_provider.dart';
+import 'package:classlly/l10n/app_localizations.dart';
 
 class AddAttendanceScreen extends StatefulWidget {
   final Attendance? attendance;
@@ -98,8 +99,8 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
             appBar: AppBar(
               title: Text(
                 widget.attendance != null
-                    ? 'Edit Attendance'
-                    : 'Mark Attendance',
+                    ? AppLocalizations.of(context)!.editAttendance
+                    : AppLocalizations.of(context)!.markAttendance,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -123,9 +124,9 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Course',
-                      style: TextStyle(
+                    Text(
+                      AppLocalizations.of(context)!.courses.split(' ')[0], // Course
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                         color: Colors.grey,
@@ -134,9 +135,9 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
                     const SizedBox(height: 12),
                     _buildCourseSelector(),
                     const SizedBox(height: 24),
-                    const Text(
-                      'Date',
-                      style: TextStyle(
+                    Text(
+                      AppLocalizations.of(context)!.date,
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                         color: Colors.grey,
@@ -145,9 +146,9 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
                     const SizedBox(height: 12),
                     _buildDatePicker(),
                     const SizedBox(height: 24),
-                    const Text(
-                      'Status',
-                      style: TextStyle(
+                    Text(
+                      AppLocalizations.of(context)!.status,
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                         color: Colors.grey,
@@ -173,8 +174,8 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
                         ),
                         child: Text(
                           widget.attendance != null
-                              ? 'Save Changes'
-                              : 'Mark Present',
+                              ? AppLocalizations.of(context)!.saveChanges
+                              : AppLocalizations.of(context)!.markPresent,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -202,9 +203,9 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
       child: DropdownButtonHideUnderline(
         child: DropdownButtonFormField<String>(
           initialValue: _selectedCourseId,
-          hint: const Text('Select Course', style: TextStyle(fontSize: 14)),
+          hint: Text(AppLocalizations.of(context)!.selectCourse, style: const TextStyle(fontSize: 14)),
           isExpanded: true,
-          validator: (v) => v == null ? 'Required' : null,
+          validator: (v) => v == null ? AppLocalizations.of(context)!.none : null,
           items: _courses
               .map(
                 (c) => DropdownMenuItem(
@@ -270,6 +271,13 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
   }
 
   Widget _buildStatusSelector() {
+    final Map<AttendanceStatus, String> statusLabels = {
+      AttendanceStatus.present: AppLocalizations.of(context)!.present,
+      AttendanceStatus.absent: AppLocalizations.of(context)!.absent,
+      AttendanceStatus.late: AppLocalizations.of(context)!.late,
+      AttendanceStatus.excused: AppLocalizations.of(context)!.excused,
+    };
+
     return Column(
       children: AttendanceStatus.values.map((status) {
         final isSelected = _status == status;
@@ -316,7 +324,7 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
                   Icon(icon, color: isSelected ? color : Colors.grey, size: 20),
                   const SizedBox(width: 12),
                   Text(
-                    status.name.toUpperCase(),
+                    statusLabels[status]!.toUpperCase(),
                     style: TextStyle(
                       color: isSelected ? color : Colors.grey[600],
                       fontWeight: isSelected

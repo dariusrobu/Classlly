@@ -10,7 +10,7 @@ import 'package:classlly/features/library/providers/academic_calendar_provider.d
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:classlly/data/models/user_preferences_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:classlly/l10n/app_localizations.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});

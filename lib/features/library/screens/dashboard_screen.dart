@@ -18,7 +18,7 @@ import 'package:classlly/features/library/screens/add_attendance_screen.dart';
 import 'package:classlly/features/library/screens/course_detail_screen.dart';
 import 'package:classlly/features/library/widgets/create_note_dialog.dart';
 import 'package:classlly/features/library/screens/library_screen.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:classlly/l10n/app_localizations.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -110,8 +110,10 @@ class DashboardScreen extends StatelessWidget {
                       final courses = provider.courses;
                       if (courses.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Add a course first to log grades'),
+                          SnackBar(
+                            content: Text(
+                              AppLocalizations.of(context)!.addCourseFirst,
+                            ),
                           ),
                         );
                         return;
@@ -124,7 +126,7 @@ class DashboardScreen extends StatelessWidget {
                         selectedCourseId = await showDialog<String>(
                           context: context,
                           builder: (context) => SimpleDialog(
-                            title: const Text('Select Course'),
+                            title: Text(AppLocalizations.of(context)!.selectCourse),
                             children: courses
                                 .map(
                                   (c) => SimpleDialogOption(
@@ -314,9 +316,9 @@ class PerformanceRing extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Performance Overview',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context)!.performanceOverview,
+            style: const TextStyle(
               color: Colors.grey,
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -355,7 +357,7 @@ class PerformanceRing extends StatelessWidget {
                             width: size,
                             height: size,
                             child: CustomPaint(
-                              painter: PerformanceRingPainter(
+                              painter: _PerformanceRingPainter(
                                 attendanceParams: _RingParams(
                                   percentage: totalAttRate / 100,
                                   color: Theme.of(context).colorScheme.primary,
@@ -428,13 +430,13 @@ class PerformanceRing extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _LegendItem(
-                label: 'Attendance',
+                label: AppLocalizations.of(context)!.attendance,
                 strokeWidth: 14,
                 color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(width: 24),
               _LegendItem(
-                label: 'Tasks',
+                label: AppLocalizations.of(context)!.tasks,
                 strokeWidth: 6,
                 color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
               ),
@@ -489,12 +491,12 @@ class _RingParams {
   });
 }
 
-class PerformanceRingPainter extends CustomPainter {
+class _PerformanceRingPainter extends CustomPainter {
   final _RingParams attendanceParams;
   final _RingParams taskParams;
   final Color backgroundColor;
 
-  PerformanceRingPainter({
+  _PerformanceRingPainter({
     required this.attendanceParams,
     required this.taskParams,
     required this.backgroundColor,
@@ -565,7 +567,7 @@ class PerformanceRingPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(PerformanceRingPainter oldDelegate) => true;
+  bool shouldRepaint(_PerformanceRingPainter oldDelegate) => true;
 }
 
 class ScheduleCard extends StatelessWidget {
@@ -631,7 +633,7 @@ class ScheduleCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    "Today's Schedule",
+                    AppLocalizations.of(context)!.todaysSchedule,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -646,7 +648,7 @@ class ScheduleCard extends StatelessWidget {
                       .setView(LibraryView.calendar);
                 },
                 child: Text(
-                  'View Full',
+                  AppLocalizations.of(context)!.viewCalendar,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w500,
@@ -670,7 +672,7 @@ class ScheduleCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No lectures today',
+                          AppLocalizations.of(context)!.noLecturesToday,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -678,9 +680,9 @@ class ScheduleCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Time to relax or catch up on study!',
-                          style: TextStyle(color: Colors.grey, fontSize: 14),
+                        Text(
+                          AppLocalizations.of(context)!.relaxOrStudy,
+                          style: const TextStyle(color: Colors.grey, fontSize: 14),
                         ),
                       ],
                     )
@@ -721,7 +723,7 @@ class RecentNotesCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Recent Notes',
+                AppLocalizations.of(context)!.recentNotes,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -753,12 +755,12 @@ class RecentNotesCard extends StatelessWidget {
                 ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
               final recent = notes.take(2).toList();
               if (recent.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
                   child: Center(
                     child: Text(
-                      'No notes yet',
-                      style: TextStyle(color: Colors.grey),
+                      AppLocalizations.of(context)!.noNotesYet,
+                      style: const TextStyle(color: Colors.grey),
                     ),
                   ),
                 );
@@ -809,7 +811,7 @@ class RecentNotesCard extends StatelessWidget {
                                   Text(
                                     note.title.isNotEmpty
                                         ? note.title
-                                        : 'Untitled',
+                                        : AppLocalizations.of(context)!.untitled,
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: Theme.of(
@@ -819,7 +821,10 @@ class RecentNotesCard extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    '${DateFormat.Md().format(note.updatedAt)} • ${note.strokes.length} strokes',
+                                    AppLocalizations.of(context)!.noteMetadata(
+                                      DateFormat.Md().format(note.updatedAt),
+                                      note.strokes.length,
+                                    ),
                                     style: const TextStyle(
                                       color: Colors.grey,
                                       fontSize: 12,
@@ -966,41 +971,41 @@ class TasksCard extends StatelessWidget {
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Tasks',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).textTheme.titleLarge?.color,
-                    ),
-                  ),
-                  ValueListenableBuilder(
-                    valueListenable: Hive.box<Task>(
-                      NotesRepository.taskBoxName,
-                    ).listenable(),
-                    builder: (context, Box<Task> box, _) {
-                      final tasks = box.values
-                          .where((t) => !t.isDeleted)
-                          .toList();
-                      final completed = tasks
-                          .where((t) => t.isCompleted)
-                          .length;
-                      final completionRate = tasks.isNotEmpty
-                          ? (completed / tasks.length) * 100
-                          : 0.0;
-                      return Text(
-                        '${completionRate.toInt()}% Completed',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
+                            children: [
+                              Text(
+                                AppLocalizations.of(context)!.tasks,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).textTheme.titleLarge?.color,
+                                ),
+                              ),
+                              ValueListenableBuilder(
+                                valueListenable: Hive.box<Task>(
+                                  NotesRepository.taskBoxName,
+                                ).listenable(),
+                                builder: (context, Box<Task> box, _) {
+                                  final tasks = box.values
+                                      .where((t) => !t.isDeleted)
+                                      .toList();
+                                  final completed = tasks
+                                      .where((t) => t.isCompleted)
+                                      .length;
+                                  final completionRate = tasks.isNotEmpty
+                                      ? (completed / tasks.length) * 100
+                                      : 0.0;
+                                  return Text(
+                                    AppLocalizations.of(context)!
+                                        .percentCompleted(completionRate.toInt()),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context).colorScheme.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],              ),
               ValueListenableBuilder(
                 valueListenable: Hive.box<Task>(
                   NotesRepository.taskBoxName,
@@ -1021,7 +1026,7 @@ class TasksCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      '$pendingCount Pending',
+                      AppLocalizations.of(context)!.pendingCount(pendingCount),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -1045,12 +1050,12 @@ class TasksCard extends StatelessWidget {
               tasks.sort((a, b) => b.priority.compareTo(a.priority));
               final displayTasks = tasks.take(4).toList();
               if (displayTasks.isEmpty) {
-                return const Center(
+                return Center(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24.0),
+                    padding: const EdgeInsets.symmetric(vertical: 24.0),
                     child: Text(
-                      'All caught up!',
-                      style: TextStyle(color: Colors.grey),
+                      AppLocalizations.of(context)!.allCaughtUp,
+                      style: const TextStyle(color: Colors.grey),
                     ),
                   ),
                 );
@@ -1136,11 +1141,10 @@ class TasksCard extends StatelessWidget {
                   builder: (context) => const AddTaskScreen(),
                 );
               },
-              child: Text(
-                'Add Task',
-                style: TextStyle(color: Theme.of(context).colorScheme.primary),
-              ),
-            ),
+                          child: Text(
+                            AppLocalizations.of(context)!.addTask,
+                            style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                          ),            ),
           ),
         ],
       ),
