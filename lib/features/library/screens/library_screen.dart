@@ -48,12 +48,14 @@ class LibraryScreen extends StatelessWidget {
     final libraryProvider = Provider.of<LibraryProvider>(context);
     Future.microtask(() {
       libraryProvider.initSync();
-      NotificationService().scheduleDailyNotification(
-        id: 888,
-        title: AppLocalizations.of(context)!.dailyAgenda,
-        body: AppLocalizations.of(context)!.dailyAgendaBody,
-        time: const TimeOfDay(hour: 17, minute: 30),
-      );
+      if (context.mounted) {
+        NotificationService().scheduleDailyNotification(
+          id: 888,
+          title: AppLocalizations.of(context)!.dailyAgenda,
+          body: AppLocalizations.of(context)!.dailyAgendaBody,
+          time: const TimeOfDay(hour: 17, minute: 30),
+        );
+      }
     });
 
     return Scaffold(

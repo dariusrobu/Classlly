@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:classlly/data/models/course_model.dart';
 import 'package:classlly/data/models/task_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
-import 'package:flutter/material.dart';
 
 class WidgetService {
   final NotesRepository _repository = NotesRepository();

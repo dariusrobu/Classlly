@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:classlly/data/models/student_profile_model.dart';
+import 'package:classlly/data/models/note_models.dart';
+import 'package:classlly/data/models/course_model.dart';
+import 'package:classlly/data/models/task_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/data/repositories/auth_repository.dart';
 import 'package:classlly/features/auth/screens/auth_screen.dart';
