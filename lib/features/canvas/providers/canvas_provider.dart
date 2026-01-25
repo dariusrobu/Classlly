@@ -474,6 +474,21 @@ class CanvasProvider with ChangeNotifier {
 
     _currentNote!.strokes.add(stroke);
     _activePoints = [];
+
+    // --- Shape Recognition ---
+    final shape = GeometryUtils.recognizeShape(pointsToSave);
+    if (shape != null) {
+      // Replace last stroke with shape points
+      _currentNote!.strokes.removeLast();
+      _currentNote!.strokes.add(Stroke(
+        points: shape.points,
+        color: strokeColor.toARGB32(),
+        width: strokeWidth,
+        createdAt: timestamp ?? -1,
+        toolType: _activeTool.name,
+      ));
+    }
+
     saveNote();
     notifyListeners();
   }

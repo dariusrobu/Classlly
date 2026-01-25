@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
+import 'package:classlly/core/services/supabase_cloud_service.dart';
 
 class AuthRepository {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -11,6 +12,12 @@ class AuthRepository {
   Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
 
   User? get currentUser => _supabase.auth.currentUser;
+
+  Future<void> deleteAccount() async {
+    final cloudService = SupabaseCloudService();
+    await cloudService.deleteUserContent();
+    await signOut();
+  }
 
   Future<AuthResponse> signInWithEmailPassword({
     required String email,

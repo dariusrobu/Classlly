@@ -318,6 +318,28 @@ class SupabaseCloudService implements CloudStorageService {
     await _client.from('notes').delete().eq('id', noteId);
   }
 
+  Future<void> deleteUserContent() async {
+    final user = _client.auth.currentUser;
+    if (user == null) return;
+
+    final userId = user.id;
+
+    // Delete data from all tables where user_id matches
+    // Note: Order might matter if there are foreign key constraints, 
+    // but typically Supabase handles this or we delete children first.
+    await Future.wait([
+      _client.from('notes').delete().eq('user_id', userId),
+      _client.from('tasks').delete().eq('user_id', userId),
+      _client.from('courses').delete().eq('user_id', userId),
+      _client.from('folders').delete().eq('user_id', userId),
+      _client.from('academic_periods').delete().eq('user_id', userId),
+      _client.from('academic_events').delete().eq('user_id', userId),
+      _client.from('grades').delete().eq('user_id', userId),
+      _client.from('attendance').delete().eq('user_id', userId),
+      _client.from('student_profiles').delete().eq('user_id', userId),
+    ]);
+  }
+
   @override
   Future<bool> hasProfile() async {
     final user = _client.auth.currentUser;

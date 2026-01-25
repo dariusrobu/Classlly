@@ -1,211 +1,59 @@
-# Classlly Production Roadmap & Checklist
+# Classlly Production Launch Map 🗺️
 
-This document serves as the master guide for deploying **Classlly** to production on the Apple App Store and Google Play Store. It outlines the current status, critical missing components, and step-by-step instructions for future updates.
-
----
-
-## 📱 iOS (App Store)
-**Current Status:** Ready for TestFlight (Version `2.5.0+31`)
-**Bundle ID:** `com.robudarius.classlly`
-
-### ✅ Completed
-*   [x] **App Icon:** Updated with production assets.
-*   [x] **Versioning:** Synced with legacy Swift app (`2.5.0`).
-*   [x] **Compliance:** Account deletion flow implemented (Local Wipe + Logout).
-*   [x] **Privacy Permissions:** `Info.plist` includes usage descriptions for Camera, Microphone, and Photo Library.
-*   [x] **Functionality:** Real-time dashboard data (no mocks).
-*   [x] **Notifications:** Permission requests moved to on-demand (saving tasks/courses).
-
-### ⚠️ Critical Actions Required (Before Public Launch)
-1.  **Backend Account Deletion:**
-    *   **Task:** Ensure that when a user requests deletion in the app, their data is actually removed from Supabase.
-    *   **Solution:** Implement a Supabase Edge Function or manually process deletion requests if relying on the current email trigger simulation.
-2.  **App Store Screenshots:**
-    *   **Task:** Upload new screenshots to App Store Connect that reflect the new Flutter UI. Using old Swift UI screenshots may lead to rejection.
+This document outlines the final steps required to transition **Classlly** from a functional prototype to a public product on the Apple App Store and Google Play Store.
 
 ---
 
-## 🤖 Android (Google Play)
-**Current Status:** 🚧 **NOT READY**
-**Package Name:** `com.robudarius.classlly`
-
-### 🛑 Critical Blockers
-1.  **Missing `google-services.json`:**
-    *   **Reason:** Required for Google Sign-In and Firebase services.
-    *   **Action:** Download `google-services.json` from Firebase Console (Project Settings > Your Apps > Android) and place it in `android/app/`.
-2.  **No Release Signing Key:**
-    *   **Reason:** Google Play rejects apps signed with debug keys.
-    *   **Action:** Generate a `.jks` keystore and configure `key.properties`.
-
-### 📝 Step-by-Step Android Release Guide
-
-#### 1. Generate Upload Keystore
-Run this command in your terminal:
-```bash
-keytool -genkey -v -keystore ~/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
-```
-*   **Keep the `upload-keystore.jks` file safe. Never lose it.** If you lose this, you cannot update your app on Google Play.
-
-#### 2. Configure `key.properties`
-Create a file named `key.properties` in the `android/` folder with:
-```properties
-storePassword=<your-store-password>
-keyPassword=<your-key-password>
-keyAlias=upload
-storeFile=<path-to-upload-keystore.jks>
-```
-
-#### 3. Update `android/app/build.gradle`
-Ensure the `buildTypes` section uses the release signing config. You may need to edit `android/app/build.gradle` to read from `key.properties`:
-
-```gradle
-def keystoreProperties = new Properties()
-def keystorePropertiesFile = rootProject.file('key.properties')
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-}
-
-android {
-    signingConfigs {
-        release {
-            keyAlias = keystoreProperties['keyAlias']
-            keyPassword = keystoreProperties['keyPassword']
-            storeFile = keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
-            storePassword = keystoreProperties['storePassword']
-        }
-    }
-    buildTypes {
-        release {
-            signingConfig signingConfigs.release
-        }
-    }
-}
-```
-
-#### 4. Build App Bundle (AAB)
-For Google Play, build an AAB instead of an APK:
-```bash
-flutter build appbundle --no-tree-shake-icons
-```
-*   **Output:** `build/app/outputs/bundle/release/app-release.aab`
+## 🚀 Current Status Overview
+- **Core Engine:** Verified (Canvas, Audio Sync, Real-time Sync).
+- **iOS:** Technical compliance complete (including Account Deletion).
+- **Android:** Infrastructure ready; awaiting configuration files.
+- **Engagment:** Notifications and Home Screen Widgets implemented.
 
 ---
 
-## ☁️ Backend & Security (Supabase)
+## 🛠️ Technical Tasks (To be done by Developer/Agent)
 
-### 🔒 Row Level Security (RLS) - **MANDATORY**
-The app connects directly to Supabase. RLS must be enabled on all tables to prevent data leaks.
+### 1. PDF Snippet Refinement
+- [ ] **Precision Cropping:** Upgrade the PDF insertion logic to allow users to select a specific area of a page instead of inserting the full page.
+- [ ] **Resolution Tweak:** Ensure snippets remain crisp when zoomed in on the canvas.
 
-*   **Policy Example (Notes):**
-    ```sql
-    -- Enable RLS
-    ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+### 2. Real-time Collaboration (Phase 22)
+- [ ] **Supabase Presence:** Implement actual Realtime Presence to show who is online in the `_AvatarStack`.
+- [ ] **Shared State:** Ensure strokes from other users appear instantly with their specific user color.
 
-    -- Create Policy
-    CREATE POLICY "Users can only see their own notes"
-    ON notes FOR ALL
-    USING (auth.uid() = user_id);
-    ```
-*   **Action:** Verify RLS is enabled for `notes`, `tasks`, `courses`, `profiles`, etc. in the Supabase Dashboard.
-
-### 🔑 Authentication
-*   **Redirect URLs:** Ensure your production redirect URLs are added to Supabase Auth settings (for Google/Apple Sign-In).
+### 3. Polish & Optimization
+- [ ] **Asset Compression:** Optimize Base64 image storage or move to Supabase Storage buckets for large files to reduce local database size.
+- [ ] **Crash Analytics:** Integrate Sentry or Firebase Crashlytics to monitor production errors.
 
 ---
 
-## ⚖️ Legal & Compliance
+## 👤 User Action Items (Things YOU need to do)
 
-### Privacy Policy
-*   **Requirement:** Both Apple and Google require a valid Privacy Policy URL.
-*   **Content:** Must explicitly state:
-    *   Data collected (Name, Email, Notes, Audio recordings, Photos).
-    *   Third-party services used (Supabase, Google Sign-In).
-    *   Data retention policy (How long data is kept).
-    *   Account deletion instructions.
-
-### User Data Deletion (Apple Requirement)
-*   You **must** provide a way for users to delete their account within the app.
-*   The current implementation clears local data and logs them out.
-*   **For Approval:** You must ensure this action eventually leads to the deletion of their server-side data (via Edge Function or manual admin process mentioned in your privacy policy).
-
----
-
-## 📢 Store Listing Metadata (Marketing)
-
-### Required Assets
-| Asset | iOS (App Store) | Android (Play Store) |
-| :--- | :--- | :--- |
-| **App Icon** | 1024x1024 (No Alpha) | 512x512 (Alpha Allowed) |
-| **Screenshots** | 6.5" Display (1284x2778)<br>5.5" Display (1242x2208)<br>iPad Pro (2048x2732) | Phone, 7" Tablet, 10" Tablet |
-| **Feature Graphic** | N/A | 1024x500 (PNG/JPG) |
-| **Short Description** | Promotional Text (170 chars) | Short Description (80 chars) |
-| **Long Description** | Full Description (4000 chars) | Full Description (4000 chars) |
-
-*   **Note:** Ensure screenshots reflect the **current Flutter UI**. Do not use old Swift UI screenshots.
-
----
-
-## 🚀 Release Workflow
-
-### To Update the App (Future)
-
-1.  **Update Version:**
-    *   Open `pubspec.yaml`.
-    *   Increment version (e.g., `2.5.1+32`).
-
-2.  **Run Checks:**
+### 🔐 Android Release Setup (Critical)
+1.  **Firebase:** Go to [Firebase Console](https://console.firebase.google.com/), add an Android app to your project (`com.robudarius.classlly`), download `google-services.json`, and place it in `android/app/`.
+2.  **Keystore:** Generate your production upload keystore:
     ```bash
-    flutter analyze
-    flutter test
+    keytool -genkey -v -keystore ~/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
     ```
+3.  **Signing:** Create a `key.properties` file in the `android/` folder based on `key.properties.example` with your actual passwords and path.
 
-3.  **Build for iOS:**
-    ```bash
-    flutter build ipa --no-tree-shake-icons
-    open build/ios/ipa
-    ```
-    *   Upload `Runner.ipa` via Transporter.
+### 🎨 Store Marketing Assets
+1.  **Screenshots:** Take 5 high-resolution screenshots for each store:
+    -   **Dashboard:** Showing academic stats and the calendar.
+    -   **Canvas:** Showing a beautiful handwritten note with a PDF snippet.
+    -   **Audio Replay:** Highlighting the "Tap to jump" feature.
+    -   **Task Board:** Showing the Kanban organization.
+2.  **App Description:** Finalize the "Long Description" for the stores, focusing on the "Student Central Command" value proposition.
 
-4.  **Build for Android:**
-    ```bash
-    flutter build appbundle --no-tree-shake-icons
-    open build/app/outputs/bundle/release
-    ```
-    *   Upload `app-release.aab` to Google Play Console.
-
-### 🛠 Troubleshooting Common Issues
-
-*   **"Tree Shake Icons" Error:**
-    *   If the build fails with `IconData` errors, always add `--no-tree-shake-icons` to your build command.
-    *   *Why?* The app dynamically loads icons (e.g., for courses), preventing the compiler from knowing which ones are safe to remove.
-
-*   **"Version already exists" (App Store):**
-    *   Go to `pubspec.yaml` and increment the build number (the number after the `+`, e.g., `+32`).
-
-
-*** ON PHONE THE CANVA ISN'T RESPONSIVE THE NAV BAR IS TOO HIGH AT THE TOP**
+### ⚖️ Legal & Deployment
+1.  **Privacy Policy URL:** Host your privacy policy (available in `docs/legal/`) on a public website (e.g., GitHub Pages or your own domain) as required by Apple and Google.
+2.  **App Store Connect:** Create the app listing and upload the iOS `.ipa` build.
+3.  **Play Store Console:** Create the app listing and upload the Android `.aab` build.
 
 ---
 
-## 🌟 Future Features / Roadmap
-
-### ☁️ Bring Your Own Cloud (BYOC)
-Shift from a purely database-centric sync (Supabase) to a storage-provider model, allowing users to choose where their data lives.
-
-#### Phase 1: Abstraction Layer
-*   Create a `CloudStorageService` interface to standardize sync operations (connect, disconnect, sync, status).
-*   Refactor `SupabaseRepository` to implement this interface.
-
-#### Phase 2: Google Drive Integration
-*   **Dependencies:** `googleapis`, `extension_google_sign_in_as_googleapis_auth`.
-*   **Mechanism:** Store data as JSON files in a dedicated `Notelly Data/` folder in the user's Drive.
-*   **Auth:** Request `drive.file` scope.
-
-#### Phase 3: iCloud Integration
-*   **Dependencies:** `icloud_storage` or `cloud_kit`.
-*   **Mechanism:** Sync JSON files via the app's ubiquitous container.
-*   **Config:** Enable "iCloud" capabilities in Xcode.
-
-#### Phase 4: User Choice & Settings
-*   Add "Cloud Provider" selector in Settings.
-*   Implement migration/initial sync logic when switching providers.
+## 🏗️ Future Roadmap (Post-Launch)
+- [ ] **Bring Your Own Cloud (BYOC):** Google Drive and iCloud integration.
+- [ ] **Desktop Native Apps:** Optimized window management for macOS/Windows.
+- [ ] **AI Summarization:** Auto-generate study summaries from recorded audio.

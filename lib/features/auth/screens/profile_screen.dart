@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:classlly/data/models/student_profile_model.dart';
-import 'package:classlly/data/models/course_model.dart';
-import 'package:classlly/data/models/task_model.dart';
-import 'package:classlly/data/models/note_models.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
+import 'package:classlly/data/repositories/auth_repository.dart';
 import 'package:classlly/features/auth/screens/auth_screen.dart';
 import 'package:classlly/features/library/screens/settings_screen.dart';
 import 'package:classlly/features/auth/screens/personal_info_screen.dart';
@@ -127,8 +125,9 @@ class ProfileScreen extends StatelessWidget {
                           ),
                           TextButton(
                             onPressed: () async {
-                              // 1. Sign out of Supabase
-                              await Supabase.instance.client.auth.signOut();
+                              // 1. Delete data from Supabase and Sign out
+                              final authRepo = AuthRepository();
+                              await authRepo.deleteAccount();
 
                               // 2. Clear all local Hive boxes
                               await Hive.deleteFromDisk();
