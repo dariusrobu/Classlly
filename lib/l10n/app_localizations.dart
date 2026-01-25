@@ -1599,6 +1599,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete Grade'**
   String get deleteGrade;
+
+  /// No description provided for @deleteNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Note'**
+  String get deleteNote;
+
+  /// No description provided for @pleaseSelectCourse.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a course'**
+  String get pleaseSelectCourse;
+
+  /// No description provided for @emptyTrash.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty Trash'**
+  String get emptyTrash;
+
+  /// No description provided for @trashEmptied.
+  ///
+  /// In en, this message translates to:
+  /// **'Trash emptied successfully'**
+  String get trashEmptied;
+
+  /// No description provided for @rename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get rename;
+
+  /// No description provided for @move.
+  ///
+  /// In en, this message translates to:
+  /// **'Move'**
+  String get move;
+
+  /// No description provided for @newFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'New Folder'**
+  String get newFolder;
+
+  /// No description provided for @renameFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename Folder'**
+  String get renameFolder;
+
+  /// No description provided for @deleteFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Folder'**
+  String get deleteFolder;
+
+  /// No description provided for @deleteFolderConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete \"{title}\"? This will move it to the Trash.'**
+  String deleteFolderConfirm(String title);
+
+  /// No description provided for @moveTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to...'**
+  String get moveTo;
+
+  /// No description provided for @myNotesRoot.
+  ///
+  /// In en, this message translates to:
+  /// **'My Notes (Root)'**
+  String get myNotesRoot;
+
+  /// No description provided for @moveNoteTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Move Note to...'**
+  String get moveNoteTo;
+
+  /// No description provided for @renameNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename Note'**
+  String get renameNote;
+
+  /// No description provided for @deleteNoteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete \"{title}\"? This will move it to the Trash.'**
+  String deleteNoteConfirm(String title);
+
+  /// No description provided for @folderName.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder Name'**
+  String get folderName;
+
+  /// No description provided for @emptyFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty Folder'**
+  String get emptyFolder;
+
+  /// No description provided for @organizeStudies.
+  ///
+  /// In en, this message translates to:
+  /// **'Organize your studies by creating folders or starting a new note.'**
+  String get organizeStudies;
+
+  /// No description provided for @trash.
+  ///
+  /// In en, this message translates to:
+  /// **'Trash'**
+  String get trash;
+
+  /// No description provided for @trashDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Items here will be permanently deleted when you empty the trash.'**
+  String get trashDesc;
+
+  /// No description provided for @emptyTrashConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to permanently delete all items in the trash? This action cannot be undone.'**
+  String get emptyTrashConfirm;
+
+  /// No description provided for @restore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get restore;
+
+  /// No description provided for @deletePermanently.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Permanently'**
+  String get deletePermanently;
+
+  /// No description provided for @trashIsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Trash is empty'**
+  String get trashIsEmpty;
+
+  /// No description provided for @trashEmptyDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted notes and tasks will appear here for 30 days before being permanently removed.'**
+  String get trashEmptyDesc;
 }
 
 class _AppLocalizationsDelegate

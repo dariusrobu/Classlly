@@ -18,6 +18,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:pdfx/pdfx.dart';
+import 'package:classlly/l10n/app_localizations.dart';
 
 class CanvasScreen extends StatefulWidget {
   const CanvasScreen({super.key});
@@ -46,7 +47,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
         context,
         listen: false,
       ).currentNote?.title;
-      _titleController.text = title ?? 'Untitled';
+      _titleController.text = title ?? AppLocalizations.of(context)!.untitled;
     });
   }
 
@@ -189,7 +190,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
                                           onPressed: () =>
                                               setState(() => _pageCount++),
                                           icon: const Icon(Icons.add),
-                                          label: const Text('Add Page'),
+                                          label: Text(AppLocalizations.of(context)!.addPage),
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: primaryColor,
                                             foregroundColor: Colors.white,
@@ -328,9 +329,9 @@ class _CanvasScreenState extends State<CanvasScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'OUTLINE & PAGES',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context)!.outlinePages,
+                    style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                       color: Colors.grey,
@@ -356,9 +357,9 @@ class _CanvasScreenState extends State<CanvasScreen> {
                 ),
               ),
               const Divider(color: Colors.white10, height: 32),
-              const Text(
-                'PAGE TEMPLATE',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.pageTemplate,
+                style: const TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                   color: Colors.grey,
@@ -368,35 +369,35 @@ class _CanvasScreenState extends State<CanvasScreen> {
               const SizedBox(height: 12),
               _sidebarTemplateItem(
                 context,
-                'Dot Grid',
+                AppLocalizations.of(context)!.dotGrid,
                 Icons.apps,
                 'dot',
                 canvasProvider,
               ),
               _sidebarTemplateItem(
                 context,
-                'Squared',
+                AppLocalizations.of(context)!.squared,
                 Icons.grid_4x4,
                 'grid',
                 canvasProvider,
               ),
               _sidebarTemplateItem(
                 context,
-                'Lined',
+                AppLocalizations.of(context)!.lined,
                 Icons.reorder,
                 'lined',
                 canvasProvider,
               ),
               _sidebarTemplateItem(
                 context,
-                'Cornell',
+                AppLocalizations.of(context)!.cornell,
                 Icons.dashboard_customize,
                 'cornell',
                 canvasProvider,
               ),
               _sidebarTemplateItem(
                 context,
-                'Blank',
+                AppLocalizations.of(context)!.blank,
                 Icons.check_box_outline_blank,
                 'blank',
                 canvasProvider,
@@ -556,7 +557,8 @@ class _CanvasScreenState extends State<CanvasScreen> {
 
       child: SafeArea(
         bottom: false,
-
+        top: true,
+        minimum: const EdgeInsets.only(top: 8),
         child: Container(
           height: 72,
 
@@ -575,7 +577,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
 
                 onPressed: () => Navigator.pop(context),
 
-                tooltip: 'Back to Library',
+                tooltip: AppLocalizations.of(context)!.backToLibrary,
               ),
 
               const SizedBox(width: 8),
@@ -590,7 +592,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
                 onPressed: () =>
                     setState(() => _isSidebarVisible = !_isSidebarVisible),
 
-                tooltip: 'Toggle Sidebar',
+                tooltip: AppLocalizations.of(context)!.toggleSidebar,
               ),
 
               const SizedBox(width: 8),
@@ -606,7 +608,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
 
                 onPressed: canvasProvider.canUndo ? canvasProvider.undo : null,
 
-                tooltip: 'Undo',
+                tooltip: AppLocalizations.of(context)!.undo,
               ),
 
               IconButton(
@@ -620,7 +622,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
 
                 onPressed: canvasProvider.canRedo ? canvasProvider.redo : null,
 
-                tooltip: 'Redo',
+                tooltip: AppLocalizations.of(context)!.redo,
               ),
 
               const VerticalDivider(width: 48, indent: 24, endIndent: 24),
@@ -639,7 +641,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
 
                       child: Text(
                         canvasProvider.currentNote?.title.toUpperCase() ??
-                            'UNTITLED NOTE',
+                            AppLocalizations.of(context)!.untitled.toUpperCase(),
 
                         style: const TextStyle(
                           fontSize: 13,
@@ -675,8 +677,8 @@ class _CanvasScreenState extends State<CanvasScreen> {
 
                         Text(
                           canvasProvider.isSyncing
-                              ? 'SYNCING...'
-                              : 'AUTO-SAVED AT ${DateFormat.Hm().format(DateTime.now())}',
+                              ? AppLocalizations.of(context)!.syncing
+                              : AppLocalizations.of(context)!.autoSavedAt(DateFormat.Hm().format(DateTime.now())),
 
                           style: TextStyle(
                             fontSize: 10,
@@ -707,7 +709,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
 
                 onPressed: canvasProvider.toggleStylusOnly,
 
-                tooltip: 'Stylus Only Mode',
+                tooltip: AppLocalizations.of(context)!.stylusOnlyMode,
               ),
 
               const SizedBox(width: 16),
@@ -720,10 +722,10 @@ class _CanvasScreenState extends State<CanvasScreen> {
 
                 icon: const Icon(Icons.ios_share_rounded, size: 18),
 
-                label: const Text(
-                  'Export',
+                label: Text(
+                  AppLocalizations.of(context)!.export,
 
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                 ),
 
                 style: ElevatedButton.styleFrom(
@@ -767,7 +769,7 @@ class _CanvasToolbarsState extends State<_CanvasToolbars> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Pick a color'),
+        title: Text(AppLocalizations.of(context)!.pickColor),
         content: SingleChildScrollView(
           child: ColorPicker(
             pickerColor: provider.currentColor,
@@ -777,7 +779,7 @@ class _CanvasToolbarsState extends State<_CanvasToolbars> {
         ),
         actions: [
           TextButton(
-            child: const Text('Add & Done'),
+            child: Text(AppLocalizations.of(context)!.addDone),
             onPressed: () {
               provider.addColor(provider.currentColor);
               Navigator.pop(context);
@@ -821,7 +823,7 @@ class _CanvasToolbarsState extends State<_CanvasToolbars> {
       final pageNumber = await showDialog<int>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Insert PDF Page'),
+          title: Text(AppLocalizations.of(context)!.insertPdfPage),
           backgroundColor: Theme.of(context).cardColor,
           content: SizedBox(
             width: 500,
@@ -892,7 +894,7 @@ class _CanvasToolbarsState extends State<_CanvasToolbars> {
                                 ),
                               ),
                               child: Text(
-                                'Page ${index + 1}',
+                                '${AppLocalizations.of(context)!.week.split(' ')[0]} ${index + 1}', // Page
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(fontSize: 10),
                               ),
@@ -909,7 +911,7 @@ class _CanvasToolbarsState extends State<_CanvasToolbars> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.of(context)!.cancel),
             ),
           ],
         ),
@@ -1014,7 +1016,7 @@ class _EraserSettingsPanel extends StatelessWidget {
           children: [
             _EraserModeButton(
               icon: Icons.auto_fix_normal,
-              label: 'Pixel',
+              label: AppLocalizations.of(context)!.pixel,
               isActive: canvasProvider.eraserMode == EraserMode.pixel,
               onTap: () => canvasProvider.setEraserMode(EraserMode.pixel),
               activeColor: primaryColor,
@@ -1024,7 +1026,7 @@ class _EraserSettingsPanel extends StatelessWidget {
             const SizedBox(width: 12),
             _EraserModeButton(
               icon: Icons.delete_sweep,
-              label: 'Object',
+              label: AppLocalizations.of(context)!.object,
               isActive: canvasProvider.eraserMode == EraserMode.object,
               onTap: () => canvasProvider.setEraserMode(EraserMode.object),
               activeColor: primaryColor,
@@ -1146,7 +1148,7 @@ class _TextToolsPanel extends StatelessWidget {
             ),
             _vDivider(),
             _PropertySlider(
-              label: 'SIZE',
+              label: AppLocalizations.of(context)!.size,
               value: selectedBlock?.fontSize ?? 16.0,
               min: 10,
               max: 60,
@@ -1186,7 +1188,7 @@ class _TextToolsPanel extends StatelessWidget {
                   canvasProvider.clearSelection();
                   canvasProvider.setActiveTool(CanvasTool.select);
                 },
-                tooltip: 'Done',
+                tooltip: AppLocalizations.of(context)!.save,
               ),
             ),
           ],
@@ -1310,14 +1312,14 @@ class _DrawingToolsPanel extends StatelessWidget {
             _vDivider(),
             // Properties
             _PropertySlider(
-              label: 'WIDTH',
+              label: AppLocalizations.of(context)!.width,
               value: canvasProvider.currentWidth,
               min: 1,
               max: 20,
               onChanged: (v) => canvasProvider.setWidth(v),
             ),
             _PropertySlider(
-              label: 'OPACITY',
+              label: AppLocalizations.of(context)!.opacity,
               value: canvasProvider.currentOpacity,
               min: 0.1,
               max: 1.0,
@@ -1333,21 +1335,21 @@ class _DrawingToolsPanel extends StatelessWidget {
                         showDialog(
                           context: context,
                           builder: (c) => AlertDialog(
-                            title: const Text('Delete Color'),
-                            content: const Text(
-                              'Remove this color from your palette?',
+                            title: Text(AppLocalizations.of(context)!.deleteColor),
+                            content: Text(
+                              AppLocalizations.of(context)!.removeColorFromPalette,
                             ),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(c),
-                                child: const Text('Cancel'),
+                                child: Text(AppLocalizations.of(context)!.cancel),
                               ),
                               TextButton(
                                 onPressed: () {
                                   canvasProvider.removeColor(color);
                                   Navigator.pop(c);
                                 },
-                                child: const Text('Delete'),
+                                child: Text(AppLocalizations.of(context)!.delete),
                               ),
                             ],
                           ),
@@ -1754,4 +1756,3 @@ class _AvatarStack extends StatelessWidget {
     );
   }
 }
-

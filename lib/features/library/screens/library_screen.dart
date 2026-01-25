@@ -22,6 +22,7 @@ import 'package:classlly/features/library/screens/dashboard_screen.dart';
 import 'package:classlly/features/library/widgets/empty_state.dart';
 import 'package:classlly/features/text_editor/screens/text_editor_screen.dart';
 import 'package:classlly/features/library/widgets/create_note_dialog.dart';
+import 'package:classlly/l10n/app_localizations.dart';
 
 class LibraryScreen extends StatelessWidget {
   const LibraryScreen({super.key});
@@ -122,12 +123,12 @@ class _ArchiveView extends StatelessWidget {
                 ],
               ),
             ),
-          const Expanded(
+          Expanded(
             child: EmptyState(
               icon: Icons.delete_outline,
-              title: 'Trash is empty',
+              title: AppLocalizations.of(context)!.trashIsEmpty,
               subtitle:
-                  'Deleted notes and tasks will appear here for 30 days before being permanently removed.',
+                  AppLocalizations.of(context)!.trashEmptyDesc,
             ),
           ),
         ],
@@ -152,10 +153,10 @@ class _ArchiveView extends StatelessWidget {
               ],
             ),
           ),
-        const _SectionTitle(
-          title: 'Trash',
+        _SectionTitle(
+          title: AppLocalizations.of(context)!.trash,
           subtitle:
-              'Items here will be permanently deleted when you empty the trash.',
+              AppLocalizations.of(context)!.trashDesc,
         ),
         const SizedBox(height: 32),
         if (deletedFolders.isNotEmpty) ...[
@@ -213,34 +214,34 @@ class _ArchiveView extends StatelessWidget {
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Empty Trash'),
-                  content: const Text(
-                    'Are you sure you want to permanently delete all items in the trash? This action cannot be undone.',
+                  title: Text(AppLocalizations.of(context)!.emptyTrash),
+                  content: Text(
+                    AppLocalizations.of(context)!.emptyTrashConfirm,
                   ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
+                      child: Text(AppLocalizations.of(context)!.cancel),
                     ),
                     TextButton(
                       onPressed: () {
                         libraryProvider.emptyTrash();
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Trash emptied successfully'),
+                          SnackBar(
+                            content: Text(AppLocalizations.of(context)!.trashEmptied),
                           ),
                         );
                       },
                       style: TextButton.styleFrom(foregroundColor: Colors.red),
-                      child: const Text('Empty Trash'),
+                      child: Text(AppLocalizations.of(context)!.emptyTrash),
                     ),
                   ],
                 ),
               );
             },
             icon: const Icon(Icons.delete_sweep, size: 18),
-            label: const Text('Empty Trash'),
+            label: Text(AppLocalizations.of(context)!.emptyTrash),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red.withValues(alpha: 0.1),
               foregroundColor: Colors.redAccent,
@@ -571,19 +572,19 @@ class _AllNotesView extends StatelessWidget {
                                           }
                                         },
                                         itemBuilder: (context) => [
-                                          const PopupMenuItem(
+                                          PopupMenuItem(
                                             value: 'rename',
-                                            child: Text('Rename'),
+                                            child: Text(AppLocalizations.of(context)!.rename),
                                           ),
-                                          const PopupMenuItem(
+                                          PopupMenuItem(
                                             value: 'move',
-                                            child: Text('Move'),
+                                            child: Text(AppLocalizations.of(context)!.move),
                                           ),
-                                          const PopupMenuItem(
+                                          PopupMenuItem(
                                             value: 'delete',
                                             child: Text(
-                                              'Delete',
-                                              style: TextStyle(
+                                              AppLocalizations.of(context)!.delete,
+                                              style: const TextStyle(
                                                 color: Colors.red,
                                               ),
                                             ),
@@ -643,19 +644,19 @@ class _AllNotesView extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('New Folder'),
+        title: Text(AppLocalizations.of(context)!.newFolder),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Folder Name',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(context)!.folderName,
+            border: const OutlineInputBorder(),
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -664,7 +665,7 @@ class _AllNotesView extends StatelessWidget {
                 Navigator.pop(context);
               }
             },
-            child: const Text('Create'),
+            child: Text(AppLocalizations.of(context)!.create),
           ),
         ],
       ),
@@ -680,19 +681,19 @@ class _AllNotesView extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Rename Folder'),
+        title: Text(AppLocalizations.of(context)!.renameFolder),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Folder Name',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(context)!.folderName,
+            border: const OutlineInputBorder(),
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -701,7 +702,7 @@ class _AllNotesView extends StatelessWidget {
                 Navigator.pop(context);
               }
             },
-            child: const Text('Save'),
+            child: Text(AppLocalizations.of(context)!.save),
           ),
         ],
       ),
@@ -716,14 +717,14 @@ class _AllNotesView extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Folder'),
+        title: Text(AppLocalizations.of(context)!.deleteFolder),
         content: Text(
-          'Are you sure you want to delete "${folder.title}"? This will move it to the Trash.',
+          AppLocalizations.of(context)!.deleteFolderConfirm(folder.title),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -734,7 +735,7 @@ class _AllNotesView extends StatelessWidget {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Delete'),
+            child: Text(AppLocalizations.of(context)!.delete),
           ),
         ],
       ),
@@ -751,7 +752,7 @@ class _AllNotesView extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Move to...'),
+          title: Text(AppLocalizations.of(context)!.moveTo),
           content: SizedBox(
             width: 300,
             child: ValueListenableBuilder(
@@ -772,7 +773,7 @@ class _AllNotesView extends StatelessWidget {
                   children: [
                     ListTile(
                       leading: const Icon(Icons.home_outlined),
-                      title: const Text('My Notes (Root)'),
+                      title: Text(AppLocalizations.of(context)!.myNotesRoot),
                       onTap: () {
                         if (folderToMove != null) {
                           provider.moveFolder(folderToMove, null);
@@ -805,7 +806,7 @@ class _AllNotesView extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.of(context)!.cancel),
             ),
           ],
         );
@@ -1117,7 +1118,7 @@ class _RecentNoteItem extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Move Note to...'),
+          title: Text(AppLocalizations.of(context)!.moveNoteTo),
           content: SizedBox(
             width: 300,
             child: ValueListenableBuilder(
@@ -1134,7 +1135,7 @@ class _RecentNoteItem extends StatelessWidget {
                   children: [
                     ListTile(
                       leading: const Icon(Icons.home_outlined),
-                      title: const Text('My Notes (Root)'),
+                      title: Text(AppLocalizations.of(context)!.myNotesRoot),
                       onTap: () {
                         provider.moveNote(note, null);
                         Navigator.pop(context);
@@ -1159,7 +1160,7 @@ class _RecentNoteItem extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.of(context)!.cancel),
             ),
           ],
         );
@@ -1172,19 +1173,19 @@ class _RecentNoteItem extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Rename Note'),
+        title: Text(AppLocalizations.of(context)!.renameNote),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Note Title',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(context)!.noteTitle,
+            border: const OutlineInputBorder(),
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -1193,7 +1194,7 @@ class _RecentNoteItem extends StatelessWidget {
                 Navigator.pop(context);
               }
             },
-            child: const Text('Save'),
+            child: Text(AppLocalizations.of(context)!.save),
           ),
         ],
       ),
@@ -1204,14 +1205,14 @@ class _RecentNoteItem extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Note'),
+        title: Text(AppLocalizations.of(context)!.deleteNote),
         content: Text(
-          'Are you sure you want to delete "${note.title}"? This will move it to the Trash.',
+          AppLocalizations.of(context)!.deleteNoteConfirm(note.title),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -1222,7 +1223,7 @@ class _RecentNoteItem extends StatelessWidget {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Delete'),
+            child: Text(AppLocalizations.of(context)!.delete),
           ),
         ],
       ),

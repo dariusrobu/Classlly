@@ -318,5 +318,44 @@
   "assignmentTitle": "Assignment Title",
   "gradePercent": "Grade (%)",
   "deleteRecord": "Delete Record",
-  "deleteGrade": "Delete Grade"
+  "deleteGrade": "Delete Grade",
+  "deleteNote": "Delete Note",
+  "pleaseSelectCourse": "Please select a course",
+  "emptyTrash": "Empty Trash",
+  "trashEmptied": "Trash emptied successfully",
+  "rename": "Rename",
+  "move": "Move",
+  "newFolder": "New Folder",
+  "renameFolder": "Rename Folder",
+  "deleteFolder": "Delete Folder",
+  "deleteFolderConfirm": "Are you sure you want to delete \"{title}\"? This will move it to the Trash.",
+  "@deleteFolderConfirm": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "moveTo": "Move to...",
+  "myNotesRoot": "My Notes (Root)",
+  "moveNoteTo": "Move Note to...",
+  "renameNote": "Rename Note",
+  "deleteNoteConfirm": "Are you sure you want to delete \"{title}\"? This will move it to the Trash.",
+  "@deleteNoteConfirm": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "folderName": "Folder Name",
+  "emptyFolder": "Empty Folder",
+  "organizeStudies": "Organize your studies by creating folders or starting a new note.",
+  "trash": "Trash",
+  "trashDesc": "Items here will be permanently deleted when you empty the trash.",
+  "emptyTrashConfirm": "Are you sure you want to permanently delete all items in the trash? This action cannot be undone.",
+  "restore": "Restore",
+  "deletePermanently": "Delete Permanently",
+  "trashIsEmpty": "Trash is empty",
+  "trashEmptyDesc": "Deleted notes and tasks will appear here for 30 days before being permanently removed."
 }

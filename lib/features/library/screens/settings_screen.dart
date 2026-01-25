@@ -34,7 +34,7 @@ class SettingsScreen extends StatelessWidget {
               ),
             )
           : null,
-      drawer: isMobile ? const Drawer(child: DashboardSidebar()) : null,
+      drawer: null,
       body: Row(
         children: [
           // Sidebar (Only on Desktop)
@@ -139,14 +139,6 @@ class SettingsScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          if (isMobile)
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: IconButton(
-                onPressed: () => Scaffold.of(context).openDrawer(),
-                icon: Icon(Icons.menu, color: subColor),
-              ),
-            ),
           Text(
             AppLocalizations.of(context)!.settings,
             style: TextStyle(

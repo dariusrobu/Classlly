@@ -54,4 +54,4 @@
 ## Current Status
 *   **Active Development:** Phase 22 (Refining PDF Snippets & Collaboration).
 *   **Known Issues:** Shape recognition is temporarily disabled.
-*   **Next Steps:** Implement advanced PDF cropping for snippets, real-time presence for collaboration, and further localization.
+*   **Next Steps:** Implement advanced PDF cropping for snippets, real-time presence for collaboration, and address "Bring Your Own Cloud" roadmap. Localization and initial Android setup research complete.

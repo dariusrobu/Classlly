@@ -49,7 +49,7 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
       if (_selectedCourseId == null) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Please select a course')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.pleaseSelectCourse)));
         return;
       }
 

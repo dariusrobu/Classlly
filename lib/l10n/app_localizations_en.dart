@@ -799,4 +799,87 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteGrade => 'Delete Grade';
+
+  @override
+  String get deleteNote => 'Delete Note';
+
+  @override
+  String get pleaseSelectCourse => 'Please select a course';
+
+  @override
+  String get emptyTrash => 'Empty Trash';
+
+  @override
+  String get trashEmptied => 'Trash emptied successfully';
+
+  @override
+  String get rename => 'Rename';
+
+  @override
+  String get move => 'Move';
+
+  @override
+  String get newFolder => 'New Folder';
+
+  @override
+  String get renameFolder => 'Rename Folder';
+
+  @override
+  String get deleteFolder => 'Delete Folder';
+
+  @override
+  String deleteFolderConfirm(String title) {
+    return 'Are you sure you want to delete \"$title\"? This will move it to the Trash.';
+  }
+
+  @override
+  String get moveTo => 'Move to...';
+
+  @override
+  String get myNotesRoot => 'My Notes (Root)';
+
+  @override
+  String get moveNoteTo => 'Move Note to...';
+
+  @override
+  String get renameNote => 'Rename Note';
+
+  @override
+  String deleteNoteConfirm(String title) {
+    return 'Are you sure you want to delete \"$title\"? This will move it to the Trash.';
+  }
+
+  @override
+  String get folderName => 'Folder Name';
+
+  @override
+  String get emptyFolder => 'Empty Folder';
+
+  @override
+  String get organizeStudies =>
+      'Organize your studies by creating folders or starting a new note.';
+
+  @override
+  String get trash => 'Trash';
+
+  @override
+  String get trashDesc =>
+      'Items here will be permanently deleted when you empty the trash.';
+
+  @override
+  String get emptyTrashConfirm =>
+      'Are you sure you want to permanently delete all items in the trash? This action cannot be undone.';
+
+  @override
+  String get restore => 'Restore';
+
+  @override
+  String get deletePermanently => 'Delete Permanently';
+
+  @override
+  String get trashIsEmpty => 'Trash is empty';
+
+  @override
+  String get trashEmptyDesc =>
+      'Deleted notes and tasks will appear here for 30 days before being permanently removed.';
 }
