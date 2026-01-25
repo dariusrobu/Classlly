@@ -132,13 +132,11 @@ class CourseProvider with ChangeNotifier {
     if (course.courseDay.isNotEmpty && course.courseTime.isNotEmpty) {
       final time = _parseTimeString(course.courseTime);
       if (time != null) {
-        _notificationService.scheduleNotification(
-          id: '${course.id}lecture'.hashCode,
-          title: 'Upcoming Lecture',
-          body:
-              'Your lecture for "${course.title}" starts at ${course.courseTime} in ${course.location}',
-          scheduledDate: _nextOccurrence(course.courseDay, time),
-          payload: 'course_${course.id}',
+        _notificationService.scheduleLectureReminder(
+          courseId: '${course.id}lecture'.hashCode,
+          courseTitle: course.title,
+          lectureTime: _nextOccurrence(course.courseDay, time),
+          location: course.location,
         );
       }
     }
@@ -146,21 +144,19 @@ class CourseProvider with ChangeNotifier {
     if (course.seminarDay.isNotEmpty && course.seminarTime.isNotEmpty) {
       final time = _parseTimeString(course.seminarTime);
       if (time != null) {
-        _notificationService.scheduleNotification(
-          id: '${course.id}seminar'.hashCode,
-          title: 'Upcoming Seminar',
-          body:
-              'Your seminar for "${course.title}" starts at ${course.seminarTime} in ${course.seminarLocation}',
-          scheduledDate: _nextOccurrence(course.seminarDay, time),
-          payload: 'course_${course.id}',
+        _notificationService.scheduleLectureReminder(
+          courseId: '${course.id}seminar'.hashCode,
+          courseTitle: '${course.title} (Seminar)',
+          lectureTime: _nextOccurrence(course.seminarDay, time),
+          location: course.seminarLocation,
         );
       }
     }
   }
 
   void _cancelCourseNotifications(String courseId) {
-    _notificationService.cancelNotification('${courseId}lecture'.hashCode);
-    _notificationService.cancelNotification('${courseId}seminar'.hashCode);
+    _notificationService.cancelNotification('${courseId}lecture'.hashCode * 100 + 1);
+    _notificationService.cancelNotification('${courseId}seminar'.hashCode * 100 + 1);
   }
 
   DateTime _nextOccurrence(String dayName, TimeOfDay time) {

@@ -23,6 +23,7 @@ import 'package:classlly/features/library/widgets/empty_state.dart';
 import 'package:classlly/features/text_editor/screens/text_editor_screen.dart';
 import 'package:classlly/features/library/widgets/create_note_dialog.dart';
 import 'package:classlly/l10n/app_localizations.dart';
+import 'package:classlly/core/services/notification_service.dart';
 
 class LibraryScreen extends StatelessWidget {
   const LibraryScreen({super.key});
@@ -45,7 +46,15 @@ class LibraryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final libraryProvider = Provider.of<LibraryProvider>(context);
-    Future.microtask(() => libraryProvider.initSync());
+    Future.microtask(() {
+      libraryProvider.initSync();
+      NotificationService().scheduleDailyNotification(
+        id: 888,
+        title: AppLocalizations.of(context)!.dailyAgenda,
+        body: AppLocalizations.of(context)!.dailyAgendaBody,
+        time: const TimeOfDay(hour: 17, minute: 30),
+      );
+    });
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,

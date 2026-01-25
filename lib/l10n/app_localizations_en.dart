@@ -44,6 +44,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dailyAgenda => 'Daily Agenda';
 
   @override
+  String get dailyAgendaBody => 'Check your tasks and schedule for today.';
+
+  @override
   String get performanceOverview => 'Performance Overview';
 
   @override

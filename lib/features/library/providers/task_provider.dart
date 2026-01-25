@@ -22,31 +22,18 @@ class TaskProvider with ChangeNotifier {
   }
 
   void _scheduleTaskReminders(Task task) {
-    final notificationId = task.id.hashCode;
-    _notificationService.cancelNotification(notificationId);
+    // Cancel existing reminders for this task (using base ID logic)
+    _notificationService.cancelNotification(task.id.hashCode * 10 + 1);
+    _notificationService.cancelNotification(task.id.hashCode * 10 + 2);
 
-    if (task.isCompleted || task.isDeleted) return;
+    if (task.isCompleted || task.isDeleted || task.dueDate == null) return;
 
-    if (task.reminderTime != null &&
-        task.reminderTime!.isAfter(DateTime.now())) {
-      _notificationService.scheduleNotification(
-        id: notificationId,
-        title: 'Task Reminder',
-        body: 'Reminder: ${task.title}',
-        scheduledDate: task.reminderTime!,
-        payload: 'task_${task.id}',
+    if (task.dueDate!.isAfter(DateTime.now())) {
+      _notificationService.scheduleTaskReminder(
+        taskId: task.id.hashCode,
+        title: task.title,
+        dueDate: task.dueDate!,
       );
-    } else if (task.dueDate != null && task.dueDate!.isAfter(DateTime.now())) {
-      final reminder = task.dueDate!.subtract(const Duration(hours: 1));
-      if (reminder.isAfter(DateTime.now())) {
-        _notificationService.scheduleNotification(
-          id: notificationId,
-          title: 'Upcoming Deadline',
-          body: 'Your task "${task.title}" is due in 1 hour.',
-          scheduledDate: reminder,
-          payload: 'task_${task.id}',
-        );
-      }
     }
   }
 

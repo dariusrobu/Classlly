@@ -160,6 +160,12 @@ abstract class AppLocalizations {
   /// **'Daily Agenda'**
   String get dailyAgenda;
 
+  /// No description provided for @dailyAgendaBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your tasks and schedule for today.'**
+  String get dailyAgendaBody;
+
   /// No description provided for @performanceOverview.
   ///
   /// In en, this message translates to:

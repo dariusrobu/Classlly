@@ -22,6 +22,7 @@
   "settings": "Settings",
   "recentNotes": "Recent Notes",
   "dailyAgenda": "Daily Agenda",
+  "dailyAgendaBody": "Check your tasks and schedule for today.",
   "performanceOverview": "Performance Overview",
   "attendance": "Attendance",
   "noNotesYet": "No notes yet",
