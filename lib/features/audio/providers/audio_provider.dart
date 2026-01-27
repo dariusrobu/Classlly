@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:just_audio/just_audio.dart';
@@ -36,15 +36,20 @@ class AudioProvider with ChangeNotifier {
   }
 
   Future<String?> startRecording() async {
-    final status = await Permission.microphone.request();
-    if (status != PermissionStatus.granted) return null;
+    if (!kIsWeb) {
+      final status = await Permission.microphone.request();
+      if (status != PermissionStatus.granted) return null;
+    }
 
-    final directory = await getApplicationDocumentsDirectory();
-    final String filePath =
-        '${directory.path}/recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    String? filePath;
+    if (!kIsWeb) {
+      final directory = await getApplicationDocumentsDirectory();
+      filePath =
+          '${directory.path}/recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    }
 
     const config = RecordConfig();
-    await _recorder.start(config, path: filePath);
+    await _recorder.start(config, path: filePath ?? '');
 
     _isRecording = true;
     _recordingStartTime = DateTime.now();
@@ -59,9 +64,15 @@ class AudioProvider with ChangeNotifier {
   }
 
   Future<void> play(String path) async {
-    if (path.isEmpty || !File(path).existsSync()) return;
+    if (path.isEmpty) return;
+    if (!kIsWeb && !File(path).existsSync()) return;
 
-    await _player.setFilePath(path);
+    if (kIsWeb) {
+      await _player.setUrl(path);
+    } else {
+      await _player.setFilePath(path);
+    }
+    
     _totalDuration = _player.duration ?? Duration.zero;
 
     _playerSubscription = _player.positionStream.listen((position) {

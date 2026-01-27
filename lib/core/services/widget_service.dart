@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:intl/intl.dart';
 import 'package:classlly/data/models/course_model.dart';
@@ -23,6 +24,7 @@ class WidgetService {
   static const String keyAllCourses = 'all_courses_json';
 
   Future<void> refreshUpNextWidget() async {
+    if (kIsWeb) return;
     final courses = _repository.getAllCourses();
     final tasks = _repository.getAllTasks();
     await updateUpNextData(courses: courses, tasks: tasks);
@@ -30,6 +32,7 @@ class WidgetService {
   }
 
   Future<void> updateAllCoursesData(List<Course> courses) async {
+    if (kIsWeb) return;
     final coursesJson = jsonEncode(courses.map((c) => {
       'id': c.id,
       'title': c.title,
@@ -46,6 +49,7 @@ class WidgetService {
   }
 
   Future<void> updateSelectedCourseData(Course course) async {
+    if (kIsWeb) return;
     await HomeWidget.saveWidgetData('selected_course_title', course.title);
     await HomeWidget.saveWidgetData('selected_course_grade', course.cachedAverageGrade);
     await HomeWidget.saveWidgetData('selected_course_attendance', course.cachedAttendanceRate);
@@ -56,6 +60,7 @@ class WidgetService {
     required List<Course> courses,
     required List<Task> tasks,
   }) async {
+    if (kIsWeb) return;
     final now = DateTime.now();
     
     // 1. Find Next Class

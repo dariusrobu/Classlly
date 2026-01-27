@@ -11,7 +11,7 @@ void main() {
   setUp(() {
     mockRepo = MockNotesRepository();
     
-    // Default mock behavior
+    // Mock behavior for methods not already overridden in MockNotesRepository
     when(() => mockRepo.getStudentProfile()).thenReturn(
       StudentProfile(
         name: 'Test Student',

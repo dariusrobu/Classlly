@@ -201,9 +201,8 @@ class SidebarItem extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 4),
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
+        child: GestureDetector(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: isActive

@@ -96,10 +96,30 @@ class SupabaseRepository {
     }
   }
 
+  /// Upserts a single note to Supabase (egress-optimized)
+  /// Use this instead of syncNotes() when only one note changed
+  Future<void> upsertSingleNote(Note note) async {
+    final user = _client.auth.currentUser;
+    if (user == null) return;
+    await _upsertNote(note, user.id);
+  }
+
   Future<void> _upsertNote(Note note, String userId) async {
     final json = note.toJson();
+    
+    // Optimize stroke points for reduced payload size
+    final List strokes = json['strokes'] as List;
+    for (var s in strokes) {
+      final List points = s['points'] as List;
+      for (var p in points) {
+        p['x'] = (p['x'] as num).toStringAsFixed(1);
+        p['y'] = (p['y'] as num).toStringAsFixed(1);
+        p['p'] = (p['p'] as num).toStringAsFixed(2);
+      }
+    }
+    
     final content = {
-      'strokes': json['strokes'],
+      'strokes': strokes,
       'textBlocks': json['textBlocks'],
       'images': json['images'],
       'audioPath': json['audioPath'],

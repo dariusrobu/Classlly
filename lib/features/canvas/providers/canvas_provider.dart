@@ -972,10 +972,11 @@ class CanvasProvider with ChangeNotifier {
     if (_currentNote != null) {
       await _repository.saveNote(_currentNote!);
       _debounceTimer?.cancel();
-      _debounceTimer = Timer(const Duration(seconds: 2), () async {
+      _debounceTimer = Timer(const Duration(seconds: 5), () async {
         _isSyncing = true;
         notifyListeners();
-        await _remoteRepository.syncNotes();
+        // Optimized: Only upload the changed note instead of syncing all notes
+        await _remoteRepository.upsertSingleNote(_currentNote!);
         _isSyncing = false;
         notifyListeners();
       });

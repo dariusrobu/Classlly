@@ -220,13 +220,14 @@ class ImageBlockAdapter extends TypeAdapter<ImageBlock> {
       width: fields[4] as double,
       height: fields[5] as double,
       createdAt: fields[6] as int,
+      storagePath: fields[7] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, ImageBlock obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -240,7 +241,9 @@ class ImageBlockAdapter extends TypeAdapter<ImageBlock> {
       ..writeByte(5)
       ..write(obj.height)
       ..writeByte(6)
-      ..write(obj.createdAt);
+      ..write(obj.createdAt)
+      ..writeByte(7)
+      ..write(obj.storagePath);
   }
 
   @override

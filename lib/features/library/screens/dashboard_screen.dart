@@ -23,66 +23,48 @@ import 'package:classlly/l10n/app_localizations.dart';
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    // Safety check for Hive boxes
-    if (!Hive.isBoxOpen(NotesRepository.gradeBoxName) ||
-        !Hive.isBoxOpen(NotesRepository.taskBoxName)) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
-
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(isSmallScreen ? 16 : 32),
-      child: Column(
-        children: [
-          const DashboardHeader(),
-          const SizedBox(height: 24),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                SizedBox(
-                  width: math.max(
-                    (MediaQuery.of(context).size.width - 64) / 4,
-                    80,
-                  ),
-                  child: QuickActionButton(
-                    icon: Icons.check_circle_outline,
-                    label: AppLocalizations.of(context)!.tasks,
-                    color: Colors.blue,
-                    onTap: () => showDialog(
-                      context: context,
-                      builder: (context) => const AddTaskScreen(),
-                    ),
-                  ),
+  void _showQuickActions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                SizedBox(
-                  width: math.max(
-                    (MediaQuery.of(context).size.width - 64) / 4,
-                    80,
-                  ),
-                  child: QuickActionButton(
-                    icon: Icons.calendar_today_outlined,
-                    label: AppLocalizations.of(context)!.attendance,
-                    color: Colors.orange,
-                    onTap: () => showDialog(
-                      context: context,
-                      builder: (context) => const AddAttendanceScreen(),
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: math.max(
-                    (MediaQuery.of(context).size.width - 64) / 4,
-                    80,
-                  ),
-                  child: QuickActionButton(
+              ),
+              const SizedBox(height: 24),
+              GridView.count(
+                crossAxisCount: MediaQuery.of(context).size.width < 400 ? 1 : 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                childAspectRatio:
+                    MediaQuery.of(context).size.width < 400 ? 3.0 : 1.5,
+                children: [
+                  _QuickActionTile(
                     icon: Icons.note_add_outlined,
-                    label: AppLocalizations.of(context)!.notes,
+                    label: AppLocalizations.of(context)!.addNote,
                     color: Colors.purple,
                     onTap: () async {
+                      Navigator.pop(context);
                       final note = await showDialog<Note>(
                         context: context,
                         builder: (context) => const CreateNoteDialog(),
@@ -92,17 +74,36 @@ class DashboardScreen extends StatelessWidget {
                       }
                     },
                   ),
-                ),
-                SizedBox(
-                  width: math.max(
-                    (MediaQuery.of(context).size.width - 64) / 4,
-                    80,
+                  _QuickActionTile(
+                    icon: Icons.check_circle_outline,
+                    label: AppLocalizations.of(context)!.addTask,
+                    color: Colors.blue,
+                    onTap: () {
+                      Navigator.pop(context);
+                      showDialog(
+                        context: context,
+                        builder: (context) => const AddTaskScreen(),
+                      );
+                    },
                   ),
-                  child: QuickActionButton(
+                  _QuickActionTile(
+                    icon: Icons.calendar_today_outlined,
+                    label: AppLocalizations.of(context)!.attendance,
+                    color: Colors.orange,
+                    onTap: () {
+                      Navigator.pop(context);
+                      showDialog(
+                        context: context,
+                        builder: (context) => const AddAttendanceScreen(),
+                      );
+                    },
+                  ),
+                  _QuickActionTile(
                     icon: Icons.grade_outlined,
                     label: AppLocalizations.of(context)!.addGrade,
                     color: Colors.green,
                     onTap: () async {
+                      Navigator.pop(context);
                       final provider = Provider.of<CourseProvider>(
                         context,
                         listen: false,
@@ -111,9 +112,8 @@ class DashboardScreen extends StatelessWidget {
                       if (courses.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(
-                              AppLocalizations.of(context)!.addCourseFirst,
-                            ),
+                            content:
+                                Text(AppLocalizations.of(context)!.addCourseFirst),
                           ),
                         );
                         return;
@@ -130,8 +130,7 @@ class DashboardScreen extends StatelessWidget {
                             children: courses
                                 .map(
                                   (c) => SimpleDialogOption(
-                                    onPressed: () =>
-                                        Navigator.pop(context, c.id),
+                                    onPressed: () => Navigator.pop(context, c.id),
                                     child: Text(c.title),
                                   ),
                                 )
@@ -149,8 +148,71 @@ class DashboardScreen extends StatelessWidget {
                       }
                     },
                   ),
+                ],
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Safety check for Hive boxes
+    if (!Hive.isBoxOpen(NotesRepository.gradeBoxName) ||
+        !Hive.isBoxOpen(NotesRepository.taskBoxName) ||
+        !Hive.isBoxOpen(NotesRepository.boxName) ||
+        !Hive.isBoxOpen(NotesRepository.courseBoxName)) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(isSmallScreen ? 16 : 32),
+      child: Column(
+        children: [
+          const DashboardHeader(),
+          const SizedBox(height: 24),
+          // Quick Actions Button
+          GestureDetector(
+            onTap: () => _showQuickActions(context),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Theme.of(context).colorScheme.primary,
+                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
+                  ],
                 ),
-              ],
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.bolt_rounded, color: Colors.white, size: 24),
+                  SizedBox(width: 8),
+                  Text(
+                    'Quick Actions',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 32),
@@ -235,54 +297,123 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
+class _QuickActionTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _QuickActionTile({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class DashboardHeader extends StatelessWidget {
   const DashboardHeader({super.key});
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<ProfileProvider>(context);
+    final calendarProvider = Provider.of<AcademicCalendarProvider>(context);
     final profile = provider.studentProfile;
     final name = profile.name ?? 'Student';
+    final weekInfo = calendarProvider.getWeekInfo(DateTime.now());
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
-          children: [
-            if (MediaQuery.of(context).size.width <= 1000)
-              Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: IconButton(
-                  icon: Icon(
-                    Icons.menu,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                ),
+        if (MediaQuery.of(context).size.width <= 1000)
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: IconButton(
+              icon: Icon(
+                Icons.menu,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  DateFormat('EEEE, MMM d').format(DateTime.now()),
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  AppLocalizations.of(context)!.welcomeBack(name),
-                  style: TextStyle(
-                    fontSize: MediaQuery.of(context).size.width < 600 ? 24 : 32,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).textTheme.headlineMedium?.color,
-                  ),
-                ),
-              ],
+              onPressed: () => Scaffold.of(context).openDrawer(),
             ),
-          ],
+          ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    DateFormat('EEEE, MMM d').format(DateTime.now()),
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                  if (weekInfo != null) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 4,
+                      height: 4,
+                      decoration: const BoxDecoration(
+                        color: Colors.grey,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Week ${weekInfo['week']} (${weekInfo['label']})',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                AppLocalizations.of(context)!.welcomeBack(name),
+                style: TextStyle(
+                  fontSize:
+                      MediaQuery.of(context).size.width < 600 ? 24 : 32,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.headlineMedium?.color,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -1172,7 +1303,7 @@ class QuickActionButton extends StatelessWidget {
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 4),
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
@@ -1181,14 +1312,14 @@ class QuickActionButton extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(height: 4),
+            Icon(icon, color: color, size: 18),
+            const SizedBox(height: 2),
             Text(
               label,
               style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.w600,
-                fontSize: 12,
+                fontSize: 11,
               ),
             ),
           ],

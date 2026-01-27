@@ -27,13 +27,14 @@ class UserPreferencesAdapter extends TypeAdapter<UserPreferences> {
       taskDeadlines: fields[7] == null ? true : fields[7] as bool,
       appUpdates: fields[8] == null ? false : fields[8] as bool,
       hasCompletedOnboarding: fields[9] == null ? false : fields[9] as bool,
+      lastSyncTimestamp: fields[10] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserPreferences obj) {
     writer
-      ..writeByte(10)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.themeMode)
       ..writeByte(1)
@@ -53,7 +54,9 @@ class UserPreferencesAdapter extends TypeAdapter<UserPreferences> {
       ..writeByte(8)
       ..write(obj.appUpdates)
       ..writeByte(9)
-      ..write(obj.hasCompletedOnboarding);
+      ..write(obj.hasCompletedOnboarding)
+      ..writeByte(10)
+      ..write(obj.lastSyncTimestamp);
   }
 
   @override

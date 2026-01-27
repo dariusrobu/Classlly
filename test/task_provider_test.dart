@@ -3,10 +3,12 @@ import 'package:mocktail/mocktail.dart';
 import 'package:classlly/features/library/providers/task_provider.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/core/services/notification_service.dart';
+import 'package:classlly/core/services/widget_service.dart';
 import 'package:classlly/data/models/task_model.dart';
 
 class MockNotesRepository extends Mock implements NotesRepository {}
 class MockNotificationService extends Mock implements NotificationService {}
+class MockWidgetService extends Mock implements WidgetService {}
 class TaskFake extends Fake implements Task {}
 
 void main() {
@@ -17,13 +19,20 @@ void main() {
   late TaskProvider taskProvider;
   late MockNotesRepository mockRepository;
   late MockNotificationService mockNotificationService;
+  late MockWidgetService mockWidgetService;
 
   setUp(() {
     mockRepository = MockNotesRepository();
     mockNotificationService = MockNotificationService();
+    mockWidgetService = MockWidgetService();
+    
+    // Mock WidgetService method
+    when(() => mockWidgetService.refreshUpNextWidget()).thenAnswer((_) async {});
+    
     taskProvider = TaskProvider(
       repository: mockRepository,
       notificationService: mockNotificationService,
+      widgetService: mockWidgetService,
     );
   });
 

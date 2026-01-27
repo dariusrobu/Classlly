@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -89,9 +90,10 @@ void main() async {
   };
 
   // Initialize Notifications
-  final notificationService = NotificationService();
-  await notificationService.init();
-  // await notificationService.requestPermissions(); // Request when needed instead
+  if (!kIsWeb) {
+    final notificationService = NotificationService();
+    await notificationService.init();
+  }
 
   // Initialize Hive
   await Hive.initFlutter();
@@ -103,7 +105,9 @@ void main() async {
     anonKey: SupabaseConfig.anonKey,
   );
 
-  HomeWidget.registerInteractivityCallback(backgroundCallback);
+  if (!kIsWeb) {
+    HomeWidget.registerInteractivityCallback(backgroundCallback);
+  }
 
   final app = MultiProvider(
     providers: [
@@ -140,7 +144,8 @@ class ThemeProvider with ChangeNotifier {
   Color _accentColor = AppTheme.primaryPurple;
 
   ThemeProvider() {
-    _loadPreferences();
+    // Avoid calling notifyListeners in constructor directly
+    Future.microtask(() => _loadPreferences());
   }
 
   ThemeMode get themeMode => _themeMode;

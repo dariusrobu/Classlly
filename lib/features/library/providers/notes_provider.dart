@@ -114,4 +114,17 @@ class NotesProvider with ChangeNotifier {
     await _localRepository.deleteNote(noteId);
     notifyListeners();
   }
+
+  Future<void> permanentlyDeleteAll() async {
+    final notes = deletedNotes;
+    final folders = deletedFolders;
+
+    for (var n in notes) {
+      await _localRepository.deleteNote(n.id);
+    }
+    for (var f in folders) {
+      await _localRepository.deleteFolder(f.id);
+    }
+    notifyListeners();
+  }
 }

@@ -6,7 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import 'package:classlly/features/library/widgets/dashboard_sidebar.dart';
+
 import 'package:classlly/data/models/course_model.dart';
 import 'package:classlly/data/models/task_model.dart';
 import 'package:classlly/data/models/grade_model.dart';
@@ -379,70 +379,62 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(gradient: bgGradient),
-        child: Row(
-          children: [
-            if (MediaQuery.of(context).size.width > 900)
-              const DashboardSidebar(),
-            Expanded(
-              child: SafeArea(
-                bottom: false,
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: NestedScrollView(
-                        headerSliverBuilder: (context, innerBoxIsScrolled) {
-                          return [
-                            SliverToBoxAdapter(
-                              child: Padding(
-                                padding: const EdgeInsets.all(32),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildHeaderSection(
-                                      context,
-                                      isDark,
-                                      primaryColor,
-                                    ),
-                                    const SizedBox(height: 24),
-                                    _buildQuickActions(
-                                      context,
-                                      isDark,
-                                      primaryColor,
-                                    ),
-                                    const SizedBox(height: 24),
-                                    TabBar(
-                                      controller: _tabController,
-                                      isScrollable: true,
-                                      tabAlignment: TabAlignment.start,
-                                      dividerColor: Colors.transparent,
-                                      labelColor: primaryColor,
-                                      unselectedLabelColor: Colors.grey,
-                                      indicatorColor: primaryColor,
-                                      tabs: [
-                                        Tab(text: AppLocalizations.of(context)!.overview),
-                                        Tab(text: AppLocalizations.of(context)!.notes),
-                                      ],
-                                    ),
-                                  ],
-                                ),
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              Expanded(
+                child: NestedScrollView(
+                  headerSliverBuilder: (context, innerBoxIsScrolled) {
+                    return [
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildHeaderSection(
+                                context,
+                                isDark,
+                                primaryColor,
                               ),
-                            ),
-                          ];
-                        },
-                        body: TabBarView(
-                          controller: _tabController,
-                          children: [
-                            _buildOverviewTab(context, isDark, primaryColor),
-                            _buildNotesTab(context, isDark, primaryColor),
-                          ],
+                              const SizedBox(height: 24),
+                              _buildQuickActions(
+                                context,
+                                isDark,
+                                primaryColor,
+                              ),
+                              const SizedBox(height: 24),
+                              TabBar(
+                                controller: _tabController,
+                                isScrollable: true,
+                                tabAlignment: TabAlignment.start,
+                                dividerColor: Colors.transparent,
+                                labelColor: primaryColor,
+                                unselectedLabelColor: Colors.grey,
+                                indicatorColor: primaryColor,
+                                tabs: [
+                                  Tab(text: AppLocalizations.of(context)!.overview),
+                                  Tab(text: AppLocalizations.of(context)!.notes),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ];
+                  },
+                  body: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildOverviewTab(context, isDark, primaryColor),
+                      _buildNotesTab(context, isDark, primaryColor),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

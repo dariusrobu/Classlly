@@ -50,16 +50,17 @@ class AuthRepository {
     // Mobile implementation (Android/iOS)
     const iosClientId =
         '153897807907-tllogka5ud9ploje6n0urqalhu0n7oku.apps.googleusercontent.com';
+    const webClientId = 
+        '153897807907-3lph5o2mo39475fp1jjqglnpur5l3eu3.apps.googleusercontent.com';
 
     final GoogleSignIn googleSignIn = GoogleSignIn(
-      // PURE iOS/macOS CONFIG: Use iosClientId only. Remove serverClientId.
-      // This ensures we get a standard iOS/macOS ID Token with a nonce we can extract.
       clientId:
-          (!kIsWeb &&
-              (defaultTargetPlatform == TargetPlatform.iOS ||
-                  defaultTargetPlatform == TargetPlatform.macOS))
-          ? iosClientId
-          : null,
+          (!kIsWeb && defaultTargetPlatform == TargetPlatform.android)
+          ? webClientId
+          : (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS)
+            ? iosClientId
+            : null,
+      serverClientId: webClientId,
       scopes: ['email', 'profile'],
     );
 

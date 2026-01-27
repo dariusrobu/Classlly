@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive/hive.dart';
 import 'package:classlly/data/models/note_models.dart';
@@ -124,9 +125,24 @@ class SupabaseCloudService implements CloudStorageService {
   }
 
   Future<void> _upsertNote(Note note, String userId) async {
+    // 1. Upload any images that haven't been uploaded yet
+    await _uploadImages(note, userId);
+
     final json = note.toJson();
+
+    // 2. Optimize strokes for egress (rounding points)
+    final List strokes = json['strokes'] as List;
+    for (var s in strokes) {
+      final List points = s['points'] as List;
+      for (var p in points) {
+        p['x'] = (p['x'] as num).toStringAsFixed(1);
+        p['y'] = (p['y'] as num).toStringAsFixed(1);
+        p['p'] = (p['p'] as num).toStringAsFixed(2);
+      }
+    }
+
     final content = {
-      'strokes': json['strokes'],
+      'strokes': strokes,
       'textBlocks': json['textBlocks'],
       'images': json['images'],
       'audioPath': json['audioPath'],
@@ -145,6 +161,30 @@ class SupabaseCloudService implements CloudStorageService {
       'updated_at': note.updatedAt.toIso8601String(),
       'created_at': note.createdAt.toIso8601String(),
     });
+  }
+
+  Future<void> _uploadImages(Note note, String userId) async {
+    for (var img in note.images) {
+      if (img.storagePath == null && img.base64Data.isNotEmpty) {
+        try {
+          final fileName = 'img_${img.id}.png';
+          final path = '$userId/$fileName';
+          final bytes = base64Decode(img.base64Data);
+
+          await _client.storage.from('note-images').uploadBinary(
+            path,
+            bytes,
+            fileOptions: const FileOptions(contentType: 'image/png', upsert: true),
+          );
+
+          // Update local note with the storage path
+          img.storagePath = path;
+          await _localRepository.saveNote(note);
+        } catch (e) {
+          print('Error uploading image ${img.id}: $e');
+        }
+      }
+    }
   }
 
   // --- Courses Sync ---

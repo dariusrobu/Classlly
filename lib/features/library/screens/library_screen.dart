@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -25,8 +26,11 @@ import 'package:classlly/features/library/widgets/create_note_dialog.dart';
 import 'package:classlly/l10n/app_localizations.dart';
 import 'package:classlly/core/services/notification_service.dart';
 
-class LibraryScreen extends StatelessWidget {
+class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
+
+  @override
+  State<LibraryScreen> createState() => _LibraryScreenState();
 
   static void openNote(BuildContext context, Note note) {
     if (note.type == Note.typeText) {
@@ -42,21 +46,31 @@ class LibraryScreen extends StatelessWidget {
       );
     }
   }
+}
+
+class _LibraryScreenState extends State<LibraryScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final libraryProvider = Provider.of<LibraryProvider>(context, listen: false);
+        libraryProvider.initSync();
+        if (!kIsWeb) {
+          NotificationService().scheduleDailyNotification(
+            id: 888,
+            title: AppLocalizations.of(context)!.dailyAgenda,
+            body: AppLocalizations.of(context)!.dailyAgendaBody,
+            time: const TimeOfDay(hour: 23, minute: 22),
+          );
+        }
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final libraryProvider = Provider.of<LibraryProvider>(context);
-    Future.microtask(() {
-      libraryProvider.initSync();
-      if (context.mounted) {
-        NotificationService().scheduleDailyNotification(
-          id: 888,
-          title: AppLocalizations.of(context)!.dailyAgenda,
-          body: AppLocalizations.of(context)!.dailyAgendaBody,
-          time: const TimeOfDay(hour: 17, minute: 30),
-        );
-      }
-    });
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -164,10 +178,46 @@ class _ArchiveView extends StatelessWidget {
               ],
             ),
           ),
-        _SectionTitle(
-          title: AppLocalizations.of(context)!.trash,
-          subtitle:
-              AppLocalizations.of(context)!.trashDesc,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _SectionTitle(
+              title: AppLocalizations.of(context)!.trash,
+              subtitle: AppLocalizations.of(context)!.trashDesc,
+            ),
+            TextButton.icon(
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text(AppLocalizations.of(context)!.emptyTrash),
+                    content: Text(AppLocalizations.of(context)!.trashEmptyDesc),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: Text(AppLocalizations.of(context)!.cancel),
+                      ),
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.redAccent,
+                        ),
+                        onPressed: () => Navigator.pop(context, true),
+                        child: Text(AppLocalizations.of(context)!.delete),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  await notesProvider.permanentlyDeleteAll();
+                }
+              },
+              icon: const Icon(Icons.delete_sweep, color: Colors.redAccent),
+              label: Text(
+                AppLocalizations.of(context)!.emptyTrash,
+                style: const TextStyle(color: Colors.redAccent),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 32),
         if (deletedFolders.isNotEmpty) ...[

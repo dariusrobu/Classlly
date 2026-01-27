@@ -11,13 +11,24 @@ import 'package:classlly/features/canvas/providers/canvas_provider.dart';
 import 'package:classlly/features/audio/providers/audio_provider.dart';
 import 'package:classlly/features/library/providers/academic_calendar_provider.dart';
 import 'package:classlly/core/services/cloud_storage_service.dart';
+import 'package:classlly/core/services/widget_service.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/data/repositories/supabase_repository.dart';
+import 'package:classlly/data/models/student_profile_model.dart';
+import 'package:classlly/data/models/academic_calendar_model.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockCloudStorageService extends Mock implements CloudStorageService {}
-class MockNotesRepository extends Mock implements NotesRepository {}
 class MockSupabaseRepository extends Mock implements SupabaseRepository {}
+class MockWidgetService extends Mock implements WidgetService {}
+
+class MockNotesRepository extends Mock implements NotesRepository {
+  @override
+  List<AcademicPeriod> getAllPeriods() => [];
+  
+  @override
+  List<AcademicEvent> getAllEvents() => [];
+}
 
 Widget wrapWidget(
   Widget child, {

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "810819905936",
+    "project_id": "claly-836da",
+    "storage_bucket": "claly-836da.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:810819905936:android:c85f755e0a608b8153eb15",
+        "android_client_info": {
+          "package_name": "com.robudarius.classlly"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOzatTc38fs610axla880UOiOUSa0xbeQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

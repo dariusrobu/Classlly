@@ -6,6 +6,8 @@ import 'package:classlly/data/models/note_models.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/core/services/cloud_storage_service.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:classlly/l10n/app_localizations.dart';
 
 class TextEditorScreen extends StatefulWidget {
   final Note note;
@@ -104,6 +106,55 @@ class _TextEditorScreenState extends State<TextEditorScreen> {
     });
   }
 
+  void _onColorButtonPressed(BuildContext context, bool background) {
+    Color currentColor = Colors.black;
+    // Try to get current color from selection
+    final style = _quillController.getSelectionStyle();
+    final attribute = background
+        ? style.attributes['background']
+        : style.attributes['color'];
+
+    if (attribute != null && attribute.value != null) {
+      try {
+        String hex = attribute.value;
+        hex = hex.replaceFirst('#', '');
+        if (hex.length == 6) hex = 'FF$hex';
+        currentColor = Color(int.parse(hex, radix: 16));
+      } catch (_) {}
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.pickColor),
+        content: SingleChildScrollView(
+          child: ColorPicker(
+            pickerColor: currentColor,
+            onColorChanged: (color) {
+              currentColor = color;
+            },
+            pickerAreaHeightPercent: 0.8,
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: Text(AppLocalizations.of(context)!.addDone),
+            onPressed: () {
+              final hex =
+                  '#${currentColor.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+              if (background) {
+                _quillController.formatSelection(BackgroundAttribute(hex));
+              } else {
+                _quillController.formatSelection(ColorAttribute(hex));
+              }
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -168,11 +219,22 @@ class _TextEditorScreenState extends State<TextEditorScreen> {
                 showSubscript: false,
                 showSuperscript: false,
                 toolbarSectionSpacing: 0,
+                buttonOptions: QuillSimpleToolbarButtonOptions(
+                  color: QuillToolbarColorButtonOptions(
+                    afterButtonPressed: () =>
+                        _onColorButtonPressed(context, false),
+                  ),
+                  backgroundColor: QuillToolbarColorButtonOptions(
+                    afterButtonPressed: () =>
+                        _onColorButtonPressed(context, true),
+                  ),
+                ),
                 decoration: BoxDecoration(
                   color: isDark ? Colors.grey[900] : Colors.grey[100],
                   border: Border(
                     bottom: BorderSide(
-                      color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                      color:
+                          Theme.of(context).dividerColor.withValues(alpha: 0.1),
                     ),
                   ),
                 ),

@@ -26,17 +26,28 @@ class LibraryProvider with ChangeNotifier {
   DateTime? get lastSynced => _lastSynced;
 
   void initSync() async {
-    // Perform full background sync
-    await _cloudService.syncAll();
-    _lastSynced = DateTime.now();
-    notifyListeners();
-
-    // Keep listening for note changes specifically for real-time
-    _syncSubscription?.cancel();
-    _syncSubscription = _cloudService.notesStream().listen((remoteNotes) {
+    final prefs = _localRepository.getPreferences();
+    final lastSync = prefs.lastSyncTimestamp;
+    
+    // Only sync if >15 minutes since last sync to reduce egress
+    final shouldSync = lastSync == null || 
+        DateTime.now().difference(lastSync).inMinutes > 15;
+    
+    if (shouldSync) {
+      await _cloudService.syncAll();
       _lastSynced = DateTime.now();
       notifyListeners();
-    });
+    } else {
+      _lastSynced = lastSync;
+    }
+
+    // Note: Realtime stream disabled to reduce egress.
+    // Re-enable when implementing real-time collaboration.
+    // _syncSubscription?.cancel();
+    // _syncSubscription = _cloudService.notesStream().listen((remoteNotes) {
+    //   _lastSynced = DateTime.now();
+    //   notifyListeners();
+    // });
 
     // Seed initial data if empty (Tasks and Courses)
     if (_localRepository.getAllTasks().isEmpty &&

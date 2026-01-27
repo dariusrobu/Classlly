@@ -15,7 +15,11 @@ class StrokePoint extends HiveObject {
 
   StrokePoint({required this.x, required this.y, this.pressure = 1.0});
 
-  Map<String, dynamic> toJson() => {'x': x, 'y': y, 'p': pressure};
+  Map<String, dynamic> toJson() => {
+    'x': double.parse(x.toStringAsFixed(1)),
+    'y': double.parse(y.toStringAsFixed(1)),
+    'p': double.parse(pressure.toStringAsFixed(2)),
+  };
 
   factory StrokePoint.fromJson(Map<String, dynamic> json) => StrokePoint(
     x: JsonUtils.asDouble(json['x']),
@@ -195,6 +199,8 @@ class ImageBlock extends HiveObject {
   double height;
   @HiveField(6)
   final int createdAt;
+  @HiveField(7)
+  String? storagePath;
 
   ImageBlock({
     required this.id,
@@ -204,11 +210,13 @@ class ImageBlock extends HiveObject {
     this.width = 300,
     this.height = 300,
     required this.createdAt,
+    this.storagePath,
   });
 
   Map<String, dynamic> toJson() => {
     'id': id,
-    'data': base64Data,
+    'data': storagePath != null ? null : base64Data, // Only send base64 if no storagePath
+    'path': storagePath,
     'x': x,
     'y': y,
     'w': width,
@@ -224,6 +232,7 @@ class ImageBlock extends HiveObject {
     width: JsonUtils.asDouble(json['w'], defaultValue: 300.0),
     height: JsonUtils.asDouble(json['h'], defaultValue: 300.0),
     createdAt: JsonUtils.asInt(json['createdAt']),
+    storagePath: JsonUtils.asString(json['path']),
   );
 }
 

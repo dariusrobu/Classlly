@@ -7,11 +7,15 @@ import 'package:classlly/core/services/widget_service.dart';
 class TaskProvider with ChangeNotifier {
   final NotesRepository _localRepository;
   final NotificationService _notificationService;
-  final WidgetService _widgetService = WidgetService();
+  final WidgetService _widgetService;
 
-  TaskProvider({NotesRepository? repository, NotificationService? notificationService})
-      : _localRepository = repository ?? NotesRepository(),
-        _notificationService = notificationService ?? NotificationService();
+  TaskProvider({
+    NotesRepository? repository,
+    NotificationService? notificationService,
+    WidgetService? widgetService,
+  })  : _localRepository = repository ?? NotesRepository(),
+        _notificationService = notificationService ?? NotificationService(),
+        _widgetService = widgetService ?? WidgetService();
 
   List<Task> get tasks => _localRepository.getAllTasks();
   List<Task> get deletedTasks => _localRepository.getDeletedTasks();

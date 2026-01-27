@@ -1,14 +1,20 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")
 }
 
-val keystorePropertiesFile = rootProject.file("key.properties")
-val keystoreProperties = java.util.Properties()
+val keystorePropertiesFile = rootProject.projectDir.parentFile.resolve("android/key.properties")
+val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+} else {
+    throw GradleException("Could not find key.properties at ${keystorePropertiesFile.absolutePath}")
 }
 
 android {
@@ -27,11 +33,30 @@ android {
     }
 
     signingConfigs {
+        getByName("debug") {
+            // Use debug keys for debug builds if needed
+        }
         create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String?
-            keyPassword = keystoreProperties["keyPassword"] as String?
-            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
-            storePassword = keystoreProperties["storePassword"] as String?
+            keyAlias = keystoreProperties["keyAlias"]?.toString()?.trim()?.removeSurrounding("\"")
+            keyPassword = keystoreProperties["keyPassword"]?.toString()?.trim()?.removeSurrounding("\"")
+            storePassword = keystoreProperties["storePassword"]?.toString()?.trim()?.removeSurrounding("\"")
+            val storePath = keystoreProperties["storeFile"]?.toString()?.trim()?.removeSurrounding("\"")
+            if (storePath != null) {
+                var sFile = file(storePath)
+                if (!sFile.exists()) {
+                    sFile = projectDir.resolve(storePath)
+                }
+                if (!sFile.exists()) {
+                    sFile = projectDir.parentFile.resolve(storePath)
+                }
+                
+                if (!sFile.exists()) {
+                    throw GradleException("Could not find keystore file at ${sFile.absolutePath}")
+                }
+                storeFile = sFile
+            } else {
+                throw GradleException("storeFile property is missing in key.properties")
+            }
         }
     }
 
@@ -49,6 +74,8 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
@@ -59,4 +86,5 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
 }

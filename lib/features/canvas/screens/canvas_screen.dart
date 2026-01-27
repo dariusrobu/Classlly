@@ -18,6 +18,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:pdfx/pdfx.dart';
+import 'package:image/image.dart' as img;
 import 'package:classlly/l10n/app_localizations.dart';
 
 class CanvasScreen extends StatefulWidget {
@@ -356,53 +357,62 @@ class _CanvasScreenState extends State<CanvasScreen> {
                   ),
                 ),
               ),
-              const Divider(color: Colors.white10, height: 32),
-              Text(
-                AppLocalizations.of(context)!.pageTemplate,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey,
-                  letterSpacing: 1.2,
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Divider(color: Colors.white10, height: 32),
+                      Text(
+                        AppLocalizations.of(context)!.pageTemplate,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _sidebarTemplateItem(
+                        context,
+                        AppLocalizations.of(context)!.dotGrid,
+                        Icons.apps,
+                        'dot',
+                        canvasProvider,
+                      ),
+                      _sidebarTemplateItem(
+                        context,
+                        AppLocalizations.of(context)!.squared,
+                        Icons.grid_4x4,
+                        'grid',
+                        canvasProvider,
+                      ),
+                      _sidebarTemplateItem(
+                        context,
+                        AppLocalizations.of(context)!.lined,
+                        Icons.reorder,
+                        'lined',
+                        canvasProvider,
+                      ),
+                      _sidebarTemplateItem(
+                        context,
+                        AppLocalizations.of(context)!.cornell,
+                        Icons.dashboard_customize,
+                        'cornell',
+                        canvasProvider,
+                      ),
+                      _sidebarTemplateItem(
+                        context,
+                        AppLocalizations.of(context)!.blank,
+                        Icons.check_box_outline_blank,
+                        'blank',
+                        canvasProvider,
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 12),
-              _sidebarTemplateItem(
-                context,
-                AppLocalizations.of(context)!.dotGrid,
-                Icons.apps,
-                'dot',
-                canvasProvider,
-              ),
-              _sidebarTemplateItem(
-                context,
-                AppLocalizations.of(context)!.squared,
-                Icons.grid_4x4,
-                'grid',
-                canvasProvider,
-              ),
-              _sidebarTemplateItem(
-                context,
-                AppLocalizations.of(context)!.lined,
-                Icons.reorder,
-                'lined',
-                canvasProvider,
-              ),
-              _sidebarTemplateItem(
-                context,
-                AppLocalizations.of(context)!.cornell,
-                Icons.dashboard_customize,
-                'cornell',
-                canvasProvider,
-              ),
-              _sidebarTemplateItem(
-                context,
-                AppLocalizations.of(context)!.blank,
-                Icons.check_box_outline_blank,
-                'blank',
-                canvasProvider,
-              ),
-              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -657,41 +667,46 @@ class _CanvasScreenState extends State<CanvasScreen> {
 
                     const SizedBox(height: 2),
 
-                    Row(
-                      children: [
-                        Container(
-                          width: 6,
+                      Flexible(
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 6,
 
-                          height: 6,
+                              height: 6,
 
-                          decoration: BoxDecoration(
-                            color: canvasProvider.isSyncing
-                                ? Colors.orange
-                                : Colors.greenAccent,
+                              decoration: BoxDecoration(
+                                color: canvasProvider.isSyncing
+                                    ? Colors.orange
+                                    : Colors.greenAccent,
 
-                            shape: BoxShape.circle,
-                          ),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+
+                            const SizedBox(width: 8),
+
+                            Flexible(
+                              child: Text(
+                                canvasProvider.isSyncing
+                                    ? AppLocalizations.of(context)!.syncing
+                                    : AppLocalizations.of(context)!.autoSavedAt(DateFormat.Hm().format(DateTime.now())),
+
+                                style: TextStyle(
+                                  fontSize: 10,
+
+                                  color: Colors.grey[600],
+
+                                  fontWeight: FontWeight.bold,
+
+                                  letterSpacing: 1,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
-
-                        const SizedBox(width: 8),
-
-                        Text(
-                          canvasProvider.isSyncing
-                              ? AppLocalizations.of(context)!.syncing
-                              : AppLocalizations.of(context)!.autoSavedAt(DateFormat.Hm().format(DateTime.now())),
-
-                          style: TextStyle(
-                            fontSize: 10,
-
-                            color: Colors.grey[600],
-
-                            fontWeight: FontWeight.bold,
-
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
                   ],
                 ),
               ),
@@ -925,25 +940,33 @@ class _CanvasToolbarsState extends State<_CanvasToolbars> {
           format: PdfPageImageFormat.png,
         );
 
-        if (pageImage != null) {
-          // Calculate position
-          final matrix = widget.transformationController.value;
-          final inverseMatrix = Matrix4.inverted(matrix);
-          final screenCenter = Offset(screenWidth / 2, screenHeight / 2);
-          final canvasCenter = MatrixUtils.transformPoint(
-            inverseMatrix,
-            screenCenter,
+        if (pageImage != null && context.mounted) {
+          // Show Crop Dialog
+          final croppedBytes = await showDialog<Uint8List>(
+            context: context,
+            builder: (context) => _PdfCropDialog(imageBytes: pageImage.bytes),
           );
 
-          canvasProvider.addImage(
-            base64Encode(pageImage.bytes),
-            canvasCenter,
-            width: page.width,
-            height: page.height,
-            timestamp: audioProvider.isRecording
-                ? audioProvider.elapsedRecordingMillis
-                : null,
-          );
+          if (croppedBytes != null && context.mounted) {
+            // Calculate position
+            final matrix = widget.transformationController.value;
+            final inverseMatrix = Matrix4.inverted(matrix);
+            final screenCenter = Offset(screenWidth / 2, screenHeight / 2);
+            final canvasCenter = MatrixUtils.transformPoint(
+              inverseMatrix,
+              screenCenter,
+            );
+
+            canvasProvider.addImage(
+              base64Encode(croppedBytes),
+              canvasCenter,
+              width: page.width,
+              height: page.height,
+              timestamp: audioProvider.isRecording
+                  ? audioProvider.elapsedRecordingMillis
+                  : null,
+            );
+          }
         }
         await page.close();
       }
@@ -1753,6 +1776,126 @@ class _AvatarStack extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PdfCropDialog extends StatefulWidget {
+  final Uint8List imageBytes;
+  const _PdfCropDialog({required this.imageBytes});
+
+  @override
+  State<_PdfCropDialog> createState() => _PdfCropDialogState();
+}
+
+class _PdfCropDialogState extends State<_PdfCropDialog> {
+  Rect _cropRect = const Rect.fromLTWH(50, 50, 200, 200);
+  final GlobalKey _imageKey = GlobalKey();
+
+  void _onCrop() {
+    final renderBox =
+        _imageKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    final imageSize = renderBox.size;
+    final decodedImage = img.decodeImage(widget.imageBytes);
+    if (decodedImage == null) return;
+
+    final scaleX = decodedImage.width / imageSize.width;
+    final scaleY = decodedImage.height / imageSize.height;
+
+    final cropX = (_cropRect.left * scaleX).toInt();
+    final cropY = (_cropRect.top * scaleY).toInt();
+    final cropW = (_cropRect.width * scaleX).toInt();
+    final cropH = (_cropRect.height * scaleY).toInt();
+
+    final cropped = img.copyCrop(
+      decodedImage,
+      x: cropX,
+      y: cropY,
+      width: cropW,
+      height: cropH,
+    );
+
+    Navigator.pop(context, Uint8List.fromList(img.encodePng(cropped)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Crop Snippet'),
+      content: SizedBox(
+        width: 500,
+        height: 500,
+        child: Stack(
+          children: [
+            Image.memory(
+              widget.imageBytes,
+              key: _imageKey,
+              fit: BoxFit.contain,
+            ),
+            Positioned.fromRect(
+              rect: _cropRect,
+              child: GestureDetector(
+                onPanUpdate: (details) {
+                  setState(() {
+                    _cropRect = Rect.fromLTWH(
+                      (_cropRect.left + details.delta.dx).clamp(0, 400),
+                      (_cropRect.top + details.delta.dy).clamp(0, 400),
+                      _cropRect.width,
+                      _cropRect.height,
+                    );
+                  });
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.blue, width: 2),
+                    color: Colors.blue.withValues(alpha: 0.2),
+                  ),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: GestureDetector(
+                          onPanUpdate: (details) {
+                            setState(() {
+                              _cropRect = Rect.fromLTWH(
+                                _cropRect.left,
+                                _cropRect.top,
+                                (_cropRect.width + details.delta.dx).clamp(
+                                  20,
+                                  500,
+                                ),
+                                (_cropRect.height + details.delta.dy).clamp(
+                                  20,
+                                  500,
+                                ),
+                              );
+                            });
+                          },
+                          child: const Icon(
+                            Icons.drag_handle,
+                            color: Colors.blue,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(onPressed: _onCrop, child: const Text('Insert')),
+      ],
     );
   }
 }

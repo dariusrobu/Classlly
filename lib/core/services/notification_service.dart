@@ -14,6 +14,7 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   Future<void> init() async {
+    if (kIsWeb) return;
     tz.initializeTimeZones();
 
     const AndroidInitializationSettings androidSettings =
@@ -70,6 +71,7 @@ class NotificationService {
     required String body,
     String? payload,
   }) async {
+    if (kIsWeb) return;
     await _notificationsPlugin.show(
       id,
       title,
@@ -95,7 +97,7 @@ class NotificationService {
     required DateTime scheduledDate,
     String? payload,
   }) async {
-    if (scheduledDate.isBefore(DateTime.now())) return;
+    if (kIsWeb || scheduledDate.isBefore(DateTime.now())) return;
 
     await _notificationsPlugin.zonedSchedule(
       id,
@@ -160,6 +162,7 @@ class NotificationService {
     required String body,
     required TimeOfDay time,
   }) async {
+    if (kIsWeb) return;
     final now = DateTime.now();
     var scheduledDate = DateTime(
       now.year,
@@ -194,10 +197,12 @@ class NotificationService {
   }
 
   Future<void> cancelNotification(int id) async {
+    if (kIsWeb) return;
     await _notificationsPlugin.cancel(id);
   }
 
   Future<void> cancelAllNotifications() async {
+    if (kIsWeb) return;
     await _notificationsPlugin.cancelAll();
   }
 }
