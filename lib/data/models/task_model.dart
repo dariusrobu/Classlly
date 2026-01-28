@@ -66,13 +66,17 @@ class Task extends HiveObject {
     title: JsonUtils.asString(json['title'], defaultValue: 'Untitled Task'),
     description: JsonUtils.asString(json['description']),
     isCompleted: JsonUtils.asBool(json['is_completed']),
-    dueDate: json['due_date'] != null ? JsonUtils.asDateTime(json['due_date']) : null,
+    dueDate: json['due_date'] != null
+        ? JsonUtils.asDateTime(json['due_date'])
+        : null,
     category: JsonUtils.asString(json['category']),
     progress: JsonUtils.asDouble(json['progress']),
     createdAt: JsonUtils.asDateTime(json['created_at']),
     courseId: JsonUtils.asString(json['course_id']),
     priority: JsonUtils.asInt(json['priority'], defaultValue: 1),
-    reminderTime: json['reminder_time'] != null ? JsonUtils.asDateTime(json['reminder_time']) : null,
+    reminderTime: json['reminder_time'] != null
+        ? JsonUtils.asDateTime(json['reminder_time'])
+        : null,
     isDeleted: JsonUtils.asBool(json['is_deleted']),
   );
 

@@ -192,7 +192,9 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
             backgroundColor: Colors.transparent,
             appBar: AppBar(
               title: Text(
-                widget.course != null ? AppLocalizations.of(context)!.editCourse : AppLocalizations.of(context)!.newCourse,
+                widget.course != null
+                    ? AppLocalizations.of(context)!.editCourse
+                    : AppLocalizations.of(context)!.newCourse,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -219,7 +221,9 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                     // --- Basic Info ---
                     TextFormField(
                       controller: _titleController,
-                      validator: (v) => v?.isEmpty == true ? AppLocalizations.of(context)!.none : null,
+                      validator: (v) => v?.isEmpty == true
+                          ? AppLocalizations.of(context)!.none
+                          : null,
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -245,7 +249,10 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                           child: _buildDropdown(
                             AppLocalizations.of(context)!.semester,
                             _semester,
-                            ['${AppLocalizations.of(context)!.semester} 1', '${AppLocalizations.of(context)!.semester} 2'],
+                            [
+                              '${AppLocalizations.of(context)!.semester} 1',
+                              '${AppLocalizations.of(context)!.semester} 2',
+                            ],
                             (val) => setState(() => _semester = val!),
                           ),
                         ),
@@ -266,12 +273,18 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildTextField(AppLocalizations.of(context)!.professor, _profController),
+                    _buildTextField(
+                      AppLocalizations.of(context)!.professor,
+                      _profController,
+                    ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(
-                          child: _buildTextField(AppLocalizations.of(context)!.room, _courseRoomController),
+                          child: _buildTextField(
+                            AppLocalizations.of(context)!.room,
+                            _courseRoomController,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -332,7 +345,10 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildTextField(AppLocalizations.of(context)!.seminarTeacher, _seminarProfController),
+                    _buildTextField(
+                      AppLocalizations.of(context)!.seminarTeacher,
+                      _seminarProfController,
+                    ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
@@ -580,7 +596,9 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    value != null ? _formatTime(value) : AppLocalizations.of(context)!.select,
+                    value != null
+                        ? _formatTime(value)
+                        : AppLocalizations.of(context)!.select,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: value != null

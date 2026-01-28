@@ -75,8 +75,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         index == 0
                             ? AppLocalizations.of(context)!.onboardingTitle1
                             : (index == 1
-                                ? AppLocalizations.of(context)!.onboardingTitle2
-                                : AppLocalizations.of(context)!.onboardingTitle3),
+                                  ? AppLocalizations.of(
+                                      context,
+                                    )!.onboardingTitle2
+                                  : AppLocalizations.of(
+                                      context,
+                                    )!.onboardingTitle3),
                         textAlign: TextAlign.center,
                         style: GoogleFonts.spaceGrotesk(
                           fontSize: 32,
@@ -88,8 +92,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         index == 0
                             ? AppLocalizations.of(context)!.onboardingDesc1
                             : (index == 1
-                                ? AppLocalizations.of(context)!.onboardingDesc2
-                                : AppLocalizations.of(context)!.onboardingDesc3),
+                                  ? AppLocalizations.of(
+                                      context,
+                                    )!.onboardingDesc2
+                                  : AppLocalizations.of(
+                                      context,
+                                    )!.onboardingDesc3),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 16,

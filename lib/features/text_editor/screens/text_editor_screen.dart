@@ -141,7 +141,7 @@ class _TextEditorScreenState extends State<TextEditorScreen> {
             child: Text(AppLocalizations.of(context)!.addDone),
             onPressed: () {
               final hex =
-                  '#${currentColor.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+                  '#${currentColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
               if (background) {
                 _quillController.formatSelection(BackgroundAttribute(hex));
               } else {
@@ -233,8 +233,9 @@ class _TextEditorScreenState extends State<TextEditorScreen> {
                   color: isDark ? Colors.grey[900] : Colors.grey[100],
                   border: Border(
                     bottom: BorderSide(
-                      color:
-                          Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                      color: Theme.of(
+                        context,
+                      ).dividerColor.withValues(alpha: 0.1),
                     ),
                   ),
                 ),

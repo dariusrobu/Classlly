@@ -72,7 +72,7 @@ class AudioProvider with ChangeNotifier {
     } else {
       await _player.setFilePath(path);
     }
-    
+
     _totalDuration = _player.duration ?? Duration.zero;
 
     _playerSubscription = _player.positionStream.listen((position) {

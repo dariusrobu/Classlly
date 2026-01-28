@@ -1,26 +1,51 @@
 {
   "project_info": {
-    "project_number": "810819905936",
-    "project_id": "claly-836da",
-    "storage_bucket": "claly-836da.firebasestorage.app"
+    "project_number": "153897807907",
+    "project_id": "gen-lang-client-0093896770",
+    "storage_bucket": "gen-lang-client-0093896770.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:810819905936:android:c85f755e0a608b8153eb15",
+        "mobilesdk_app_id": "1:153897807907:android:5e8c7891d0d7f925454196",
         "android_client_info": {
           "package_name": "com.robudarius.classlly"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "153897807907-49at6cbp2isqbvbv4hd3i6q4kbcbpq8j.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.robudarius.classlly",
+            "certificate_hash": "551030dcbed1cd4a3a5c096bf28c4affd3cbca44"
+          }
+        },
+        {
+          "client_id": "153897807907-37f86t0nvinv635cesebt06q9ni7hig2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyDOzatTc38fs610axla880UOiOUSa0xbeQ"
+          "current_key": "AIzaSyB7xwyUoy1_J7N4Q3h13XDBkmi3TZPEizo"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "153897807907-37f86t0nvinv635cesebt06q9ni7hig2.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "153897807907-tllogka5ud9ploje6n0urqalhu0n7oku.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.robudarius.classlly"
+              }
+            }
+          ]
         }
       }
     }

@@ -26,7 +26,7 @@ void main() {
     // creates its own NotesRepository() instance and uses Hive.box directly,
     // bypassing our mock. This would require full Hive initialization in tests.
     // The ProfileScreen works correctly on real devices as verified manually.
-    
+
     test('StudentProfile model stores correct data', () {
       final profile = mockRepo.getStudentProfile();
       expect(profile.name, 'Jane Doe');

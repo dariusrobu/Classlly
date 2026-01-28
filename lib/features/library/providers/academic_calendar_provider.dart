@@ -14,7 +14,7 @@ class AcademicCalendarProvider with ChangeNotifier {
   List<AcademicEvent> get events => _events;
 
   AcademicCalendarProvider({NotesRepository? repository})
-      : _repository = repository ?? NotesRepository() {
+    : _repository = repository ?? NotesRepository() {
     Future.microtask(() => _loadData());
   }
 

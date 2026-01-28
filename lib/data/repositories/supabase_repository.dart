@@ -15,7 +15,7 @@ class SupabaseRepository {
   final NotesRepository _localRepository = NotesRepository();
 
   SupabaseRepository({SupabaseClient? client})
-      : _client = client ?? Supabase.instance.client;
+    : _client = client ?? Supabase.instance.client;
 
   Stream<List<Note>> notesStream() {
     final user = _client.auth.currentUser;
@@ -106,7 +106,7 @@ class SupabaseRepository {
 
   Future<void> _upsertNote(Note note, String userId) async {
     final json = note.toJson();
-    
+
     // Optimize stroke points for reduced payload size
     final List strokes = json['strokes'] as List;
     for (var s in strokes) {
@@ -117,7 +117,7 @@ class SupabaseRepository {
         p['p'] = (p['p'] as num).toStringAsFixed(2);
       }
     }
-    
+
     final content = {
       'strokes': strokes,
       'textBlocks': json['textBlocks'],
@@ -160,10 +160,7 @@ class SupabaseRepository {
 
     final localCourses = _localRepository.getAllCourses();
     for (var c in localCourses) {
-      await _client.from('courses').upsert({
-        ...c.toJson(),
-        'user_id': user.id,
-      });
+      await _client.from('courses').upsert({...c.toJson(), 'user_id': user.id});
     }
   }
 
@@ -185,10 +182,7 @@ class SupabaseRepository {
 
     final localTasks = _localRepository.getAllTasks();
     for (var t in localTasks) {
-      await _client.from('tasks').upsert({
-        ...t.toJson(),
-        'user_id': user.id,
-      });
+      await _client.from('tasks').upsert({...t.toJson(), 'user_id': user.id});
     }
   }
 
@@ -355,7 +349,7 @@ class SupabaseRepository {
       // Keep Supabase's full_name if available in metadata
       final fullName = user.userMetadata?['full_name'] as String?;
       if (fullName != null) profile.name = fullName;
-      
+
       await _localRepository.saveStudentProfile(profile);
     }
 

@@ -49,17 +49,17 @@ class AuthRepository {
 
     // Mobile implementation (Android/iOS)
     const iosClientId =
-        '153897807907-tllogka5ud9ploje6n0urqalhu0n7oku.apps.googleusercontent.com';
-    const webClientId = 
+        '153897807907-3lph5o2mo39475fp1jjqglnpur5l3eu3.apps.googleusercontent.com'; // Use Web Client ID for iOS
+    const webClientId =
         '153897807907-3lph5o2mo39475fp1jjqglnpur5l3eu3.apps.googleusercontent.com';
 
     final GoogleSignIn googleSignIn = GoogleSignIn(
-      clientId:
-          (!kIsWeb && defaultTargetPlatform == TargetPlatform.android)
+      clientId: (!kIsWeb && defaultTargetPlatform == TargetPlatform.android)
           ? webClientId
-          : (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS)
-            ? iosClientId
-            : null,
+          : (defaultTargetPlatform == TargetPlatform.iOS ||
+                defaultTargetPlatform == TargetPlatform.macOS)
+          ? iosClientId
+          : null,
       serverClientId: webClientId,
       scopes: ['email', 'profile'],
     );

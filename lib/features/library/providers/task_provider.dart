@@ -13,9 +13,9 @@ class TaskProvider with ChangeNotifier {
     NotesRepository? repository,
     NotificationService? notificationService,
     WidgetService? widgetService,
-  })  : _localRepository = repository ?? NotesRepository(),
-        _notificationService = notificationService ?? NotificationService(),
-        _widgetService = widgetService ?? WidgetService();
+  }) : _localRepository = repository ?? NotesRepository(),
+       _notificationService = notificationService ?? NotificationService(),
+       _widgetService = widgetService ?? WidgetService();
 
   List<Task> get tasks => _localRepository.getAllTasks();
   List<Task> get deletedTasks => _localRepository.getDeletedTasks();
@@ -24,7 +24,10 @@ class TaskProvider with ChangeNotifier {
     await _notificationService.requestPermissions();
     await _localRepository.saveTask(task);
     _scheduleTaskReminders(task);
-    _widgetService.refreshUpNextWidget();
+
+    // Update widget
+    await _widgetService.refreshUpNextWidget();
+
     notifyListeners();
   }
 
@@ -63,6 +66,7 @@ class TaskProvider with ChangeNotifier {
     if (task != null) {
       task.isDeleted = true;
       await _localRepository.saveTask(task);
+      await _widgetService.refreshUpNextWidget();
       notifyListeners();
     }
   }
@@ -72,6 +76,7 @@ class TaskProvider with ChangeNotifier {
     if (task != null) {
       task.isDeleted = false;
       await _localRepository.saveTask(task);
+      await _widgetService.refreshUpNextWidget();
       notifyListeners();
     }
   }
@@ -79,6 +84,7 @@ class TaskProvider with ChangeNotifier {
   Future<void> permanentlyDeleteTask(String taskId) async {
     _notificationService.cancelNotification(taskId.hashCode);
     await _localRepository.deleteTask(taskId);
+    await _widgetService.refreshUpNextWidget();
     notifyListeners();
   }
 
@@ -90,7 +96,9 @@ class TaskProvider with ChangeNotifier {
       _scheduleTaskReminders(task);
     }
     await _localRepository.saveTask(task);
-    _widgetService.refreshUpNextWidget();
+
+    await _widgetService.refreshUpNextWidget();
+
     notifyListeners();
   }
 }

@@ -12,6 +12,7 @@ import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/features/canvas/providers/canvas_provider.dart';
 import 'package:classlly/features/canvas/screens/canvas_screen.dart';
 import 'package:classlly/features/library/providers/library_provider.dart';
+import 'package:classlly/features/library/providers/course_provider.dart';
 import 'package:classlly/features/library/providers/task_provider.dart';
 import 'package:classlly/features/library/providers/notes_provider.dart';
 import 'package:classlly/features/library/screens/course_detail_screen.dart';
@@ -54,8 +55,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        final libraryProvider = Provider.of<LibraryProvider>(context, listen: false);
+        final libraryProvider = Provider.of<LibraryProvider>(
+          context,
+          listen: false,
+        );
+        final courseProvider = Provider.of<CourseProvider>(
+          context,
+          listen: false,
+        );
         libraryProvider.initSync();
+        courseProvider.recalculateStats();
         if (!kIsWeb) {
           NotificationService().scheduleDailyNotification(
             id: 888,
@@ -152,8 +161,7 @@ class _ArchiveView extends StatelessWidget {
             child: EmptyState(
               icon: Icons.delete_outline,
               title: AppLocalizations.of(context)!.trashIsEmpty,
-              subtitle:
-                  AppLocalizations.of(context)!.trashEmptyDesc,
+              subtitle: AppLocalizations.of(context)!.trashEmptyDesc,
             ),
           ),
         ],
@@ -290,7 +298,9 @@ class _ArchiveView extends StatelessWidget {
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(AppLocalizations.of(context)!.trashEmptied),
+                            content: Text(
+                              AppLocalizations.of(context)!.trashEmptied,
+                            ),
                           ),
                         );
                       },
@@ -635,16 +645,26 @@ class _AllNotesView extends StatelessWidget {
                                         itemBuilder: (context) => [
                                           PopupMenuItem(
                                             value: 'rename',
-                                            child: Text(AppLocalizations.of(context)!.rename),
+                                            child: Text(
+                                              AppLocalizations.of(
+                                                context,
+                                              )!.rename,
+                                            ),
                                           ),
                                           PopupMenuItem(
                                             value: 'move',
-                                            child: Text(AppLocalizations.of(context)!.move),
+                                            child: Text(
+                                              AppLocalizations.of(
+                                                context,
+                                              )!.move,
+                                            ),
                                           ),
                                           PopupMenuItem(
                                             value: 'delete',
                                             child: Text(
-                                              AppLocalizations.of(context)!.delete,
+                                              AppLocalizations.of(
+                                                context,
+                                              )!.delete,
                                               style: const TextStyle(
                                                 color: Colors.red,
                                               ),

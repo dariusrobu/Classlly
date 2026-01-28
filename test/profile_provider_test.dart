@@ -8,9 +8,13 @@ import 'package:classlly/data/models/grade_model.dart';
 import 'package:classlly/data/models/task_model.dart';
 
 class MockNotesRepository extends Mock implements NotesRepository {}
+
 class CourseFake extends Fake implements Course {}
+
 class TaskFake extends Fake implements Task {}
+
 class AttendanceFake extends Fake implements Attendance {}
+
 class GradeFake extends Fake implements Grade {}
 
 void main() {
@@ -43,13 +47,13 @@ void main() {
 
       // Verify that courses were saved (demo creates 10 courses)
       verify(() => mockRepository.saveCourse(any())).called(10);
-      
+
       // Verify attendance records were saved (10 courses * 10 records = 100)
       verify(() => mockRepository.saveAttendance(any())).called(100);
-      
+
       // Verify grades were saved (10 courses * 5 grades = 50)
       verify(() => mockRepository.saveGrade(any())).called(50);
-      
+
       // Verify tasks were saved (10 courses * 4 tasks + 10 personal = 50)
       verify(() => mockRepository.saveTask(any())).called(50);
     });

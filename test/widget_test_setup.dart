@@ -28,9 +28,9 @@ class MockNotesRepository extends Mock implements NotesRepository {
 
   @override
   List<Course> getAllCourses() => [];
-  
+
   List<Grade> getAllGrades() => [];
-  
+
   @override
   List<Task> getAllTasks() => [];
 }

@@ -952,6 +952,18 @@ abstract class AppLocalizations {
   /// **'Edit Course'**
   String get editCourse;
 
+  /// No description provided for @deleteCourse.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Course'**
+  String get deleteCourse;
+
+  /// No description provided for @deleteCourseConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this course? All associated data will be removed.'**
+  String get deleteCourseConfirm;
+
   /// No description provided for @newCourse.
   ///
   /// In en, this message translates to:

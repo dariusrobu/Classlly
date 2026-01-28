@@ -99,7 +99,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
             appBar: AppBar(
               title: Text(
                 AppLocalizations.of(context)!.createAccount,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               backgroundColor: Colors.transparent,
               elevation: 0,

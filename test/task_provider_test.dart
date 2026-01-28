@@ -27,7 +27,9 @@ void main() {
     mockWidgetService = MockWidgetService();
     
     // Mock WidgetService method
-    when(() => mockWidgetService.refreshUpNextWidget()).thenAnswer((_) async {});
+    when(() => mockWidgetService.refreshUpNextWidget()).thenAnswer((_) async {
+      return;
+    });
     
     taskProvider = TaskProvider(
       repository: mockRepository,

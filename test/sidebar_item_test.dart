@@ -21,7 +21,9 @@ void main() {
       expect(find.byIcon(Icons.home), findsOneWidget);
     });
 
-    testWidgets('shows active styling when isActive is true', (WidgetTester tester) async {
+    testWidgets('shows active styling when isActive is true', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         wrapWidget(
           SidebarItem(

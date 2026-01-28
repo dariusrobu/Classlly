@@ -191,7 +191,11 @@ class _CanvasScreenState extends State<CanvasScreen> {
                                           onPressed: () =>
                                               setState(() => _pageCount++),
                                           icon: const Icon(Icons.add),
-                                          label: Text(AppLocalizations.of(context)!.addPage),
+                                          label: Text(
+                                            AppLocalizations.of(
+                                              context,
+                                            )!.addPage,
+                                          ),
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: primaryColor,
                                             foregroundColor: Colors.white,
@@ -651,7 +655,9 @@ class _CanvasScreenState extends State<CanvasScreen> {
 
                       child: Text(
                         canvasProvider.currentNote?.title.toUpperCase() ??
-                            AppLocalizations.of(context)!.untitled.toUpperCase(),
+                            AppLocalizations.of(
+                              context,
+                            )!.untitled.toUpperCase(),
 
                         style: const TextStyle(
                           fontSize: 13,
@@ -667,46 +673,48 @@ class _CanvasScreenState extends State<CanvasScreen> {
 
                     const SizedBox(height: 2),
 
-                      Flexible(
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 6,
+                    Flexible(
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 6,
 
-                              height: 6,
+                            height: 6,
 
-                              decoration: BoxDecoration(
-                                color: canvasProvider.isSyncing
-                                    ? Colors.orange
-                                    : Colors.greenAccent,
+                            decoration: BoxDecoration(
+                              color: canvasProvider.isSyncing
+                                  ? Colors.orange
+                                  : Colors.greenAccent,
 
-                                shape: BoxShape.circle,
-                              ),
+                              shape: BoxShape.circle,
                             ),
+                          ),
 
-                            const SizedBox(width: 8),
+                          const SizedBox(width: 8),
 
-                            Flexible(
-                              child: Text(
-                                canvasProvider.isSyncing
-                                    ? AppLocalizations.of(context)!.syncing
-                                    : AppLocalizations.of(context)!.autoSavedAt(DateFormat.Hm().format(DateTime.now())),
+                          Flexible(
+                            child: Text(
+                              canvasProvider.isSyncing
+                                  ? AppLocalizations.of(context)!.syncing
+                                  : AppLocalizations.of(context)!.autoSavedAt(
+                                      DateFormat.Hm().format(DateTime.now()),
+                                    ),
 
-                                style: TextStyle(
-                                  fontSize: 10,
+                              style: TextStyle(
+                                fontSize: 10,
 
-                                  color: Colors.grey[600],
+                                color: Colors.grey[600],
 
-                                  fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.bold,
 
-                                  letterSpacing: 1,
-                                ),
-                                overflow: TextOverflow.ellipsis,
+                                letterSpacing: 1,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
+                    ),
                   ],
                 ),
               ),
@@ -740,7 +748,10 @@ class _CanvasScreenState extends State<CanvasScreen> {
                 label: Text(
                   AppLocalizations.of(context)!.export,
 
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
 
                 style: ElevatedButton.styleFrom(
@@ -1296,7 +1307,7 @@ class _DrawingToolsPanel extends StatelessWidget {
                   final sWidth = MediaQuery.of(context).size.width;
                   final sHeight = MediaQuery.of(context).size.height;
                   canvasProvider.setActiveTool(CanvasTool.image);
-                        final picker = ImagePicker();
+                  final picker = ImagePicker();
                   final xFile = await picker.pickImage(
                     source: ImageSource.gallery,
                   );
@@ -1358,21 +1369,29 @@ class _DrawingToolsPanel extends StatelessWidget {
                         showDialog(
                           context: context,
                           builder: (c) => AlertDialog(
-                            title: Text(AppLocalizations.of(context)!.deleteColor),
+                            title: Text(
+                              AppLocalizations.of(context)!.deleteColor,
+                            ),
                             content: Text(
-                              AppLocalizations.of(context)!.removeColorFromPalette,
+                              AppLocalizations.of(
+                                context,
+                              )!.removeColorFromPalette,
                             ),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(c),
-                                child: Text(AppLocalizations.of(context)!.cancel),
+                                child: Text(
+                                  AppLocalizations.of(context)!.cancel,
+                                ),
                               ),
                               TextButton(
                                 onPressed: () {
                                   canvasProvider.removeColor(color);
                                   Navigator.pop(c);
                                 },
-                                child: Text(AppLocalizations.of(context)!.delete),
+                                child: Text(
+                                  AppLocalizations.of(context)!.delete,
+                                ),
                               ),
                             ],
                           ),
@@ -1581,7 +1600,7 @@ class CanvasGestureDetector extends StatelessWidget {
             canvasProvider.startResize(offset);
             if (!canvasProvider.isResizing) canvasProvider.startMove();
           } else if (canvasProvider.activeTool == CanvasTool.image) {
-                  final picker = ImagePicker();
+            final picker = ImagePicker();
             final xFile = await picker.pickImage(source: ImageSource.gallery);
             if (xFile != null) {
               final bytes = await xFile.readAsBytes();

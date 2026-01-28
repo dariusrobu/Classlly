@@ -136,7 +136,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
             backgroundColor: Colors.transparent,
             appBar: AppBar(
               title: Text(
-                widget.taskToEdit != null ? AppLocalizations.of(context)!.editTask : AppLocalizations.of(context)!.newTask,
+                widget.taskToEdit != null
+                    ? AppLocalizations.of(context)!.editTask
+                    : AppLocalizations.of(context)!.newTask,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -162,7 +164,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                   children: [
                     TextFormField(
                       controller: _titleController,
-                      validator: (v) => v?.isEmpty == true ? AppLocalizations.of(context)!.none : null,
+                      validator: (v) => v?.isEmpty == true
+                          ? AppLocalizations.of(context)!.none
+                          : null,
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -178,7 +182,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                       controller: _descController,
                       maxLines: 2,
                       decoration: InputDecoration(
-                        hintText: AppLocalizations.of(context)!.descriptionOptional,
+                        hintText: AppLocalizations.of(
+                          context,
+                        )!.descriptionOptional,
                         hintStyle: const TextStyle(fontSize: 14),
                         filled: true,
                         fillColor: Theme.of(
@@ -254,7 +260,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                AppLocalizations.of(context)!.courses.split(' ')[0], // Course
+                                AppLocalizations.of(
+                                  context,
+                                )!.courses.split(' ')[0], // Course
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
@@ -311,7 +319,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     final labels = [
       AppLocalizations.of(context)!.low,
       AppLocalizations.of(context)!.medium,
-      AppLocalizations.of(context)!.high
+      AppLocalizations.of(context)!.high,
     ];
 
     return Row(
@@ -528,7 +536,10 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedCourseId,
-          hint: Text(AppLocalizations.of(context)!.none, style: const TextStyle(fontSize: 14)),
+          hint: Text(
+            AppLocalizations.of(context)!.none,
+            style: const TextStyle(fontSize: 14),
+          ),
           isExpanded: true,
           items: _courses
               .map(

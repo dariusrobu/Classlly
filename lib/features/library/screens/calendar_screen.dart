@@ -35,7 +35,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final primary = Theme.of(context).colorScheme.primary;
     final cardBg = Theme.of(context).cardColor;
     final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
-    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white;
+    final textColor =
+        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white;
     const subTextColor = Colors.grey;
     final borderMuted = Theme.of(context).dividerColor.withValues(alpha: 0.1);
 
@@ -98,7 +99,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         firstDay: DateTime.utc(2023, 1, 1),
                         lastDay: DateTime.utc(2030, 12, 31),
                         focusedDay: _focusedDay,
-                        selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                        selectedDayPredicate: (day) =>
+                            isSameDay(_selectedDay, day),
                         onDaySelected: (selectedDay, focusedDay) {
                           setState(() {
                             _selectedDay = selectedDay;
@@ -115,21 +117,37 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
-                          leftChevronIcon: Icon(Icons.chevron_left, color: primary),
-                          rightChevronIcon: Icon(Icons.chevron_right, color: primary),
+                          leftChevronIcon: Icon(
+                            Icons.chevron_left,
+                            color: primary,
+                          ),
+                          rightChevronIcon: Icon(
+                            Icons.chevron_right,
+                            color: primary,
+                          ),
                         ),
                         daysOfWeekStyle: DaysOfWeekStyle(
-                          weekdayStyle: const TextStyle(color: subTextColor, fontWeight: FontWeight.bold),
-                          weekendStyle: TextStyle(color: primary.withValues(alpha: 0.7), fontWeight: FontWeight.bold),
+                          weekdayStyle: const TextStyle(
+                            color: subTextColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          weekendStyle: TextStyle(
+                            color: primary.withValues(alpha: 0.7),
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         calendarStyle: CalendarStyle(
                           defaultTextStyle: TextStyle(color: textColor),
                           weekendTextStyle: TextStyle(color: textColor),
-                          outsideTextStyle: TextStyle(color: subTextColor.withValues(alpha: 0.5)),
+                          outsideTextStyle: TextStyle(
+                            color: subTextColor.withValues(alpha: 0.5),
+                          ),
                           todayDecoration: BoxDecoration(
                             color: primary.withValues(alpha: 0.15),
                             shape: BoxShape.circle,
-                            border: Border.all(color: primary.withValues(alpha: 0.3)),
+                            border: Border.all(
+                              color: primary.withValues(alpha: 0.3),
+                            ),
                           ),
                           selectedDecoration: BoxDecoration(
                             color: primary,
@@ -144,9 +162,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           ),
                         ),
                         calendarBuilders: CalendarBuilders(
-                          markerBuilder: (context, date, events) => _buildMarkers(date, events),
+                          markerBuilder: (context, date, events) =>
+                              _buildMarkers(date, events),
                         ),
-                        eventLoader: (day) => _getEventsForDay(day, calendarProvider, taskProvider.tasks),
+                        eventLoader: (day) => _getEventsForDay(
+                          day,
+                          calendarProvider,
+                          taskProvider.tasks,
+                        ),
                       ),
                     ),
                   ),
@@ -179,25 +202,39 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  List<dynamic> _getEventsForDay(DateTime day, AcademicCalendarProvider calendarProvider, List<Task> tasks) {
+  List<dynamic> _getEventsForDay(
+    DateTime day,
+    AcademicCalendarProvider calendarProvider,
+    List<Task> tasks,
+  ) {
     final events = <dynamic>[];
     for (var event in calendarProvider.events) {
-      if (isSameDay(event.date, day)) events.add(event);
+      if (isSameDay(event.date, day)) {
+        events.add(event);
+      }
     }
     for (var period in calendarProvider.periods) {
-      if ((day.isAtSameMomentAs(period.startDate) || day.isAfter(period.startDate)) &&
-          (day.isAtSameMomentAs(period.endDate) || day.isBefore(period.endDate))) {
-        if (period.type != AcademicPeriodType.teaching) events.add(period);
+      if ((day.isAtSameMomentAs(period.startDate) ||
+              day.isAfter(period.startDate)) &&
+          (day.isAtSameMomentAs(period.endDate) ||
+              day.isBefore(period.endDate))) {
+        if (period.type != AcademicPeriodType.teaching) {
+          events.add(period);
+        }
       }
     }
     for (var task in tasks) {
-      if (task.dueDate != null && isSameDay(task.dueDate!, day)) events.add(task);
+      if (task.dueDate != null && isSameDay(task.dueDate!, day)) {
+        events.add(task);
+      }
     }
     return events;
   }
 
   Widget _buildMarkers(DateTime day, List events) {
-    if (events.isEmpty) return const SizedBox.shrink();
+    if (events.isEmpty) {
+      return const SizedBox.shrink();
+    }
     return Positioned(
       bottom: 6,
       left: 0,
@@ -211,15 +248,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
           } else if (e is AcademicEvent) {
             color = Colors.green;
           }
-          
+
           return Container(
             width: 5,
             height: 5,
             margin: const EdgeInsets.symmetric(horizontal: 1),
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           );
         }).toList(),
       ),
@@ -247,31 +281,38 @@ class _CalendarScreenState extends State<CalendarScreen> {
     if (weekInfo != null) {
       for (var c in courses) {
         if (c.courseDay == dayName) {
-          bool show = c.courseFrequency == 'Weekly' ||
+          bool show =
+              c.courseFrequency == 'Weekly' ||
               (c.courseFrequency == 'Bi-Weekly (odd)' && weekInfo['isOdd']) ||
               (c.courseFrequency == 'Bi-Weekly (even)' && !weekInfo['isOdd']);
           if (show) {
-            allItems.add(_AgendaItemData(
-              title: c.title,
-              subtitle: '${c.courseTime} • ${c.location}',
-              icon: Icons.school,
-              color: Color(c.color),
-              time: c.courseTime,
-            ));
+            allItems.add(
+              _AgendaItemData(
+                title: c.title,
+                subtitle: '${c.courseTime} • ${c.location}',
+                icon: Icons.school,
+                color: Color(c.color),
+                time: c.courseTime,
+              ),
+            );
           }
         }
       }
     }
 
     for (var t in taskProvider.tasks) {
-      if (t.dueDate != null && isSameDay(t.dueDate!, selectedDay) && !t.isDeleted) {
-        allItems.add(_AgendaItemData(
-          title: t.title,
-          subtitle: t.category ?? '',
-          icon: Icons.check_circle,
-          color: t.priority == 2 ? Colors.redAccent : Colors.orange,
-          time: DateFormat.Hm().format(t.dueDate!),
-        ));
+      if (t.dueDate != null &&
+          isSameDay(t.dueDate!, selectedDay) &&
+          !t.isDeleted) {
+        allItems.add(
+          _AgendaItemData(
+            title: t.title,
+            subtitle: t.category ?? '',
+            icon: Icons.check_circle,
+            color: t.priority == 2 ? Colors.redAccent : Colors.orange,
+            time: DateFormat.Hm().format(t.dueDate!),
+          ),
+        );
       }
     }
 
@@ -286,7 +327,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
             children: [
               Text(
                 DateFormat('EEEE').format(selectedDay),
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textColor),
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
               ),
               Text(
                 DateFormat('MMMM d, yyyy').format(selectedDay),
@@ -295,14 +340,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
               if (weekInfo != null) ...[
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     'Week ${weekInfo['week']} (${weekInfo['label']})',
-                    style: TextStyle(color: primary, fontWeight: FontWeight.bold, fontSize: 12),
+                    style: TextStyle(
+                      color: primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
@@ -316,9 +368,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.event_available, size: 48, color: subTextColor.withValues(alpha: 0.3)),
+                      Icon(
+                        Icons.event_available,
+                        size: 48,
+                        color: subTextColor.withValues(alpha: 0.3),
+                      ),
                       const SizedBox(height: 16),
-                      Text('No events today', style: TextStyle(color: subTextColor)),
+                      Text(
+                        'No events today',
+                        style: TextStyle(color: subTextColor),
+                      ),
                     ],
                   ),
                 )
@@ -337,10 +396,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               Container(
                                 width: 12,
                                 height: 12,
-                                decoration: BoxDecoration(color: item.color, shape: BoxShape.circle),
+                                decoration: BoxDecoration(
+                                  color: item.color,
+                                  shape: BoxShape.circle,
+                                ),
                               ),
                               if (index < allItems.length - 1)
-                                Container(width: 2, height: 60, color: borderMuted),
+                                Container(
+                                  width: 2,
+                                  height: 60,
+                                  color: borderMuted,
+                                ),
                             ],
                           ),
                           const SizedBox(width: 20),
@@ -348,10 +414,30 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(item.time, style: TextStyle(color: item.color, fontWeight: FontWeight.bold, fontSize: 12)),
+                                Text(
+                                  item.time,
+                                  style: TextStyle(
+                                    color: item.color,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
                                 const SizedBox(height: 4),
-                                Text(item.title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
-                                Text(item.subtitle, style: TextStyle(color: subTextColor, fontSize: 13)),
+                                Text(
+                                  item.title,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
+                                  ),
+                                ),
+                                Text(
+                                  item.subtitle,
+                                  style: TextStyle(
+                                    color: subTextColor,
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ],
                             ),
                           ),

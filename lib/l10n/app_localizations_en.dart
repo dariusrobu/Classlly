@@ -457,6 +457,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editCourse => 'Edit Course';
 
   @override
+  String get deleteCourse => 'Delete Course';
+
+  @override
+  String get deleteCourseConfirm =>
+      'Are you sure you want to delete this course? All associated data will be removed.';
+
+  @override
   String get newCourse => 'New Course';
 
   @override

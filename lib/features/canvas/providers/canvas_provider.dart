@@ -45,8 +45,8 @@ class CanvasProvider with ChangeNotifier {
   CanvasProvider({
     NotesRepository? repository,
     SupabaseRepository? remoteRepository,
-  })  : _repository = repository ?? NotesRepository(),
-        _remoteRepository = remoteRepository ?? SupabaseRepository();
+  }) : _repository = repository ?? NotesRepository(),
+       _remoteRepository = remoteRepository ?? SupabaseRepository();
 
   final List<NoteStateSnapshot> _undoStack = [];
   final List<NoteStateSnapshot> _redoStack = [];
@@ -480,13 +480,15 @@ class CanvasProvider with ChangeNotifier {
     if (shape != null) {
       // Replace last stroke with shape points
       _currentNote!.strokes.removeLast();
-      _currentNote!.strokes.add(Stroke(
-        points: shape.points,
-        color: strokeColor.toARGB32(),
-        width: strokeWidth,
-        createdAt: timestamp ?? -1,
-        toolType: _activeTool.name,
-      ));
+      _currentNote!.strokes.add(
+        Stroke(
+          points: shape.points,
+          color: strokeColor.toARGB32(),
+          width: strokeWidth,
+          createdAt: timestamp ?? -1,
+          toolType: _activeTool.name,
+        ),
+      );
     }
 
     saveNote();

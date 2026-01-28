@@ -47,9 +47,11 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
   void _save() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedCourseId == null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.pleaseSelectCourse)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.pleaseSelectCourse),
+          ),
+        );
         return;
       }
 
@@ -125,7 +127,9 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      AppLocalizations.of(context)!.courses.split(' ')[0], // Course
+                      AppLocalizations.of(
+                        context,
+                      )!.courses.split(' ')[0], // Course
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -203,9 +207,13 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
       child: DropdownButtonHideUnderline(
         child: DropdownButtonFormField<String>(
           initialValue: _selectedCourseId,
-          hint: Text(AppLocalizations.of(context)!.selectCourse, style: const TextStyle(fontSize: 14)),
+          hint: Text(
+            AppLocalizations.of(context)!.selectCourse,
+            style: const TextStyle(fontSize: 14),
+          ),
           isExpanded: true,
-          validator: (v) => v == null ? AppLocalizations.of(context)!.none : null,
+          validator: (v) =>
+              v == null ? AppLocalizations.of(context)!.none : null,
           items: _courses
               .map(
                 (c) => DropdownMenuItem(

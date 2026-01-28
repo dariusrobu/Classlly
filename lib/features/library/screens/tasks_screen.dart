@@ -362,8 +362,8 @@ class _TasksScreenState extends State<TasksScreen> {
                   task.priority == 2
                       ? AppLocalizations.of(context)!.high
                       : (task.priority == 1
-                          ? AppLocalizations.of(context)!.medium
-                          : AppLocalizations.of(context)!.low),
+                            ? AppLocalizations.of(context)!.medium
+                            : AppLocalizations.of(context)!.low),
                   style: TextStyle(fontSize: 12, color: subTextColor),
                 ),
                 const Spacer(),

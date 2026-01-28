@@ -11,7 +11,7 @@ class ProfileProvider with ChangeNotifier {
   final NotesRepository _localRepository;
 
   ProfileProvider({NotesRepository? repository})
-      : _localRepository = repository ?? NotesRepository();
+    : _localRepository = repository ?? NotesRepository();
 
   StudentProfile get studentProfile => _localRepository.getStudentProfile();
 

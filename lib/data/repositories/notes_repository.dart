@@ -140,6 +140,10 @@ class NotesRepository {
     await _courseBox.delete(id);
   }
 
+  Course? getCourse(String id) {
+    return _courseBox.get(id);
+  }
+
   // --- Grades ---
   List<Grade> getGradesForCourse(String courseId) {
     return _gradeBox.values.where((g) => g.courseId == courseId).toList()

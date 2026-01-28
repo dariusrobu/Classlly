@@ -3,10 +3,10 @@ import 'package:classlly/data/models/note_models.dart';
 abstract class CloudStorageService {
   // Sync Status
   Stream<List<Note>> notesStream();
-  
+
   // High-level Sync
   Future<void> syncAll();
-  
+
   // Domain Specific Sync Methods
   Future<void> syncNotes();
   Future<void> syncCourses();

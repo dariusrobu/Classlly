@@ -168,6 +168,8 @@
   "oneDayBefore": "1 day before",
   "oneWeekBefore": "1 week before",
   "editCourse": "Edit Course",
+  "deleteCourse": "Delete Course",
+  "deleteCourseConfirm": "Are you sure you want to delete this course? All associated data will be removed.",
   "newCourse": "New Course",
   "courseTitle": "Course Title",
   "credits": "Credits",

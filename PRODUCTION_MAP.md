@@ -1,58 +1,69 @@
-# Classlly Production Launch Map 🗺️
+# Classlly Application Analysis
 
-This document outlines the final steps required to transition **Classlly** from a functional prototype to a public product on the Apple App Store and Google Play Store.
+## 1. Core Architecture
 
----
+- **Framework**: Flutter (Multi-platform: iOS, Android, Web, macOS)
+- **State Management**: `provider` + `hive` (Local-first persistence)
+- **Backend**: Supabase (PostgreSQL, Auth, Storage)
+- **Offline-First**: Uses Hive for local caching and Supabase for cloud sync
 
-## 🚀 Current Status Overview
-- **Core Engine:** Verified (Canvas, Audio Sync, Real-time Sync).
-- **Egress Optimization:** ✅ **COMPLETED** (Images moved to Supabase Storage, Stroke data rounded).
-- **iOS:** Technical compliance complete (including Backend Account Deletion).
-- **Android:** Infrastructure ready; awaiting configuration files.
-- **Engagement:** Notifications and Home Screen Widgets implemented.
+## 2. Authentication
 
----
+- **Methods**:
+  - Email/Password (Supabase Auth)
+  - Google Sign-In (Native SDKs for Android/iOS, OAuth for Web)
+  - Apple Sign-In (iOS/macOS/Web)
+  - Guest Mode (Offline access)
+- **Features**:
+  - Profile Setup (Avatar, Display Name)
+  - Account Deletion (GDPR compliance)
 
-## 🛠️ Technical Tasks (To be done by Developer/Agent)
+## 3. Dashboard (Library)
 
-### 1. PDF Snippet Refinement
-- [x] **Precision Cropping:** Upgrade the PDF insertion logic to allow users to select a specific area of a page instead of inserting the full page.
-- [ ] **Resolution Tweak:** Ensure snippets remain crisp when zoomed in on the canvas.
+- **Overview**:
+  - Academic Performance Stats (GPA, Credits)
+  - "Today's Schedule" widget
+  - Quick Actions
+- **Course Management**:
+  - Create/Edit Courses (Color coding, Subject icon)
+  - Track Credits & GPA per course
+- **Task Management**:
+  - Kanban-style or List view
+  - Due Dates & Priority
+- **Calendar**:
+  - Weekly/Monthly views
+  - Course schedule integration
 
-### 2. Real-time Collaboration (Phase 22)
-- [ ] **Supabase Presence:** Implement actual Realtime Presence to show who is online in the `_AvatarStack`.
-- [ ] **Shared State:** Ensure strokes from other users appear instantly with their specific user color.
+## 4. Note-Taking & Canvas
 
-### 3. Polish & Monitoring
-- [ ] **Crash Analytics:** Integrate Sentry or Firebase Crashlytics to monitor production errors.
+- **Engine**: `perfect-freehand` based drawing engine
+- **Tools**:
+  - Multiple pen types (Monoline, Fountain, Marker)
+  - Shape recognition (Rect, Circle, Line)
+  - Infinite Canvas (conceptual)
+  - PDF Import & Annotation (`pdfx`)
+  - Image insertion
+- **Organization**:
+  - Notebooks & Folders
+  - Rich Text Editor (`flutter_quill`) support
 
----
+## 5. Audio Recording (Planned)
 
-## 👤 User Action Items (Things YOU need to do)
+- **Status**: Currently removed/not implemented.
+- **Planned Features**:
+  - Sync audio with note strokes
+  - Tap-to-seek playback
+  - Cloud storage integration
 
-### ☁️ Supabase Configuration (Critical)
-1.  **Storage Bucket:** Go to your Supabase Dashboard -> Storage and create a new bucket named `note-images`. 
-2.  **Permissions:** Make the bucket **Public** or add an RLS policy for `authenticated` users to SELECT and INSERT.
+## 6. Settings & Customization
 
-### 🔐 Android Release Setup (Critical)
-1.  **Firebase:** Go to [Firebase Console](https://console.firebase.google.com/), add an Android app to your project (`com.robudarius.classlly`), download `google-services.json`, and place it in `android/app/`.
-2.  **Keystore:** Generate your production upload keystore:
-    ```bash
-    keytool -genkey -v -keystore ~/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
-    ```
-3.  **Signing:** Create a `key.properties` file in the `android/` folder based on `key.properties.example` with your actual passwords and path.
+- **Theme**: Dark/Light mode support
+- **Profile**: Update user details
+- **Data**: Cloud Sync status & controls
 
-### 🍎 iOS Widget Activation
-1.  **Xcode Target:** Open `ios/Runner.xcworkspace` in Xcode. Add a new **Widget Extension** target named `ClassllyWidgets`.
-2.  **App Groups:** Add the `group.com.robudarius.classlly` App Group to both the **Runner** target and the **ClassllyWidgets** target.
+## 7. Platform Specifics
 
-### 🎨 Store Marketing Assets
-1.  **Screenshots:** Take 5 high-resolution screenshots for each store. Focus on the Dashboard stats and the unique Audio-Sync Canvas.
-2.  **App Description:** Finalize the store descriptions.
-
----
-
-## 🏗️ Future Roadmap (Post-Launch)
-- [ ] **Bring Your Own Cloud (BYOC):** Google Drive and iCloud integration.
-- [ ] **Desktop Native Apps:** Optimized window management for macOS/Windows.
-- [ ] **AI Summarization:** Auto-generate study summaries from recorded audio.
+- **iOS**: Apple Sign-In integration
+- **Android**: Google Sign-In native integration
+- **Web**: OAuth flows for social login, Responsive layout
+- **macOS**: Desktop layout support

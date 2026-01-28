@@ -57,17 +57,27 @@ class UserPreferences extends HiveObject {
     'last_sync_timestamp': lastSyncTimestamp?.toIso8601String(),
   };
 
-  factory UserPreferences.fromJson(Map<String, dynamic> json) => UserPreferences(
+  factory UserPreferences.fromJson(
+    Map<String, dynamic> json,
+  ) => UserPreferences(
     themeMode: JsonUtils.asString(json['theme_mode'], defaultValue: 'system'),
-    accentColor: JsonUtils.asInt(json['accent_color'], defaultValue: 0xFF8B5CF6),
+    accentColor: JsonUtils.asInt(
+      json['accent_color'],
+      defaultValue: 0xFF8B5CF6,
+    ),
     fontSize: JsonUtils.asDouble(json['font_size'], defaultValue: 16.0),
     highContrast: JsonUtils.asBool(json['high_contrast']),
     syncEnabled: JsonUtils.asBool(json['sync_enabled']),
     savedColors: JsonUtils.asList(json['saved_colors'], (e) => e as int),
-    lectureReminders: JsonUtils.asBool(json['lecture_reminders'], defaultValue: true),
+    lectureReminders: JsonUtils.asBool(
+      json['lecture_reminders'],
+      defaultValue: true,
+    ),
     taskDeadlines: JsonUtils.asBool(json['task_deadlines'], defaultValue: true),
     appUpdates: JsonUtils.asBool(json['app_updates']),
     hasCompletedOnboarding: JsonUtils.asBool(json['has_completed_onboarding']),
-    lastSyncTimestamp: json['last_sync_timestamp'] != null ? JsonUtils.asDateTime(json['last_sync_timestamp']) : null,
+    lastSyncTimestamp: json['last_sync_timestamp'] != null
+        ? JsonUtils.asDateTime(json['last_sync_timestamp'])
+        : null,
   );
 }

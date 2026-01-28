@@ -65,10 +65,12 @@ class SupabaseCloudService implements CloudStorageService {
   ) {
     final prefs = _localRepository.getPreferences();
     final query = _client.from(table).select().eq('user_id', userId);
-    
+
     if (prefs.lastSyncTimestamp != null) {
       // Offset by 1 second to avoid overlapping due to precision
-      final filterTime = prefs.lastSyncTimestamp!.subtract(const Duration(seconds: 1));
+      final filterTime = prefs.lastSyncTimestamp!.subtract(
+        const Duration(seconds: 1),
+      );
       return query.gt('updated_at', filterTime.toIso8601String());
     }
     return query;
@@ -104,9 +106,11 @@ class SupabaseCloudService implements CloudStorageService {
               .select()
               .eq('id', noteId)
               .single();
-          
+
           final remoteNote = Note.fromJson(fullNoteData);
-          await Hive.box<Note>(NotesRepository.boxName).put(remoteNote.id, remoteNote);
+          await Hive.box<Note>(
+            NotesRepository.boxName,
+          ).put(remoteNote.id, remoteNote);
         }
       }
 
@@ -171,11 +175,16 @@ class SupabaseCloudService implements CloudStorageService {
           final path = '$userId/$fileName';
           final bytes = base64Decode(img.base64Data);
 
-          await _client.storage.from('note-images').uploadBinary(
-            path,
-            bytes,
-            fileOptions: const FileOptions(contentType: 'image/png', upsert: true),
-          );
+          await _client.storage
+              .from('note-images')
+              .uploadBinary(
+                path,
+                bytes,
+                fileOptions: const FileOptions(
+                  contentType: 'image/png',
+                  upsert: true,
+                ),
+              );
 
           // Update local note with the storage path
           img.storagePath = path;
@@ -204,10 +213,7 @@ class SupabaseCloudService implements CloudStorageService {
 
     final localCourses = _localRepository.getAllCourses();
     for (var c in localCourses) {
-      await _client.from('courses').upsert({
-        ...c.toJson(),
-        'user_id': user.id,
-      });
+      await _client.from('courses').upsert({...c.toJson(), 'user_id': user.id});
     }
   }
 
@@ -226,10 +232,7 @@ class SupabaseCloudService implements CloudStorageService {
 
     final localTasks = _localRepository.getAllTasks();
     for (var t in localTasks) {
-      await _client.from('tasks').upsert({
-        ...t.toJson(),
-        'user_id': user.id,
-      });
+      await _client.from('tasks').upsert({...t.toJson(), 'user_id': user.id});
     }
   }
 
@@ -241,23 +244,35 @@ class SupabaseCloudService implements CloudStorageService {
 
     try {
       final remoteData = await _applySyncFilter('folders', user.id);
-      final Map<String, dynamic> remoteFoldersMap = {for (var e in remoteData) e['id']: e};
+      final Map<String, dynamic> remoteFoldersMap = {
+        for (var e in remoteData) e['id']: e,
+      };
 
       for (var e in remoteData) {
         final remoteFolder = Folder.fromJson(e);
-        final localFolder = Hive.box<Folder>(NotesRepository.folderBoxName).get(remoteFolder.id);
-        if (localFolder == null || remoteFolder.updatedAt!.isAfter(localFolder.updatedAt!)) {
-          await Hive.box<Folder>(NotesRepository.folderBoxName).put(remoteFolder.id, remoteFolder);
+        final localFolder = Hive.box<Folder>(
+          NotesRepository.folderBoxName,
+        ).get(remoteFolder.id);
+        if (localFolder == null ||
+            remoteFolder.updatedAt!.isAfter(localFolder.updatedAt!)) {
+          await Hive.box<Folder>(
+            NotesRepository.folderBoxName,
+          ).put(remoteFolder.id, remoteFolder);
         }
       }
 
-      final notebookFolders = _localRepository.getFolders(type: FolderType.notebook);
-      final resourceFolders = _localRepository.getFolders(type: FolderType.resource);
+      final notebookFolders = _localRepository.getFolders(
+        type: FolderType.notebook,
+      );
+      final resourceFolders = _localRepository.getFolders(
+        type: FolderType.resource,
+      );
       final allFolders = [...notebookFolders, ...resourceFolders];
 
       for (var f in allFolders) {
         final remoteData = remoteFoldersMap[f.id];
-        if (remoteData == null || f.updatedAt!.isAfter(DateTime.parse(remoteData['updated_at']))) {
+        if (remoteData == null ||
+            f.updatedAt!.isAfter(DateTime.parse(remoteData['updated_at']))) {
           await _client.from('folders').upsert({
             ...f.toJson(),
             'user_id': user.id,
@@ -281,7 +296,10 @@ class SupabaseCloudService implements CloudStorageService {
 
     final localPeriods = _localRepository.getAllPeriods();
     for (var p in localPeriods) {
-      await _client.from('academic_periods').upsert({...p.toJson(), 'user_id': user.id});
+      await _client.from('academic_periods').upsert({
+        ...p.toJson(),
+        'user_id': user.id,
+      });
     }
 
     final eResp = await _applySyncFilter('academic_events', user.id);
@@ -291,7 +309,10 @@ class SupabaseCloudService implements CloudStorageService {
 
     final localEvents = _localRepository.getAllEvents();
     for (var ev in localEvents) {
-      await _client.from('academic_events').upsert({...ev.toJson(), 'user_id': user.id});
+      await _client.from('academic_events').upsert({
+        ...ev.toJson(),
+        'user_id': user.id,
+      });
     }
   }
 
@@ -309,7 +330,10 @@ class SupabaseCloudService implements CloudStorageService {
     for (var c in courses) {
       final localGrades = _localRepository.getGradesForCourse(c.id);
       for (var g in localGrades) {
-        await _client.from('grades').upsert({...g.toJson(), 'user_id': user.id});
+        await _client.from('grades').upsert({
+          ...g.toJson(),
+          'user_id': user.id,
+        });
       }
     }
   }
@@ -328,7 +352,10 @@ class SupabaseCloudService implements CloudStorageService {
     for (var c in courses) {
       final localAtt = _localRepository.getAttendanceForCourse(c.id);
       for (var a in localAtt) {
-        await _client.from('attendance').upsert({...a.toJson(), 'user_id': user.id});
+        await _client.from('attendance').upsert({
+          ...a.toJson(),
+          'user_id': user.id,
+        });
       }
     }
   }
@@ -348,7 +375,10 @@ class SupabaseCloudService implements CloudStorageService {
     }
 
     final localProfile = _localRepository.getStudentProfile();
-    await _client.from('student_profiles').upsert({...localProfile.toJson(), 'user_id': user.id});
+    await _client.from('student_profiles').upsert({
+      ...localProfile.toJson(),
+      'user_id': user.id,
+    });
   }
 
   @override
@@ -365,7 +395,7 @@ class SupabaseCloudService implements CloudStorageService {
     final userId = user.id;
 
     // Delete data from all tables where user_id matches
-    // Note: Order might matter if there are foreign key constraints, 
+    // Note: Order might matter if there are foreign key constraints,
     // but typically Supabase handles this or we delete children first.
     await Future.wait([
       _client.from('notes').delete().eq('user_id', userId),
@@ -385,7 +415,11 @@ class SupabaseCloudService implements CloudStorageService {
     final user = _client.auth.currentUser;
     if (user == null) return false;
     try {
-      final response = await _client.from('student_profiles').select('user_id').eq('user_id', user.id).maybeSingle();
+      final response = await _client
+          .from('student_profiles')
+          .select('user_id')
+          .eq('user_id', user.id)
+          .maybeSingle();
       return response != null;
     } catch (e) {
       return false;

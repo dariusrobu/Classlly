@@ -69,28 +69,32 @@ class ProfileScreen extends StatelessWidget {
                 const SizedBox(height: 32),
                 _buildStatsRow(context, isDark, profile),
                 const SizedBox(height: 32),
-                _buildMenuSection(context, AppLocalizations.of(context)!.account, [
-                  _MenuItem(
-                    icon: Icons.person_outline,
-                    label: AppLocalizations.of(context)!.personalInfo,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const PersonalInfoScreen(),
+                _buildMenuSection(
+                  context,
+                  AppLocalizations.of(context)!.account,
+                  [
+                    _MenuItem(
+                      icon: Icons.person_outline,
+                      label: AppLocalizations.of(context)!.personalInfo,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PersonalInfoScreen(),
+                        ),
                       ),
                     ),
-                  ),
-                  _MenuItem(
-                    icon: Icons.school_outlined,
-                    label: AppLocalizations.of(context)!.academicDetails,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AcademicDetailsScreen(),
+                    _MenuItem(
+                      icon: Icons.school_outlined,
+                      label: AppLocalizations.of(context)!.academicDetails,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AcademicDetailsScreen(),
+                        ),
                       ),
                     ),
-                  ),
-                ]),
+                  ],
+                ),
                 const SizedBox(height: 32),
                 TextButton(
                   onPressed: () async {
@@ -117,7 +121,9 @@ class ProfileScreen extends StatelessWidget {
                     showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
-                        title: Text(AppLocalizations.of(context)!.deleteAccount),
+                        title: Text(
+                          AppLocalizations.of(context)!.deleteAccount,
+                        ),
                         content: Text(
                           AppLocalizations.of(context)!.deleteAccountConfirm,
                         ),
@@ -160,7 +166,9 @@ class ProfileScreen extends StatelessWidget {
                             style: TextButton.styleFrom(
                               foregroundColor: Colors.red,
                             ),
-                            child: Text(AppLocalizations.of(context)!.deleteForever),
+                            child: Text(
+                              AppLocalizations.of(context)!.deleteForever,
+                            ),
                           ),
                         ],
                       ),
@@ -259,7 +267,11 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsRow(BuildContext context, bool isDark, StudentProfile profile) {
+  Widget _buildStatsRow(
+    BuildContext context,
+    bool isDark,
+    StudentProfile profile,
+  ) {
     return ValueListenableBuilder(
       valueListenable: Hive.box<Note>(NotesRepository.boxName).listenable(),
       builder: (context, noteBox, _) {
@@ -295,8 +307,8 @@ class ProfileScreen extends StatelessWidget {
                         ),
                         Consumer<CourseProvider>(
                           builder: (context, cp, _) => _statItem(
-                            cp.totalGPA.toStringAsFixed(2),
-                            'GPA',
+                            cp.totalAverageGrade.toStringAsFixed(1),
+                            'AVG',
                           ),
                         ),
                         _statItem(

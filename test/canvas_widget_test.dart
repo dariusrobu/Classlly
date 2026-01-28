@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:classlly/data/models/user_preferences_model.dart';
 import 'package:mocktail/mocktail.dart';

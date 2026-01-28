@@ -32,13 +32,20 @@ void main() {
         Grade.create(courseId: course.id, title: 'G2', score: 90, weight: 0.5),
       ];
       final attendance = [
-        Attendance.create(courseId: course.id, status: AttendanceStatus.present),
+        Attendance.create(
+          courseId: course.id,
+          status: AttendanceStatus.present,
+        ),
         Attendance.create(courseId: course.id, status: AttendanceStatus.absent),
       ];
 
       when(() => mockRepository.getAllCourses()).thenReturn([course]);
-      when(() => mockRepository.getGradesForCourse(course.id)).thenReturn(grades);
-      when(() => mockRepository.getAttendanceForCourse(course.id)).thenReturn(attendance);
+      when(
+        () => mockRepository.getGradesForCourse(course.id),
+      ).thenReturn(grades);
+      when(
+        () => mockRepository.getAttendanceForCourse(course.id),
+      ).thenReturn(attendance);
       when(() => mockRepository.saveCourse(any())).thenAnswer((_) async {});
 
       // Act
@@ -49,16 +56,18 @@ void main() {
       expect(course.cachedAverageGrade, 85.0);
       // 1 present out of 2 = 50.0%
       expect(course.cachedAttendanceRate, 50.0);
-      
+
       verify(() => mockRepository.saveCourse(course)).called(1);
     });
 
     test('handles empty grades and attendance', () async {
       final course = Course.create(title: 'Empty Course');
-      
+
       when(() => mockRepository.getAllCourses()).thenReturn([course]);
       when(() => mockRepository.getGradesForCourse(course.id)).thenReturn([]);
-      when(() => mockRepository.getAttendanceForCourse(course.id)).thenReturn([]);
+      when(
+        () => mockRepository.getAttendanceForCourse(course.id),
+      ).thenReturn([]);
       when(() => mockRepository.saveCourse(any())).thenAnswer((_) async {});
 
       await courseProvider.recalculateStats();

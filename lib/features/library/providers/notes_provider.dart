@@ -8,7 +8,7 @@ class NotesProvider with ChangeNotifier {
   String? _currentFolderId;
 
   NotesProvider({NotesRepository? repository})
-      : _localRepository = repository ?? NotesRepository();
+    : _localRepository = repository ?? NotesRepository();
 
   String? get currentFolderId => _currentFolderId;
   List<Note> get notes => _localRepository.getAllNotes();

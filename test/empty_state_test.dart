@@ -4,7 +4,9 @@ import 'package:classlly/features/library/widgets/empty_state.dart';
 
 void main() {
   group('EmptyState Widget Tests', () {
-    testWidgets('renders title and subtitle correctly', (WidgetTester tester) async {
+    testWidgets('renders title and subtitle correctly', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -22,7 +24,9 @@ void main() {
       expect(find.byIcon(Icons.search), findsOneWidget);
     });
 
-    testWidgets('shows action button when onAction is provided', (WidgetTester tester) async {
+    testWidgets('shows action button when onAction is provided', (
+      WidgetTester tester,
+    ) async {
       bool actionTapped = false;
 
       await tester.pumpWidget(

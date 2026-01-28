@@ -13,7 +13,7 @@ class LibraryProvider with ChangeNotifier {
   StreamSubscription? _syncSubscription;
 
   LibraryProvider({CloudStorageService? cloudService})
-      : _cloudService = cloudService ?? SupabaseCloudService();
+    : _cloudService = cloudService ?? SupabaseCloudService();
 
   LibraryView _currentView = LibraryView.dashboard;
   String _searchQuery = '';
@@ -28,11 +28,11 @@ class LibraryProvider with ChangeNotifier {
   void initSync() async {
     final prefs = _localRepository.getPreferences();
     final lastSync = prefs.lastSyncTimestamp;
-    
+
     // Only sync if >15 minutes since last sync to reduce egress
-    final shouldSync = lastSync == null || 
-        DateTime.now().difference(lastSync).inMinutes > 15;
-    
+    final shouldSync =
+        lastSync == null || DateTime.now().difference(lastSync).inMinutes > 15;
+
     if (shouldSync) {
       await _cloudService.syncAll();
       _lastSynced = DateTime.now();

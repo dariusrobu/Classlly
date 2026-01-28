@@ -5,37 +5,36 @@ import 'package:classlly/data/models/course_model.dart';
 import 'package:classlly/data/models/grade_model.dart';
 import 'package:classlly/data/models/attendance_model.dart';
 import 'package:classlly/core/services/notification_service.dart';
-import 'package:classlly/core/services/widget_service.dart';
-
-import 'package:classlly/core/utils/grade_utils.dart';
 
 class CourseProvider with ChangeNotifier {
   final NotesRepository _localRepository;
   final NotificationService _notificationService;
-  final WidgetService _widgetService = WidgetService();
 
-  CourseProvider({NotesRepository? repository, NotificationService? notificationService})
-      : _localRepository = repository ?? NotesRepository(),
-        _notificationService = notificationService ?? NotificationService();
+  CourseProvider({
+    NotesRepository? repository,
+    NotificationService? notificationService,
+  }) : _localRepository = repository ?? NotesRepository(),
+       _notificationService = notificationService ?? NotificationService();
 
   List<Course> get courses => _localRepository.getAllCourses();
 
-  double get totalGPA {
+  double get totalAverageGrade {
     final allCourses = courses;
     if (allCourses.isEmpty) return 0.0;
 
-    double totalWeightedGradePoints = 0;
+    double totalWeightedScore = 0;
     double totalCredits = 0;
 
     for (var course in allCourses) {
       if (course.credits > 0) {
-        final gp = GradeUtils.percentageToGradePoint(course.cachedAverageGrade);
-        totalWeightedGradePoints += gp * course.credits;
+        // cachedAverageGrade is 0-100. We want 0-10 scale.
+        final gradePoint = course.cachedAverageGrade / 10.0;
+        totalWeightedScore += gradePoint * course.credits;
         totalCredits += course.credits;
       }
     }
 
-    return totalCredits > 0 ? totalWeightedGradePoints / totalCredits : 0.0;
+    return totalCredits > 0 ? totalWeightedScore / totalCredits : 0.0;
   }
 
   double get totalCreditsEarned {
@@ -94,7 +93,7 @@ class CourseProvider with ChangeNotifier {
     await _localRepository.saveCourse(course);
     _scheduleCourseNotifications(course);
     await recalculateStats();
-    _widgetService.refreshUpNextWidget();
+
     notifyListeners();
   }
 
@@ -102,7 +101,7 @@ class CourseProvider with ChangeNotifier {
     _cancelCourseNotifications(courseId);
     await _localRepository.deleteCourse(courseId);
     await recalculateStats();
-    _widgetService.refreshUpNextWidget();
+
     notifyListeners();
   }
 
@@ -159,8 +158,12 @@ class CourseProvider with ChangeNotifier {
   }
 
   void _cancelCourseNotifications(String courseId) {
-    _notificationService.cancelNotification('${courseId}lecture'.hashCode * 100 + 1);
-    _notificationService.cancelNotification('${courseId}seminar'.hashCode * 100 + 1);
+    _notificationService.cancelNotification(
+      '${courseId}lecture'.hashCode * 100 + 1,
+    );
+    _notificationService.cancelNotification(
+      '${courseId}seminar'.hashCode * 100 + 1,
+    );
   }
 
   DateTime _nextOccurrence(String dayName, TimeOfDay time) {

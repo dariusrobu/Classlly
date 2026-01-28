@@ -36,10 +36,10 @@ target 'Runner' do
   end
 end
 
-target 'ClassllyWidgetsExtension' do
-  use_frameworks!
-  pod 'home_widget', :path => '.symlinks/plugins/home_widget/ios'
-end
+# target 'ClassllyWidgetsExtension' do
+#   use_frameworks!
+#   inherit! :search_paths
+# end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|

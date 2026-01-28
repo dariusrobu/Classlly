@@ -70,7 +70,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           Provider.of<ProfileProvider>(context, listen: false).refreshProfile();
 
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context)!.profileUpdated)),
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.profileUpdated),
+            ),
           );
           Navigator.pop(context);
         }
@@ -110,16 +112,23 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
             children: [
               _buildFieldLabel(AppLocalizations.of(context)!.fullName, isDark),
               const SizedBox(height: 8),
-              _buildTextField(_nameController, AppLocalizations.of(context)!.enterFullName, isDark),
+              _buildTextField(
+                _nameController,
+                AppLocalizations.of(context)!.enterFullName,
+                isDark,
+              ),
               const SizedBox(height: 24),
-              _buildFieldLabel(AppLocalizations.of(context)!.emailAddress, isDark),
+              _buildFieldLabel(
+                AppLocalizations.of(context)!.emailAddress,
+                isDark,
+              ),
               const SizedBox(height: 8),
               _buildTextField(
                 _emailController,
                 AppLocalizations.of(context)!.email,
                 isDark,
-                enabled: false,
-              ), // Email usually not editable directly
+                readOnly: true, // Allow selection but not editing
+              ),
               const SizedBox(height: 48),
               SizedBox(
                 width: double.infinity,
@@ -167,10 +176,12 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     String hint,
     bool isDark, {
     bool enabled = true,
+    bool readOnly = false,
   }) {
     return TextFormField(
       controller: controller,
       enabled: enabled,
+      readOnly: readOnly,
       style: TextStyle(color: isDark ? Colors.white : Colors.black),
       decoration: InputDecoration(
         hintText: hint,
@@ -188,7 +199,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           vertical: 16,
         ),
       ),
-      validator: (v) => v == null || v.isEmpty ? AppLocalizations.of(context)!.fieldCannotBeEmpty : null,
+      validator: (v) => v == null || v.isEmpty
+          ? AppLocalizations.of(context)!.fieldCannotBeEmpty
+          : null,
     );
   }
 }

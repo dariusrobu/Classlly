@@ -71,9 +71,11 @@ class _AcademicDetailsScreenState extends State<AcademicDetailsScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.academicDetailsSaved)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.academicDetailsSaved),
+          ),
+        );
         Navigator.pop(context);
       }
     }
@@ -101,11 +103,17 @@ class _AcademicDetailsScreenState extends State<AcademicDetailsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildFieldLabel(AppLocalizations.of(context)!.university, isDark),
+              _buildFieldLabel(
+                AppLocalizations.of(context)!.university,
+                isDark,
+              ),
               const SizedBox(height: 8),
               _buildTextField(_universityController, 'e.g. UBB Cluj', isDark),
               const SizedBox(height: 24),
-              _buildFieldLabel(AppLocalizations.of(context)!.majorCourse, isDark),
+              _buildFieldLabel(
+                AppLocalizations.of(context)!.majorCourse,
+                isDark,
+              ),
               const SizedBox(height: 8),
               _buildTextField(
                 _majorController,
@@ -113,11 +121,17 @@ class _AcademicDetailsScreenState extends State<AcademicDetailsScreen> {
                 isDark,
               ),
               const SizedBox(height: 24),
-              _buildFieldLabel(AppLocalizations.of(context)!.currentYear, isDark),
+              _buildFieldLabel(
+                AppLocalizations.of(context)!.currentYear,
+                isDark,
+              ),
               const SizedBox(height: 8),
               _buildTextField(_yearController, 'e.g. Year 2', isDark),
               const SizedBox(height: 24),
-              _buildFieldLabel(AppLocalizations.of(context)!.studentIdOptional, isDark),
+              _buildFieldLabel(
+                AppLocalizations.of(context)!.studentIdOptional,
+                isDark,
+              ),
               const SizedBox(height: 8),
               _buildTextField(_studentIdController, 'e.g. STUD-12345', isDark),
               const SizedBox(height: 48),
@@ -135,7 +149,10 @@ class _AcademicDetailsScreenState extends State<AcademicDetailsScreen> {
                   ),
                   child: Text(
                     AppLocalizations.of(context)!.updateAcademicInfo,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -183,7 +200,8 @@ class _AcademicDetailsScreenState extends State<AcademicDetailsScreen> {
           vertical: 16,
         ),
       ),
-      validator: (v) => v == null || v.isEmpty ? AppLocalizations.of(context)!.none : null,
+      validator: (v) =>
+          v == null || v.isEmpty ? AppLocalizations.of(context)!.none : null,
     );
   }
 }

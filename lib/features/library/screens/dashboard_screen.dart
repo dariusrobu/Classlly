@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:classlly/core/widgets/glass_card.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -12,10 +13,12 @@ import 'package:classlly/features/library/providers/course_provider.dart';
 import 'package:classlly/data/models/academic_calendar_model.dart';
 import 'package:classlly/data/models/task_model.dart';
 import 'package:classlly/data/models/note_models.dart';
+import 'package:classlly/data/models/course_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/features/library/screens/add_task_screen.dart';
 import 'package:classlly/features/library/screens/add_attendance_screen.dart';
 import 'package:classlly/features/library/screens/course_detail_screen.dart';
+import 'package:classlly/features/library/screens/add_course_screen.dart';
 import 'package:classlly/features/library/widgets/create_note_dialog.dart';
 import 'package:classlly/features/library/screens/library_screen.dart';
 import 'package:classlly/l10n/app_localizations.dart';
@@ -379,22 +382,31 @@ class DashboardHeader extends StatelessWidget {
                     ),
                   ),
                   if (weekInfo != null) ...[
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     Container(
-                      width: 4,
-                      height: 4,
-                      decoration: const BoxDecoration(
-                        color: Colors.grey,
-                        shape: BoxShape.circle,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Week ${weekInfo['week']} (${weekInfo['label']})',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Text(
+                        'WEEK ${weekInfo['week']} • ${weekInfo['label'].toUpperCase()}',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ),
                   ],
@@ -432,18 +444,20 @@ class StatsGrid extends StatelessWidget {
 class PerformanceRing extends StatelessWidget {
   const PerformanceRing({super.key});
 
+  double _calculateAttendance(List<Course> courses) {
+    if (courses.isEmpty) return 0.0;
+    double total = 0.0;
+    for (var c in courses) {
+      total += c.cachedAttendanceRate;
+    }
+    return total / courses.length;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
+    return GlassCard(
       padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-        ),
-      ),
+      borderRadius: 32,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -459,18 +473,7 @@ class PerformanceRing extends StatelessWidget {
           Center(
             child: Consumer<CourseProvider>(
               builder: (context, courseProvider, _) {
-                final courses = courseProvider.courses;
-                double totalGradeAvg = 0.0;
-                double totalAttRate = 0.0;
-
-                if (courses.isNotEmpty) {
-                  for (var c in courses) {
-                    totalGradeAvg += c.cachedAverageGrade;
-                    totalAttRate += c.cachedAttendanceRate;
-                  }
-                  totalGradeAvg /= courses.length;
-                  totalAttRate /= courses.length;
-                }
+                // Stats are now handled by provider and helper method
 
                 return Consumer<TaskProvider>(
                   builder: (context, taskProvider, _) {
@@ -479,6 +482,8 @@ class PerformanceRing extends StatelessWidget {
                     double taskRate = tasks.isNotEmpty
                         ? (completed / tasks.length) * 100
                         : 0.0;
+                    
+                    final averageGrade = courseProvider.totalAverageGrade;
 
                     return LayoutBuilder(
                       builder: (context, constraints) {
@@ -490,9 +495,24 @@ class PerformanceRing extends StatelessWidget {
                             child: CustomPaint(
                               painter: _PerformanceRingPainter(
                                 attendanceParams: _RingParams(
-                                  percentage: totalAttRate / 100,
+                                  // Use actual total attendance rate if available in provider, or recalculate
+                                  // For now, let's look at how we got totalAttRate before.
+                                  // We should probably expose totalAttendanceRate from provider too, but let's stick to what we have locally or add getter.
+                                  // Wait, I replaced the local calc loop. I need to get attendance too.
+                                  // Let's add totalAttendanceRate to provider or recalculate it briefly here since I removed the loop?
+                                  // Actually, I should probably use `courseProvider.totalAverageGrade` but I still need attendance.
+                                  // Let me verify if I removed the loop in my Plan. 
+                                  // The User's previous code had a loop calculating BOTH.
+                                  // My ReplacementContent replaces the INNER Consumer logic but I need to make sure I have access to stats.
+                                  // I will use getters from Provider if available. I added totalAverageGrade. 
+                                  // I did NOT add totalAttendanceRate to provider yet.
+                                  // I should probably assume I can add it or just loop here. 
+                                  // Ideally I should utilize the Provider.
+                                  // Let's use the provider's courses list to calc attendance here for now to be safe, or add another getter.
+                                  // Adding getter is cleaner.
+                                  percentage: _calculateAttendance(courseProvider.courses) / 100,
                                   color: Theme.of(context).colorScheme.primary,
-                                  isDashed: totalAttRate < 75,
+                                  isDashed: _calculateAttendance(courseProvider.courses) < 75,
                                   strokeWidth: size * 0.06,
                                 ),
                                 taskParams: _RingParams(
@@ -514,7 +534,7 @@ class PerformanceRing extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      NumberFormat('0.##').format(totalGradeAvg),
+                                      NumberFormat('0.0').format(averageGrade),
                                       style: TextStyle(
                                         fontSize: size * 0.25,
                                         fontWeight: FontWeight.w900,
@@ -712,7 +732,7 @@ class ScheduleCard extends StatelessWidget {
     final dayName = DateFormat('EEEE').format(now);
     final weekInfo = calendarProvider.getWeekInfo(now);
 
-    final todaysLectures = <String>[];
+    final todaysLectures = <Course>[];
     if (weekInfo != null) {
       for (var course in courseProvider.courses) {
         if (course.courseDay == dayName) {
@@ -722,23 +742,15 @@ class ScheduleCard extends StatelessWidget {
               (course.courseFrequency == 'Bi-Weekly (even)' &&
                   !weekInfo['isOdd']);
           if (show) {
-            todaysLectures.add(course.title);
+            todaysLectures.add(course);
           }
         }
       }
     }
 
-    return Container(
-      width: double.infinity,
-      constraints: const BoxConstraints(minHeight: 200),
+    return GlassCard(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-        ),
-      ),
+      borderRadius: 24,
       child: Column(
         children: [
           Row(
@@ -815,14 +827,56 @@ class ScheduleCard extends StatelessWidget {
                           AppLocalizations.of(context)!.relaxOrStudy,
                           style: const TextStyle(color: Colors.grey, fontSize: 14),
                         ),
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AddCourseScreen(),
+                            ),
+                          ),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: Text(AppLocalizations.of(context)!.createCourse),
+                        ),
                       ],
                     )
                   : Column(
                       children: todaysLectures
-                          .map((l) => ListTile(
-                                leading: const Icon(Icons.school_outlined),
-                                title: Text(l),
-                              ))
+                          .map(
+                            (course) => ListTile(
+                              leading: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Color(course.color).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.school_outlined,
+                                  color: Color(course.color),
+                                ),
+                              ),
+                              title: Text(
+                                course.title,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              subtitle: Text(
+                                '${course.location.isNotEmpty ? '${course.location} • ' : ''}${course.courseTime}',
+                                style: const TextStyle(color: Colors.grey, fontSize: 12),
+                              ),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      CourseDetailScreen(course: course),
+                                ),
+                              ),
+                              trailing: const Icon(
+                                Icons.chevron_right,
+                                size: 20,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          )
                           .toList(),
                     ),
             ),
@@ -838,15 +892,9 @@ class RecentNotesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GlassCard(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-        ),
-      ),
+      borderRadius: 24,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1015,15 +1063,9 @@ class CalendarCard extends StatelessWidget {
     final calendarProvider = Provider.of<AcademicCalendarProvider>(context);
     final taskProvider = Provider.of<TaskProvider>(context);
 
-    return Container(
+    return GlassCard(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-        ),
-      ),
+      borderRadius: 24,
       child: TableCalendar(
         firstDay: DateTime.utc(2023, 1, 1),
         lastDay: DateTime.utc(2030, 12, 31),
@@ -1085,15 +1127,9 @@ class TasksCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<TaskProvider>(context);
-    return Container(
+    return GlassCard(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-        ),
-      ),
+      borderRadius: 24,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1149,6 +1185,7 @@ class TasksCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
                       vertical: 6,
+                      // width constraint?
                     ),
                     decoration: BoxDecoration(
                       color: Theme.of(

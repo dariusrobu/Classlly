@@ -215,7 +215,9 @@ class ImageBlock extends HiveObject {
 
   Map<String, dynamic> toJson() => {
     'id': id,
-    'data': storagePath != null ? null : base64Data, // Only send base64 if no storagePath
+    'data': storagePath != null
+        ? null
+        : base64Data, // Only send base64 if no storagePath
     'path': storagePath,
     'x': x,
     'y': y,

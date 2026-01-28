@@ -10,7 +10,7 @@ void main() {
 
   setUp(() {
     mockRepo = MockNotesRepository();
-    
+
     // Mock behavior for methods not already overridden in MockNotesRepository
     when(() => mockRepo.getStudentProfile()).thenReturn(
       StudentProfile(
@@ -26,7 +26,9 @@ void main() {
   });
 
   group('Dashboard Widget Tests', () {
-    testWidgets('QuickActionButton renders icon and label', (WidgetTester tester) async {
+    testWidgets('QuickActionButton renders icon and label', (
+      WidgetTester tester,
+    ) async {
       bool tapped = false;
       await tester.pumpWidget(
         wrapWidget(
@@ -47,12 +49,11 @@ void main() {
       expect(tapped, true);
     });
 
-    testWidgets('DashboardHeader renders correctly', (WidgetTester tester) async {
+    testWidgets('DashboardHeader renders correctly', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
-        wrapWidget(
-          const DashboardHeader(),
-          repository: mockRepo,
-        ),
+        wrapWidget(const DashboardHeader(), repository: mockRepo),
       );
 
       expect(find.textContaining('Welcome back'), findsOneWidget);

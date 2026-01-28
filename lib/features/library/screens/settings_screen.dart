@@ -148,7 +148,10 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
           const VerticalDivider(width: 32, indent: 24, endIndent: 24),
-          Text(AppLocalizations.of(context)!.workspace, style: TextStyle(fontSize: 12, color: subColor)),
+          Text(
+            AppLocalizations.of(context)!.workspace,
+            style: TextStyle(fontSize: 12, color: subColor),
+          ),
           Icon(Icons.chevron_right, size: 14, color: subColor),
           Text(
             AppLocalizations.of(context)!.appearance,
@@ -534,7 +537,9 @@ class SettingsScreen extends StatelessWidget {
                     showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
-                        title: Text(AppLocalizations.of(context)!.clearCalendar),
+                        title: Text(
+                          AppLocalizations.of(context)!.clearCalendar,
+                        ),
                         content: Text(
                           AppLocalizations.of(context)!.clearCalendarConfirm,
                         ),
@@ -898,7 +903,9 @@ class SettingsScreen extends StatelessWidget {
                     Navigator.pop(context);
                   }
                 },
-                child: Text(AppLocalizations.of(context)!.addNote.split(' ')[0]),
+                child: Text(
+                  AppLocalizations.of(context)!.addNote.split(' ')[0],
+                ),
               ),
             ],
           );
@@ -981,7 +988,9 @@ class SettingsScreen extends StatelessWidget {
                     Navigator.pop(context);
                   }
                 },
-                child: Text(AppLocalizations.of(context)!.addNote.split(' ')[0]),
+                child: Text(
+                  AppLocalizations.of(context)!.addNote.split(' ')[0],
+                ),
               ),
             ],
           );

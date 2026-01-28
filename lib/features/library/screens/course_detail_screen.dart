@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,7 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-
+import 'package:classlly/core/widgets/glass_card.dart';
 import 'package:classlly/data/models/course_model.dart';
 import 'package:classlly/data/models/task_model.dart';
 import 'package:classlly/data/models/grade_model.dart';
@@ -19,6 +18,7 @@ import 'package:classlly/features/library/providers/course_provider.dart';
 import 'package:classlly/features/canvas/providers/canvas_provider.dart';
 import 'package:classlly/features/canvas/screens/canvas_screen.dart';
 import 'package:classlly/features/library/widgets/empty_state.dart';
+import 'package:classlly/features/library/screens/add_course_screen.dart';
 import 'package:classlly/l10n/app_localizations.dart';
 
 class CourseDetailScreen extends StatefulWidget {
@@ -33,10 +33,12 @@ class CourseDetailScreen extends StatefulWidget {
 class _CourseDetailScreenState extends State<CourseDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  late Course _course;
 
   @override
   void initState() {
     super.initState();
+    _course = widget.course;
     _tabController = TabController(length: 2, vsync: this);
   }
 
@@ -47,10 +49,8 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
   }
 
   void _addNote(BuildContext context) {
-    final note = Note.create(
-      title: AppLocalizations.of(context)!.noteTitle,
-    );
-    note.tags = [widget.course.title, widget.course.id]; // Link to course
+    final note = Note.create(title: AppLocalizations.of(context)!.noteTitle);
+    note.tags = [_course.title, _course.id]; // Link to course
     Provider.of<CanvasProvider>(context, listen: false).setNote(note);
     Navigator.push(
       context,
@@ -61,22 +61,21 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
   void _addTask(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AddTaskScreen(initialCourseId: widget.course.id),
+      builder: (context) => AddTaskScreen(initialCourseId: _course.id),
     );
   }
 
   void _addGrade(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AddGradeDialog(courseId: widget.course.id),
+      builder: (context) => AddGradeDialog(courseId: _course.id),
     );
   }
 
   void _addAttendance(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) =>
-          AddAttendanceScreen(initialCourseId: widget.course.id),
+      builder: (context) => AddAttendanceScreen(initialCourseId: _course.id),
     );
   }
 
@@ -93,7 +92,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
         ).listenable(),
         builder: (context, Box<Grade> box, _) {
           final grades =
-              box.values.where((g) => g.courseId == widget.course.id).toList()
+              box.values.where((g) => g.courseId == _course.id).toList()
                 ..sort((a, b) => b.date.compareTo(a.date));
 
           return Column(
@@ -110,7 +109,11 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
               ),
               Expanded(
                 child: grades.isEmpty
-                    ? Center(child: Text(AppLocalizations.of(context)!.noGradesRecorded))
+                    ? Center(
+                        child: Text(
+                          AppLocalizations.of(context)!.noGradesRecorded,
+                        ),
+                      )
                     : ListView.builder(
                         itemCount: grades.length,
                         itemBuilder: (context, index) {
@@ -149,7 +152,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                                       showDialog(
                                         context: context,
                                         builder: (context) => AddGradeDialog(
-                                          courseId: widget.course.id,
+                                          courseId: _course.id,
                                           grade: grade,
                                         ),
                                       );
@@ -157,21 +160,33 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                                       final confirmed = await showDialog<bool>(
                                         context: context,
                                         builder: (context) => AlertDialog(
-                                          title: Text(AppLocalizations.of(context)!.deleteGrade),
+                                          title: Text(
+                                            AppLocalizations.of(
+                                              context,
+                                            )!.deleteGrade,
+                                          ),
                                           content: Text(
-                                            AppLocalizations.of(context)!.deleteGradeConfirm,
+                                            AppLocalizations.of(
+                                              context,
+                                            )!.deleteGradeConfirm,
                                           ),
                                           actions: [
                                             TextButton(
                                               onPressed: () =>
                                                   Navigator.pop(context, false),
-                                              child: Text(AppLocalizations.of(context)!.cancel),
+                                              child: Text(
+                                                AppLocalizations.of(
+                                                  context,
+                                                )!.cancel,
+                                              ),
                                             ),
                                             TextButton(
                                               onPressed: () =>
                                                   Navigator.pop(context, true),
                                               child: Text(
-                                                AppLocalizations.of(context)!.delete,
+                                                AppLocalizations.of(
+                                                  context,
+                                                )!.delete,
                                                 style: const TextStyle(
                                                   color: Colors.red,
                                                 ),
@@ -180,7 +195,8 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                                           ],
                                         ),
                                       );
-                                      if (confirmed == true && context.mounted) {
+                                      if (confirmed == true &&
+                                          context.mounted) {
                                         final courseProvider =
                                             Provider.of<CourseProvider>(
                                               context,
@@ -232,7 +248,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
         ).listenable(),
         builder: (context, Box<Attendance> box, _) {
           final records =
-              box.values.where((r) => r.courseId == widget.course.id).toList()
+              box.values.where((r) => r.courseId == _course.id).toList()
                 ..sort((a, b) => b.date.compareTo(a.date));
 
           return Column(
@@ -249,7 +265,11 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
               ),
               Expanded(
                 child: records.isEmpty
-                    ? Center(child: Text(AppLocalizations.of(context)!.noAttendanceRecords))
+                    ? Center(
+                        child: Text(
+                          AppLocalizations.of(context)!.noAttendanceRecords,
+                        ),
+                      )
                     : ListView.builder(
                         itemCount: records.length,
                         itemBuilder: (context, index) {
@@ -289,7 +309,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                                         context: context,
                                         builder: (context) =>
                                             AddAttendanceScreen(
-                                              initialCourseId: widget.course.id,
+                                              initialCourseId: _course.id,
                                               attendance: record,
                                             ),
                                       );
@@ -297,21 +317,33 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                                       final confirmed = await showDialog<bool>(
                                         context: context,
                                         builder: (context) => AlertDialog(
-                                          title: Text(AppLocalizations.of(context)!.deleteRecord),
+                                          title: Text(
+                                            AppLocalizations.of(
+                                              context,
+                                            )!.deleteRecord,
+                                          ),
                                           content: Text(
-                                            AppLocalizations.of(context)!.deleteAttendanceConfirm,
+                                            AppLocalizations.of(
+                                              context,
+                                            )!.deleteAttendanceConfirm,
                                           ),
                                           actions: [
                                             TextButton(
                                               onPressed: () =>
                                                   Navigator.pop(context, false),
-                                              child: Text(AppLocalizations.of(context)!.cancel),
+                                              child: Text(
+                                                AppLocalizations.of(
+                                                  context,
+                                                )!.cancel,
+                                              ),
                                             ),
                                             TextButton(
                                               onPressed: () =>
                                                   Navigator.pop(context, true),
                                               child: Text(
-                                                AppLocalizations.of(context)!.delete,
+                                                AppLocalizations.of(
+                                                  context,
+                                                )!.delete,
                                                 style: const TextStyle(
                                                   color: Colors.red,
                                                 ),
@@ -360,18 +392,64 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
     );
   }
 
+  Future<void> _handleEdit() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AddCourseScreen(course: _course)),
+    );
+
+    if (result == true && mounted) {
+      final repo = NotesRepository();
+      final updated = repo.getCourse(_course.id);
+      if (updated != null) {
+        setState(() {
+          _course = updated;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.deleteCourse),
+        content: Text(AppLocalizations.of(context)!.deleteCourseConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(AppLocalizations.of(context)!.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(AppLocalizations.of(context)!.delete),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await Provider.of<CourseProvider>(
+        context,
+        listen: false,
+      ).deleteCourse(_course.id);
+      if (mounted) Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).colorScheme.primary;
     final bgGradient = isDark
         ? const LinearGradient(
-            colors: [Color(0xFF121212), Color(0xFF1E1E1E)],
+            colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           )
         : const LinearGradient(
-            colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
+            colors: [Color(0xFFF8FAFC), Color(0xFFE2E8F0)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           );
@@ -399,11 +477,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                                 primaryColor,
                               ),
                               const SizedBox(height: 24),
-                              _buildQuickActions(
-                                context,
-                                isDark,
-                                primaryColor,
-                              ),
+                              _buildQuickActions(context, isDark, primaryColor),
                               const SizedBox(height: 24),
                               TabBar(
                                 controller: _tabController,
@@ -414,8 +488,14 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                                 unselectedLabelColor: Colors.grey,
                                 indicatorColor: primaryColor,
                                 tabs: [
-                                  Tab(text: AppLocalizations.of(context)!.overview),
-                                  Tab(text: AppLocalizations.of(context)!.notes),
+                                  Tab(
+                                    text: AppLocalizations.of(
+                                      context,
+                                    )!.overview,
+                                  ),
+                                  Tab(
+                                    text: AppLocalizations.of(context)!.notes,
+                                  ),
                                 ],
                               ),
                             ],
@@ -583,7 +663,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
     bool isDark,
     Color primaryColor,
   ) {
-    return _GlassContainer(
+    return GlassCard(
       padding: const EdgeInsets.all(32),
       child: Wrap(
         alignment: WrapAlignment.spaceBetween,
@@ -614,11 +694,47 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                       ],
                     ),
                   ),
+                  PopupMenuButton<String>(
+                    icon: Icon(Icons.more_horiz, color: primaryColor),
+                    onSelected: (value) {
+                      if (value == 'edit') _handleEdit();
+                      if (value == 'delete') _handleDelete();
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.edit, size: 18),
+                            const SizedBox(width: 12),
+                            Text(AppLocalizations.of(context)!.edit),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.delete,
+                              color: Colors.red,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              AppLocalizations.of(context)!.delete,
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
               Text(
-                widget.course.title,
+                _course.title,
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 40,
                   fontWeight: FontWeight.w900,
@@ -635,8 +751,8 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    widget.course.professor.isNotEmpty
-                        ? widget.course.professor
+                    _course.professor.isNotEmpty
+                        ? _course.professor
                         : AppLocalizations.of(context)!.noInstructor,
                     style: TextStyle(
                       color: isDark
@@ -658,7 +774,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
             builder: (context, Box<Grade> gradeBox, _) {
               final courseGrades =
                   gradeBox.values
-                      .where((g) => g.courseId == widget.course.id)
+                      .where((g) => g.courseId == _course.id)
                       .toList()
                     ..sort((a, b) => a.date.compareTo(b.date));
 
@@ -700,7 +816,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                 builder: (context, Box<Attendance> attBox, _) {
                   final courseAtt =
                       attBox.values
-                          .where((a) => a.courseId == widget.course.id)
+                          .where((a) => a.courseId == _course.id)
                           .toList()
                         ..sort((a, b) => a.date.compareTo(b.date));
 
@@ -824,7 +940,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
   Widget _buildPerformanceCharts(bool isDark, Color primaryColor) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final count = constraints.maxWidth > 800 ? 3 : 1;
+        final count = constraints.maxWidth > 800 ? 2 : 1;
         return GridView.count(
           crossAxisCount: count,
           shrinkWrap: true,
@@ -833,109 +949,9 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
           children: [
-            _buildGoalChart(isDark, primaryColor),
             _buildTrendChart(isDark, primaryColor),
             _buildAttendanceChart(isDark, primaryColor),
           ],
-        );
-      },
-    );
-  }
-
-  Widget _buildGoalChart(bool isDark, Color primaryColor) {
-    return ValueListenableBuilder(
-      valueListenable: Hive.box<Grade>(
-        NotesRepository.gradeBoxName,
-      ).listenable(),
-      builder: (context, Box<Grade> box, _) {
-        final courseGrades = box.values
-            .where((g) => g.courseId == widget.course.id)
-            .toList();
-        double currentGrade = 0;
-        if (courseGrades.isNotEmpty) {
-          double totalWeightedScore = 0;
-          double totalWeight = 0;
-          for (var g in courseGrades) {
-            totalWeightedScore += ((g.score / g.maxScore) * 100) * g.weight;
-            totalWeight += g.weight;
-          }
-          if (totalWeight > 0) {
-            currentGrade = totalWeightedScore / totalWeight;
-          }
-        }
-
-        return _GlassCard(
-          padding: const EdgeInsets.all(12), // Reduced padding
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Grade Goal',
-                    style: TextStyle(
-                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                    ),
-                  ),
-                  Icon(Icons.edit_square, size: 12, color: primaryColor),
-                ],
-              ),
-              Expanded(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 50, // Reduced size
-                      height: 50,
-                      child: PieChart(
-                        PieChartData(
-                          sectionsSpace: 0,
-                          centerSpaceRadius: 20, // Reduced radius
-                          sections: [
-                            PieChartSectionData(
-                              value: currentGrade,
-                              color: primaryColor,
-                              radius: 6, // Thinner ring
-                              showTitle: false,
-                            ),
-                            PieChartSectionData(
-                              value: 100 - currentGrade,
-                              color: Colors.white10,
-                              radius: 6,
-                              showTitle: false,
-                            ),
-                          ],
-                          startDegreeOffset: 270,
-                        ),
-                      ),
-                    ),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${NumberFormat('0.##').format(currentGrade)}%',
-                          style: GoogleFonts.spaceGrotesk(
-                            fontSize: 14, // Smaller font
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const Text(
-                          'GPA',
-                          style: TextStyle(
-                            fontSize: 7,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
         );
       },
     );
@@ -948,7 +964,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
       ).listenable(),
       builder: (context, Box<Grade> box, _) {
         final courseGrades =
-            box.values.where((g) => g.courseId == widget.course.id).toList()
+            box.values.where((g) => g.courseId == _course.id).toList()
               ..sort((a, b) => a.date.compareTo(b.date));
 
         List<FlSpot> spots = [];
@@ -961,7 +977,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
           spots = const [FlSpot(0, 0), FlSpot(1, 0)];
         }
 
-        return _GlassCard(
+        return GlassCard(
           padding: const EdgeInsets.all(12), // Reduced padding
           child: Column(
             children: [
@@ -1038,7 +1054,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
       ).listenable(),
       builder: (context, Box<Attendance> box, _) {
         final records =
-            box.values.where((r) => r.courseId == widget.course.id).toList()
+            box.values.where((r) => r.courseId == _course.id).toList()
               ..sort((a, b) => a.date.compareTo(b.date));
 
         // Calculate stats
@@ -1059,7 +1075,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
             ? records.sublist(records.length - 14)
             : records;
 
-        return _GlassCard(
+        return GlassCard(
           padding: const EdgeInsets.all(12), // Reduced padding
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1246,8 +1262,8 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
         final notes = box.values
             .where(
               (n) =>
-                  (n.tags?.contains(widget.course.title) ?? false) ||
-                  (n.tags?.contains(widget.course.id) ?? false),
+                  (n.tags?.contains(_course.title) ?? false) ||
+                  (n.tags?.contains(_course.id) ?? false),
             )
             .toList();
 
@@ -1290,7 +1306,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
     Color primaryColor,
     bool isDark,
   ) {
-    return _GlassCard(
+    return GlassCard(
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [
@@ -1347,7 +1363,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
   }
 
   Widget _buildCourseInfoCard(bool isDark, Color primaryColor) {
-    return _GlassCard(
+    return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1363,9 +1379,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                       child: _infoRow(
                         Icons.calendar_view_day,
                         'SEMESTER',
-                        widget.course.semester.isNotEmpty
-                            ? widget.course.semester
-                            : 'N/A',
+                        _course.semester.isNotEmpty ? _course.semester : 'N/A',
                         '',
                         isDark,
                         primaryColor,
@@ -1376,7 +1390,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                       child: _infoRow(
                         Icons.stars,
                         'CREDITS',
-                        '${widget.course.credits} ECTS',
+                        '${_course.credits} ECTS',
                         '',
                         isDark,
                         primaryColor,
@@ -1402,8 +1416,8 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                 _infoRow(
                   Icons.person_outline,
                   'INSTRUCTOR',
-                  widget.course.professor.isNotEmpty
-                      ? widget.course.professor
+                  _course.professor.isNotEmpty
+                      ? _course.professor
                       : 'Not Assigned',
                   '',
                   isDark,
@@ -1413,12 +1427,10 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                 _infoRow(
                   Icons.schedule,
                   'SCHEDULE',
-                  '${widget.course.courseDay} ${widget.course.courseTime}'
-                          .trim()
-                          .isNotEmpty
-                      ? '${widget.course.courseDay} at ${widget.course.courseTime}'
+                  '${_course.courseDay} ${_course.courseTime}'.trim().isNotEmpty
+                      ? '${_course.courseDay} at ${_course.courseTime}'
                       : 'TBD',
-                  widget.course.courseFrequency,
+                  _course.courseFrequency,
                   isDark,
                   primaryColor,
                 ),
@@ -1426,18 +1438,16 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                 _infoRow(
                   Icons.room_outlined,
                   'ROOM / LOCATION',
-                  widget.course.location.isNotEmpty
-                      ? widget.course.location
-                      : 'TBD',
+                  _course.location.isNotEmpty ? _course.location : 'TBD',
                   '',
                   isDark,
                   primaryColor,
                 ),
 
                 // --- Seminar Section (Only if teacher or location is provided) ---
-                if (widget.course.seminarProfessor.isNotEmpty ||
-                    widget.course.seminarLocation.isNotEmpty ||
-                    widget.course.seminarDay.isNotEmpty) ...[
+                if (_course.seminarProfessor.isNotEmpty ||
+                    _course.seminarLocation.isNotEmpty ||
+                    _course.seminarDay.isNotEmpty) ...[
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 24.0),
                     child: Divider(height: 1, color: Colors.white10),
@@ -1455,8 +1465,8 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                   _infoRow(
                     Icons.people_alt_outlined,
                     'SEMINAR TEACHER',
-                    widget.course.seminarProfessor.isNotEmpty
-                        ? widget.course.seminarProfessor
+                    _course.seminarProfessor.isNotEmpty
+                        ? _course.seminarProfessor
                         : 'Not Assigned',
                     '',
                     isDark,
@@ -1466,12 +1476,12 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                   _infoRow(
                     Icons.calendar_today_outlined,
                     'SCHEDULE',
-                    '${widget.course.seminarDay} ${widget.course.seminarTime}'
+                    '${_course.seminarDay} ${_course.seminarTime}'
                             .trim()
                             .isNotEmpty
-                        ? '${widget.course.seminarDay} at ${widget.course.seminarTime}'
+                        ? '${_course.seminarDay} at ${_course.seminarTime}'
                         : 'TBD',
-                    widget.course.seminarFrequency,
+                    _course.seminarFrequency,
                     isDark,
                     primaryColor,
                   ),
@@ -1479,8 +1489,8 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                   _infoRow(
                     Icons.place_outlined,
                     'ROOM / LOCATION',
-                    widget.course.seminarLocation.isNotEmpty
-                        ? widget.course.seminarLocation
+                    _course.seminarLocation.isNotEmpty
+                        ? _course.seminarLocation
                         : 'TBD',
                     '',
                     isDark,
@@ -1561,12 +1571,12 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
       valueListenable: Hive.box<Task>(NotesRepository.taskBoxName).listenable(),
       builder: (context, Box<Task> box, _) {
         final tasks = box.values
-            .where((t) => t.courseId == widget.course.id && !t.isCompleted)
+            .where((t) => t.courseId == _course.id && !t.isCompleted)
             .toList();
 
         final displayTasks = showAll ? tasks : tasks.take(3).toList();
 
-        return _GlassCard(
+        return GlassCard(
           child: Column(
             children: [
               if (!showAll)
@@ -1699,70 +1709,6 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-class _GlassCard extends StatelessWidget {
-  final Widget child;
-  final EdgeInsets? padding;
-  const _GlassCard({required this.child, this.padding});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            color: isDark
-                ? const Color(0xFF1E1E1E).withValues(alpha: 0.65)
-                : Colors.white.withValues(alpha: 0.8),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Colors.black.withValues(alpha: 0.05),
-            ),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: child,
-        ),
-      ),
-    );
-  }
-}
-
-class _GlassContainer extends StatelessWidget {
-  final Widget child;
-  final EdgeInsets padding;
-  const _GlassContainer({required this.child, required this.padding});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            color: isDark
-                ? const Color(0xFF2E2E2E).withValues(alpha: 0.65)
-                : Colors.white.withValues(alpha: 0.65),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Colors.black.withValues(alpha: 0.05),
-            ),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: child,
-        ),
       ),
     );
   }
