@@ -1,0 +1,5 @@
+---
+triple:          'x86_64-apple-darwin'
+binary-path:     'build/macos/Build/Products/Release/notelly.app/Contents/Frameworks/objective_c.framework/objective_c'
+relocations:     []
+...

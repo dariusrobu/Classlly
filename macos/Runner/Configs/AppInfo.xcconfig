@@ -12,3 +12,4 @@ PRODUCT_BUNDLE_IDENTIFIER = com.robudarius.classlly
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 com.robudarius. All rights reserved.
+SKIP_INSTALL = NO

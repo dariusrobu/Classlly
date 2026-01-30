@@ -23,9 +23,31 @@ class NotesRepository {
   static const String eventsBoxName = 'events';
   static const String profileBoxName = 'profile';
 
+  static const int currentSchemaVersion = 1;
+
   static Future<void> init() async {
     _registerAdapters();
     await openBoxes();
+    await _handleMigrations();
+  }
+
+  static Future<void> _handleMigrations() async {
+    final prefsBox = await Hive.openBox<UserPreferences>(preferencesBoxName);
+    final prefs = prefsBox.get('user_prefs');
+    
+    // If no version exists, it's a new install or legacy
+    final int version = prefs?.schemaVersion ?? 0;
+
+    if (version < currentSchemaVersion) {
+      // In a real production app, you might migrate data.
+      // For now, if version is 0 (legacy), we might need to reset or migrate.
+      // Example: if (version == 0) { ... migrate ... }
+      
+      if (prefs != null) {
+        prefs.schemaVersion = currentSchemaVersion;
+        await prefsBox.put('user_prefs', prefs);
+      }
+    }
   }
 
   static void _registerAdapters() {

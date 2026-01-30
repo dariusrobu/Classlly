@@ -262,7 +262,6 @@
 				97C146EB1CF9000F007C117D /* Frameworks */,
 				97C146EC1CF9000F007C117D /* Resources */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
-				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				BCFAB7F22F26A96000DF6FEE /* Embed Foundation Extensions */,
 				7B7CD24DB2E8DD2A304E7D40 /* [CP] Embed Pods Frameworks */,
 				94D0DD7454B72CA3A2196099 /* [CP] Copy Pods Resources */,

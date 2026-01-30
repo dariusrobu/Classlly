@@ -1,6 +1,6 @@
 # Privacy Policy for Classlly
 
-**Last Updated:** [Date]
+**Last Updated:** January 30, 2026
 
 ## 1. Introduction
 Classlly ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application (the "App").
@@ -28,4 +28,4 @@ We may use third-party services for authentication (Google, Apple) and data stor
 We do not knowingly solicit information from or market to children under the age of 13.
 
 ## 7. Contact Us
-If you have questions about this Privacy Policy, please contact us at: [Support Email]
+If you have questions about this Privacy Policy, please contact us at: support@classlly.com

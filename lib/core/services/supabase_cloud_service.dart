@@ -202,18 +202,24 @@ class SupabaseCloudService implements CloudStorageService {
     final user = _client.auth.currentUser;
     if (user == null) return;
 
-    final remoteData = await _applySyncFilter('courses', user.id);
+    try {
+      final remoteData = await _applySyncFilter('courses', user.id);
 
-    for (var e in remoteData) {
-      final course = Course.fromJson(e);
-      await Hive.box<Course>(
-        NotesRepository.courseBoxName,
-      ).put(course.id, course);
-    }
+      for (var e in remoteData) {
+        final course = Course.fromJson(e);
+        await Hive.box<Course>(
+          NotesRepository.courseBoxName,
+        ).put(course.id, course);
+      }
 
-    final localCourses = _localRepository.getAllCourses();
-    for (var c in localCourses) {
-      await _client.from('courses').upsert({...c.toJson(), 'user_id': user.id});
+      final localCourses = _localRepository.getAllCourses();
+      for (var c in localCourses) {
+        await _client
+            .from('courses')
+            .upsert({...c.toJson(), 'user_id': user.id});
+      }
+    } catch (e) {
+      print('Courses Sync Error: $e');
     }
   }
 
@@ -223,16 +229,20 @@ class SupabaseCloudService implements CloudStorageService {
     final user = _client.auth.currentUser;
     if (user == null) return;
 
-    final remoteData = await _applySyncFilter('tasks', user.id);
+    try {
+      final remoteData = await _applySyncFilter('tasks', user.id);
 
-    for (var e in remoteData) {
-      final task = Task.fromJson(e);
-      await Hive.box<Task>(NotesRepository.taskBoxName).put(task.id, task);
-    }
+      for (var e in remoteData) {
+        final task = Task.fromJson(e);
+        await Hive.box<Task>(NotesRepository.taskBoxName).put(task.id, task);
+      }
 
-    final localTasks = _localRepository.getAllTasks();
-    for (var t in localTasks) {
-      await _client.from('tasks').upsert({...t.toJson(), 'user_id': user.id});
+      final localTasks = _localRepository.getAllTasks();
+      for (var t in localTasks) {
+        await _client.from('tasks').upsert({...t.toJson(), 'user_id': user.id});
+      }
+    } catch (e) {
+      print('Tasks Sync Error: $e');
     }
   }
 
@@ -289,30 +299,34 @@ class SupabaseCloudService implements CloudStorageService {
     final user = _client.auth.currentUser;
     if (user == null) return;
 
-    final pResp = await _applySyncFilter('academic_periods', user.id);
-    for (var e in pResp) {
-      await _localRepository.savePeriod(AcademicPeriod.fromJson(e));
-    }
+    try {
+      final pResp = await _applySyncFilter('academic_periods', user.id);
+      for (var e in pResp) {
+        await _localRepository.savePeriod(AcademicPeriod.fromJson(e));
+      }
 
-    final localPeriods = _localRepository.getAllPeriods();
-    for (var p in localPeriods) {
-      await _client.from('academic_periods').upsert({
-        ...p.toJson(),
-        'user_id': user.id,
-      });
-    }
+      final localPeriods = _localRepository.getAllPeriods();
+      for (var p in localPeriods) {
+        await _client.from('academic_periods').upsert({
+          ...p.toJson(),
+          'user_id': user.id,
+        });
+      }
 
-    final eResp = await _applySyncFilter('academic_events', user.id);
-    for (var e in eResp) {
-      await _localRepository.saveEvent(AcademicEvent.fromJson(e));
-    }
+      final eResp = await _applySyncFilter('academic_events', user.id);
+      for (var e in eResp) {
+        await _localRepository.saveEvent(AcademicEvent.fromJson(e));
+      }
 
-    final localEvents = _localRepository.getAllEvents();
-    for (var ev in localEvents) {
-      await _client.from('academic_events').upsert({
-        ...ev.toJson(),
-        'user_id': user.id,
-      });
+      final localEvents = _localRepository.getAllEvents();
+      for (var ev in localEvents) {
+        await _client.from('academic_events').upsert({
+          ...ev.toJson(),
+          'user_id': user.id,
+        });
+      }
+    } catch (e) {
+      print('Calendar Sync Error: $e');
     }
   }
 
@@ -321,20 +335,24 @@ class SupabaseCloudService implements CloudStorageService {
     final user = _client.auth.currentUser;
     if (user == null) return;
 
-    final remoteData = await _applySyncFilter('grades', user.id);
-    for (var e in remoteData) {
-      await _localRepository.saveGrade(Grade.fromJson(e));
-    }
-
-    final courses = _localRepository.getAllCourses();
-    for (var c in courses) {
-      final localGrades = _localRepository.getGradesForCourse(c.id);
-      for (var g in localGrades) {
-        await _client.from('grades').upsert({
-          ...g.toJson(),
-          'user_id': user.id,
-        });
+    try {
+      final remoteData = await _applySyncFilter('grades', user.id);
+      for (var e in remoteData) {
+        await _localRepository.saveGrade(Grade.fromJson(e));
       }
+
+      final courses = _localRepository.getAllCourses();
+      for (var c in courses) {
+        final localGrades = _localRepository.getGradesForCourse(c.id);
+        for (var g in localGrades) {
+          await _client.from('grades').upsert({
+            ...g.toJson(),
+            'user_id': user.id,
+          });
+        }
+      }
+    } catch (e) {
+      print('Grades Sync Error: $e');
     }
   }
 
@@ -343,20 +361,24 @@ class SupabaseCloudService implements CloudStorageService {
     final user = _client.auth.currentUser;
     if (user == null) return;
 
-    final remoteData = await _applySyncFilter('attendance', user.id);
-    for (var e in remoteData) {
-      await _localRepository.saveAttendance(Attendance.fromJson(e));
-    }
-
-    final courses = _localRepository.getAllCourses();
-    for (var c in courses) {
-      final localAtt = _localRepository.getAttendanceForCourse(c.id);
-      for (var a in localAtt) {
-        await _client.from('attendance').upsert({
-          ...a.toJson(),
-          'user_id': user.id,
-        });
+    try {
+      final remoteData = await _applySyncFilter('attendance', user.id);
+      for (var e in remoteData) {
+        await _localRepository.saveAttendance(Attendance.fromJson(e));
       }
+
+      final courses = _localRepository.getAllCourses();
+      for (var c in courses) {
+        final localAtt = _localRepository.getAttendanceForCourse(c.id);
+        for (var a in localAtt) {
+          await _client.from('attendance').upsert({
+            ...a.toJson(),
+            'user_id': user.id,
+          });
+        }
+      }
+    } catch (e) {
+      print('Attendance Sync Error: $e');
     }
   }
 
@@ -365,20 +387,24 @@ class SupabaseCloudService implements CloudStorageService {
     final user = _client.auth.currentUser;
     if (user == null) return;
 
-    final remoteData = await _applySyncFilter('student_profiles', user.id);
-    if (remoteData.isNotEmpty) {
-      final response = remoteData.first;
-      final profile = StudentProfile.fromJson(response);
-      final fullName = user.userMetadata?['full_name'] as String?;
-      if (fullName != null) profile.name = fullName;
-      await _localRepository.saveStudentProfile(profile);
-    }
+    try {
+      final remoteData = await _applySyncFilter('student_profiles', user.id);
+      if (remoteData.isNotEmpty) {
+        final response = remoteData.first;
+        final profile = StudentProfile.fromJson(response);
+        final fullName = user.userMetadata?['full_name'] as String?;
+        if (fullName != null) profile.name = fullName;
+        await _localRepository.saveStudentProfile(profile);
+      }
 
-    final localProfile = _localRepository.getStudentProfile();
-    await _client.from('student_profiles').upsert({
-      ...localProfile.toJson(),
-      'user_id': user.id,
-    });
+      final localProfile = _localRepository.getStudentProfile();
+      await _client.from('student_profiles').upsert({
+        ...localProfile.toJson(),
+        'user_id': user.id,
+      });
+    } catch (e) {
+      print('Profile Sync Error: $e');
+    }
   }
 
   @override

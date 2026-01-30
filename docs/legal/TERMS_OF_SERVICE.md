@@ -1,6 +1,6 @@
 # Terms of Service for Classlly
 
-**Last Updated:** [Date]
+**Last Updated:** January 30, 2026
 
 ## 1. Acceptance of Terms
 By accessing or using the Classlly mobile application (the "App"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the App.
@@ -24,4 +24,4 @@ In no event shall Classlly, nor its directors, employees, partners, agents, supp
 We reserve the right, at our sole discretion, to modify or replace these Terms at any time.
 
 ## 8. Contact Us
-If you have any questions about these Terms, please contact us at: [Support Email]
+If you have any questions about these Terms, please contact us at: support@classlly.com

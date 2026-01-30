@@ -29,6 +29,9 @@ class UserPreferences extends HiveObject {
   @HiveField(10)
   DateTime? lastSyncTimestamp;
 
+  @HiveField(11, defaultValue: 0)
+  int schemaVersion;
+
   UserPreferences({
     this.themeMode = 'system',
     this.accentColor = 0xFF8B5CF6, // Primary Purple
@@ -41,6 +44,7 @@ class UserPreferences extends HiveObject {
     this.appUpdates = false,
     this.hasCompletedOnboarding = false,
     this.lastSyncTimestamp,
+    this.schemaVersion = 0,
   });
 
   Map<String, dynamic> toJson() => {
@@ -55,6 +59,7 @@ class UserPreferences extends HiveObject {
     'app_updates': appUpdates,
     'has_completed_onboarding': hasCompletedOnboarding,
     'last_sync_timestamp': lastSyncTimestamp?.toIso8601String(),
+    'schema_version': schemaVersion,
   };
 
   factory UserPreferences.fromJson(
