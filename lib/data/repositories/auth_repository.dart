@@ -49,7 +49,7 @@ class AuthRepository {
 
     // Mobile implementation (Android/iOS)
     const iosClientId =
-        '153897807907-3lph5o2mo39475fp1jjqglnpur5l3eu3.apps.googleusercontent.com'; // Use Web Client ID for iOS
+        '153897807907-tllogka5ud9ploje6n0urqalhu0n7oku.apps.googleusercontent.com'; // Native iOS/macOS Client ID
     const webClientId =
         '153897807907-3lph5o2mo39475fp1jjqglnpur5l3eu3.apps.googleusercontent.com';
 

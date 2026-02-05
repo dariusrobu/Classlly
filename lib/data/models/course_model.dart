@@ -157,5 +157,28 @@ class Course extends HiveObject {
     );
   }
 
-  IconData get icon => IconData(iconCodePoint, fontFamily: 'MaterialIcons');
+  /// Static map of allowed course icons for tree-shaking compatibility.
+  /// Add new icons here as needed.
+  static const Map<int, IconData> _iconMap = {
+    0xe0ee: Icons.book,           // Default
+    0xe559: Icons.school,
+    0xf06c8: Icons.science,
+    0xe43a: Icons.calculate,
+    0xe25a: Icons.history_edu,
+    0xe3dc: Icons.palette,
+    0xe3b3: Icons.music_note,
+    0xe57e: Icons.sports_soccer,
+    0xe8f4: Icons.psychology,
+    0xe54f: Icons.language,
+    0xe02c: Icons.computer,
+    0xe23a: Icons.gavel,
+    0xe548: Icons.local_hospital,
+    0xf06bb: Icons.engineering,
+    0xe0ba: Icons.attach_money,
+    0xef5d: Icons.architecture,
+    0xe5c3: Icons.public,
+    0xf06c1: Icons.biotech,
+  };
+
+  IconData get icon => _iconMap[iconCodePoint] ?? Icons.book;
 }

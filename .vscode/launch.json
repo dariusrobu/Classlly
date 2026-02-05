@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Classlly (Chrome)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "debug",
+            "args": [
+                "--web-port",
+                "3000"
+            ]
+        },
+        {
+            "name": "Classlly (Mobile)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "debug"
+        }
+    ]
+}
