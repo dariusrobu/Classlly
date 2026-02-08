@@ -266,7 +266,8 @@ class NotesRepository {
   StudentProfile getStudentProfile() {
     if (_profileBox.isEmpty) {
       final user = Supabase.instance.client.auth.currentUser;
-      final name = user?.userMetadata?['full_name'] as String? ?? 'Alex';
+      // If user is logged in, use their name, otherwise Guest
+      final name = user?.userMetadata?['full_name'] as String? ?? 'Guest Student';
 
       final defaultProfile = StudentProfile(
         name: name,
@@ -318,5 +319,22 @@ class NotesRepository {
 
   Note? getNote(String id) {
     return _box.get(id);
+  }
+
+  Future<void> clearAllData() async {
+    await _box.clear();
+    await _notebookBox.clear();
+    await _taskBox.clear();
+    await _courseBox.clear();
+    await _gradeBox.clear();
+    await _attendanceBox.clear();
+    await _folderBox.clear();
+    await _periodsBox.clear();
+    await _eventsBox.clear();
+    await _profileBox.clear();
+
+    // Reset preferences but keep schema version or other persistent flags if needed
+    // For now, full reset is safer for privacy
+    await _prefsBox.clear();
   }
 }

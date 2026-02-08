@@ -47,5 +47,7 @@
 	</array>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app requires access to your microphone to record audio notes.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

@@ -349,7 +349,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    'Week ${weekInfo['week']} (${weekInfo['label']})',
+                    weekInfo['week'] != null
+                        ? 'Week ${weekInfo['week']} (${weekInfo['label']})'
+                        : weekInfo['label'],
                     style: TextStyle(
                       color: primary,
                       fontWeight: FontWeight.bold,

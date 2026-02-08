@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:classlly/core/services/supabase_cloud_service.dart';
+import 'package:classlly/data/repositories/notes_repository.dart';
 
 class AuthRepository {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -37,6 +38,8 @@ class AuthRepository {
   }
 
   Future<void> signOut() async {
+    // Clear all local data (Hive, etc.) to ensure a fresh state for next login/guest
+    await NotesRepository().clearAllData();
     await _supabase.auth.signOut();
   }
 

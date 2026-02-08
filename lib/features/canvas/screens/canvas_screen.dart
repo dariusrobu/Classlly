@@ -33,6 +33,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
       TransformationController();
   final TextEditingController _titleController = TextEditingController();
   bool _isSidebarVisible = true;
+  bool _isInit = true;
 
   static const double pageWidth = 1000.0;
   static const double pageHeight = 1414.0;
@@ -50,6 +51,20 @@ class _CanvasScreenState extends State<CanvasScreen> {
       ).currentNote?.title;
       _titleController.text = title ?? AppLocalizations.of(context)!.untitled;
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_isInit) {
+      final screenWidth = MediaQuery.of(context).size.width;
+      if (screenWidth < 800) {
+        setState(() {
+          _isSidebarVisible = false;
+        });
+      }
+      _isInit = false;
+    }
   }
 
   @override
@@ -554,12 +569,14 @@ class _CanvasScreenState extends State<CanvasScreen> {
 
     Color primaryColor,
   ) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+
     return Container(
       decoration: BoxDecoration(
         color: isDark
             ? const Color(0xFF0A0A0B).withValues(alpha: 0.8)
             : Colors.white.withValues(alpha: 0.8),
-
         border: Border(
           bottom: BorderSide(
             color: isDark
@@ -568,130 +585,102 @@ class _CanvasScreenState extends State<CanvasScreen> {
           ),
         ),
       ),
-
       child: SafeArea(
         bottom: false,
         top: true,
         minimum: const EdgeInsets.only(top: 8),
         child: Container(
           height: 72,
-
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
               IconButton(
                 icon: const Icon(
                   Icons.arrow_back_ios_new,
-
                   size: 20,
-
                   color: Colors.grey,
                 ),
-
                 onPressed: () => Navigator.pop(context),
-
                 tooltip: AppLocalizations.of(context)!.backToLibrary,
               ),
-
-              const SizedBox(width: 8),
-
+              if (!isMobile) const SizedBox(width: 8),
               IconButton(
                 icon: Icon(
                   _isSidebarVisible ? Icons.menu_open : Icons.menu,
-
                   color: Colors.grey,
                 ),
-
                 onPressed: () =>
                     setState(() => _isSidebarVisible = !_isSidebarVisible),
-
                 tooltip: AppLocalizations.of(context)!.toggleSidebar,
               ),
-
-              const SizedBox(width: 8),
-
-              IconButton(
-                icon: Icon(
-                  Icons.undo,
-
-                  color: canvasProvider.canUndo
-                      ? Colors.grey
-                      : Colors.grey.withValues(alpha: 0.3),
+              if (!isMobile) ...[
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: Icon(
+                    Icons.undo,
+                    color: canvasProvider.canUndo
+                        ? Colors.grey
+                        : Colors.grey.withValues(alpha: 0.3),
+                  ),
+                  onPressed:
+                      canvasProvider.canUndo ? canvasProvider.undo : null,
+                  tooltip: AppLocalizations.of(context)!.undo,
                 ),
-
-                onPressed: canvasProvider.canUndo ? canvasProvider.undo : null,
-
-                tooltip: AppLocalizations.of(context)!.undo,
-              ),
-
-              IconButton(
-                icon: Icon(
-                  Icons.redo,
-
-                  color: canvasProvider.canRedo
-                      ? Colors.grey
-                      : Colors.grey.withValues(alpha: 0.3),
+                IconButton(
+                  icon: Icon(
+                    Icons.redo,
+                    color: canvasProvider.canRedo
+                        ? Colors.grey
+                        : Colors.grey.withValues(alpha: 0.3),
+                  ),
+                  onPressed:
+                      canvasProvider.canRedo ? canvasProvider.redo : null,
+                  tooltip: AppLocalizations.of(context)!.redo,
                 ),
-
-                onPressed: canvasProvider.canRedo ? canvasProvider.redo : null,
-
-                tooltip: AppLocalizations.of(context)!.redo,
-              ),
-
-              const VerticalDivider(width: 48, indent: 24, endIndent: 24),
-
+              ],
+              if (!isMobile)
+                const VerticalDivider(width: 48, indent: 24, endIndent: 24)
+              else
+                const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-
                   crossAxisAlignment: CrossAxisAlignment.start,
-
                   children: [
                     GestureDetector(
                       onTap: () {
                         // Logic to edit title could go here
                       },
-
                       child: Text(
                         canvasProvider.currentNote?.title.toUpperCase() ??
                             AppLocalizations.of(
                               context,
                             )!.untitled.toUpperCase(),
-
                         style: const TextStyle(
                           fontSize: 13,
-
                           fontWeight: FontWeight.w900,
-
                           color: Colors.grey,
-
                           letterSpacing: 1.5,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-
                     const SizedBox(height: 2),
-
                     Flexible(
                       child: Row(
                         children: [
                           Container(
                             width: 6,
-
                             height: 6,
-
                             decoration: BoxDecoration(
                               color: canvasProvider.isSyncing
                                   ? Colors.orange
                                   : Colors.greenAccent,
-
                               shape: BoxShape.circle,
                             ),
                           ),
-
                           const SizedBox(width: 8),
-
                           Flexible(
                             child: Text(
                               canvasProvider.isSyncing
@@ -699,14 +688,10 @@ class _CanvasScreenState extends State<CanvasScreen> {
                                   : AppLocalizations.of(context)!.autoSavedAt(
                                       DateFormat.Hm().format(DateTime.now()),
                                     ),
-
                               style: TextStyle(
                                 fontSize: 10,
-
                                 color: Colors.grey[600],
-
                                 fontWeight: FontWeight.bold,
-
                                 letterSpacing: 1,
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -718,62 +703,60 @@ class _CanvasScreenState extends State<CanvasScreen> {
                   ],
                 ),
               ),
-
               IconButton(
                 icon: Icon(
                   canvasProvider.isStylusOnly
                       ? Icons.do_not_touch
                       : Icons.touch_app,
-
                   color: canvasProvider.isStylusOnly
                       ? primaryColor
                       : Colors.grey,
                 ),
-
                 onPressed: canvasProvider.toggleStylusOnly,
-
                 tooltip: AppLocalizations.of(context)!.stylusOnlyMode,
               ),
-
-              const SizedBox(width: 16),
-              const _AvatarStack(),
-              const SizedBox(width: 16),
-
-              ElevatedButton.icon(
-                onPressed: () =>
-                    PdfService().exportNote(canvasProvider.currentNote!),
-
-                icon: const Icon(Icons.ios_share_rounded, size: 18),
-
-                label: Text(
-                  AppLocalizations.of(context)!.export,
-
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
+              const SizedBox(width: 8),
+              if (!isMobile) ...[
+                const _AvatarStack(),
+                const SizedBox(width: 16),
+              ],
+              if (isMobile)
+                IconButton(
+                  onPressed: () =>
+                      PdfService().exportNote(canvasProvider.currentNote!),
+                  icon: Icon(
+                    Icons.ios_share_rounded,
+                    color: primaryColor,
+                    size: 24,
+                  ),
+                  tooltip: AppLocalizations.of(context)!.export,
+                )
+              else
+                ElevatedButton.icon(
+                  onPressed: () =>
+                      PdfService().exportNote(canvasProvider.currentNote!),
+                  icon: const Icon(Icons.ios_share_rounded, size: 18),
+                  label: Text(
+                    AppLocalizations.of(context)!.export,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    foregroundColor: Colors.white,
+                    elevation: 4,
+                    shadowColor: primaryColor.withValues(alpha: 0.3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
-
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-
-                  foregroundColor: Colors.white,
-
-                  elevation: 4,
-
-                  shadowColor: primaryColor.withValues(alpha: 0.3),
-
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-
-                    vertical: 12,
-                  ),
-
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
             ],
           ),
         ),

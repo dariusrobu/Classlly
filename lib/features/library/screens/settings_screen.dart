@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:classlly/main.dart'; // For ThemeProvider
+import 'package:classlly/core/theme/theme_provider.dart';
 import 'package:classlly/core/theme/app_theme.dart';
 import 'package:classlly/features/library/widgets/dashboard_sidebar.dart';
 import 'package:classlly/data/models/academic_calendar_model.dart';

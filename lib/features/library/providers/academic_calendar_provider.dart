@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:http/http.dart' as http;
 import 'package:classlly/data/models/academic_calendar_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 
@@ -96,23 +97,32 @@ class AcademicCalendarProvider with ChangeNotifier {
   }
 
   Future<List<dynamic>> getAvailableTemplates() async {
+    const serverUrl = 'https://classlly-server.vercel.app/api/calendars';
+    
     try {
-      debugPrint(
-        'Fetching templates from assets/data/academic_calendars.json...',
+      debugPrint('Fetching templates from $serverUrl...');
+      final response = await http.get(Uri.parse(serverUrl)).timeout(
+        const Duration(seconds: 15),
       );
-      final String content = await rootBundle.loadString(
-        'assets/data/academic_calendars.json',
-      );
-      final data = jsonDecode(content);
-      final calendars = data['calendars'] as List<dynamic>;
-      debugPrint('Found ${calendars.length} templates.');
-      return calendars;
-    } catch (e, stack) {
-      debugPrint('Error loading templates from assets: $e');
-      debugPrint(stack.toString());
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final calendars = data['calendars'] as List<dynamic>;
+        debugPrint('Found ${calendars.length} templates from server.');
+        return calendars;
+      } else {
+        debugPrint('Server returned ${response.statusCode}');
+        throw Exception('Failed to load templates: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error fetching templates from server: $e');
+      rethrow;
     }
-    return [];
   }
+
+
+
+
 
   Future<void> addPeriod({
     required String name,
@@ -163,36 +173,47 @@ class AcademicCalendarProvider with ChangeNotifier {
   // --- Week Calculation Logic ---
 
   /// Returns the week number (1-based) and whether it's odd or even for a given date.
-  /// Returns null if the date is not within a teaching period.
+  /// Returns period info for any academic period type.
+  /// Week numbers are only calculated for teaching periods.
   Map<String, dynamic>? getWeekInfo(DateTime date) {
     // Normalize date to remove time for comparison
     final normalizedDate = DateTime(date.year, date.month, date.day);
 
     AcademicPeriod? currentPeriod;
     for (var period in _periods) {
-      if (period.type == AcademicPeriodType.teaching) {
-        final start = DateTime(
-          period.startDate.year,
-          period.startDate.month,
-          period.startDate.day,
-        );
-        final end = DateTime(
-          period.endDate.year,
-          period.endDate.month,
-          period.endDate.day,
-        );
+      final start = DateTime(
+        period.startDate.year,
+        period.startDate.month,
+        period.startDate.day,
+      );
+      final end = DateTime(
+        period.endDate.year,
+        period.endDate.month,
+        period.endDate.day,
+      );
 
-        if (normalizedDate.isAtSameMomentAs(start) ||
-            normalizedDate.isAtSameMomentAs(end) ||
-            (normalizedDate.isAfter(start) && normalizedDate.isBefore(end))) {
-          currentPeriod = period;
-          break;
-        }
+      if (normalizedDate.isAtSameMomentAs(start) ||
+          normalizedDate.isAtSameMomentAs(end) ||
+          (normalizedDate.isAfter(start) && normalizedDate.isBefore(end))) {
+        currentPeriod = period;
+        break;
       }
     }
 
     if (currentPeriod == null) return null;
 
+    // For non-teaching periods, return just the period name
+    if (currentPeriod.type != AcademicPeriodType.teaching) {
+      return {
+        'week': null,
+        'isOdd': null,
+        'label': currentPeriod.name,
+        'periodName': currentPeriod.name,
+        'periodType': currentPeriod.type.toString().split('.').last,
+      };
+    }
+
+    // For teaching periods, calculate week number
     // Find the "Semester Start" for this period.
     // We look for the earliest teaching period that is within 20 weeks of this one.
     DateTime semStart = currentPeriod.startDate;
@@ -225,6 +246,8 @@ class AcademicCalendarProvider with ChangeNotifier {
       'isOdd': isOdd,
       'label': isOdd ? 'Odd' : 'Even',
       'periodName': currentPeriod.name,
+      'periodType': 'teaching',
     };
   }
+
 }

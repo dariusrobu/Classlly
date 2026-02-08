@@ -525,6 +525,35 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
     bool isDark,
     Color primaryColor,
   ) {
+    final isMobile = MediaQuery.of(context).size.width < 800;
+    
+    if (isMobile) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildPerformanceCharts(isDark, primaryColor),
+            const SizedBox(height: 32),
+            _buildCourseInfoCard(isDark, primaryColor),
+            const SizedBox(height: 32),
+            Text(
+              AppLocalizations.of(context)!.recentActivity,
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildRecentNotesList(isDark, primaryColor, limit: 3),
+            const SizedBox(height: 32),
+            _buildTasksCard(isDark, primaryColor),
+            const SizedBox(height: 32),
+          ],
+        ),
+      );
+    }
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 0),
       child: Column(
@@ -535,6 +564,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
           _buildCourseInfoCard(isDark, primaryColor),
           const SizedBox(height: 32),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Column(

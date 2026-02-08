@@ -31,9 +31,9 @@ class DashboardScreen extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
+      builder: (sheetContext) => Container(
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.8,
+          maxHeight: MediaQuery.of(sheetContext).size.height * 0.8,
         ),
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
@@ -67,7 +67,7 @@ class DashboardScreen extends StatelessWidget {
                     label: AppLocalizations.of(context)!.addNote,
                     color: Colors.purple,
                     onTap: () async {
-                      Navigator.pop(context);
+                      Navigator.pop(sheetContext);
                       final note = await showDialog<Note>(
                         context: context,
                         builder: (context) => const CreateNoteDialog(),
@@ -82,7 +82,7 @@ class DashboardScreen extends StatelessWidget {
                     label: AppLocalizations.of(context)!.addTask,
                     color: Colors.blue,
                     onTap: () {
-                      Navigator.pop(context);
+                      Navigator.pop(sheetContext);
                       showDialog(
                         context: context,
                         builder: (context) => const AddTaskScreen(),
@@ -94,7 +94,7 @@ class DashboardScreen extends StatelessWidget {
                     label: AppLocalizations.of(context)!.attendance,
                     color: Colors.orange,
                     onTap: () {
-                      Navigator.pop(context);
+                      Navigator.pop(sheetContext);
                       showDialog(
                         context: context,
                         builder: (context) => const AddAttendanceScreen(),
@@ -106,13 +106,17 @@ class DashboardScreen extends StatelessWidget {
                     label: AppLocalizations.of(context)!.addGrade,
                     color: Colors.green,
                     onTap: () async {
-                      Navigator.pop(context);
+                      debugPrint('Add Grade tapped');
+                      Navigator.pop(sheetContext);
                       final provider = Provider.of<CourseProvider>(
                         context,
                         listen: false,
                       );
                       final courses = provider.courses;
+                      debugPrint('Found ${courses.length} courses');
+                      
                       if (courses.isEmpty) {
+                        debugPrint('No courses found, showing snackbar');
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content:
@@ -125,7 +129,9 @@ class DashboardScreen extends StatelessWidget {
                       String? selectedCourseId;
                       if (courses.length == 1) {
                         selectedCourseId = courses.first.id;
+                        debugPrint('Auto-selected course: $selectedCourseId');
                       } else {
+                        debugPrint('Showing course selection dialog');
                         selectedCourseId = await showDialog<String>(
                           context: context,
                           builder: (context) => SimpleDialog(
@@ -140,14 +146,18 @@ class DashboardScreen extends StatelessWidget {
                                 .toList(),
                           ),
                         );
+                        debugPrint('Selected course: $selectedCourseId');
                       }
 
                       if (selectedCourseId != null && context.mounted) {
+                        debugPrint('Showing AddGradeDialog for $selectedCourseId');
                         showDialog(
                           context: context,
                           builder: (context) =>
                               AddGradeDialog(courseId: selectedCourseId!),
                         );
+                      } else {
+                        debugPrint('Course selection cancelled or context not mounted');
                       }
                     },
                   ),
@@ -163,14 +173,6 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Safety check for Hive boxes
-    if (!Hive.isBoxOpen(NotesRepository.gradeBoxName) ||
-        !Hive.isBoxOpen(NotesRepository.taskBoxName) ||
-        !Hive.isBoxOpen(NotesRepository.boxName) ||
-        !Hive.isBoxOpen(NotesRepository.courseBoxName)) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
 
     return SingleChildScrollView(
@@ -400,7 +402,9 @@ class DashboardHeader extends StatelessWidget {
                         ),
                       ),
                       child: Text(
-                        'WEEK ${weekInfo['week']} • ${weekInfo['label'].toUpperCase()}',
+                        weekInfo['week'] != null
+                            ? 'WEEK ${weekInfo['week']} • ${weekInfo['label'].toUpperCase()}'
+                            : weekInfo['label'].toUpperCase(),
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.w700,
@@ -1094,10 +1098,7 @@ class CalendarCard extends StatelessWidget {
             color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
             shape: BoxShape.circle,
           ),
-          markerDecoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary,
-            shape: BoxShape.circle,
-          ),
+          markersMaxCount: 0,
           defaultTextStyle: const TextStyle(color: Colors.grey),
           weekendTextStyle: const TextStyle(color: Colors.grey),
           outsideTextStyle: TextStyle(

@@ -20,8 +20,27 @@ class ProfileProvider with ChangeNotifier {
   }
 
   Future<void> createDemoProfile() async {
+    // Safety check: Ensure profile is set to Guest
+    await _localRepository.saveStudentProfile(
+      StudentProfile(
+        name: 'Guest Student',
+        university: 'Demo University',
+        major: 'Computer Science',
+        year: 'Sophomore',
+        studentId: 'DEMO-123',
+      ),
+    );
+
     final random = Random();
     var createdCourses = _localRepository.getAllCourses();
+    
+    // Safety Force Clear if needed (though signOut should have handled it)
+    if (createdCourses.isNotEmpty) {
+      // If we are here, something weird happened or re-running demo setup.
+      // We'll just continue or could clear. Let's trust signOut cleared it, 
+      // but if not, let's at least ensure we don't duplicate if exactly same.
+      // For now, we assume clean slate.
+    }
 
     if (createdCourses.isEmpty) {
       final coursesData = [

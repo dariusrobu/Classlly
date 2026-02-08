@@ -396,12 +396,18 @@ class _CoursesView extends StatelessWidget {
                 ? CrossAxisAlignment.start
                 : CrossAxisAlignment.center,
             children: [
-              const Flexible(
-                child: _SectionTitle(
-                  title: 'My Courses',
-                  subtitle: 'Access all your enrolled classes and materials.',
-                ),
-              ),
+              isMobile
+                  ? const _SectionTitle(
+                      title: 'My Courses',
+                      subtitle: 'Access all your enrolled classes and materials.',
+                    )
+                  : const Flexible(
+                      child: _SectionTitle(
+                        title: 'My Courses',
+                        subtitle:
+                            'Access all your enrolled classes and materials.',
+                      ),
+                    ),
               if (isMobile) const SizedBox(height: 16),
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -907,6 +913,7 @@ class _CoursesGrid extends StatelessWidget {
       ).listenable(),
       builder: (context, Box<Course> box, _) {
         var courses = box.values.toList();
+        debugPrint('_CoursesGrid: Found ${courses.length} courses in Hive box');
 
         if (!fullList) {
           courses = courses.take(3).toList();
@@ -927,6 +934,7 @@ class _CoursesGrid extends StatelessWidget {
 
         return LayoutBuilder(
           builder: (context, constraints) {
+            debugPrint('_CoursesGrid: LayoutConstraints: ${constraints.maxWidth} x ${constraints.maxHeight}');
             final width = constraints.maxWidth;
             int crossAxisCount = width > 1200
                 ? 4
