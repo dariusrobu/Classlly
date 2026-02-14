@@ -7,6 +7,8 @@ import 'package:classlly/data/models/attendance_model.dart';
 import 'package:classlly/data/models/grade_model.dart';
 import 'package:classlly/data/models/task_model.dart';
 
+import 'package:classlly/data/models/student_profile_model.dart';
+
 class MockNotesRepository extends Mock implements NotesRepository {}
 
 class CourseFake extends Fake implements Course {}
@@ -17,12 +19,15 @@ class AttendanceFake extends Fake implements Attendance {}
 
 class GradeFake extends Fake implements Grade {}
 
+class StudentProfileFake extends Fake implements StudentProfile {}
+
 void main() {
   setUpAll(() {
     registerFallbackValue(CourseFake());
     registerFallbackValue(TaskFake());
     registerFallbackValue(AttendanceFake());
     registerFallbackValue(GradeFake());
+    registerFallbackValue(StudentProfileFake());
   });
 
   late ProfileProvider profileProvider;
@@ -30,6 +35,8 @@ void main() {
 
   setUp(() {
     mockRepository = MockNotesRepository();
+    // Stub saveStudentProfile here as it is called during initialization or usage
+    when(() => mockRepository.saveStudentProfile(any())).thenAnswer((_) async {});
     profileProvider = ProfileProvider(repository: mockRepository);
   });
 

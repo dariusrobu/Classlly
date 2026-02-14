@@ -13,13 +13,10 @@ import 'package:classlly/features/library/providers/academic_calendar_provider.d
 import 'package:classlly/core/services/cloud_storage_service.dart';
 import 'package:classlly/core/services/widget_service.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
-import 'package:classlly/data/repositories/supabase_repository.dart';
 import 'package:classlly/data/models/academic_calendar_model.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockCloudStorageService extends Mock implements CloudStorageService {}
-
-class MockSupabaseRepository extends Mock implements SupabaseRepository {}
 
 class MockWidgetService extends Mock implements WidgetService {}
 
@@ -35,10 +32,8 @@ Widget wrapWidget(
   Widget child, {
   CloudStorageService? cloudService,
   NotesRepository? repository,
-  SupabaseRepository? supabaseRepository,
 }) {
   final repo = repository ?? MockNotesRepository();
-  final supabaseRepo = supabaseRepository ?? MockSupabaseRepository();
 
   return MultiProvider(
     providers: [
@@ -46,8 +41,7 @@ Widget wrapWidget(
         create: (_) => cloudService ?? MockCloudStorageService(),
       ),
       ChangeNotifierProvider(
-        create: (_) =>
-            CanvasProvider(repository: repo, remoteRepository: supabaseRepo),
+        create: (_) => CanvasProvider(repository: repo),
       ),
       ChangeNotifierProvider(create: (_) => AudioProvider()),
       ChangeNotifierProvider(

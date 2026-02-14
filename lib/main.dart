@@ -4,9 +4,10 @@ import 'dart:io';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:classlly/core/constants/supabase_config.dart';
+import 'package:classlly/core/services/cloud_provider.dart';
 import 'package:classlly/core/theme/app_theme.dart';
 import 'package:classlly/core/theme/theme_provider.dart';
-import 'package:classlly/core/constants/supabase_config.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/features/canvas/providers/canvas_provider.dart';
 import 'package:classlly/features/audio/providers/audio_provider.dart';
@@ -18,7 +19,6 @@ import 'package:classlly/features/library/providers/task_provider.dart';
 import 'package:classlly/features/library/providers/course_provider.dart';
 import 'package:classlly/features/library/providers/notes_provider.dart';
 import 'package:classlly/core/services/cloud_storage_service.dart';
-import 'package:classlly/core/services/supabase_cloud_service.dart';
 import 'package:classlly/core/services/notification_service.dart';
 import 'package:classlly/features/auth/screens/onboarding_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -87,7 +87,11 @@ void main() async {
 
   final app = MultiProvider(
     providers: [
-      Provider<CloudStorageService>(create: (_) => SupabaseCloudService()),
+      Provider<CloudStorageService>(
+        create: (_) => CloudProviderManager.getService(
+          CloudProviderManager.getCurrentProvider(),
+        ),
+      ),
       ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ChangeNotifierProvider(create: (_) => CanvasProvider()),
       ChangeNotifierProvider(create: (_) => AudioProvider()),
@@ -103,13 +107,6 @@ void main() async {
     ],
     child: const ClassllyApp(),
   );
-
-  // Auto-init sync if user exists
-  if (Supabase.instance.client.auth.currentUser != null) {
-    // We need a context or a way to access the provider.
-    // Since we just created the provider in the widget tree, we can't easily access it here.
-    // Better: Handle it in LibraryScreen's initState or similar.
-  }
 
   runApp(app);
 }
@@ -150,3 +147,4 @@ class ClassllyApp extends StatelessWidget {
     );
   }
 }
+

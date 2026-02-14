@@ -281,10 +281,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get never => 'Never';
 
   @override
-  String get supabaseSecurity =>
-      'Supabase ensures your data is encrypted and only accessible by you using Row Level Security (RLS). Google Drive and iCloud backups can be enabled in our web dashboard.';
-
-  @override
   String get workspace => 'Workspace';
 
   @override

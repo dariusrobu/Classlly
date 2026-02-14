@@ -29,13 +29,14 @@ class UserPreferencesAdapter extends TypeAdapter<UserPreferences> {
       hasCompletedOnboarding: fields[9] == null ? false : fields[9] as bool,
       lastSyncTimestamp: fields[10] as DateTime?,
       schemaVersion: fields[11] == null ? 0 : fields[11] as int,
+      cloudProvider: fields[12] == null ? 'none' : fields[12] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserPreferences obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(13)
       ..writeByte(0)
       ..write(obj.themeMode)
       ..writeByte(1)
@@ -59,7 +60,9 @@ class UserPreferencesAdapter extends TypeAdapter<UserPreferences> {
       ..writeByte(10)
       ..write(obj.lastSyncTimestamp)
       ..writeByte(11)
-      ..write(obj.schemaVersion);
+      ..write(obj.schemaVersion)
+      ..writeByte(12)
+      ..write(obj.cloudProvider);
   }
 
   @override

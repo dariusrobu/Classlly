@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'package:classlly/data/models/note_models.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
-import 'package:classlly/data/repositories/supabase_repository.dart';
+
 import 'package:classlly/core/utils/geometry_utils.dart';
 import 'package:classlly/core/theme/app_theme.dart';
 import 'package:classlly/features/audio/providers/audio_provider.dart';
@@ -40,13 +40,11 @@ class NoteStateSnapshot {
 
 class CanvasProvider with ChangeNotifier {
   final NotesRepository _repository;
-  final SupabaseRepository _remoteRepository;
+
 
   CanvasProvider({
     NotesRepository? repository,
-    SupabaseRepository? remoteRepository,
-  }) : _repository = repository ?? NotesRepository(),
-       _remoteRepository = remoteRepository ?? SupabaseRepository();
+  }) : _repository = repository ?? NotesRepository();
 
   final List<NoteStateSnapshot> _undoStack = [];
   final List<NoteStateSnapshot> _redoStack = [];
@@ -114,7 +112,7 @@ class CanvasProvider with ChangeNotifier {
   Timer? _debounceTimer;
   Timer? _studyTimer;
   final Stopwatch _studyStopwatch = Stopwatch();
-  bool _isSyncing = false;
+  final bool _isSyncing = false;
   bool get isSyncing => _isSyncing;
 
   bool _isStylusOnly = false;
@@ -974,14 +972,9 @@ class CanvasProvider with ChangeNotifier {
     if (_currentNote != null) {
       await _repository.saveNote(_currentNote!);
       _debounceTimer?.cancel();
-      _debounceTimer = Timer(const Duration(seconds: 5), () async {
-        _isSyncing = true;
-        notifyListeners();
-        // Optimized: Only upload the changed note instead of syncing all notes
-        await _remoteRepository.upsertSingleNote(_currentNote!);
-        _isSyncing = false;
-        notifyListeners();
-      });
+      _debounceTimer?.cancel();
+      // Auto-save logic is handled by local repository save above.
+      // Cloud sync should be triggered by CloudStorageService listener or periodic sync.
     }
   }
 

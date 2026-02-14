@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:classlly/core/services/cloud_storage_service.dart';
+import 'package:classlly/l10n/app_localizations.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:provider/provider.dart';
 import 'package:classlly/features/library/providers/profile_provider.dart';
-import 'package:classlly/l10n/app_localizations.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
   const PersonalInfoScreen({super.key});
@@ -27,16 +28,16 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     final profile = repo.getStudentProfile();
 
     String initialName = profile.name ?? '';
-    final supabaseName = user?.userMetadata?['full_name'] as String?;
+    final displayName = user?.userMetadata?['full_name'] as String?;
 
-    // If local name is the default 'Alex' but Supabase has a different name, use Supabase
+    // If local name is the default 'Alex' but Remote has a different name
     if ((initialName == 'Alex' || initialName.isEmpty) &&
-        supabaseName != null &&
-        supabaseName.isNotEmpty &&
-        supabaseName != 'Alex') {
-      initialName = supabaseName;
-    } else if (initialName.isEmpty && supabaseName != null) {
-      initialName = supabaseName;
+        displayName != null &&
+        displayName.isNotEmpty &&
+        displayName != 'Alex') {
+      initialName = displayName;
+    } else if (initialName.isEmpty && displayName != null) {
+      initialName = displayName;
     }
 
     _nameController = TextEditingController(text: initialName);
@@ -54,10 +55,13 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isSaving = true);
       try {
-        // 1. Update Supabase
-        await Supabase.instance.client.auth.updateUser(
-          UserAttributes(data: {'full_name': _nameController.text}),
-        );
+        // 1. Update Supabase User Metadata
+        final user = Supabase.instance.client.auth.currentUser;
+        if (user != null) {
+          await Supabase.instance.client.auth.updateUser(
+            UserAttributes(data: {'full_name': _nameController.text}),
+          );
+        }
 
         // 2. Update Local Profile
         final repo = NotesRepository();
@@ -65,9 +69,12 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         profile.name = _nameController.text;
         await repo.saveStudentProfile(profile);
 
-        // 3. Notify Listeners
+        // 3. Notify Listeners & Sync
         if (mounted) {
           Provider.of<ProfileProvider>(context, listen: false).refreshProfile();
+          // Sync profile using CloudStorageService
+          final cloudService = Provider.of<CloudStorageService>(context, listen: false);
+          await cloudService.syncProfile();
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

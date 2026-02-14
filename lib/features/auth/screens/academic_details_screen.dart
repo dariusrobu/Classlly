@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:classlly/data/models/student_profile_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:classlly/core/services/cloud_storage_service.dart';
 import 'package:provider/provider.dart';
 import 'package:classlly/features/library/providers/profile_provider.dart';
 import 'package:classlly/l10n/app_localizations.dart';
@@ -51,29 +51,16 @@ class _AcademicDetailsScreenState extends State<AcademicDetailsScreen> {
       await _repository.saveStudentProfile(_profile);
 
       // Sync to Supabase
-      try {
-        final user = Supabase.instance.client.auth.currentUser;
-        if (user != null) {
-          await Supabase.instance.client.from('student_profiles').upsert({
-            'user_id': user.id,
-            'university': _profile.university,
-            'major': _profile.major,
-            'year': _profile.year,
-            'student_id': _profile.studentId,
-          });
-        }
-
-        if (mounted) {
-          Provider.of<ProfileProvider>(context, listen: false).refreshProfile();
-        }
-      } catch (e) {
-        debugPrint('Error syncing academic details: $e');
-      }
-
+      // 3. Trigger Cloud Sync
       if (mounted) {
+        // Sync profile using CloudStorageService
+        final cloudService = Provider.of<CloudStorageService>(context, listen: false);
+        await cloudService.syncProfile();
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(AppLocalizations.of(context)!.academicDetailsSaved),
+            backgroundColor: Colors.green,
           ),
         );
         Navigator.pop(context);

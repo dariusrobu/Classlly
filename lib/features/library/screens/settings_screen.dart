@@ -441,14 +441,7 @@ class SettingsScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 20),
-            Text(
-              AppLocalizations.of(context)!.supabaseSecurity,
-              style: TextStyle(
-                fontSize: 11,
-                color: isDark ? Colors.white54 : Colors.black54,
-                height: 1.5,
-              ),
-            ),
+
           ],
         ),
       ),

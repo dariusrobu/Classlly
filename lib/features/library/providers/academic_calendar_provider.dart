@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 import 'package:classlly/data/models/academic_calendar_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';

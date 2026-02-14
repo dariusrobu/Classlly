@@ -41,6 +41,7 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
+				<string>com.robudarius.classlly</string>
 				<string>com.googleusercontent.apps.153897807907-tllogka5ud9ploje6n0urqalhu0n7oku</string>
 			</array>
 		</dict>

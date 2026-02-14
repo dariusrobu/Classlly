@@ -8,7 +8,7 @@ import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/data/models/user_preferences_model.dart';
 import 'package:provider/provider.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'package:http/http.dart' as http;
 
 import 'package:flutter/services.dart';
@@ -18,7 +18,6 @@ class MockCloudStorageService extends Mock implements CloudStorageService {}
 class MockProfileProvider extends Mock implements ProfileProvider {}
 class MockLibraryProvider extends Mock implements LibraryProvider {}
 class MockNotesRepository extends Mock implements NotesRepository {}
-class MockSupabaseClient extends Mock implements SupabaseClient {}
 class MockHttpClient extends Mock implements http.Client {}
 
 // Dummy response for HTTP client
@@ -52,23 +51,7 @@ void main() {
       },
     );
 
-    registerFallbackValue(UserAttributes(data: {}));
     registerFallbackValue(Uri.parse('https://example.com'));
-    
-    // Mock HTTP client behavior
-    final mockHttpClient = MockHttpClient();
-    when(() => mockHttpClient.post(any(), headers: any(named: 'headers'), body: any(named: 'body')))
-        .thenAnswer((_) async => http.Response('{"access_token": "fake", "refresh_token": "fake", "user": {"id": "fake", "aud": "authenticated", "role": "authenticated", "email": "fake@example.com", "phone": "", "confirmation_sent_at": "2023-01-01T00:00:00Z", "app_metadata": {"provider": "email", "providers": ["email"]}, "user_metadata": {}, "identities": [], "created_at": "2023-01-01T00:00:00Z", "updated_at": "2023-01-01T00:00:00Z"}}', 200));
-    
-    when(() => mockHttpClient.get(any(), headers: any(named: 'headers')))
-        .thenAnswer((_) async => http.Response('{}', 200));
-
-    // Initialize Supabase with mock client
-    await Supabase.initialize(
-      url: 'https://example.com',
-      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtxd2JkdXFkemdlZXZ0Y2lmbnF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MTk3NDksImV4cCI6MjA4Mzk5NTc0OX0.8EpXvPIoRrtKBwLM1ad0qd3I_85L-JVJ5HVfy4k6jsg',
-      httpClient: mockHttpClient,
-    );
   });
 
   testWidgets('AuthScreen UI test', (WidgetTester tester) async {

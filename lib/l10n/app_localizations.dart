@@ -610,12 +610,6 @@ abstract class AppLocalizations {
   /// **'Never'**
   String get never;
 
-  /// No description provided for @supabaseSecurity.
-  ///
-  /// In en, this message translates to:
-  /// **'Supabase ensures your data is encrypted and only accessible by you using Row Level Security (RLS). Google Drive and iCloud backups can be enabled in our web dashboard.'**
-  String get supabaseSecurity;
-
   /// No description provided for @workspace.
   ///
   /// In en, this message translates to:

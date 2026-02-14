@@ -45,8 +45,8 @@ void main() {
     // Supabase.initialize checks if already initialized usually.
     try {
       await Supabase.initialize(
-        url: 'https://kqwbduqdzgeevtcifnqx.supabase.co',
-        anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtxd2JkdXFkemdlZXZ0Y2lmbnF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MTk3NDksImV4cCI6MjA4Mzk5NTc0OX0.8EpXvPIoRrtKBwLM1ad0qd3I_85L-JVJ5HVfy4k6jsg',
+        url: SupabaseConfig.url,
+        anonKey: SupabaseConfig.anonKey,
       );
     } catch (_) {
       // Already initialized

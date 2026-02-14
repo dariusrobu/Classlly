@@ -1,0 +1,9 @@
+{
+  "name": "classlly-server",
+  "version": "1.0.0",
+  "description": "API for Classlly App",
+  "type": "module",
+  "scripts": {
+    "start": "node api/calendars.js"
+  }
+}

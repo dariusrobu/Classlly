@@ -10,6 +10,7 @@ import 'package:classlly/features/auth/screens/auth_screen.dart';
 import 'package:classlly/features/library/screens/settings_screen.dart';
 import 'package:classlly/features/auth/screens/personal_info_screen.dart';
 import 'package:classlly/features/auth/screens/academic_details_screen.dart';
+import 'package:classlly/features/auth/screens/cloud_settings_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:classlly/features/library/providers/course_provider.dart';
@@ -93,12 +94,22 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+                    _MenuItem(
+                      icon: Icons.cloud_outlined,
+                      label: 'Cloud Storage',
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CloudSettingsScreen(),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 32),
                 TextButton(
                   onPressed: () async {
-                    await Supabase.instance.client.auth.signOut();
+                    await AuthRepository().signOut();
                     if (context.mounted) {
                       Navigator.of(context).pushAndRemoveUntil(
                         MaterialPageRoute(
@@ -197,7 +208,7 @@ class ProfileScreen extends StatelessWidget {
     User? user,
     StudentProfile profile,
   ) {
-    final name = profile.name ?? user?.userMetadata?['full_name'] ?? 'Alex';
+    final name = profile.name ?? (user?.userMetadata?['full_name'] as String?) ?? 'Alex';
     final initials = name
         .split(' ')
         .take(2)

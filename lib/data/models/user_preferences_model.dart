@@ -32,6 +32,9 @@ class UserPreferences extends HiveObject {
   @HiveField(11, defaultValue: 0)
   int schemaVersion;
 
+  @HiveField(12, defaultValue: 'none')
+  String cloudProvider; // 'none', 'supabase', 'googleDrive', 'iCloud'
+
   UserPreferences({
     this.themeMode = 'system',
     this.accentColor = 0xFF8B5CF6, // Primary Purple
@@ -45,6 +48,7 @@ class UserPreferences extends HiveObject {
     this.hasCompletedOnboarding = false,
     this.lastSyncTimestamp,
     this.schemaVersion = 0,
+    this.cloudProvider = 'none',
   });
 
   Map<String, dynamic> toJson() => {
@@ -60,6 +64,7 @@ class UserPreferences extends HiveObject {
     'has_completed_onboarding': hasCompletedOnboarding,
     'last_sync_timestamp': lastSyncTimestamp?.toIso8601String(),
     'schema_version': schemaVersion,
+    'cloud_provider': cloudProvider,
   };
 
   factory UserPreferences.fromJson(
@@ -84,5 +89,6 @@ class UserPreferences extends HiveObject {
     lastSyncTimestamp: json['last_sync_timestamp'] != null
         ? JsonUtils.asDateTime(json['last_sync_timestamp'])
         : null,
+    cloudProvider: JsonUtils.asString(json['cloud_provider'], defaultValue: 'none'),
   );
 }

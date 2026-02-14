@@ -29,16 +29,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
         password: _passwordController.text.trim(),
       );
 
-      if (response.session == null) {
-        // Email confirmation required
+      final user = response.user;
+
+      if (user == null) {
+        // Should catch this, but just in case
         if (mounted) {
-          _showError('Please check your email to confirm your account.');
-          Navigator.pop(context); // Close dialog
+           _showError('Registration failed - No user returned');
         }
         return;
       }
-
-      // Update metadata with full name
+      
+      // Update display name in user metadata
       await Supabase.instance.client.auth.updateUser(
         UserAttributes(data: {'full_name': _fullNameController.text.trim()}),
       );

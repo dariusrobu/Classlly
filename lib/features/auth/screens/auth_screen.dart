@@ -19,7 +19,7 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  final _authRepository = AuthRepository();
+  final _repository = AuthRepository();
   late final CloudStorageService _cloudService;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -39,7 +39,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
     setState(() => _isLoading = true);
     try {
-      await _authRepository.signInWithEmailPassword(
+      await _repository.signInWithEmailPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
@@ -66,7 +66,7 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
     try {
-      await _authRepository.signInWithGoogle();
+      await _repository.signInWithGoogle();
       await _checkProfileAndNavigate();
     } on AuthException catch (e) {
       _showError(e.message);
@@ -80,7 +80,7 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<void> _handleAppleSignIn() async {
     setState(() => _isLoading = true);
     try {
-      await _authRepository.signInWithApple();
+      await _repository.signInWithApple();
       await _checkProfileAndNavigate();
     } on AuthException catch (e) {
       _showError(e.message);

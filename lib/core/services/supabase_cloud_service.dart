@@ -1,454 +1,113 @@
-import 'dart:async';
-import 'dart:convert';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:hive/hive.dart';
 import 'package:classlly/data/models/note_models.dart';
-import 'package:classlly/data/models/course_model.dart';
-import 'package:classlly/data/models/task_model.dart';
-import 'package:classlly/data/models/folder_model.dart';
-import 'package:classlly/data/models/academic_calendar_model.dart';
-import 'package:classlly/data/models/grade_model.dart';
-import 'package:classlly/data/models/attendance_model.dart';
-import 'package:classlly/data/models/student_profile_model.dart';
-import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/core/services/cloud_storage_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// Supabase implementation of [CloudStorageService].
+///
+/// This is a stub implementation — each sync method is a no-op placeholder
+/// that you can build out as you set up your Supabase database tables.
 class SupabaseCloudService implements CloudStorageService {
-  final SupabaseClient _client = Supabase.instance.client;
-  final NotesRepository _localRepository = NotesRepository();
+  SupabaseClient get _client => Supabase.instance.client;
 
   @override
   Stream<List<Note>> notesStream() {
-    final user = _client.auth.currentUser;
-    if (user == null) return Stream.value([]);
-
-    return _client
-        .from('notes')
-        .stream(primaryKey: ['id'])
-        .eq('user_id', user.id)
-        .map((data) {
-          return data.map((e) => Note.fromJson(e)).toList();
-        });
+    // TODO: Implement real-time notes stream using Supabase Realtime
+    // Example:
+    // return _client.from('notes').stream(primaryKey: ['id']).map(...)
+    return const Stream.empty();
   }
 
   @override
-  Future<void> syncAll() async {
-    final user = _client.auth.currentUser;
-    if (user == null) return;
-
-    try {
-      final prefs = _localRepository.getPreferences();
-
-      await Future.wait([
-        syncNotes(),
-        syncCourses(),
-        syncTasks(),
-        syncFolders(),
-        syncCalendar(),
-        syncGrades(),
-        syncAttendance(),
-        syncProfile(),
-      ]);
-
-      // Save sync time
-      prefs.lastSyncTimestamp = DateTime.now();
-      await _localRepository.savePreferences(prefs);
-    } catch (e) {
-      print('Supabase Sync Error: $e');
-    }
+  Future<void> syncAll({bool interactive = false}) async {
+    await syncProfile();
+    await syncNotes();
+    await syncCourses();
+    await syncTasks();
+    await syncFolders();
+    await syncCalendar();
+    await syncGrades();
+    await syncAttendance();
   }
 
-  // Helper to get sync filter
-  PostgrestFilterBuilder<List<Map<String, dynamic>>> _applySyncFilter(
-    String table,
-    String userId,
-  ) {
-    final prefs = _localRepository.getPreferences();
-    final query = _client.from(table).select().eq('user_id', userId);
-
-    if (prefs.lastSyncTimestamp != null) {
-      // Offset by 1 second to avoid overlapping due to precision
-      final filterTime = prefs.lastSyncTimestamp!.subtract(
-        const Duration(seconds: 1),
-      );
-      return query.gt('updated_at', filterTime.toIso8601String());
-    }
-    return query;
-  }
-
-  // --- Notes Sync ---
   @override
   Future<void> syncNotes() async {
-    final user = _client.auth.currentUser;
-    if (user == null) return;
-
-    try {
-      // 1. Fetch Metadata for ALL notes to check for deletions or local updates
-      final response = await _client
-          .from('notes')
-          .select('id, updated_at, title')
-          .eq('user_id', user.id);
-      final List remoteMetadataList = response as List;
-
-      final Map<String, dynamic> remoteMetadataMap = {
-        for (var e in remoteMetadataList) e['id']: e,
-      };
-
-      // 2. Download only CHANGED notes
-      for (var meta in remoteMetadataList) {
-        final String noteId = meta['id'];
-        final DateTime remoteUpdatedAt = DateTime.parse(meta['updated_at']);
-        final localNote = _localRepository.getNote(noteId);
-
-        if (localNote == null || remoteUpdatedAt.isAfter(localNote.updatedAt)) {
-          final fullNoteData = await _client
-              .from('notes')
-              .select()
-              .eq('id', noteId)
-              .single();
-
-          final remoteNote = Note.fromJson(fullNoteData);
-          await Hive.box<Note>(
-            NotesRepository.boxName,
-          ).put(remoteNote.id, remoteNote);
-        }
-      }
-
-      // 3. Sync Local to Remote
-      final localNotes = _localRepository.getAllNotes();
-      for (var note in localNotes) {
-        final remoteMeta = remoteMetadataMap[note.id];
-        if (remoteMeta == null ||
-            note.updatedAt.isAfter(DateTime.parse(remoteMeta['updated_at']))) {
-          await _upsertNote(note, user.id);
-        }
-      }
-    } catch (e) {
-      print('Notes Sync Error: $e');
-    }
+    // TODO: Implement notes sync with Supabase 'notes' table
   }
 
-  Future<void> _upsertNote(Note note, String userId) async {
-    // 1. Upload any images that haven't been uploaded yet
-    await _uploadImages(note, userId);
-
-    final json = note.toJson();
-
-    // 2. Optimize strokes for egress (rounding points)
-    final List strokes = json['strokes'] as List;
-    for (var s in strokes) {
-      final List points = s['points'] as List;
-      for (var p in points) {
-        p['x'] = (p['x'] as num).toStringAsFixed(1);
-        p['y'] = (p['y'] as num).toStringAsFixed(1);
-        p['p'] = (p['p'] as num).toStringAsFixed(2);
-      }
-    }
-
-    final content = {
-      'strokes': strokes,
-      'textBlocks': json['textBlocks'],
-      'images': json['images'],
-      'audioPath': json['audioPath'],
-      'notebook_id': json['notebook_id'],
-      'template_type': json['template_type'],
-      'tags': json['tags'],
-      'is_deleted': json['is_deleted'],
-      'type': json['type'],
-    };
-
-    await _client.from('notes').upsert({
-      'id': note.id,
-      'user_id': userId,
-      'title': note.title,
-      'content': content,
-      'updated_at': note.updatedAt.toIso8601String(),
-      'created_at': note.createdAt.toIso8601String(),
-    });
-  }
-
-  Future<void> _uploadImages(Note note, String userId) async {
-    for (var img in note.images) {
-      if (img.storagePath == null && img.base64Data.isNotEmpty) {
-        try {
-          final fileName = 'img_${img.id}.png';
-          final path = '$userId/$fileName';
-          final bytes = base64Decode(img.base64Data);
-
-          await _client.storage
-              .from('note-images')
-              .uploadBinary(
-                path,
-                bytes,
-                fileOptions: const FileOptions(
-                  contentType: 'image/png',
-                  upsert: true,
-                ),
-              );
-
-          // Update local note with the storage path
-          img.storagePath = path;
-          await _localRepository.saveNote(note);
-        } catch (e) {
-          print('Error uploading image ${img.id}: $e');
-        }
-      }
-    }
-  }
-
-  // --- Courses Sync ---
   @override
   Future<void> syncCourses() async {
-    final user = _client.auth.currentUser;
-    if (user == null) return;
-
-    try {
-      final remoteData = await _applySyncFilter('courses', user.id);
-
-      for (var e in remoteData) {
-        final course = Course.fromJson(e);
-        await Hive.box<Course>(
-          NotesRepository.courseBoxName,
-        ).put(course.id, course);
-      }
-
-      final localCourses = _localRepository.getAllCourses();
-      for (var c in localCourses) {
-        await _client
-            .from('courses')
-            .upsert({...c.toJson(), 'user_id': user.id});
-      }
-    } catch (e) {
-      print('Courses Sync Error: $e');
-    }
+    // TODO: Implement courses sync with Supabase 'courses' table
   }
 
-  // --- Tasks Sync ---
   @override
   Future<void> syncTasks() async {
-    final user = _client.auth.currentUser;
-    if (user == null) return;
-
-    try {
-      final remoteData = await _applySyncFilter('tasks', user.id);
-
-      for (var e in remoteData) {
-        final task = Task.fromJson(e);
-        await Hive.box<Task>(NotesRepository.taskBoxName).put(task.id, task);
-      }
-
-      final localTasks = _localRepository.getAllTasks();
-      for (var t in localTasks) {
-        await _client.from('tasks').upsert({...t.toJson(), 'user_id': user.id});
-      }
-    } catch (e) {
-      print('Tasks Sync Error: $e');
-    }
+    // TODO: Implement tasks sync with Supabase 'tasks' table
   }
 
-  // --- Folders Sync ---
   @override
   Future<void> syncFolders() async {
-    final user = _client.auth.currentUser;
-    if (user == null) return;
-
-    try {
-      final remoteData = await _applySyncFilter('folders', user.id);
-      final Map<String, dynamic> remoteFoldersMap = {
-        for (var e in remoteData) e['id']: e,
-      };
-
-      for (var e in remoteData) {
-        final remoteFolder = Folder.fromJson(e);
-        final localFolder = Hive.box<Folder>(
-          NotesRepository.folderBoxName,
-        ).get(remoteFolder.id);
-        if (localFolder == null ||
-            remoteFolder.updatedAt!.isAfter(localFolder.updatedAt!)) {
-          await Hive.box<Folder>(
-            NotesRepository.folderBoxName,
-          ).put(remoteFolder.id, remoteFolder);
-        }
-      }
-
-      final notebookFolders = _localRepository.getFolders(
-        type: FolderType.notebook,
-      );
-      final resourceFolders = _localRepository.getFolders(
-        type: FolderType.resource,
-      );
-      final allFolders = [...notebookFolders, ...resourceFolders];
-
-      for (var f in allFolders) {
-        final remoteData = remoteFoldersMap[f.id];
-        if (remoteData == null ||
-            f.updatedAt!.isAfter(DateTime.parse(remoteData['updated_at']))) {
-          await _client.from('folders').upsert({
-            ...f.toJson(),
-            'user_id': user.id,
-          });
-        }
-      }
-    } catch (e) {
-      print('Folders Sync Error: $e');
-    }
+    // TODO: Implement folders sync with Supabase 'folders' table
   }
 
   @override
   Future<void> syncCalendar() async {
-    final user = _client.auth.currentUser;
-    if (user == null) return;
-
-    try {
-      final pResp = await _applySyncFilter('academic_periods', user.id);
-      for (var e in pResp) {
-        await _localRepository.savePeriod(AcademicPeriod.fromJson(e));
-      }
-
-      final localPeriods = _localRepository.getAllPeriods();
-      for (var p in localPeriods) {
-        await _client.from('academic_periods').upsert({
-          ...p.toJson(),
-          'user_id': user.id,
-        });
-      }
-
-      final eResp = await _applySyncFilter('academic_events', user.id);
-      for (var e in eResp) {
-        await _localRepository.saveEvent(AcademicEvent.fromJson(e));
-      }
-
-      final localEvents = _localRepository.getAllEvents();
-      for (var ev in localEvents) {
-        await _client.from('academic_events').upsert({
-          ...ev.toJson(),
-          'user_id': user.id,
-        });
-      }
-    } catch (e) {
-      print('Calendar Sync Error: $e');
-    }
+    // TODO: Implement calendar sync with Supabase 'calendar' table
   }
 
   @override
   Future<void> syncGrades() async {
-    final user = _client.auth.currentUser;
-    if (user == null) return;
-
-    try {
-      final remoteData = await _applySyncFilter('grades', user.id);
-      for (var e in remoteData) {
-        await _localRepository.saveGrade(Grade.fromJson(e));
-      }
-
-      final courses = _localRepository.getAllCourses();
-      for (var c in courses) {
-        final localGrades = _localRepository.getGradesForCourse(c.id);
-        for (var g in localGrades) {
-          await _client.from('grades').upsert({
-            ...g.toJson(),
-            'user_id': user.id,
-          });
-        }
-      }
-    } catch (e) {
-      print('Grades Sync Error: $e');
-    }
+    // TODO: Implement grades sync with Supabase 'grades' table
   }
 
   @override
   Future<void> syncAttendance() async {
-    final user = _client.auth.currentUser;
-    if (user == null) return;
-
-    try {
-      final remoteData = await _applySyncFilter('attendance', user.id);
-      for (var e in remoteData) {
-        await _localRepository.saveAttendance(Attendance.fromJson(e));
-      }
-
-      final courses = _localRepository.getAllCourses();
-      for (var c in courses) {
-        final localAtt = _localRepository.getAttendanceForCourse(c.id);
-        for (var a in localAtt) {
-          await _client.from('attendance').upsert({
-            ...a.toJson(),
-            'user_id': user.id,
-          });
-        }
-      }
-    } catch (e) {
-      print('Attendance Sync Error: $e');
-    }
+    // TODO: Implement attendance sync with Supabase 'attendance' table
   }
 
   @override
   Future<void> syncProfile() async {
-    final user = _client.auth.currentUser;
-    if (user == null) return;
+    // TODO: Implement profile sync with Supabase 'profiles' table
+    // Example:
+    // final user = _client.auth.currentUser;
+    // if (user == null) return;
+    // await _client.from('profiles').upsert({...});
+  }
 
+  @override
+  Future<bool> hasProfile() async {
     try {
-      final remoteData = await _applySyncFilter('student_profiles', user.id);
-      if (remoteData.isNotEmpty) {
-        final response = remoteData.first;
-        final profile = StudentProfile.fromJson(response);
-        final fullName = user.userMetadata?['full_name'] as String?;
-        if (fullName != null) profile.name = fullName;
-        await _localRepository.saveStudentProfile(profile);
-      }
+      final user = _client.auth.currentUser;
+      if (user == null) return false;
 
-      final localProfile = _localRepository.getStudentProfile();
-      await _client.from('student_profiles').upsert({
-        ...localProfile.toJson(),
-        'user_id': user.id,
-      });
+      final response = await _client
+          .from('profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      return response != null;
     } catch (e) {
-      print('Profile Sync Error: $e');
+      // Table might not exist yet — treat as no profile
+      return false;
     }
   }
 
   @override
   Future<void> deleteNote(String noteId) async {
-    final user = _client.auth.currentUser;
-    if (user == null) return;
-    await _client.from('notes').delete().eq('id', noteId);
-  }
-
-  Future<void> deleteUserContent() async {
-    final user = _client.auth.currentUser;
-    if (user == null) return;
-
-    final userId = user.id;
-
-    // Delete data from all tables where user_id matches
-    // Note: Order might matter if there are foreign key constraints,
-    // but typically Supabase handles this or we delete children first.
-    await Future.wait([
-      _client.from('notes').delete().eq('user_id', userId),
-      _client.from('tasks').delete().eq('user_id', userId),
-      _client.from('courses').delete().eq('user_id', userId),
-      _client.from('folders').delete().eq('user_id', userId),
-      _client.from('academic_periods').delete().eq('user_id', userId),
-      _client.from('academic_events').delete().eq('user_id', userId),
-      _client.from('grades').delete().eq('user_id', userId),
-      _client.from('attendance').delete().eq('user_id', userId),
-      _client.from('student_profiles').delete().eq('user_id', userId),
-    ]);
+    // TODO: Implement note deletion from Supabase
+    // Example:
+    // await _client.from('notes').delete().eq('id', noteId);
   }
 
   @override
-  Future<bool> hasProfile() async {
-    final user = _client.auth.currentUser;
-    if (user == null) return false;
-    try {
-      final response = await _client
-          .from('student_profiles')
-          .select('user_id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-      return response != null;
-    } catch (e) {
-      return false;
-    }
+  Future<void> deleteUserContent() async {
+    // TODO: Implement user content deletion from Supabase
+    // This should delete all user data from all tables
+    // Example:
+    // final userId = _client.auth.currentUser?.id;
+    // if (userId == null) return;
+    // await _client.from('notes').delete().eq('user_id', userId);
+    // await _client.from('profiles').delete().eq('user_id', userId);
+    // ... etc for all tables
   }
 }

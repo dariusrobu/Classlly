@@ -6,6 +6,7 @@ import 'package:classlly/features/library/providers/library_provider.dart';
 import 'package:classlly/features/library/providers/academic_calendar_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:classlly/core/services/cloud_storage_service.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -43,9 +44,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
   void _loadUserInfo() {
     final user = Supabase.instance.client.auth.currentUser;
-    final metaName = user?.userMetadata?['full_name'] as String?;
-    if (metaName != null && metaName.isNotEmpty) {
-      _nameController.text = metaName;
+    final displayName = user?.userMetadata?['full_name'] as String?;
+    if (displayName != null && displayName.isNotEmpty) {
+      _nameController.text = displayName;
     }
   }
 
@@ -69,10 +70,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     try {
       final name = _nameController.text.trim();
 
-      // 1. Update Supabase Metadata
-      await Supabase.instance.client.auth.updateUser(
-        UserAttributes(data: {'full_name': name}),
-      );
+      // 1. Update Supabase User Metadata
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        await Supabase.instance.client.auth.updateUser(
+          UserAttributes(data: {'full_name': name}),
+        );
+      }
 
       // 2. Save Local Profile
       final profile = StudentProfile(
@@ -91,16 +95,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       prefs.hasCompletedOnboarding = true;
       await repo.savePreferences(prefs);
 
-      // 4. Upsert to Supabase directly to prevent stale remote data from overwriting local on sync
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user != null) {
-        await Supabase.instance.client.from('student_profiles').upsert({
-          'user_id': user.id,
-          'university': profile.university,
-          'major': profile.major,
-          'year': profile.year,
-          'student_id': profile.studentId,
-        });
+      // 4. Trigger Cloud Sync (which handles upserting profile)
+      if (mounted) {
+        final cloudService = Provider.of<CloudStorageService>(context, listen: false);
+        await cloudService.syncProfile();
       }
 
       // Auto-load academic calendar if a template matches the selected university
@@ -163,15 +161,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       prefs.hasCompletedOnboarding = true;
       await repo.savePreferences(prefs);
 
-      // Sync minimal profile to Supabase so hasProfile() returns true on other devices
-      if (user != null) {
-        await Supabase.instance.client.from('student_profiles').upsert({
-          'user_id': user.id,
-          'university': '',
-          'major': '',
-          'year': '',
-          'student_id': '',
-        });
+      // Sync minimal profile
+      if (mounted) {
+        final cloudService = Provider.of<CloudStorageService>(context, listen: false);
+        await cloudService.syncProfile();
       }
 
       if (mounted) {

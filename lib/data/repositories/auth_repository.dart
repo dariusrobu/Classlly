@@ -1,30 +1,33 @@
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
 import 'package:classlly/core/services/supabase_cloud_service.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
+import 'package:crypto/crypto.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 class AuthRepository {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  final SupabaseClient _client = Supabase.instance.client;
 
-  Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
+  GoTrueClient get _auth => _client.auth;
 
-  User? get currentUser => _supabase.auth.currentUser;
+  Stream<AuthState> get authStateChanges => _auth.onAuthStateChange;
+
+  User? get currentUser => _auth.currentUser;
 
   Future<void> deleteAccount() async {
     final cloudService = SupabaseCloudService();
     await cloudService.deleteUserContent();
-    await signOut();
+    await _auth.signOut();
   }
 
   Future<AuthResponse> signInWithEmailPassword({
     required String email,
     required String password,
   }) async {
-    return await _supabase.auth.signInWithPassword(
+    return await _auth.signInWithPassword(
       email: email,
       password: password,
     );
@@ -34,98 +37,68 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
-    return await _supabase.auth.signUp(email: email, password: password);
+    return await _auth.signUp(
+      email: email,
+      password: password,
+    );
   }
 
   Future<void> signOut() async {
-    // Clear all local data (Hive, etc.) to ensure a fresh state for next login/guest
     await NotesRepository().clearAllData();
-    await _supabase.auth.signOut();
+    await _auth.signOut();
   }
 
-  Future<void> signInWithGoogle() async {
-    // Web implementation
-    if (kIsWeb) {
-      await _supabase.auth.signInWithOAuth(OAuthProvider.google);
-      return;
-    }
+  Future<AuthResponse> signInWithGoogle() async {
+    print('DEBUG: AuthRepository.signInWithGoogle called (BROWSER ONLY MODE)');
+    return _signInWithGoogleOAuth();
+  }
 
-    // Mobile implementation (Android/iOS)
-    const iosClientId =
-        '153897807907-tllogka5ud9ploje6n0urqalhu0n7oku.apps.googleusercontent.com'; // Native iOS/macOS Client ID
-    const webClientId =
-        '153897807907-3lph5o2mo39475fp1jjqglnpur5l3eu3.apps.googleusercontent.com';
+  /// Browser-based Google OAuth for desktop platforms.
+  Future<AuthResponse> _signInWithGoogleOAuth() async {
+    // Listen for auth state change from the OAuth callback
+    final completer = Completer<AuthResponse>();
+    late final StreamSubscription<AuthState> subscription;
 
-    final GoogleSignIn googleSignIn = GoogleSignIn(
-      clientId: (!kIsWeb && defaultTargetPlatform == TargetPlatform.android)
-          ? webClientId
-          : (defaultTargetPlatform == TargetPlatform.iOS ||
-                defaultTargetPlatform == TargetPlatform.macOS)
-          ? iosClientId
-          : null,
-      serverClientId: webClientId,
-      scopes: ['email', 'profile'],
-    );
-
-    final googleUser = await googleSignIn.signIn();
-    final googleAuth = await googleUser?.authentication;
-
-    if (googleAuth == null) {
-      throw const AuthException('Google Sign In failed');
-    }
-
-    final idToken = googleAuth.idToken;
-
-    if (idToken == null) {
-      throw const AuthException('No ID Token found.');
-    }
-
-    // Extract Nonce
-    String? googleNonce;
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
-      try {
-        final parts = idToken.split('.');
-        if (parts.length > 1) {
-          final payload = parts[1];
-          final normalized = base64Url.normalize(payload);
-          final resp = utf8.decode(base64Url.decode(normalized));
-          final payloadMap = jsonDecode(resp);
-          if (payloadMap is Map<String, dynamic> &&
-              payloadMap.containsKey('nonce')) {
-            googleNonce = payloadMap['nonce'];
-            debugPrint('✅ Extracted Nonce: $googleNonce');
-          }
+    subscription = _auth.onAuthStateChange.listen((event) {
+      if (event.event == AuthChangeEvent.signedIn && event.session != null) {
+        subscription.cancel();
+        if (!completer.isCompleted) {
+          completer.complete(AuthResponse(
+            session: event.session,
+            user: event.session!.user,
+          ));
         }
-      } catch (e) {
-        debugPrint('❌ Error parsing nonce: $e');
       }
-    }
+    });
 
-    // Use standard signInWithIdToken.
-    // Ensure "Skip nonce checks" is ENABLED in Supabase Dashboard -> Authentication -> Providers -> Google
-    // to avoid "Bad ID Token" or "Nonce mismatch" errors on iOS/macOS.
-    await _supabase.auth.signInWithIdToken(
-      provider: OAuthProvider.google,
-      idToken: idToken,
-      accessToken: googleAuth.accessToken,
+    final success = await _auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: 'com.robudarius.classlly://login-callback',
+      scopes: 'https://www.googleapis.com/auth/drive.file',
+      queryParams: {
+        'access_type': 'offline',
+        'prompt': 'consent',
+      },
     );
 
-    // Update user metadata with name from Google
-    if (googleUser != null && googleUser.displayName != null) {
-      await _supabase.auth.updateUser(
-        UserAttributes(data: {'full_name': googleUser.displayName}),
-      );
+    if (!success) {
+      subscription.cancel();
+      throw const AuthException('Google Sign In failed to launch');
     }
+
+    // Wait for the callback with a timeout
+    return completer.future.timeout(
+      const Duration(minutes: 2),
+      onTimeout: () {
+        subscription.cancel();
+        throw const AuthException('Google Sign In timed out');
+      },
+    );
   }
 
-  Future<void> signInWithApple() async {
-    if (kIsWeb) {
-      await _supabase.auth.signInWithOAuth(OAuthProvider.apple);
-      return;
-    }
-
-    final rawNonce = _supabase.auth.generateRawNonce();
-    final hashedNonce = _sha256ofString(rawNonce);
+  Future<AuthResponse> signInWithApple() async {
+    final rawNonce = _generateRandomString();
+    final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
 
     final credential = await SignInWithApple.getAppleIDCredential(
       scopes: [
@@ -135,32 +108,18 @@ class AuthRepository {
       nonce: hashedNonce,
     );
 
-    final idToken = credential.identityToken;
-    if (idToken == null) {
-      throw const AuthException(
-        'Could not find ID Token from generated credential.',
-      );
+    if (credential.identityToken == null) {
+      throw AuthException('No identity token received from Apple');
     }
 
-    await _supabase.auth.signInWithIdToken(
+    return await _auth.signInWithIdToken(
       provider: OAuthProvider.apple,
-      idToken: idToken,
+      idToken: credential.identityToken!,
       nonce: rawNonce,
     );
-
-    // Apple only returns the name on the first sign in.
-    if (credential.givenName != null) {
-      final fullName = '${credential.givenName} ${credential.familyName ?? ''}'
-          .trim();
-      await _supabase.auth.updateUser(
-        UserAttributes(data: {'full_name': fullName}),
-      );
-    }
   }
 
-  String _sha256ofString(String input) {
-    final bytes = utf8.encode(input);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
+  String _generateRandomString() {
+    return DateTime.now().toIso8601String();
   }
 }

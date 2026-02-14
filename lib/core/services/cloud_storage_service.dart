@@ -4,8 +4,11 @@ abstract class CloudStorageService {
   // Sync Status
   Stream<List<Note>> notesStream();
 
-  // High-level Sync
-  Future<void> syncAll();
+  /// Syncs all data types (notes, courses, tasks, etc.)
+  ///
+  /// [interactive] determines oif the user should be prompted for authentication
+  /// if not currently signed in.
+  Future<void> syncAll({bool interactive = false});
 
   // Domain Specific Sync Methods
   Future<void> syncNotes();
@@ -20,4 +23,5 @@ abstract class CloudStorageService {
   // Helper Methods
   Future<bool> hasProfile();
   Future<void> deleteNote(String noteId);
+  Future<void> deleteUserContent();
 }

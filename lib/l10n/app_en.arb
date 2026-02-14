@@ -111,7 +111,7 @@
   },
   "syncNow": "Sync Now",
   "never": "Never",
-  "supabaseSecurity": "Supabase ensures your data is encrypted and only accessible by you using Row Level Security (RLS). Google Drive and iCloud backups can be enabled in our web dashboard.",
+
   "workspace": "Workspace",
   "close": "Close",
   "profile": "Profile",
