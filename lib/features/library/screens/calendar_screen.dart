@@ -67,9 +67,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       ),
                     ),
                   Text(
-                    AppLocalizations.of(context)!.academicCalendar,
+                    DateFormat('EEEE, MMMM d, yyyy').format(
+                      _selectedDay ?? _focusedDay,
+                    ),
                     style: TextStyle(
-                      fontSize: 28,
+                      fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: textColor,
                     ),
@@ -78,6 +80,82 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   Text(
                     AppLocalizations.of(context)!.academicScheduleDesc,
                     style: const TextStyle(color: subTextColor, fontSize: 14),
+                  ),
+                  const SizedBox(height: 16),
+                  // Filter + New Event buttons
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: cardBg,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: borderMuted),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.filter_list,
+                              size: 16,
+                              color: subTextColor,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Filter',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: textColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      GestureDetector(
+                        onTap: () {},
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: primary,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: primary.withValues(alpha: 0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.add,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'New Event',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 32),
                   Container(
@@ -293,6 +371,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 icon: Icons.school,
                 color: Color(c.color),
                 time: c.courseTime,
+                type: 'LECTURE',
               ),
             );
           }
@@ -311,6 +390,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             icon: Icons.check_circle,
             color: t.priority == 2 ? Colors.redAccent : Colors.orange,
             time: DateFormat.Hm().format(t.dueDate!),
+            type: t.priority == 2 ? 'ASSIGNMENT' : 'TASK',
           ),
         );
       }
@@ -385,65 +465,230 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 )
               : ListView.builder(
                   padding: const EdgeInsets.all(24),
-                  itemCount: allItems.length,
+                  itemCount: allItems.length + 1, // +1 for Tomorrow's Highlights
                   itemBuilder: (context, index) {
-                    final item = allItems[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 24),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Column(
-                            children: [
-                              Container(
-                                width: 12,
-                                height: 12,
-                                decoration: BoxDecoration(
-                                  color: item.color,
-                                  shape: BoxShape.circle,
-                                ),
+                    if (index == allItems.length) {
+                      // Tomorrow's Highlights section
+                      final tomorrow = selectedDay.add(const Duration(days: 1));
+                      final tomorrowItems = <_AgendaItemData>[];
+                      final tomorrowName = DateFormat('EEEE').format(tomorrow);
+                      if (weekInfo != null) {
+                        for (var c in courses) {
+                          if (c.courseDay == tomorrowName) {
+                            tomorrowItems.add(
+                              _AgendaItemData(
+                                title: c.title,
+                                subtitle: '${c.courseTime} • ${c.location}',
+                                icon: Icons.school,
+                                color: Color(c.color),
+                                time: c.courseTime,
+                                type: 'LECTURE',
                               ),
-                              if (index < allItems.length - 1)
-                                Container(
-                                  width: 2,
-                                  height: 60,
-                                  color: borderMuted,
-                                ),
-                            ],
-                          ),
-                          const SizedBox(width: 20),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item.time,
+                            );
+                          }
+                        }
+                      }
+                      for (var t in taskProvider.tasks) {
+                        if (t.dueDate != null &&
+                            isSameDay(t.dueDate!, tomorrow) &&
+                            !t.isDeleted) {
+                          tomorrowItems.add(
+                            _AgendaItemData(
+                              title: t.title,
+                              subtitle: t.category ?? '',
+                              icon: Icons.check_circle,
+                              color: t.priority == 2
+                                  ? Colors.redAccent
+                                  : Colors.orange,
+                              time: DateFormat.Hm().format(t.dueDate!),
+                              type: t.priority == 2 ? 'ASSIGNMENT' : 'TASK',
+                            ),
+                          );
+                        }
+                      }
+
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Divider(),
+                            const SizedBox(height: 12),
+                            Text(
+                              "TOMORROW'S HIGHLIGHTS",
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.2,
+                                color: subTextColor,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            if (tomorrowItems.isEmpty)
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
+                                child: Text(
+                                  'No events tomorrow',
                                   style: TextStyle(
-                                    color: item.color,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  item.title,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: textColor,
-                                  ),
-                                ),
-                                Text(
-                                  item.subtitle,
-                                  style: TextStyle(
-                                    color: subTextColor,
+                                    color: subTextColor.withValues(alpha: 0.6),
                                     fontSize: 13,
                                   ),
                                 ),
-                              ],
+                              )
+                            else
+                              ...tomorrowItems.map((item) {
+                                final borderColor = item.type == 'ASSIGNMENT'
+                                    ? Colors.redAccent
+                                    : item.type == 'LECTURE'
+                                        ? Colors.blueAccent
+                                        : Colors.orange;
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: scaffoldBg.withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border(
+                                      left: BorderSide(color: borderColor, width: 3),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(item.icon, size: 16, color: borderColor),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          item.title,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        item.time,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: subTextColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final item = allItems[index];
+                    // Categorized card with colored left border
+                    final borderColor = item.type == 'ASSIGNMENT'
+                        ? Colors.redAccent
+                        : item.type == 'LECTURE'
+                            ? Colors.blueAccent
+                            : Colors.orange;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: cardBg,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: borderMuted),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            // Colored left border
+                            Container(
+                              width: 4,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: borderColor,
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(16),
+                                  bottomLeft: Radius.circular(16),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding:
+                                              const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: borderColor.withValues(
+                                                alpha: 0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            item.type,
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: 0.8,
+                                              color: borderColor,
+                                            ),
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Text(
+                                          item.time,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: subTextColor,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      item.title,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        color: textColor,
+                                      ),
+                                    ),
+                                    if (item.subtitle.isNotEmpty)
+                                      Text(
+                                        item.subtitle,
+                                        style: TextStyle(
+                                          color: subTextColor,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },
@@ -460,11 +705,13 @@ class _AgendaItemData {
   final IconData icon;
   final Color color;
   final String time;
+  final String type;
   _AgendaItemData({
     required this.title,
     required this.subtitle,
     required this.icon,
     required this.color,
     required this.time,
+    this.type = 'TASK',
   });
 }

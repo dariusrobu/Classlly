@@ -19,9 +19,9 @@ class GlassCard extends StatelessWidget {
     required this.child,
     this.padding,
     this.margin,
-    this.borderRadius = 16.0,
-    this.blur = 20.0,
-    this.opacity = 0.65,
+    this.borderRadius = 24.0,
+    this.blur = 12.0,
+    this.opacity = 0.45,
     this.backgroundColor,
     this.border,
     this.width,
@@ -39,7 +39,7 @@ class GlassCard extends StatelessWidget {
 
     final defaultBorderColor = isDark
         ? Colors.white.withValues(alpha: 0.1)
-        : Colors.black.withValues(alpha: 0.05);
+        : Colors.white.withValues(alpha: 0.3);
 
     // Web Crash Fix: BackdropFilter can be unstable on some web renderers (HTML).
     // We disable blur on web and use a more opaque background for readability/stability.

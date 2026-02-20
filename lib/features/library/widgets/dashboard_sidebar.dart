@@ -1,3 +1,5 @@
+import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:classlly/features/library/providers/library_provider.dart';
@@ -14,38 +16,41 @@ class DashboardSidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     final libraryProvider = Provider.of<LibraryProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
 
-    return Container(
-      width: 280,
-      color: isDark ? AppTheme.sidebarDark : Theme.of(context).cardColor,
+    // Sidebar with glassmorphism effect
+    Widget sidebarContent = Container(
+      width: 260,
+      decoration: BoxDecoration(
+        color: isDark
+            ? AppTheme.sidebarDark.withValues(alpha: 0.85)
+            : Colors.white.withValues(alpha: 0.6),
+        border: Border(
+          right: BorderSide(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.white.withValues(alpha: 0.3),
+          ),
+        ),
+      ),
       child: SafeArea(
         child: Column(
           children: [
+            // Logo & Brand
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
               child: Row(
                 children: [
                   Container(
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Theme.of(context).colorScheme.primary,
-                          Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.8),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      color: primary,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.4),
-                          blurRadius: 20,
+                          color: primary.withValues(alpha: 0.3),
+                          blurRadius: 16,
                           offset: const Offset(0, 4),
                         ),
                       ],
@@ -53,24 +58,40 @@ class DashboardSidebar extends StatelessWidget {
                     child: const Icon(
                       Icons.school,
                       color: Colors.white,
-                      size: 24,
+                      size: 22,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    'Classlly',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.5,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Classlly',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: -0.5,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                      ),
+                      Text(
+                        'STUDENT PORTAL',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.5,
+                          color: isDark ? Colors.grey[500] : Colors.grey[500],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
+            // Navigation Items
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Column(
                   children: [
                     SidebarItem(
@@ -139,6 +160,13 @@ class DashboardSidebar extends StatelessWidget {
                         LibraryView.archive,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    Divider(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : Colors.black.withValues(alpha: 0.06),
+                    ),
+                    const SizedBox(height: 8),
                     SidebarItem(
                       icon: Icons.settings,
                       label: AppLocalizations.of(context)!.settings,
@@ -159,9 +187,25 @@ class DashboardSidebar extends StatelessWidget {
                 ),
               ),
             ),
-            const Padding(padding: EdgeInsets.all(16), child: UserCard()),
+            // User Card at bottom
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: const UserCard(),
+            ),
           ],
         ),
+      ),
+    );
+
+    // Wrap with backdrop blur for glassmorphism (skip on web)
+    if (kIsWeb) {
+      return sidebarContent;
+    }
+
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: sidebarContent,
       ),
     );
   }
@@ -197,32 +241,25 @@ class SidebarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 4),
+      margin: const EdgeInsets.only(bottom: 2),
       child: Material(
         color: Colors.transparent,
         child: GestureDetector(
           onTap: onTap,
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: isActive
                 ? BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Theme.of(context).colorScheme.primary,
-                        Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.8),
-                      ],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
+                    color: primary,
+                    borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.4),
+                        color: primary.withValues(alpha: 0.25),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -234,15 +271,19 @@ class SidebarItem extends StatelessWidget {
                 Icon(
                   icon,
                   size: 20,
-                  color: isActive ? Colors.white : Colors.grey[500],
+                  color: isActive
+                      ? Colors.white
+                      : (isDark ? Colors.grey[400] : Colors.grey[500]),
                 ),
                 const SizedBox(width: 12),
                 Text(
                   label,
                   style: TextStyle(
-                    fontWeight: FontWeight.w500,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                     fontSize: 14,
-                    color: isActive ? Colors.white : Colors.grey[500],
+                    color: isActive
+                        ? Colors.white
+                        : (isDark ? Colors.grey[400] : Colors.grey[500]),
                   ),
                 ),
               ],
@@ -263,6 +304,7 @@ class UserCard extends StatelessWidget {
     final profile = provider.studentProfile;
     final name = profile.name ?? 'Alex';
     final initials = name.isNotEmpty ? name[0].toUpperCase() : 'A';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
       onTap: () {
@@ -274,10 +316,14 @@ class UserCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.05),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.white.withValues(alpha: 0.45),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.05),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.white.withValues(alpha: 0.5),
           ),
         ),
         child: Row(
@@ -286,14 +332,14 @@ class UserCard extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.2),
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.15),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.2),
+                  color: Colors.white.withValues(alpha: 0.5),
+                  width: 2,
                 ),
               ),
               child: Center(
@@ -319,18 +365,26 @@ class UserCard extends StatelessWidget {
                     name,
                     style: TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       color: Theme.of(context).textTheme.bodyLarge?.color,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     profile.major.isNotEmpty ? profile.major : 'Student',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.grey[500] : Colors.grey[500],
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
+            ),
+            Icon(
+              Icons.settings_outlined,
+              size: 16,
+              color: isDark ? Colors.grey[600] : Colors.grey[400],
             ),
           ],
         ),

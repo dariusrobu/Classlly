@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Core Brand Colors (Modern SaaS Violet)
-  static const Color primaryPurple = Color(0xFF6366F1); // Indigo 500
-  static const Color vibrantPurple = Color(0xFF818CF8); // Indigo 400
+  // Core Brand Colors (Sky Blue)
+  static const Color primaryPurple = Color(0xFF2B9DEE); // Sky Blue
+  static const Color vibrantPurple = Color(0xFF5BB8F5); // Sky Blue Light
 
   // Semantic Accents (Refined & Slightly desaturated)
   static const List<Color> accentColors = [
-    Color(0xFF6366F1), // Indigo
+    Color(0xFF2B9DEE), // Sky Blue (Primary)
     Color(0xFFF43F5E), // Rose (Red)
     Color(0xFFF59E0B), // Amber
     Color(0xFF10B981), // Emerald (Green)

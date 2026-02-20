@@ -534,6 +534,10 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildPerformanceCharts(isDark, primaryColor),
+            const SizedBox(height: 24),
+            _buildRecentGradesCard(isDark, primaryColor),
+            const SizedBox(height: 24),
+            _buildAttendanceRecords(isDark, primaryColor),
             const SizedBox(height: 32),
             _buildCourseInfoCard(isDark, primaryColor),
             const SizedBox(height: 32),
@@ -560,6 +564,15 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildPerformanceCharts(isDark, primaryColor),
+          const SizedBox(height: 24),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _buildRecentGradesCard(isDark, primaryColor)),
+              const SizedBox(width: 24),
+              Expanded(child: _buildAttendanceRecords(isDark, primaryColor)),
+            ],
+          ),
           const SizedBox(height: 32),
           _buildCourseInfoCard(isDark, primaryColor),
           const SizedBox(height: 32),
@@ -598,6 +611,289 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
       child: _buildRecentNotesList(isDark, primaryColor, limit: 100),
     );
   }
+
+  /// Inline Recent Grades card
+  Widget _buildRecentGradesCard(bool isDark, Color primaryColor) {
+    return GlassCard(
+      padding: const EdgeInsets.all(24),
+      borderRadius: 24,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Recent Grades',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => _showGradeHistory(context),
+                child: Text(
+                  'View All',
+                  style: TextStyle(
+                    color: primaryColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ValueListenableBuilder(
+            valueListenable:
+                Hive.box<Grade>(NotesRepository.gradeBoxName).listenable(),
+            builder: (context, Box<Grade> gradeBox, _) {
+              final courseGrades = gradeBox.values
+                  .where((g) => g.courseId == _course.id)
+                  .toList()
+                ..sort((a, b) => b.date.compareTo(a.date));
+              final recent = courseGrades.take(3).toList();
+
+              if (recent.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Center(
+                    child: Text(
+                      'No grades yet',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                    ),
+                  ),
+                );
+              }
+
+              return Column(
+                children: recent.map((grade) {
+                  final pct = (grade.score / grade.maxScore * 100);
+                  String letterGrade = 'F';
+                  Color gradeColor = Colors.red;
+                  if (pct >= 90) {
+                    letterGrade = 'A';
+                    gradeColor = Colors.green;
+                  } else if (pct >= 80) {
+                    letterGrade = 'B';
+                    gradeColor = Colors.blue;
+                  } else if (pct >= 70) {
+                    letterGrade = 'C';
+                    gradeColor = Colors.orange;
+                  } else if (pct >= 60) {
+                    letterGrade = 'D';
+                    gradeColor = Colors.deepOrange;
+                  }
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.03)
+                          : Colors.white.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.06)
+                            : Colors.black.withValues(alpha: 0.04),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: gradeColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Center(
+                            child: Text(
+                              letterGrade,
+                              style: TextStyle(
+                                color: gradeColor,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                grade.title,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                DateFormat.MMMd().format(grade.date),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          '${grade.score.toStringAsFixed(0)}/${grade.maxScore.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color: gradeColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Attendance records timeline
+  Widget _buildAttendanceRecords(bool isDark, Color primaryColor) {
+    return GlassCard(
+      padding: const EdgeInsets.all(24),
+      borderRadius: 24,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Attendance Records',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => _showAttendanceHistory(context),
+                child: Text(
+                  'View All',
+                  style: TextStyle(
+                    color: primaryColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ValueListenableBuilder(
+            valueListenable:
+                Hive.box<Attendance>(NotesRepository.attendanceBoxName)
+                    .listenable(),
+            builder: (context, Box<Attendance> attBox, _) {
+              final courseAtt = attBox.values
+                  .where((a) => a.courseId == _course.id)
+                  .toList()
+                ..sort((a, b) => b.date.compareTo(a.date));
+              final recent = courseAtt.take(5).toList();
+
+              if (recent.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Center(
+                    child: Text(
+                      'No attendance records yet',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                    ),
+                  ),
+                );
+              }
+
+              return Column(
+                children: recent.map((att) {
+                  final isPresent = att.status == AttendanceStatus.present ||
+                      att.status == AttendanceStatus.excused;
+                  final statusColor = isPresent ? Colors.green : Colors.red;
+                  final statusLabel = att.status == AttendanceStatus.present
+                      ? 'Present'
+                      : att.status == AttendanceStatus.excused
+                          ? 'Excused'
+                          : 'Absent';
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.03)
+                          : Colors.white.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.06)
+                            : Colors.black.withValues(alpha: 0.04),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: statusColor,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Text(
+                            DateFormat('EEEE, MMM d').format(att.date),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: isDark ? Colors.white70 : Colors.black87,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            statusLabel,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: statusColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
 
   Widget _buildQuickActions(
     BuildContext context,
@@ -791,8 +1087,72 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                       fontWeight: FontWeight.w500,
                     ),
                   ),
+                  if (_course.semester.isNotEmpty) ...[
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: primaryColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: primaryColor.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Text(
+                        _course.semester.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1,
+                          color: primaryColor,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
+              const SizedBox(height: 12),
+              // Course Syllabus button
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.white.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.black.withValues(alpha: 0.06),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.description_outlined,
+                      size: 16,
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Course Syllabus',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.grey[300] : Colors.grey[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             ],
           ),
           const SizedBox(width: 24),

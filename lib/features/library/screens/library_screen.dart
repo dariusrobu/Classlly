@@ -26,6 +26,7 @@ import 'package:classlly/features/text_editor/screens/text_editor_screen.dart';
 import 'package:classlly/features/library/widgets/create_note_dialog.dart';
 import 'package:classlly/l10n/app_localizations.dart';
 import 'package:classlly/core/services/notification_service.dart';
+import 'package:classlly/core/widgets/glass_card.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -81,22 +82,44 @@ class _LibraryScreenState extends State<LibraryScreen> {
   Widget build(BuildContext context) {
     final libraryProvider = Provider.of<LibraryProvider>(context);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: Colors.transparent,
       drawer: MediaQuery.of(context).size.width <= 1000
           ? const Drawer(child: DashboardSidebar())
           : null,
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (MediaQuery.of(context).size.width > 1000)
-            const DashboardSidebar(),
-          Expanded(
-            child: SafeArea(
-              child: _MainContentSwitch(view: libraryProvider.currentView),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: isDark
+              ? const LinearGradient(
+                  colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : const RadialGradient(
+                  center: Alignment.topLeft,
+                  radius: 1.8,
+                  colors: [
+                    Color(0xFFE0F2FE), // sky-100
+                    Color(0xFFF1F5F9), // slate-100
+                    Color(0xFFFDF2F8), // pink-50
+                  ],
+                  stops: [0.0, 0.4, 0.8],
+                ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (MediaQuery.of(context).size.width > 1000)
+              const DashboardSidebar(),
+            Expanded(
+              child: SafeArea(
+                child: _MainContentSwitch(view: libraryProvider.currentView),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -372,6 +395,7 @@ class _CoursesView extends StatelessWidget {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final isMobile = width < 600;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(isMobile ? 16 : 32),
@@ -389,6 +413,7 @@ class _CoursesView extends StatelessWidget {
                 onPressed: () => Scaffold.of(context).openDrawer(),
               ),
             ),
+          // ── Header Row ──
           Flex(
             direction: isMobile ? Axis.vertical : Axis.horizontal,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -399,7 +424,8 @@ class _CoursesView extends StatelessWidget {
               isMobile
                   ? const _SectionTitle(
                       title: 'My Courses',
-                      subtitle: 'Access all your enrolled classes and materials.',
+                      subtitle:
+                          'Access all your enrolled classes and materials.',
                     )
                   : const Flexible(
                       child: _SectionTitle(
@@ -412,6 +438,27 @@ class _CoursesView extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.white.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : Colors.black.withValues(alpha: 0.05),
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.notifications_outlined,
+                      size: 20,
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
                   _HeaderButton(
                     icon: Icons.add_circle_outline,
                     label: 'Add Course',
@@ -424,6 +471,41 @@ class _CoursesView extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 20),
+          // ── Search Bar ──
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.white.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.white.withValues(alpha: 0.4),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.search,
+                  size: 20,
+                  color: isDark ? Colors.grey[400] : Colors.grey[500],
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Search courses by name, professor, or code...',
+                    style: TextStyle(
+                      color: isDark ? Colors.grey[500] : Colors.grey[400],
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 24),
           const _CoursesGrid(fullList: true),
         ],
@@ -432,12 +514,352 @@ class _CoursesView extends StatelessWidget {
   }
 }
 
-class _AllNotesView extends StatelessWidget {
+class _CoursesGrid extends StatelessWidget {
+  final bool fullList;
+  const _CoursesGrid({this.fullList = false});
+
+  static const _categoryColors = {
+    'Science': Color(0xFF10B981),
+    'Tech': Color(0xFF3B82F6),
+    'Mathematics': Color(0xFF8B5CF6),
+    'Finance': Color(0xFFF59E0B),
+    'Arts': Color(0xFFEC4899),
+    'Language': Color(0xFF06B6D4),
+    'Business': Color(0xFFF97316),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder(
+      valueListenable: Hive.box<Course>(
+        NotesRepository.courseBoxName,
+      ).listenable(),
+      builder: (context, Box<Course> box, _) {
+        var courses = box.values.toList();
+        if (!fullList) {
+          courses = courses.take(3).toList();
+        }
+
+        if (courses.isEmpty) {
+          return EmptyState(
+            icon: Icons.school_outlined,
+            title: 'No courses yet',
+            subtitle:
+                'Add your first course to start tracking your schedule.',
+            actionLabel: 'Add Course',
+            onAction: () => showDialog(
+              context: context,
+              builder: (context) => const AddCourseScreen(),
+            ),
+          );
+        }
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            int crossAxisCount = width > 1200
+                ? 4
+                : (width > 800 ? 3 : (width > 500 ? 2 : 1));
+
+            double aspectRatio = 1.15;
+            if (crossAxisCount == 1) {
+              aspectRatio = 1.8;
+            } else if (crossAxisCount == 2) {
+              aspectRatio = 1.25;
+            }
+
+            final itemCount = fullList ? courses.length + 1 : courses.length;
+
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                mainAxisSpacing: 20,
+                crossAxisSpacing: 20,
+                childAspectRatio: aspectRatio,
+              ),
+              itemCount: itemCount,
+              itemBuilder: (context, index) {
+                if (fullList && index == courses.length) {
+                  return _EnrollPlaceholderCard();
+                }
+                final c = courses[index];
+                final cat = c.semester.isNotEmpty ? c.semester : 'General';
+                final catColor =
+                    _categoryColors[cat] ?? const Color(0xFF3B82F6);
+                return _CourseCard(course: c, categoryColor: catColor);
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _CourseCard extends StatelessWidget {
+  final Course course;
+  final Color categoryColor;
+  const _CourseCard({required this.course, required this.categoryColor});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = Color(course.color);
+    final category =
+        course.semester.isNotEmpty ? course.semester.toUpperCase() : 'COURSE';
+
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CourseDetailScreen(course: course),
+        ),
+      ),
+      child: GlassCard(
+        padding: const EdgeInsets.all(20),
+        borderRadius: 24,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(course.icon, color: color, size: 22),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: categoryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: categoryColor.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Text(
+                    category,
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1,
+                      color: categoryColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              course.title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              course.professor.isNotEmpty
+                  ? course.professor
+                  : 'No Professor',
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? Colors.grey[500] : Colors.grey[600],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const Spacer(),
+            Text.rich(
+              TextSpan(
+                text: 'Next: ',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isDark ? Colors.grey[400] : Colors.grey[700],
+                  fontWeight: FontWeight.w600,
+                ),
+                children: [
+                  TextSpan(
+                    text: course.courseDay.isNotEmpty &&
+                            course.courseTime.isNotEmpty
+                        ? '${course.courseDay}, ${course.courseTime}'
+                        : (course.schedule.isNotEmpty
+                            ? course.schedule
+                            : 'Check Calendar'),
+                    style: TextStyle(
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 12),
+            ValueListenableBuilder(
+              valueListenable: Hive.box<Task>(
+                NotesRepository.taskBoxName,
+              ).listenable(),
+              builder: (context, Box<Task> taskBox, _) {
+                final courseTasks = taskBox.values
+                    .where(
+                        (t) => !t.isDeleted && t.courseId == course.id)
+                    .toList();
+                double progress = 0.0;
+                if (courseTasks.isNotEmpty) {
+                  final completed =
+                      courseTasks.where((t) => t.isCompleted).length;
+                  progress = completed / courseTasks.length;
+                }
+                return Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Progress',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                        Text(
+                          '${(progress * 100).toInt()}%',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: color,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        backgroundColor: isDark
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : Colors.grey.withValues(alpha: 0.12),
+                        valueColor: AlwaysStoppedAnimation(color),
+                        minHeight: 6,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EnrollPlaceholderCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: () => showDialog(
+        context: context,
+        builder: (context) => const AddCourseScreen(),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.12)
+                : Colors.grey.withValues(alpha: 0.25),
+            width: 2,
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.grey.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  Icons.add_rounded,
+                  size: 28,
+                  color: isDark ? Colors.grey[500] : Colors.grey[400],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'ENROLL IN NEW COURSE',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1,
+                  color: isDark ? Colors.grey[500] : Colors.grey[500],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+
+class _AllNotesView extends StatefulWidget {
   const _AllNotesView();
+  @override
+  State<_AllNotesView> createState() => _AllNotesViewState();
+}
+
+class _AllNotesViewState extends State<_AllNotesView> {
+  String _selectedChip = 'ALL NOTES';
+  String _searchQuery = '';
+
+  static const List<String> _filterChips = [
+    'ALL NOTES',
+    'ACADEMIC',
+    'PERSONAL',
+    'RESEARCH',
+    'DRAFTS',
+  ];
+
+  // Pastel colors for note card thumbnails
+  static const List<Color> _pastelColors = [
+    Color(0xFFBFDBFE), // blue
+    Color(0xFFFBCFE8), // pink
+    Color(0xFFBBF7D0), // green
+    Color(0xFFFDE68A), // yellow
+    Color(0xFFE9D5FF), // purple
+    Color(0xFFFED7AA), // orange
+  ];
+
   @override
   Widget build(BuildContext context) {
     final notesProvider = Provider.of<NotesProvider>(context);
-    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isMobile = MediaQuery.of(context).size.width < 700;
 
     return ValueListenableBuilder(
       valueListenable: Hive.box<Folder>(
@@ -454,7 +876,18 @@ class _AllNotesView extends StatelessWidget {
               parentId: currentFolderId,
               type: FolderType.notebook,
             );
-            final notes = repo.getNotesInFolder(currentFolderId);
+            var notes = repo.getNotesInFolder(currentFolderId);
+
+            // Apply search filtering
+            if (_searchQuery.isNotEmpty) {
+              notes = notes
+                  .where(
+                    (n) => n.title
+                        .toLowerCase()
+                        .contains(_searchQuery.toLowerCase()),
+                  )
+                  .toList();
+            }
 
             String title = 'My Notes';
             if (currentFolderId != null) {
@@ -464,11 +897,12 @@ class _AllNotesView extends StatelessWidget {
               title = currentFolder?.title ?? 'Folder';
             }
 
-            return Padding(
-              padding: const EdgeInsets.all(24),
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(isMobile ? 16 : 32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Menu button for mobile
                   if (MediaQuery.of(context).size.width <= 1000)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16),
@@ -480,243 +914,365 @@ class _AllNotesView extends StatelessWidget {
                         onPressed: () => Scaffold.of(context).openDrawer(),
                       ),
                     ),
-                  Flex(
-                    direction: MediaQuery.of(context).size.width < 700
-                        ? Axis.vertical
-                        : Axis.horizontal,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: MediaQuery.of(context).size.width < 700
-                        ? CrossAxisAlignment.start
-                        : CrossAxisAlignment.center,
+
+                  // Back button + Title row
+                  Row(
                     children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (currentFolderId != null)
-                            IconButton(
-                              icon: const Icon(Icons.arrow_back),
-                              onPressed: () {
-                                final currentFolder = folderBox.values
-                                    .where(
-                                      (f) =>
-                                          !f.isDeleted &&
-                                          f.id == currentFolderId,
-                                    )
-                                    .firstOrNull;
-                                notesProvider.navigateToFolder(
-                                  currentFolder?.parentId,
-                                );
-                              },
-                            ),
-                          Flexible(
-                            child: _SectionTitle(
-                              title: title,
-                              subtitle:
-                                  '${folders.length} folders, ${notes.length} notes',
-                            ),
+                      if (currentFolderId != null)
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back),
+                          onPressed: () {
+                            final currentFolder = folderBox.values
+                                .where(
+                                  (f) =>
+                                      !f.isDeleted &&
+                                      f.id == currentFolderId,
+                                )
+                                .firstOrNull;
+                            notesProvider.navigateToFolder(
+                              currentFolder?.parentId,
+                            );
+                          },
+                        ),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
                           ),
-                        ],
+                        ),
                       ),
-                      if (MediaQuery.of(context).size.width < 700)
-                        const SizedBox(height: 16),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _HeaderButton(
-                            icon: Icons.create_new_folder_outlined,
-                            label: 'New Folder',
-                            onPressed: () =>
-                                _showCreateFolderDialog(context, notesProvider),
+                      // New Folder button
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.05)
+                              : Colors.white.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : Colors.black.withValues(alpha: 0.06),
                           ),
-                          const SizedBox(width: 12),
-                          _HeaderButton(
-                            icon: Icons.note_add_outlined,
-                            label: 'New Note',
-                            onPressed: () async {
-                              final note = await showDialog<Note>(
-                                context: context,
-                                builder: (context) => const CreateNoteDialog(),
-                              );
-                              if (note != null && context.mounted) {
-                                LibraryScreen.openNote(context, note);
-                              }
-                            },
+                        ),
+                        child: GestureDetector(
+                          onTap: () => _showCreateFolderDialog(
+                            context,
+                            notesProvider,
                           ),
-                        ],
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.create_new_folder_outlined,
+                                size: 16,
+                                color: isDark ? Colors.grey[300] : Colors.grey[700],
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'New Folder',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.grey[300] : Colors.grey[700],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 20),
+
+                  // Glassmorphism search bar
+                  GlassCard(
+                    borderRadius: 16,
+                    padding: EdgeInsets.zero,
+                    child: TextField(
+                      onChanged: (val) => setState(() => _searchQuery = val),
+                      decoration: InputDecoration(
+                        hintText: 'Search notes...',
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.grey[500] : Colors.grey[400],
+                          fontSize: 14,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: isDark ? Colors.grey[400] : Colors.grey[500],
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                      ),
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Category filter chips
+                  SizedBox(
+                    height: 38,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _filterChips.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        final chip = _filterChips[index];
+                        final isActive = chip == _selectedChip;
+                        return GestureDetector(
+                          onTap: () => setState(() => _selectedChip = chip),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? Theme.of(context).colorScheme.primary
+                                  : isDark
+                                      ? Colors.white.withValues(alpha: 0.05)
+                                      : Colors.white.withValues(alpha: 0.6),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isActive
+                                    ? Colors.transparent
+                                    : isDark
+                                        ? Colors.white.withValues(alpha: 0.08)
+                                        : Colors.black.withValues(alpha: 0.06),
+                              ),
+                            ),
+                            child: Text(
+                              chip,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.8,
+                                color: isActive
+                                    ? Colors.white
+                                    : isDark
+                                        ? Colors.grey[400]
+                                        : Colors.grey[600],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                   const SizedBox(height: 24),
-                  if (folders.isEmpty && notes.isEmpty)
-                    Expanded(
-                      child: EmptyState(
-                        icon: Icons.folder_open_outlined,
-                        title: 'Empty Folder',
-                        subtitle:
-                            'Organize your studies by creating folders or starting a new note.',
-                        actionLabel: 'New Note',
-                        onAction: () async {
-                          final note = await showDialog<Note>(
-                            context: context,
-                            builder: (context) => const CreateNoteDialog(),
-                          );
-                          if (note != null && context.mounted) {
-                            LibraryScreen.openNote(context, note);
-                          }
-                        },
+
+                  // Folders section
+                  if (folders.isNotEmpty) ...[
+                    const Text(
+                      'FOLDERS',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 200,
+                            mainAxisSpacing: 16,
+                            crossAxisSpacing: 16,
+                            childAspectRatio: 1.5,
+                          ),
+                      itemCount: folders.length,
+                      itemBuilder: (context, index) {
+                        final folder = folders[index];
+                        return GestureDetector(
+                          onTap: () =>
+                              notesProvider.navigateToFolder(folder.id),
+                          child: GlassCard(
+                            borderRadius: 16,
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.folder,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary,
+                                      size: 32,
+                                    ),
+                                    PopupMenuButton<String>(
+                                      icon: const Icon(
+                                        Icons.more_vert,
+                                        size: 18,
+                                        color: Colors.grey,
+                                      ),
+                                      onSelected: (value) {
+                                        if (value == 'rename') {
+                                          _showRenameFolderDialog(
+                                            context,
+                                            notesProvider,
+                                            folder,
+                                          );
+                                        } else if (value == 'move') {
+                                          _showMoveDialog(
+                                            context,
+                                            notesProvider,
+                                            folderToMove: folder,
+                                          );
+                                        } else if (value == 'delete') {
+                                          _showDeleteFolderDialog(
+                                            context,
+                                            notesProvider,
+                                            folder,
+                                          );
+                                        }
+                                      },
+                                      itemBuilder: (context) => [
+                                        PopupMenuItem(
+                                          value: 'rename',
+                                          child: Text(
+                                            AppLocalizations.of(
+                                              context,
+                                            )!.rename,
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'move',
+                                          child: Text(
+                                            AppLocalizations.of(
+                                              context,
+                                            )!.move,
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'delete',
+                                          child: Text(
+                                            AppLocalizations.of(
+                                              context,
+                                            )!.delete,
+                                            style: const TextStyle(
+                                              color: Colors.red,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  folder.title,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+
+                  // Notes Gallery Grid
+                  if (notes.isEmpty && folders.isEmpty)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 64),
+                        child: EmptyState(
+                          icon: Icons.folder_open_outlined,
+                          title: 'Empty Folder',
+                          subtitle:
+                              'Organize your studies by creating folders or starting a new note.',
+                          actionLabel: 'New Note',
+                          onAction: () async {
+                            final note = await showDialog<Note>(
+                              context: context,
+                              builder: (context) =>
+                                  const CreateNoteDialog(),
+                            );
+                            if (note != null && context.mounted) {
+                              LibraryScreen.openNote(context, note);
+                            }
+                          },
+                        ),
                       ),
                     )
-                  else ...[
-                    if (folders.isNotEmpty) ...[
-                      const Text(
-                        'FOLDERS',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey,
-                          letterSpacing: 1.2,
-                        ),
+                  else if (notes.isNotEmpty) ...[
+                    const Text(
+                      'NOTES',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                        letterSpacing: 1.2,
                       ),
-                      const SizedBox(height: 12),
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate:
-                            const SliverGridDelegateWithMaxCrossAxisExtent(
-                              maxCrossAxisExtent: 200,
-                              mainAxisSpacing: 16,
-                              crossAxisSpacing: 16,
-                              childAspectRatio: 1.5,
-                            ),
-                        itemCount: folders.length,
-                        itemBuilder: (context, index) {
-                          final folder = folders[index];
-                          return GestureDetector(
-                            onTap: () =>
-                                notesProvider.navigateToFolder(folder.id),
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).cardColor,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Theme.of(
-                                    context,
-                                  ).dividerColor.withValues(alpha: 0.5),
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Icon(
-                                        Icons.folder,
-                                        color: colorScheme.primary,
-                                        size: 32,
-                                      ),
-                                      PopupMenuButton<String>(
-                                        icon: const Icon(
-                                          Icons.more_vert,
-                                          size: 18,
-                                          color: Colors.grey,
-                                        ),
-                                        onSelected: (value) {
-                                          if (value == 'rename') {
-                                            _showRenameFolderDialog(
-                                              context,
-                                              notesProvider,
-                                              folder,
-                                            );
-                                          } else if (value == 'move') {
-                                            _showMoveDialog(
-                                              context,
-                                              notesProvider,
-                                              folderToMove: folder,
-                                            );
-                                          } else if (value == 'delete') {
-                                            _showDeleteFolderDialog(
-                                              context,
-                                              notesProvider,
-                                              folder,
-                                            );
-                                          }
-                                        },
-                                        itemBuilder: (context) => [
-                                          PopupMenuItem(
-                                            value: 'rename',
-                                            child: Text(
-                                              AppLocalizations.of(
-                                                context,
-                                              )!.rename,
-                                            ),
-                                          ),
-                                          PopupMenuItem(
-                                            value: 'move',
-                                            child: Text(
-                                              AppLocalizations.of(
-                                                context,
-                                              )!.move,
-                                            ),
-                                          ),
-                                          PopupMenuItem(
-                                            value: 'delete',
-                                            child: Text(
-                                              AppLocalizations.of(
-                                                context,
-                                              )!.delete,
-                                              style: const TextStyle(
-                                                color: Colors.red,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                  Text(
-                                    folder.title,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 32),
-                    ],
-                    if (notes.isNotEmpty) ...[
-                      const Text(
-                        'NOTES',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: notes.length,
-                          itemBuilder: (context, index) =>
-                              _RecentNoteItem(note: notes[index]),
-                        ),
-                      ),
-                    ],
+                    ),
+                    const SizedBox(height: 12),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final width = constraints.maxWidth;
+                        int crossAxisCount = width > 1200
+                            ? 4
+                            : (width > 800
+                                ? 3
+                                : (width > 500 ? 2 : 1));
+
+                        return GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: crossAxisCount,
+                            mainAxisSpacing: 16,
+                            crossAxisSpacing: 16,
+                            childAspectRatio: 0.85,
+                          ),
+                          itemCount: notes.length + 1, // +1 for placeholder
+                          itemBuilder: (context, index) {
+                            // Create New Note placeholder
+                            if (index == notes.length) {
+                              return _CreateNotePlaceholder();
+                            }
+
+                            final note = notes[index];
+                            final pastelColor =
+                                _pastelColors[index % _pastelColors.length];
+
+                            return _NoteGalleryCard(
+                              note: note,
+                              pastelColor: pastelColor,
+                            );
+                          },
+                        );
+                      },
+                    ),
                   ],
+                  const SizedBox(height: 32),
                 ],
               ),
             );
@@ -725,6 +1281,7 @@ class _AllNotesView extends StatelessWidget {
       },
     );
   }
+
 
   void _showCreateFolderDialog(BuildContext context, NotesProvider provider) {
     final controller = TextEditingController();
@@ -902,195 +1459,183 @@ class _AllNotesView extends StatelessWidget {
   }
 }
 
-class _CoursesGrid extends StatelessWidget {
-  final bool fullList;
-  const _CoursesGrid({this.fullList = false});
+/// Gallery-style note card with colored thumbnail header
+class _NoteGalleryCard extends StatelessWidget {
+  final Note note;
+  final Color pastelColor;
+  const _NoteGalleryCard({required this.note, required this.pastelColor});
+
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: Hive.box<Course>(
-        NotesRepository.courseBoxName,
-      ).listenable(),
-      builder: (context, Box<Course> box, _) {
-        var courses = box.values.toList();
-        debugPrint('_CoursesGrid: Found ${courses.length} courses in Hive box');
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dateStr = DateFormat.MMMd().format(note.updatedAt);
 
-        if (!fullList) {
-          courses = courses.take(3).toList();
-        }
-
-        if (courses.isEmpty) {
-          return EmptyState(
-            icon: Icons.school_outlined,
-            title: 'No courses yet',
-            subtitle: 'Add your first course to start tracking your schedule.',
-            actionLabel: 'Add Course',
-            onAction: () => showDialog(
-              context: context,
-              builder: (context) => const AddCourseScreen(),
+    return GestureDetector(
+      onTap: () => LibraryScreen.openNote(context, note),
+      child: GlassCard(
+        borderRadius: 20,
+        padding: EdgeInsets.zero,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Colored thumbnail header
+            Container(
+              height: 80,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? pastelColor.withValues(alpha: 0.2)
+                    : pastelColor.withValues(alpha: 0.5),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.description_outlined,
+                  size: 32,
+                  color: isDark
+                      ? pastelColor.withValues(alpha: 0.6)
+                      : pastelColor.withValues(alpha: 0.8),
+                ),
+              ),
             ),
-          );
-        }
-
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            debugPrint('_CoursesGrid: LayoutConstraints: ${constraints.maxWidth} x ${constraints.maxHeight}');
-            final width = constraints.maxWidth;
-            int crossAxisCount = width > 1200
-                ? 4
-                : (width > 800 ? 3 : (width > 500 ? 2 : 1));
-
-            // Adjust aspect ratio based on column count to ensure cards look good on all screens
-            double aspectRatio = 1.2;
-            if (crossAxisCount == 1) {
-              aspectRatio = 1.8; // Wider cards for single column
-            } else if (crossAxisCount == 2) {
-              aspectRatio = 1.3;
-            }
-
-            return GridView.count(
-              crossAxisCount: crossAxisCount,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 20,
-              crossAxisSpacing: 20,
-              childAspectRatio: aspectRatio,
-              children: courses.map((c) => _CourseCard(course: c)).toList(),
-            );
-          },
-        );
-      },
+            // Card body
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Category badge + date
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: pastelColor.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'NOTE',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          dateStr,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // Title
+                    Text(
+                      note.title.isEmpty ? 'Untitled' : note.title,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const Spacer(),
+                    // Bottom: status icon + more
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline,
+                          size: 14,
+                          color: Colors.grey[400],
+                        ),
+                        Icon(
+                          Icons.more_horiz,
+                          size: 16,
+                          color: Colors.grey[400],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _CourseCard extends StatelessWidget {
-  final Course course;
-  const _CourseCard({required this.course});
+/// Dashed "Create New Note" placeholder card
+class _CreateNotePlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final color = Color(course.color);
+    final primary = Theme.of(context).colorScheme.primary;
 
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => CourseDetailScreen(course: course),
-        ),
-      ),
+      onTap: () async {
+        final note = await showDialog<Note>(
+          context: context,
+          builder: (context) => const CreateNoteDialog(),
+        );
+        if (note != null && context.mounted) {
+          LibraryScreen.openNote(context, note);
+        }
+      },
       child: Container(
-        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isDark
-                ? Colors.white.withValues(alpha: 0.05)
-                : Colors.black.withValues(alpha: 0.05),
+                ? Colors.white.withValues(alpha: 0.12)
+                : Colors.black.withValues(alpha: 0.08),
+            width: 2,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(course.icon, color: color, size: 24),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                Icon(
-                  Icons.arrow_forward_rounded,
-                  color: isDark ? Colors.grey[600] : Colors.grey[800],
-                  size: 18,
+                child: Icon(
+                  Icons.add,
+                  color: primary,
+                  size: 24,
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              course.title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              course.professor.isNotEmpty ? course.professor : 'No Professor',
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark ? Colors.grey[500] : Colors.grey[800],
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const Spacer(),
-            Text.rich(
-              TextSpan(
-                text: 'Next: ',
+              const SizedBox(height: 12),
+              Text(
+                'CREATE NEW NOTE',
                 style: TextStyle(
                   fontSize: 11,
-                  color: isDark ? Colors.grey[600] : Colors.grey[900],
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1,
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
                 ),
-                children: [
-                  TextSpan(
-                    text:
-                        course.courseDay.isNotEmpty &&
-                            course.courseTime.isNotEmpty
-                        ? '${course.courseDay} ${course.courseTime}'
-                        : (course.schedule.isNotEmpty
-                              ? course.schedule
-                              : 'Check Calendar'),
-                    style: TextStyle(
-                      color: isDark ? Colors.grey[400] : Colors.grey[700],
-                      fontWeight: FontWeight.normal,
-                    ),
-                  ),
-                ],
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 8),
-            ValueListenableBuilder(
-              valueListenable: Hive.box<Task>(
-                NotesRepository.taskBoxName,
-              ).listenable(),
-              builder: (context, Box<Task> taskBox, _) {
-                final courseTasks = taskBox.values
-                    .where((t) => !t.isDeleted && t.courseId == course.id)
-                    .toList();
-                double progress = 0.0;
-                if (courseTasks.isNotEmpty) {
-                  final completed = courseTasks
-                      .where((t) => t.isCompleted)
-                      .length;
-                  progress = completed / courseTasks.length;
-                }
-                return ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    backgroundColor: isDark ? Colors.black : Colors.grey[200],
-                    valueColor: AlwaysStoppedAnimation(color),
-                    minHeight: 4,
-                  ),
-                );
-              },
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1098,6 +1643,7 @@ class _CourseCard extends StatelessWidget {
 }
 
 class _RecentNoteItem extends StatelessWidget {
+
   final Note note;
   const _RecentNoteItem({required this.note});
 

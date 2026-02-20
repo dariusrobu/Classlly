@@ -18,158 +18,13 @@ import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/features/library/screens/add_task_screen.dart';
 import 'package:classlly/features/library/screens/add_attendance_screen.dart';
 import 'package:classlly/features/library/screens/course_detail_screen.dart';
-import 'package:classlly/features/library/screens/add_course_screen.dart';
+
 import 'package:classlly/features/library/widgets/create_note_dialog.dart';
 import 'package:classlly/features/library/screens/library_screen.dart';
 import 'package:classlly/l10n/app_localizations.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
-
-  void _showQuickActions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(sheetContext).size.height * 0.8,
-        ),
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 24),
-              GridView.count(
-                crossAxisCount: MediaQuery.of(context).size.width < 400 ? 1 : 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                childAspectRatio:
-                    MediaQuery.of(context).size.width < 400 ? 3.0 : 1.5,
-                children: [
-                  _QuickActionTile(
-                    icon: Icons.note_add_outlined,
-                    label: AppLocalizations.of(context)!.addNote,
-                    color: Colors.purple,
-                    onTap: () async {
-                      Navigator.pop(sheetContext);
-                      final note = await showDialog<Note>(
-                        context: context,
-                        builder: (context) => const CreateNoteDialog(),
-                      );
-                      if (note != null && context.mounted) {
-                        LibraryScreen.openNote(context, note);
-                      }
-                    },
-                  ),
-                  _QuickActionTile(
-                    icon: Icons.check_circle_outline,
-                    label: AppLocalizations.of(context)!.addTask,
-                    color: Colors.blue,
-                    onTap: () {
-                      Navigator.pop(sheetContext);
-                      showDialog(
-                        context: context,
-                        builder: (context) => const AddTaskScreen(),
-                      );
-                    },
-                  ),
-                  _QuickActionTile(
-                    icon: Icons.calendar_today_outlined,
-                    label: AppLocalizations.of(context)!.attendance,
-                    color: Colors.orange,
-                    onTap: () {
-                      Navigator.pop(sheetContext);
-                      showDialog(
-                        context: context,
-                        builder: (context) => const AddAttendanceScreen(),
-                      );
-                    },
-                  ),
-                  _QuickActionTile(
-                    icon: Icons.grade_outlined,
-                    label: AppLocalizations.of(context)!.addGrade,
-                    color: Colors.green,
-                    onTap: () async {
-                      debugPrint('Add Grade tapped');
-                      Navigator.pop(sheetContext);
-                      final provider = Provider.of<CourseProvider>(
-                        context,
-                        listen: false,
-                      );
-                      final courses = provider.courses;
-                      debugPrint('Found ${courses.length} courses');
-                      
-                      if (courses.isEmpty) {
-                        debugPrint('No courses found, showing snackbar');
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content:
-                                Text(AppLocalizations.of(context)!.addCourseFirst),
-                          ),
-                        );
-                        return;
-                      }
-
-                      String? selectedCourseId;
-                      if (courses.length == 1) {
-                        selectedCourseId = courses.first.id;
-                        debugPrint('Auto-selected course: $selectedCourseId');
-                      } else {
-                        debugPrint('Showing course selection dialog');
-                        selectedCourseId = await showDialog<String>(
-                          context: context,
-                          builder: (context) => SimpleDialog(
-                            title: Text(AppLocalizations.of(context)!.selectCourse),
-                            children: courses
-                                .map(
-                                  (c) => SimpleDialogOption(
-                                    onPressed: () => Navigator.pop(context, c.id),
-                                    child: Text(c.title),
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                        );
-                        debugPrint('Selected course: $selectedCourseId');
-                      }
-
-                      if (selectedCourseId != null && context.mounted) {
-                        debugPrint('Showing AddGradeDialog for $selectedCourseId');
-                        showDialog(
-                          context: context,
-                          builder: (context) =>
-                              AddGradeDialog(courseId: selectedCourseId!),
-                        );
-                      } else {
-                        debugPrint('Course selection cancelled or context not mounted');
-                      }
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -181,45 +36,8 @@ class DashboardScreen extends StatelessWidget {
         children: [
           const DashboardHeader(),
           const SizedBox(height: 24),
-          // Quick Actions Button
-          GestureDetector(
-            onTap: () => _showQuickActions(context),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(context).colorScheme.primary,
-                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.bolt_rounded, color: Colors.white, size: 24),
-                  SizedBox(width: 8),
-                  Text(
-                    'Quick Actions',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          // Inline Quick Actions Row
+          const _InlineQuickActions(),
           const SizedBox(height: 32),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -232,11 +50,11 @@ class DashboardScreen extends StatelessWidget {
                       flex: 2,
                       child: Column(
                         children: [
-                          StatsGrid(),
+                          _PerformanceSection(),
                           SizedBox(height: 24),
                           ScheduleCard(),
                           SizedBox(height: 24),
-                          RecentNotesCard(),
+                          _TasksForToday(),
                         ],
                       ),
                     ),
@@ -247,7 +65,7 @@ class DashboardScreen extends StatelessWidget {
                         children: [
                           CalendarCard(),
                           SizedBox(height: 24),
-                          TasksCard(),
+                          RecentNotesCard(),
                         ],
                       ),
                     ),
@@ -260,7 +78,7 @@ class DashboardScreen extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(child: StatsGrid()),
+                        Expanded(child: _PerformanceSection()),
                         SizedBox(width: 24),
                         Expanded(child: CalendarCard()),
                       ],
@@ -271,9 +89,9 @@ class DashboardScreen extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(child: RecentNotesCard()),
+                        Expanded(child: _TasksForToday()),
                         SizedBox(width: 24),
-                        Expanded(child: TasksCard()),
+                        Expanded(child: RecentNotesCard()),
                       ],
                     ),
                   ],
@@ -282,15 +100,15 @@ class DashboardScreen extends StatelessWidget {
                 // Mobile
                 return const Column(
                   children: [
-                    StatsGrid(),
+                    _PerformanceSection(),
                     SizedBox(height: 24),
                     ScheduleCard(),
                     SizedBox(height: 24),
-                    RecentNotesCard(),
-                    SizedBox(height: 24),
                     CalendarCard(),
                     SizedBox(height: 24),
-                    TasksCard(),
+                    _TasksForToday(),
+                    SizedBox(height: 24),
+                    RecentNotesCard(),
                   ],
                 );
               }
@@ -302,49 +120,108 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-class _QuickActionTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _QuickActionTile({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
+// ─── Inline Quick Actions Row ──────────────────────────────────────────────
+class _InlineQuickActions extends StatelessWidget {
+  const _InlineQuickActions();
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
+    return Row(
+      children: [
+        Expanded(
+          child: QuickActionButton(
+            icon: Icons.check_circle_outline,
+            label: AppLocalizations.of(context)!.addTask,
+            color: Theme.of(context).colorScheme.primary,
+            onTap: () => showDialog(
+              context: context,
+              builder: (context) => const AddTaskScreen(),
             ),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: QuickActionButton(
+            icon: Icons.grade_outlined,
+            label: AppLocalizations.of(context)!.addGrade,
+            color: Colors.amber.shade700,
+            onTap: () async {
+              final provider = Provider.of<CourseProvider>(
+                context,
+                listen: false,
+              );
+              final courses = provider.courses;
+              if (courses.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content:
+                        Text(AppLocalizations.of(context)!.addCourseFirst),
+                  ),
+                );
+                return;
+              }
+              String? selectedCourseId;
+              if (courses.length == 1) {
+                selectedCourseId = courses.first.id;
+              } else {
+                selectedCourseId = await showDialog<String>(
+                  context: context,
+                  builder: (context) => SimpleDialog(
+                    title: Text(AppLocalizations.of(context)!.selectCourse),
+                    children: courses
+                        .map((c) => SimpleDialogOption(
+                              onPressed: () => Navigator.pop(context, c.id),
+                              child: Text(c.title),
+                            ))
+                        .toList(),
+                  ),
+                );
+              }
+              if (selectedCourseId != null && context.mounted) {
+                showDialog(
+                  context: context,
+                  builder: (context) =>
+                      AddGradeDialog(courseId: selectedCourseId!),
+                );
+              }
+            },
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: QuickActionButton(
+            icon: Icons.person_add_alt_1_outlined,
+            label: AppLocalizations.of(context)!.attendance,
+            color: Colors.orange,
+            onTap: () => showDialog(
+              context: context,
+              builder: (context) => const AddAttendanceScreen(),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: QuickActionButton(
+            icon: Icons.note_add_outlined,
+            label: AppLocalizations.of(context)!.addNote,
+            color: Colors.purple,
+            onTap: () async {
+              final note = await showDialog<Note>(
+                context: context,
+                builder: (context) => const CreateNoteDialog(),
+              );
+              if (note != null && context.mounted) {
+                LibraryScreen.openNote(context, note);
+              }
+            },
+          ),
+        ),
+      ],
     );
   }
 }
 
+// ─── Dashboard Header ──────────────────────────────────────────────────────
 class DashboardHeader extends StatelessWidget {
   const DashboardHeader({super.key});
 
@@ -355,6 +232,7 @@ class DashboardHeader extends StatelessWidget {
     final profile = provider.studentProfile;
     final name = profile.name ?? 'Student';
     final weekInfo = calendarProvider.getWeekInfo(DateTime.now());
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Row(
       children: [
@@ -373,80 +251,77 @@ class DashboardHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Text(
-                    DateFormat('EEEE, MMM d').format(DateTime.now()),
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                    ),
-                  ),
-                  if (weekInfo != null) ...[
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Text(
-                        weekInfo['week'] != null
-                            ? 'WEEK ${weekInfo['week']} • ${weekInfo['label'].toUpperCase()}'
-                            : weekInfo['label'].toUpperCase(),
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 10,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 4),
               Text(
                 AppLocalizations.of(context)!.welcomeBack(name),
                 style: TextStyle(
                   fontSize:
                       MediaQuery.of(context).size.width < 600 ? 24 : 32,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w900,
                   color: Theme.of(context).textTheme.headlineMedium?.color,
+                  letterSpacing: -0.5,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
+              const SizedBox(height: 4),
+              Text(
+                'Your academic journey is looking bright today.',
+                style: TextStyle(
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  fontSize: 14,
+                ),
+              ),
             ],
           ),
+        ),
+        const SizedBox(width: 16),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              DateFormat('EEEE, MMMM d, yyyy').format(DateTime.now()),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.grey[300] : const Color(0xFF0F172A),
+              ),
+            ),
+            if (weekInfo != null)
+              Container(
+                margin: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 3,
+                ),
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  weekInfo['week'] != null
+                      ? 'WEEK ${weekInfo['week']} · ${weekInfo['label'].toUpperCase()}'
+                      : weekInfo['label'].toUpperCase(),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 10,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+          ],
         ),
       ],
     );
   }
 }
 
-class StatsGrid extends StatelessWidget {
-  const StatsGrid({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const PerformanceRing();
-  }
-}
-
-class PerformanceRing extends StatelessWidget {
-  const PerformanceRing({super.key});
+// ─── Performance Section (Two Gauges) ──────────────────────────────────────
+class _PerformanceSection extends StatelessWidget {
+  const _PerformanceSection();
 
   double _calculateAttendance(List<Course> courses) {
     if (courses.isEmpty) return 0.0;
@@ -460,142 +335,95 @@ class PerformanceRing extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassCard(
-      padding: const EdgeInsets.all(32),
-      borderRadius: 32,
+      padding: const EdgeInsets.all(28),
+      borderRadius: 28,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            AppLocalizations.of(context)!.performanceOverview,
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 32),
-          Center(
-            child: Consumer<CourseProvider>(
-              builder: (context, courseProvider, _) {
-                // Stats are now handled by provider and helper method
-
-                return Consumer<TaskProvider>(
-                  builder: (context, taskProvider, _) {
-                    final tasks = taskProvider.tasks;
-                    final completed = tasks.where((t) => t.isCompleted).length;
-                    double taskRate = tasks.isNotEmpty
-                        ? (completed / tasks.length) * 100
-                        : 0.0;
-                    
-                    final averageGrade = courseProvider.totalAverageGrade;
-
-                    return LayoutBuilder(
-                      builder: (context, constraints) {
-                        final size = math.min(constraints.maxWidth, 240.0);
-                        return Center(
-                          child: SizedBox(
-                            width: size,
-                            height: size,
-                            child: CustomPaint(
-                              painter: _PerformanceRingPainter(
-                                attendanceParams: _RingParams(
-                                  // Use actual total attendance rate if available in provider, or recalculate
-                                  // For now, let's look at how we got totalAttRate before.
-                                  // We should probably expose totalAttendanceRate from provider too, but let's stick to what we have locally or add getter.
-                                  // Wait, I replaced the local calc loop. I need to get attendance too.
-                                  // Let's add totalAttendanceRate to provider or recalculate it briefly here since I removed the loop?
-                                  // Actually, I should probably use `courseProvider.totalAverageGrade` but I still need attendance.
-                                  // Let me verify if I removed the loop in my Plan. 
-                                  // The User's previous code had a loop calculating BOTH.
-                                  // My ReplacementContent replaces the INNER Consumer logic but I need to make sure I have access to stats.
-                                  // I will use getters from Provider if available. I added totalAverageGrade. 
-                                  // I did NOT add totalAttendanceRate to provider yet.
-                                  // I should probably assume I can add it or just loop here. 
-                                  // Ideally I should utilize the Provider.
-                                  // Let's use the provider's courses list to calc attendance here for now to be safe, or add another getter.
-                                  // Adding getter is cleaner.
-                                  percentage: _calculateAttendance(courseProvider.courses) / 100,
-                                  color: Theme.of(context).colorScheme.primary,
-                                  isDashed: _calculateAttendance(courseProvider.courses) < 75,
-                                  strokeWidth: size * 0.06,
-                                ),
-                                taskParams: _RingParams(
-                                  percentage: taskRate / 100,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .primary
-                                      .withValues(alpha: 0.6),
-                                  isDashed: taskRate < 75,
-                                  strokeWidth: size * 0.025,
-                                ),
-                                backgroundColor: Theme.of(context)
-                                    .dividerColor
-                                    .withValues(alpha: 0.1),
-                              ),
-                              child: Center(
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      NumberFormat('0.0').format(averageGrade),
-                                      style: TextStyle(
-                                        fontSize: size * 0.25,
-                                        fontWeight: FontWeight.w900,
-                                        color: Theme.of(context)
-                                            .textTheme
-                                            .bodyLarge
-                                            ?.color,
-                                        letterSpacing: -2,
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding: EdgeInsets.only(
-                                        top: size * 0.05,
-                                        left: 2,
-                                      ),
-                                      child: Text(
-                                        '+',
-                                        style: TextStyle(
-                                          fontSize: size * 0.08,
-                                          fontWeight: FontWeight.bold,
-                                          color: Theme.of(context)
-                                              .textTheme
-                                              .bodyLarge
-                                              ?.color
-                                              ?.withValues(alpha: 0.6),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 32),
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _LegendItem(
-                label: AppLocalizations.of(context)!.attendance,
-                strokeWidth: 14,
-                color: Theme.of(context).colorScheme.primary,
+              Text(
+                AppLocalizations.of(context)!.performanceOverview,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.titleLarge?.color,
+                ),
               ),
-              const SizedBox(width: 24),
-              _LegendItem(
-                label: AppLocalizations.of(context)!.tasks,
-                strokeWidth: 6,
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Text(
+                  'This Semester',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
               ),
             ],
+          ),
+          const SizedBox(height: 28),
+          Consumer<CourseProvider>(
+            builder: (context, courseProvider, _) {
+              final attendanceRate =
+                  _calculateAttendance(courseProvider.courses);
+
+              return Consumer<TaskProvider>(
+                builder: (context, taskProvider, _) {
+                  final tasks = taskProvider.tasks;
+                  final completed =
+                      tasks.where((t) => t.isCompleted).length;
+                  final taskRate = tasks.isNotEmpty
+                      ? (completed / tasks.length) * 100
+                      : 0.0;
+
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      final gaugeSize =
+                          math.min(constraints.maxWidth / 2.5, 160.0);
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _DonutGauge(
+                            size: gaugeSize,
+                            percentage: attendanceRate,
+                            label: 'ATTENDANCE',
+                            color:
+                                Theme.of(context).colorScheme.primary,
+                            subtitle:
+                                'You missed only ${(100 - attendanceRate).toInt() > 0 ? ((100 - attendanceRate) * courseProvider.courses.length / 100).ceil() : 0} classes',
+                          ),
+                          _DonutGauge(
+                            size: gaugeSize,
+                            percentage: taskRate,
+                            label: 'TASK SUCCESS',
+                            color:
+                                Theme.of(context).colorScheme.primary,
+                            subtitle: '$completed/${tasks.length} Tasks completed',
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+              );
+            },
           ),
         ],
       ),
@@ -603,128 +431,135 @@ class PerformanceRing extends StatelessWidget {
   }
 }
 
-class _LegendItem extends StatelessWidget {
+// ─── Single Donut Gauge Widget ─────────────────────────────────────────────
+class _DonutGauge extends StatelessWidget {
+  final double size;
+  final double percentage;
   final String label;
-  final double strokeWidth;
   final Color color;
-  const _LegendItem({
+  final String subtitle;
+
+  const _DonutGauge({
+    required this.size,
+    required this.percentage,
     required this.label,
-    required this.strokeWidth,
     required this.color,
+    required this.subtitle,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       children: [
-        Container(
-          width: 12,
-          height: strokeWidth,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(2),
+        SizedBox(
+          width: size,
+          height: size,
+          child: CustomPaint(
+            painter: _DonutPainter(
+              percentage: percentage / 100,
+              color: color,
+              bgColor:
+                  Theme.of(context).dividerColor.withValues(alpha: 0.1),
+              strokeWidth: size * 0.08,
+            ),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${percentage.toInt()}%',
+                    style: TextStyle(
+                      fontSize: size * 0.22,
+                      fontWeight: FontWeight.w900,
+                      color: Theme.of(context)
+                          .textTheme
+                          .bodyLarge
+                          ?.color,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: size * 0.065,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.5,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
-        const SizedBox(width: 8),
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: size + 20,
+          child: Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.grey,
+            ),
+          ),
+        ),
       ],
     );
   }
 }
 
-class _RingParams {
+class _DonutPainter extends CustomPainter {
   final double percentage;
   final Color color;
-  final bool isDashed;
+  final Color bgColor;
   final double strokeWidth;
 
-  _RingParams({
+  _DonutPainter({
     required this.percentage,
     required this.color,
-    required this.isDashed,
+    required this.bgColor,
     required this.strokeWidth,
-  });
-}
-
-class _PerformanceRingPainter extends CustomPainter {
-  final _RingParams attendanceParams;
-  final _RingParams taskParams;
-  final Color backgroundColor;
-
-  _PerformanceRingPainter({
-    required this.attendanceParams,
-    required this.taskParams,
-    required this.backgroundColor,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radiusOuter = (size.width / 2) - (attendanceParams.strokeWidth / 2);
-    final radiusInner = radiusOuter - 24;
-
-    _drawRing(canvas, center, radiusOuter, attendanceParams);
-    _drawRing(canvas, center, radiusInner, taskParams);
-  }
-
-  void _drawRing(
-    Canvas canvas,
-    Offset center,
-    double radius,
-    _RingParams params,
-  ) {
-    final rect = Rect.fromCircle(center: center, radius: radius);
+    final radius = (size.width / 2) - (strokeWidth / 2);
     const startAngle = -math.pi / 2;
-    final sweepAngle = 2 * math.pi * params.percentage;
+    final sweepAngle = 2 * math.pi * percentage;
 
-    // 1. Background Track
-    final bgPaint = Paint()
-      ..color = backgroundColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = params.strokeWidth
-      ..strokeCap = StrokeCap.round;
-    canvas.drawCircle(center, radius, bgPaint);
+    // Background ring
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()
+        ..color = bgColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round,
+    );
 
-    // 2. Progress
-    final progressPaint = Paint()
-      ..color = params.color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = params.strokeWidth
-      ..strokeCap = StrokeCap.round;
-
-    if (params.isDashed) {
-      final path = Path()..addArc(rect, startAngle, sweepAngle);
-      final dashedPath = _dashPath(path, 6, 6);
-      canvas.drawPath(dashedPath, progressPaint);
-    } else {
-      canvas.drawArc(rect, startAngle, sweepAngle, false, progressPaint);
-    }
-  }
-
-  Path _dashPath(Path source, double dashWidth, double dashSpace) {
-    final dest = Path();
-    for (final metric in source.computeMetrics()) {
-      double distance = 0.0;
-      bool draw = true;
-      while (distance < metric.length) {
-        final len = draw ? dashWidth : dashSpace;
-        if (draw) {
-          dest.addPath(
-            metric.extractPath(distance, distance + len),
-            Offset.zero,
-          );
-        }
-        distance += len;
-        draw = !draw;
-      }
-    }
-    return dest;
+    // Progress ring
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      startAngle,
+      sweepAngle,
+      false,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round,
+    );
   }
 
   @override
-  bool shouldRepaint(_PerformanceRingPainter oldDelegate) => true;
+  bool shouldRepaint(_DonutPainter oldDelegate) =>
+      percentage != oldDelegate.percentage || color != oldDelegate.color;
 }
 
+// ─── Schedule Card (with colored left borders) ─────────────────────────────
 class ScheduleCard extends StatelessWidget {
   const ScheduleCard({super.key});
 
@@ -760,34 +595,13 @@ class ScheduleCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 4,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      borderRadius: BorderRadius.circular(2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.5),
-                          blurRadius: 8,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    AppLocalizations.of(context)!.todaysSchedule,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).textTheme.titleLarge?.color,
-                    ),
-                  ),
-                ],
+              Text(
+                AppLocalizations.of(context)!.todaysSchedule,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.titleLarge?.color,
+                ),
               ),
               GestureDetector(
                 onTap: () {
@@ -798,92 +612,251 @@ class ScheduleCard extends StatelessWidget {
                   AppLocalizations.of(context)!.viewCalendar,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
                 ),
               ),
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: todaysLectures.isEmpty
-                  ? Column(
-                      mainAxisSize: MainAxisSize.min,
+          const SizedBox(height: 20),
+          if (todaysLectures.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Column(
+                children: [
+                  const Icon(Icons.event_busy, size: 48, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text(
+                    AppLocalizations.of(context)!.noLecturesToday,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color:
+                          Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    AppLocalizations.of(context)!.relaxOrStudy,
+                    style: const TextStyle(
+                        color: Colors.grey, fontSize: 14),
+                  ),
+                ],
+              ),
+            )
+          else
+            Column(
+              children: todaysLectures.map((course) {
+                final courseColor = Color(course.color);
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .dividerColor
+                        .withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Theme.of(context)
+                          .dividerColor
+                          .withValues(alpha: 0.08),
+                    ),
+                  ),
+                  child: IntrinsicHeight(
+                    child: Row(
                       children: [
-                        const Icon(
-                          Icons.event_busy,
-                          size: 48,
-                          color: Colors.grey,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          AppLocalizations.of(context)!.noLecturesToday,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).textTheme.bodyLarge?.color,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          AppLocalizations.of(context)!.relaxOrStudy,
-                          style: const TextStyle(color: Colors.grey, fontSize: 14),
-                        ),
-                        const SizedBox(height: 16),
-                        OutlinedButton.icon(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AddCourseScreen(),
+                        // Colored left border bar
+                        Container(
+                          width: 4,
+                          decoration: BoxDecoration(
+                            color: courseColor,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(16),
+                              bottomLeft: Radius.circular(16),
                             ),
                           ),
-                          icon: const Icon(Icons.add, size: 18),
-                          label: Text(AppLocalizations.of(context)!.createCourse),
+                        ),
+                        Expanded(
+                          child: ListTile(
+                            contentPadding:
+                                const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            leading: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: courseColor
+                                    .withValues(alpha: 0.1),
+                                borderRadius:
+                                    BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                Icons.school_outlined,
+                                color: courseColor,
+                                size: 20,
+                              ),
+                            ),
+                            title: Text(
+                              course.title,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${course.location.isNotEmpty ? '${course.location} · ' : ''}${course.courseTime}',
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
+                            ),
+                            trailing: Text(
+                              course.courseTime,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    CourseDetailScreen(course: course),
+                              ),
+                            ),
+                          ),
                         ),
                       ],
-                    )
-                  : Column(
-                      children: todaysLectures
-                          .map(
-                            (course) => ListTile(
-                              leading: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Color(course.color).withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(
-                                  Icons.school_outlined,
-                                  color: Color(course.color),
-                                ),
-                              ),
-                              title: Text(
-                                course.title,
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              subtitle: Text(
-                                '${course.location.isNotEmpty ? '${course.location} • ' : ''}${course.courseTime}',
-                                style: const TextStyle(color: Colors.grey, fontSize: 12),
-                              ),
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      CourseDetailScreen(course: course),
-                                ),
-                              ),
-                              trailing: const Icon(
-                                Icons.chevron_right,
-                                size: 20,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          )
-                          .toList(),
                     ),
+                  ),
+                );
+              }).toList(),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Tasks for Today (2-column grid) ───────────────────────────────────────
+class _TasksForToday extends StatelessWidget {
+  const _TasksForToday();
+
+  @override
+  Widget build(BuildContext context) {
+    final taskProvider = Provider.of<TaskProvider>(context);
+
+    return GlassCard(
+      padding: const EdgeInsets.all(24),
+      borderRadius: 24,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Tasks for Today',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.titleLarge?.color,
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  Provider.of<LibraryProvider>(context, listen: false)
+                      .setView(LibraryView.tasks);
+                },
+                child: Text(
+                  'View All Tasks',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ValueListenableBuilder(
+            valueListenable: Hive.box<Task>(
+              NotesRepository.taskBoxName,
+            ).listenable(),
+            builder: (context, Box<Task> box, _) {
+              final allTasks = box.values
+                  .where((t) => !t.isDeleted && !t.isCompleted)
+                  .toList();
+              allTasks.sort((a, b) => b.priority.compareTo(a.priority));
+              final displayTasks = allTasks.take(4).toList();
+
+              if (displayTasks.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(
+                    child: Text(
+                      'All caught up! 🎉',
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
+                  ),
+                );
+              }
+
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 16,
+                  childAspectRatio: 4.5,
+                ),
+                itemCount: displayTasks.length,
+                itemBuilder: (context, index) {
+                  final task = displayTasks[index];
+                  return GestureDetector(
+                    onTap: () => taskProvider.toggleTask(task),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 22,
+                          height: 22,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.rectangle,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: Colors.grey.withValues(alpha: 0.4),
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            task.title,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge
+                                  ?.color,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
           ),
         ],
       ),
@@ -891,6 +864,7 @@ class ScheduleCard extends StatelessWidget {
   }
 }
 
+// ─── Recent Notes Card ─────────────────────────────────────────────────────
 class RecentNotesCard extends StatelessWidget {
   const RecentNotesCard({super.key});
 
@@ -917,7 +891,9 @@ class RecentNotesCard extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).dividerColor.withValues(alpha: 0.05),
+                  color: Theme.of(context)
+                      .dividerColor
+                      .withValues(alpha: 0.05),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -955,14 +931,14 @@ class RecentNotesCard extends StatelessWidget {
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).dividerColor.withValues(alpha: 0.05),
+                          color: Theme.of(context)
+                              .dividerColor
+                              .withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: Theme.of(
-                              context,
-                            ).dividerColor.withValues(alpha: 0.1),
+                            color: Theme.of(context)
+                                .dividerColor
+                                .withValues(alpha: 0.1),
                           ),
                         ),
                         child: Row(
@@ -970,42 +946,45 @@ class RecentNotesCard extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.primary.withValues(alpha: 0.1),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.primary.withValues(alpha: 0.2),
-                                ),
                               ),
                               child: Icon(
                                 Icons.description,
-                                color: Theme.of(context).colorScheme.primary,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primary,
                                 size: 20,
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     note.title.isNotEmpty
                                         ? note.title
-                                        : AppLocalizations.of(context)!.untitled,
+                                        : AppLocalizations.of(context)!
+                                            .untitled,
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: Theme.of(
-                                        context,
-                                      ).textTheme.bodyLarge?.color,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.color,
                                       fontSize: 14,
                                     ),
                                   ),
                                   Text(
-                                    AppLocalizations.of(context)!.noteMetadata(
-                                      DateFormat.Md().format(note.updatedAt),
+                                    AppLocalizations.of(context)!
+                                        .noteMetadata(
+                                      DateFormat.Md()
+                                          .format(note.updatedAt),
                                       note.strokes.length,
                                     ),
                                     style: const TextStyle(
@@ -1030,6 +1009,7 @@ class RecentNotesCard extends StatelessWidget {
   }
 }
 
+// ─── Calendar Card (Compact Mini-Calendar) ─────────────────────────────────
 class CalendarCard extends StatelessWidget {
   const CalendarCard({super.key});
 
@@ -1066,68 +1046,8 @@ class CalendarCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final calendarProvider = Provider.of<AcademicCalendarProvider>(context);
     final taskProvider = Provider.of<TaskProvider>(context);
+    final primary = Theme.of(context).colorScheme.primary;
 
-    return GlassCard(
-      padding: const EdgeInsets.all(24),
-      borderRadius: 24,
-      child: TableCalendar(
-        firstDay: DateTime.utc(2023, 1, 1),
-        lastDay: DateTime.utc(2030, 12, 31),
-        focusedDay: DateTime.now(),
-        calendarFormat: CalendarFormat.month,
-        startingDayOfWeek: StartingDayOfWeek.monday,
-        eventLoader: (day) =>
-            _getEventsForDay(day, calendarProvider, taskProvider.tasks),
-        headerStyle: HeaderStyle(
-          formatButtonVisible: false,
-          titleCentered: false,
-          titleTextStyle: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).textTheme.titleLarge?.color,
-          ),
-          leftChevronIcon: const Icon(Icons.chevron_left, color: Colors.grey),
-          rightChevronIcon: const Icon(Icons.chevron_right, color: Colors.grey),
-        ),
-        calendarStyle: CalendarStyle(
-          todayDecoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary,
-            shape: BoxShape.circle,
-          ),
-          selectedDecoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
-            shape: BoxShape.circle,
-          ),
-          markersMaxCount: 0,
-          defaultTextStyle: const TextStyle(color: Colors.grey),
-          weekendTextStyle: const TextStyle(color: Colors.grey),
-          outsideTextStyle: TextStyle(
-            color: Colors.grey.withValues(alpha: 0.3),
-          ),
-        ),
-        daysOfWeekStyle: const DaysOfWeekStyle(
-          weekdayStyle: TextStyle(
-            color: Colors.grey,
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-          ),
-          weekendStyle: TextStyle(
-            color: Colors.grey,
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class TasksCard extends StatelessWidget {
-  const TasksCard({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final provider = Provider.of<TaskProvider>(context);
     return GlassCard(
       padding: const EdgeInsets.all(24),
       borderRadius: 24,
@@ -1137,183 +1057,71 @@ class TasksCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                AppLocalizations.of(context)!.tasks,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).textTheme.titleLarge?.color,
-                                ),
-                              ),
-                              ValueListenableBuilder(
-                                valueListenable: Hive.box<Task>(
-                                  NotesRepository.taskBoxName,
-                                ).listenable(),
-                                builder: (context, Box<Task> box, _) {
-                                  final tasks = box.values
-                                      .where((t) => !t.isDeleted)
-                                      .toList();
-                                  final completed = tasks
-                                      .where((t) => t.isCompleted)
-                                      .length;
-                                  final completionRate = tasks.isNotEmpty
-                                      ? (completed / tasks.length) * 100
-                                      : 0.0;
-                                  return Text(
-                                    AppLocalizations.of(context)!
-                                        .percentCompleted(completionRate.toInt()),
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Theme.of(context).colorScheme.primary,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],              ),
-              ValueListenableBuilder(
-                valueListenable: Hive.box<Task>(
-                  NotesRepository.taskBoxName,
-                ).listenable(),
-                builder: (context, Box<Task> box, _) {
-                  final pendingCount = box.values
-                      .where((t) => !t.isCompleted && !t.isDeleted)
-                      .length;
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                      // width constraint?
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).dividerColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      AppLocalizations.of(context)!.pendingCount(pendingCount),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).textTheme.bodyMedium?.color,
-                      ),
-                    ),
-                  );
-                },
+              Text(
+                'Calendar',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.titleLarge?.color,
+                ),
+              ),
+              Text(
+                DateFormat('MMMM yyyy').format(DateTime.now()),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: primary,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          ValueListenableBuilder(
-            valueListenable: Hive.box<Task>(
-              NotesRepository.taskBoxName,
-            ).listenable(),
-            builder: (context, Box<Task> box, _) {
-              final tasks = box.values
-                  .where((t) => !t.isDeleted && !t.isCompleted)
-                  .toList();
-              tasks.sort((a, b) => b.priority.compareTo(a.priority));
-              final displayTasks = tasks.take(4).toList();
-              if (displayTasks.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24.0),
-                    child: Text(
-                      AppLocalizations.of(context)!.allCaughtUp,
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                  ),
-                );
-              }
-              return Column(
-                children: displayTasks
-                    .map(
-                      (task) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: InkWell(
-                          onTap: () => provider.toggleTask(task),
-                          borderRadius: BorderRadius.circular(12),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 24,
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: task.priority == 2
-                                        ? Colors.redAccent
-                                        : Colors.grey,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: task.isCompleted
-                                    ? const Icon(
-                                        Icons.check,
-                                        size: 16,
-                                        color: Colors.white,
-                                      )
-                                    : null,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      task.title,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color: Theme.of(
-                                          context,
-                                        ).textTheme.bodyLarge?.color,
-                                        decoration: task.isCompleted
-                                            ? TextDecoration.lineThrough
-                                            : null,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    if (task.dueDate != null)
-                                      Text(
-                                        DateFormat.MMMd().format(task.dueDate!),
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: task.priority == 2
-                                              ? Colors.redAccent
-                                              : Colors.grey,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              );
-            },
-          ),
           const SizedBox(height: 8),
-          Center(
-            child: TextButton(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => const AddTaskScreen(),
-                );
-              },
-                          child: Text(
-                            AppLocalizations.of(context)!.addTask,
-                            style: TextStyle(color: Theme.of(context).colorScheme.primary),
-                          ),            ),
+          TableCalendar(
+            firstDay: DateTime.utc(2023, 1, 1),
+            lastDay: DateTime.utc(2030, 12, 31),
+            focusedDay: DateTime.now(),
+            calendarFormat: CalendarFormat.month,
+            startingDayOfWeek: StartingDayOfWeek.sunday,
+            rowHeight: 36,
+            eventLoader: (day) => _getEventsForDay(
+                day, calendarProvider, taskProvider.tasks),
+            headerVisible: false,
+            calendarStyle: CalendarStyle(
+              todayDecoration: BoxDecoration(
+                color: primary,
+                shape: BoxShape.circle,
+              ),
+              todayTextStyle: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+              markersMaxCount: 0,
+              defaultTextStyle: TextStyle(
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+                fontSize: 13,
+              ),
+              weekendTextStyle: TextStyle(
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+                fontSize: 13,
+              ),
+              outsideTextStyle: TextStyle(
+                color: Colors.grey.withValues(alpha: 0.3),
+                fontSize: 13,
+              ),
+              cellMargin: const EdgeInsets.all(2),
+            ),
+            daysOfWeekStyle: const DaysOfWeekStyle(
+              weekdayStyle: TextStyle(
+                color: Colors.grey,
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+              weekendStyle: TextStyle(
+                color: Colors.grey,
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+            ),
           ),
         ],
       ),
@@ -1321,6 +1129,7 @@ class TasksCard extends StatelessWidget {
   }
 }
 
+// ─── Kept for backwards compatibility with tests ───────────────────────────
 class QuickActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -1337,32 +1146,63 @@ class QuickActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.white.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.05),
+          ),
         ),
-        child: Column(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 18),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w600,
-                fontSize: 11,
+            Icon(icon, color: color, size: 16),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black87,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
         ),
       ),
     );
+  }
+}
+
+// StatsGrid kept as thin alias for backwards compat
+class StatsGrid extends StatelessWidget {
+  const StatsGrid({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const _PerformanceSection();
+  }
+}
+
+// TasksCard kept for backwards compat
+class TasksCard extends StatelessWidget {
+  const TasksCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const _TasksForToday();
   }
 }
