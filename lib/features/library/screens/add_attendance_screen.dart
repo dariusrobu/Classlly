@@ -5,6 +5,7 @@ import 'package:classlly/data/models/course_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:provider/provider.dart';
 import 'package:classlly/features/library/providers/course_provider.dart';
+import 'package:classlly/core/widgets/glass_card.dart';
 import 'package:classlly/l10n/app_localizations.dart';
 
 class AddAttendanceScreen extends StatefulWidget {
@@ -78,117 +79,97 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      child: Container(
+      child: GlassCard(
         constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.5),
-              blurRadius: 40,
-              offset: const Offset(0, 20),
+        borderRadius: 28,
+        padding: EdgeInsets.zero,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: Text(
+              widget.attendance != null
+                  ? AppLocalizations.of(context)!.editAttendance
+                  : AppLocalizations.of(context)!.markAttendance,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          child: Scaffold(
             backgroundColor: Colors.transparent,
-            appBar: AppBar(
-              title: Text(
-                widget.attendance != null
-                    ? AppLocalizations.of(context)!.editAttendance
-                    : AppLocalizations.of(context)!.markAttendance,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            actions: [
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close, size: 24),
               ),
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              automaticallyImplyLeading: false,
-              actions: [
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, size: 20),
-                ),
-                const SizedBox(width: 8),
-              ],
-            ),
-            body: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      AppLocalizations.of(
-                        context,
-                      )!.courses.split(' ')[0], // Course
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
+              const SizedBox(width: 8),
+            ],
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppLocalizations.of(
+                      context,
+                    )!.courses.split(' ')[0], // Course
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Colors.grey,
                     ),
-                    const SizedBox(height: 12),
-                    _buildCourseSelector(),
-                    const SizedBox(height: 24),
-                    Text(
-                      AppLocalizations.of(context)!.date,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildCourseSelector(),
+                  const SizedBox(height: 24),
+                  Text(
+                    AppLocalizations.of(context)!.date,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Colors.grey,
                     ),
-                    const SizedBox(height: 12),
-                    _buildDatePicker(),
-                    const SizedBox(height: 24),
-                    Text(
-                      AppLocalizations.of(context)!.status,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDatePicker(),
+                  const SizedBox(height: 24),
+                  Text(
+                    AppLocalizations.of(context)!.status,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Colors.grey,
                     ),
-                    const SizedBox(height: 12),
-                    _buildStatusSelector(),
-                    const SizedBox(height: 40),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _save,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: 0,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildStatusSelector(),
+                  const SizedBox(height: 40),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _save,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Text(
-                          widget.attendance != null
-                              ? AppLocalizations.of(context)!.saveChanges
-                              : AppLocalizations.of(context)!.markPresent,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        widget.attendance != null
+                            ? AppLocalizations.of(context)!.saveChanges
+                            : AppLocalizations.of(context)!.markPresent,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

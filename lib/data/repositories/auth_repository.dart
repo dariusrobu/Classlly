@@ -9,7 +9,7 @@ import 'dart:convert';
 import 'dart:io';
 
 class AuthRepository {
-  final SupabaseClient _client = Supabase.instance.client;
+  SupabaseClient get _client => Supabase.instance.client;
 
   GoTrueClient get _auth => _client.auth;
 

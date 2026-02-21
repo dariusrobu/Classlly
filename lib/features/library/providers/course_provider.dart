@@ -135,10 +135,18 @@ class CourseProvider with ChangeNotifier {
     if (course.courseDay.isNotEmpty && course.courseTime.isNotEmpty) {
       final time = _parseTimeString(course.courseTime);
       if (time != null) {
+        final nextDay = _nextOccurrence(course.courseDay, time);
+        final scheduled6AM = DateTime(
+          nextDay.year,
+          nextDay.month,
+          nextDay.day,
+          6,
+          0,
+        );
         _notificationService.scheduleLectureReminder(
           courseId: '${course.id}lecture'.hashCode,
           courseTitle: course.title,
-          lectureTime: _nextOccurrence(course.courseDay, time),
+          lectureTime: scheduled6AM,
           location: course.location,
         );
       }
@@ -147,10 +155,18 @@ class CourseProvider with ChangeNotifier {
     if (course.seminarDay.isNotEmpty && course.seminarTime.isNotEmpty) {
       final time = _parseTimeString(course.seminarTime);
       if (time != null) {
+        final nextDay = _nextOccurrence(course.seminarDay, time);
+        final scheduled6AM = DateTime(
+          nextDay.year,
+          nextDay.month,
+          nextDay.day,
+          6,
+          0,
+        );
         _notificationService.scheduleLectureReminder(
           courseId: '${course.id}seminar'.hashCode,
           courseTitle: '${course.title} (Seminar)',
-          lectureTime: _nextOccurrence(course.seminarDay, time),
+          lectureTime: scheduled6AM,
           location: course.seminarLocation,
         );
       }

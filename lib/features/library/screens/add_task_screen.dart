@@ -7,6 +7,7 @@ import 'package:classlly/l10n/app_localizations.dart';
 
 import 'package:provider/provider.dart';
 import 'package:classlly/features/library/providers/task_provider.dart';
+import 'package:classlly/core/widgets/glass_card.dart';
 
 class AddTaskScreen extends StatefulWidget {
   final Task? taskToEdit;
@@ -114,198 +115,178 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      child: Container(
+      child: GlassCard(
         constraints: const BoxConstraints(maxWidth: 500, maxHeight: 800),
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.5),
-              blurRadius: 40,
-              offset: const Offset(0, 20),
+        borderRadius: 28,
+        padding: EdgeInsets.zero,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: Text(
+              widget.taskToEdit != null
+                  ? AppLocalizations.of(context)!.editTask
+                  : AppLocalizations.of(context)!.newTask,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          child: Scaffold(
             backgroundColor: Colors.transparent,
-            appBar: AppBar(
-              title: Text(
-                widget.taskToEdit != null
-                    ? AppLocalizations.of(context)!.editTask
-                    : AppLocalizations.of(context)!.newTask,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            actions: [
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close, size: 24),
               ),
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              automaticallyImplyLeading: false,
-              actions: [
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, size: 20),
-                ),
-                const SizedBox(width: 8),
-              ],
-            ),
-            body: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextFormField(
-                      controller: _titleController,
-                      validator: (v) => v?.isEmpty == true
-                          ? AppLocalizations.of(context)!.none
-                          : null,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: AppLocalizations.of(context)!.taskName,
-                        border: InputBorder.none,
-                        hintStyle: const TextStyle(color: Colors.grey),
-                      ),
+              const SizedBox(width: 8),
+            ],
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextFormField(
+                    controller: _titleController,
+                    validator: (v) => v?.isEmpty == true
+                        ? AppLocalizations.of(context)!.none
+                        : null,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _descController,
-                      maxLines: 2,
-                      decoration: InputDecoration(
-                        hintText: AppLocalizations.of(
-                          context,
-                        )!.descriptionOptional,
-                        hintStyle: const TextStyle(fontSize: 14),
-                        filled: true,
-                        fillColor: Theme.of(
-                          context,
-                        ).cardColor.withValues(alpha: 0.5),
-                        border: OutlineInputBorder(
+                    decoration: InputDecoration(
+                      hintText: AppLocalizations.of(context)!.taskName,
+                      border: InputBorder.none,
+                      hintStyle: const TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _descController,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      hintText: AppLocalizations.of(
+                        context,
+                      )!.descriptionOptional,
+                      hintStyle: const TextStyle(fontSize: 14),
+                      filled: true,
+                      fillColor: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.black.withValues(alpha: 0.05),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.all(16),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  Text(
+                    AppLocalizations.of(context)!.priority,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildPrioritySelector(),
+
+                  const SizedBox(height: 24),
+                  Text(
+                    AppLocalizations.of(context)!.schedule,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildDateTimePicker(
+                          AppLocalizations.of(context)!.dueDate,
+                          _dueDate,
+                          (d) => setState(() => _dueDate = d),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildReminderSelector()),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              AppLocalizations.of(context)!.type,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _buildTypeSelector(),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.courses.split(' ')[0], // Course
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _buildCourseSelector(),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 40),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _save,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
                         ),
-                        contentPadding: const EdgeInsets.all(16),
+                        elevation: 0,
                       ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    Text(
-                      AppLocalizations.of(context)!.priority,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildPrioritySelector(),
-
-                    const SizedBox(height: 24),
-                    Text(
-                      AppLocalizations.of(context)!.schedule,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildDateTimePicker(
-                            AppLocalizations.of(context)!.dueDate,
-                            _dueDate,
-                            (d) => setState(() => _dueDate = d),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(child: _buildReminderSelector()),
-                      ],
-                    ),
-
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                AppLocalizations.of(context)!.type,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              _buildTypeSelector(),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                AppLocalizations.of(
-                                  context,
-                                )!.courses.split(' ')[0], // Course
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              _buildCourseSelector(),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 40),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _save,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          widget.taskToEdit != null
-                              ? AppLocalizations.of(context)!.saveChanges
-                              : AppLocalizations.of(context)!.createTask,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+                      child: Text(
+                        widget.taskToEdit != null
+                            ? AppLocalizations.of(context)!.saveChanges
+                            : AppLocalizations.of(context)!.createTask,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

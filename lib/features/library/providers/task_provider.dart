@@ -34,15 +34,17 @@ class TaskProvider with ChangeNotifier {
   void _scheduleTaskReminders(Task task) {
     // Cancel existing reminders for this task (using base ID logic)
     _notificationService.cancelNotification(task.id.hashCode * 10 + 1);
-    _notificationService.cancelNotification(task.id.hashCode * 10 + 2);
 
     if (task.isCompleted || task.isDeleted || task.dueDate == null) return;
 
     if (task.dueDate!.isAfter(DateTime.now())) {
+      final date = task.dueDate!;
+      final scheduled6AM = DateTime(date.year, date.month, date.day, 6, 0);
+
       _notificationService.scheduleTaskReminder(
         taskId: task.id.hashCode,
         title: task.title,
-        dueDate: task.dueDate!,
+        dueDate: scheduled6AM,
       );
     }
   }

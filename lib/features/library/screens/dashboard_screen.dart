@@ -126,97 +126,199 @@ class _InlineQuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: QuickActionButton(
-            icon: Icons.check_circle_outline,
-            label: AppLocalizations.of(context)!.addTask,
-            color: Theme.of(context).colorScheme.primary,
-            onTap: () => showDialog(
-              context: context,
-              builder: (context) => const AddTaskScreen(),
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: QuickActionButton(
-            icon: Icons.grade_outlined,
-            label: AppLocalizations.of(context)!.addGrade,
-            color: Colors.amber.shade700,
-            onTap: () async {
-              final provider = Provider.of<CourseProvider>(
-                context,
-                listen: false,
-              );
-              final courses = provider.courses;
-              if (courses.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content:
-                        Text(AppLocalizations.of(context)!.addCourseFirst),
-                  ),
-                );
-                return;
-              }
-              String? selectedCourseId;
-              if (courses.length == 1) {
-                selectedCourseId = courses.first.id;
-              } else {
-                selectedCourseId = await showDialog<String>(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isSmall = constraints.maxWidth < 600;
+        final spacing = isSmall ? 6.0 : 10.0;
+
+        return Row(
+          children: [
+            Expanded(
+              child: QuickActionButton(
+                icon: Icons.check_circle_outline,
+                label: AppLocalizations.of(context)!.addTask,
+                color: Theme.of(context).colorScheme.primary,
+                isSmall: isSmall,
+                onTap: () => showDialog(
                   context: context,
-                  builder: (context) => SimpleDialog(
-                    title: Text(AppLocalizations.of(context)!.selectCourse),
-                    children: courses
-                        .map((c) => SimpleDialogOption(
-                              onPressed: () => Navigator.pop(context, c.id),
-                              child: Text(c.title),
-                            ))
-                        .toList(),
-                  ),
-                );
-              }
-              if (selectedCourseId != null && context.mounted) {
-                showDialog(
-                  context: context,
-                  builder: (context) =>
-                      AddGradeDialog(courseId: selectedCourseId!),
-                );
-              }
-            },
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: QuickActionButton(
-            icon: Icons.person_add_alt_1_outlined,
-            label: AppLocalizations.of(context)!.attendance,
-            color: Colors.orange,
-            onTap: () => showDialog(
-              context: context,
-              builder: (context) => const AddAttendanceScreen(),
+                  builder: (context) => const AddTaskScreen(),
+                ),
+              ),
             ),
+            SizedBox(width: spacing),
+            Expanded(
+              child: QuickActionButton(
+                icon: Icons.grade_outlined,
+                label: AppLocalizations.of(context)!.addGrade,
+                color: Colors.amber.shade700,
+                isSmall: isSmall,
+                onTap: () async {
+                  final provider = Provider.of<CourseProvider>(
+                    context,
+                    listen: false,
+                  );
+                  final courses = provider.courses;
+                  if (courses.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            AppLocalizations.of(context)!.addCourseFirst),
+                      ),
+                    );
+                    return;
+                  }
+                  String? selectedCourseId;
+                  if (courses.length == 1) {
+                    selectedCourseId = courses.first.id;
+                  } else {
+                    selectedCourseId = await showDialog<String>(
+                      context: context,
+                      builder: (context) => SimpleDialog(
+                        title: Text(AppLocalizations.of(context)!.selectCourse),
+                        children: courses
+                            .map((c) => SimpleDialogOption(
+                                  onPressed: () => Navigator.pop(context, c.id),
+                                  child: Text(c.title),
+                                ))
+                            .toList(),
+                      ),
+                    );
+                  }
+                  if (selectedCourseId != null && context.mounted) {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AddGradeDialog(courseId: selectedCourseId!),
+                    );
+                  }
+                },
+              ),
+            ),
+            SizedBox(width: spacing),
+            Expanded(
+              child: QuickActionButton(
+                icon: Icons.how_to_reg_outlined,
+                label: AppLocalizations.of(context)!.attendance,
+                color: Colors.green,
+                isSmall: isSmall,
+                onTap: () async {
+                  final provider = Provider.of<CourseProvider>(
+                    context,
+                    listen: false,
+                  );
+                  final courses = provider.courses;
+                  if (courses.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            AppLocalizations.of(context)!.addCourseFirst),
+                      ),
+                    );
+                    return;
+                  }
+                  String? selectedCourseId;
+                  if (courses.length == 1) {
+                    selectedCourseId = courses.first.id;
+                  } else {
+                    selectedCourseId = await showDialog<String>(
+                      context: context,
+                      builder: (context) => SimpleDialog(
+                        title: Text(AppLocalizations.of(context)!.selectCourse),
+                        children: courses
+                            .map((c) => SimpleDialogOption(
+                                  onPressed: () => Navigator.pop(context, c.id),
+                                  child: Text(c.title),
+                                ))
+                            .toList(),
+                      ),
+                    );
+                  }
+                  if (selectedCourseId != null && context.mounted) {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AddAttendanceScreen(
+                        initialCourseId: selectedCourseId,
+                      ),
+                    );
+                  }
+                },
+              ),
+            ),
+            SizedBox(width: spacing),
+            Expanded(
+              child: QuickActionButton(
+                icon: Icons.note_add_outlined,
+                label: AppLocalizations.of(context)!.addNote,
+                color: Colors.purple,
+                isSmall: isSmall,
+                onTap: () async {
+                  final note = await showDialog<Note>(
+                    context: context,
+                    builder: (context) => const CreateNoteDialog(),
+                  );
+                  if (note != null && context.mounted) {
+                    LibraryScreen.openNote(context, note);
+                  }
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// ─── Reusable Quick Action Button ──────────────────────────────────────────
+class QuickActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  final bool isSmall;
+
+  const QuickActionButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+    this.isSmall = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: color.withValues(alpha: 0.2),
           ),
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: QuickActionButton(
-            icon: Icons.note_add_outlined,
-            label: AppLocalizations.of(context)!.addNote,
-            color: Colors.purple,
-            onTap: () async {
-              final note = await showDialog<Note>(
-                context: context,
-                builder: (context) => const CreateNoteDialog(),
-              );
-              if (note != null && context.mounted) {
-                LibraryScreen.openNote(context, note);
-              }
-            },
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: isSmall ? 20 : 24),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+                fontSize: isSmall ? 10 : 12,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -236,17 +338,6 @@ class DashboardHeader extends StatelessWidget {
 
     return Row(
       children: [
-        if (MediaQuery.of(context).size.width <= 1000)
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: IconButton(
-              icon: Icon(
-                Icons.menu,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-              onPressed: () => Scaffold.of(context).openDrawer(),
-            ),
-          ),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,7 +346,7 @@ class DashboardHeader extends StatelessWidget {
                 AppLocalizations.of(context)!.welcomeBack(name),
                 style: TextStyle(
                   fontSize:
-                      MediaQuery.of(context).size.width < 600 ? 24 : 32,
+                      MediaQuery.of(context).size.width < 350 ? 20 : (MediaQuery.of(context).size.width < 600 ? 24 : 32),
                   fontWeight: FontWeight.w900,
                   color: Theme.of(context).textTheme.headlineMedium?.color,
                   letterSpacing: -0.5,
@@ -279,7 +370,9 @@ class DashboardHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              DateFormat('EEEE, MMMM d, yyyy').format(DateTime.now()),
+              MediaQuery.of(context).size.width < 500
+                  ? DateFormat('MMM d, yyyy').format(DateTime.now())
+                  : DateFormat('EEEE, MMMM d, yyyy').format(DateTime.now()),
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -343,12 +436,16 @@ class _PerformanceSection extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                AppLocalizations.of(context)!.performanceOverview,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).textTheme.titleLarge?.color,
+              Flexible(
+                child: Text(
+                  AppLocalizations.of(context)!.performanceOverview,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.titleLarge?.color,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               Container(
@@ -495,12 +592,16 @@ class _DonutGauge extends StatelessWidget {
         const SizedBox(height: 12),
         SizedBox(
           width: size + 20,
-          child: Text(
-            subtitle,
-            textAlign: TextAlign.center,
+          child: DefaultTextStyle(
             style: const TextStyle(
               fontSize: 12,
               color: Colors.grey,
+            ),
+            textAlign: TextAlign.center,
+            child: Text(
+              subtitle,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ),
@@ -810,11 +911,11 @@ class _TasksForToday extends StatelessWidget {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
+                    SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: MediaQuery.of(context).size.width < 500 ? 1 : 2,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 16,
-                  childAspectRatio: 4.5,
+                  childAspectRatio: MediaQuery.of(context).size.width < 500 ? 6.5 : 4.5,
                 ),
                 itemCount: displayTasks.length,
                 itemBuilder: (context, index) {
@@ -887,19 +988,25 @@ class RecentNotesCard extends StatelessWidget {
                   color: Theme.of(context).textTheme.titleLarge?.color,
                 ),
               ),
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .dividerColor
-                      .withValues(alpha: 0.05),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.arrow_forward,
-                  color: Colors.grey,
-                  size: 16,
+              GestureDetector(
+                onTap: () {
+                  Provider.of<LibraryProvider>(context, listen: false)
+                      .setView(LibraryView.allNotes);
+                },
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .dividerColor
+                        .withValues(alpha: 0.05),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward,
+                    color: Colors.grey,
+                    size: 16,
+                  ),
                 ),
               ),
             ],
@@ -927,75 +1034,78 @@ class RecentNotesCard extends StatelessWidget {
               return Column(
                 children: recent
                     .map(
-                      (note) => Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .dividerColor
-                              .withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
+                      (note) => GestureDetector(
+                        onTap: () => LibraryScreen.openNote(context, note),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
                             color: Theme.of(context)
                                 .dividerColor
-                                .withValues(alpha: 0.1),
+                                .withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Theme.of(context)
+                                  .dividerColor
+                                  .withValues(alpha: 0.1),
+                            ),
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primary
-                                    .withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primary
+                                      .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.description,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primary,
+                                  size: 20,
+                                ),
                               ),
-                              child: Icon(
-                                Icons.description,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primary,
-                                size: 20,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      note.title.isNotEmpty
+                                          ? note.title
+                                          : AppLocalizations.of(context)!
+                                              .untitled,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodyLarge
+                                            ?.color,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Text(
+                                      AppLocalizations.of(context)!
+                                          .noteMetadata(
+                                        DateFormat.Md()
+                                            .format(note.updatedAt),
+                                        note.strokes.length,
+                                      ),
+                                      style: const TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    note.title.isNotEmpty
-                                        ? note.title
-                                        : AppLocalizations.of(context)!
-                                            .untitled,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(context)
-                                          .textTheme
-                                          .bodyLarge
-                                          ?.color,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  Text(
-                                    AppLocalizations.of(context)!
-                                        .noteMetadata(
-                                      DateFormat.Md()
-                                          .format(note.updatedAt),
-                                      note.strokes.length,
-                                    ),
-                                    style: const TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     )
@@ -1130,62 +1240,7 @@ class CalendarCard extends StatelessWidget {
 }
 
 // ─── Kept for backwards compatibility with tests ───────────────────────────
-class QuickActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
 
-  const QuickActionButton({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.05)
-              : Colors.white.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.black.withValues(alpha: 0.05),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color, size: 16),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: isDark ? Colors.white70 : Colors.black87,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 // StatsGrid kept as thin alias for backwards compat
 class StatsGrid extends StatelessWidget {

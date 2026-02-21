@@ -16,7 +16,7 @@ class NotificationService {
 
   Future<void> init() async {
     if (kIsWeb) return;
-    
+
     // Initialize Timezones
     tz.initializeTimeZones();
     try {
@@ -135,20 +135,12 @@ class NotificationService {
     required String title,
     required DateTime dueDate,
   }) async {
-    // 24 hours before
+    // Exact 6:00 AM schedule
     await scheduleNotification(
       id: taskId * 10 + 1,
-      title: 'Task Due Tomorrow',
-      body: '"$title" is due tomorrow.',
-      scheduledDate: dueDate.subtract(const Duration(days: 1)),
-    );
-
-    // 1 hour before
-    await scheduleNotification(
-      id: taskId * 10 + 2,
-      title: 'Task Due Soon',
-      body: '"$title" is due in 1 hour.',
-      scheduledDate: dueDate.subtract(const Duration(hours: 1)),
+      title: 'Task Due Today',
+      body: '"$title" is due today.',
+      scheduledDate: dueDate,
     );
   }
 
@@ -158,12 +150,26 @@ class NotificationService {
     required DateTime lectureTime,
     required String location,
   }) async {
-    // 15 minutes before
+    // Exact 6:00 AM schedule
     await scheduleNotification(
       id: courseId * 100 + 1,
-      title: 'Lecture Starting Soon',
-      body: '$courseTitle at $location starts in 15 minutes.',
-      scheduledDate: lectureTime.subtract(const Duration(minutes: 15)),
+      title: 'Course Today',
+      body: '$courseTitle at $location is scheduled for today.',
+      scheduledDate: lectureTime,
+    );
+  }
+
+  Future<void> scheduleEventReminder({
+    required String eventId,
+    required String title,
+    required DateTime eventDate,
+  }) async {
+    // Exact 6:00 AM schedule
+    await scheduleNotification(
+      id: eventId.hashCode,
+      title: 'Academic Event Today',
+      body: title,
+      scheduledDate: eventDate,
     );
   }
 

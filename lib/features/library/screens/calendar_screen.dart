@@ -54,18 +54,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (MediaQuery.of(context).size.width <= 1000)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 24),
-                      child: Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.menu, color: textColor),
-                            onPressed: () => Scaffold.of(context).openDrawer(),
-                          ),
-                        ],
-                      ),
-                    ),
                   Text(
                     DateFormat('EEEE, MMMM d, yyyy').format(
                       _selectedDay ?? _focusedDay,

@@ -71,7 +71,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             id: 888,
             title: AppLocalizations.of(context)!.dailyAgenda,
             body: AppLocalizations.of(context)!.dailyAgendaBody,
-            time: const TimeOfDay(hour: 23, minute: 22),
+            time: const TimeOfDay(hour: 6, minute: 0),
           );
         }
       }
@@ -88,6 +88,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
       backgroundColor: Colors.transparent,
       drawer: MediaQuery.of(context).size.width <= 1000
           ? const Drawer(child: DashboardSidebar())
+          : null,
+      bottomNavigationBar: MediaQuery.of(context).size.width <= 1000
+          ? const _MobileBottomNavBar()
           : null,
       body: Container(
         decoration: BoxDecoration(
@@ -165,21 +168,6 @@ class _ArchiveView extends StatelessWidget {
     if (isEmpty) {
       return Column(
         children: [
-          if (MediaQuery.of(context).size.width <= 1000)
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.menu,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                    onPressed: () => Scaffold.of(context).openDrawer(),
-                  ),
-                ],
-              ),
-            ),
           Expanded(
             child: EmptyState(
               icon: Icons.delete_outline,
@@ -194,21 +182,6 @@ class _ArchiveView extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(32),
       children: [
-        if (MediaQuery.of(context).size.width <= 1000)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: Icon(
-                    Icons.menu,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                ),
-              ],
-            ),
-          ),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -402,17 +375,6 @@ class _CoursesView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (width <= 1000)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: IconButton(
-                icon: Icon(
-                  Icons.menu,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-                onPressed: () => Scaffold.of(context).openDrawer(),
-              ),
-            ),
           // ── Header Row ──
           Flex(
             direction: isMobile ? Axis.vertical : Axis.horizontal,
@@ -438,27 +400,6 @@ class _CoursesView extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.05)
-                          : Colors.white.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.08)
-                            : Colors.black.withValues(alpha: 0.05),
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.notifications_outlined,
-                      size: 20,
-                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
                   _HeaderButton(
                     icon: Icons.add_circle_outline,
                     label: 'Add Course',
@@ -544,8 +485,7 @@ class _CoursesGrid extends StatelessWidget {
           return EmptyState(
             icon: Icons.school_outlined,
             title: 'No courses yet',
-            subtitle:
-                'Add your first course to start tracking your schedule.',
+            subtitle: 'Add your first course to start tracking your schedule.',
             actionLabel: 'Add Course',
             onAction: () => showDialog(
               context: context,
@@ -559,11 +499,11 @@ class _CoursesGrid extends StatelessWidget {
             final width = constraints.maxWidth;
             int crossAxisCount = width > 1200
                 ? 4
-                : (width > 800 ? 3 : (width > 500 ? 2 : 1));
+                : (width > 900 ? 3 : (width > 600 ? 2 : 1));
 
             double aspectRatio = 1.15;
             if (crossAxisCount == 1) {
-              aspectRatio = 1.8;
+              aspectRatio = width > 400 ? 2.0 : 1.6;
             } else if (crossAxisCount == 2) {
               aspectRatio = 1.25;
             }
@@ -607,8 +547,9 @@ class _CourseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final color = Color(course.color);
-    final category =
-        course.semester.isNotEmpty ? course.semester.toUpperCase() : 'COURSE';
+    final category = course.semester.isNotEmpty
+        ? course.semester.toUpperCase()
+        : 'COURSE';
 
     return GestureDetector(
       onTap: () => Navigator.push(
@@ -618,10 +559,11 @@ class _CourseCard extends StatelessWidget {
         ),
       ),
       child: GlassCard(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         borderRadius: 24,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -634,25 +576,29 @@ class _CourseCard extends StatelessWidget {
                   ),
                   child: Icon(course.icon, color: color, size: 22),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: categoryColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: categoryColor.withValues(alpha: 0.2),
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
                     ),
-                  ),
-                  child: Text(
-                    category,
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1,
-                      color: categoryColor,
+                    decoration: BoxDecoration(
+                      color: categoryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: categoryColor.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Text(
+                      category,
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1,
+                        color: categoryColor,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),
@@ -661,18 +607,13 @@ class _CourseCard extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               course.title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 4),
             Text(
-              course.professor.isNotEmpty
-                  ? course.professor
-                  : 'No Professor',
+              course.professor.isNotEmpty ? course.professor : 'No Professor',
               style: TextStyle(
                 fontSize: 12,
                 color: isDark ? Colors.grey[500] : Colors.grey[600],
@@ -691,12 +632,13 @@ class _CourseCard extends StatelessWidget {
                 ),
                 children: [
                   TextSpan(
-                    text: course.courseDay.isNotEmpty &&
+                    text:
+                        course.courseDay.isNotEmpty &&
                             course.courseTime.isNotEmpty
                         ? '${course.courseDay}, ${course.courseTime}'
                         : (course.schedule.isNotEmpty
-                            ? course.schedule
-                            : 'Check Calendar'),
+                              ? course.schedule
+                              : 'Check Calendar'),
                     style: TextStyle(
                       color: isDark ? Colors.grey[400] : Colors.grey[600],
                       fontWeight: FontWeight.normal,
@@ -714,13 +656,13 @@ class _CourseCard extends StatelessWidget {
               ).listenable(),
               builder: (context, Box<Task> taskBox, _) {
                 final courseTasks = taskBox.values
-                    .where(
-                        (t) => !t.isDeleted && t.courseId == course.id)
+                    .where((t) => !t.isDeleted && t.courseId == course.id)
                     .toList();
                 double progress = 0.0;
                 if (courseTasks.isNotEmpty) {
-                  final completed =
-                      courseTasks.where((t) => t.isCompleted).length;
+                  final completed = courseTasks
+                      .where((t) => t.isCompleted)
+                      .length;
                   progress = completed / courseTasks.length;
                 }
                 return Column(
@@ -825,8 +767,6 @@ class _EnrollPlaceholderCard extends StatelessWidget {
   }
 }
 
-
-
 class _AllNotesView extends StatefulWidget {
   const _AllNotesView();
   @override
@@ -834,17 +774,6 @@ class _AllNotesView extends StatefulWidget {
 }
 
 class _AllNotesViewState extends State<_AllNotesView> {
-  String _selectedChip = 'ALL NOTES';
-  String _searchQuery = '';
-
-  static const List<String> _filterChips = [
-    'ALL NOTES',
-    'ACADEMIC',
-    'PERSONAL',
-    'RESEARCH',
-    'DRAFTS',
-  ];
-
   // Pastel colors for note card thumbnails
   static const List<Color> _pastelColors = [
     Color(0xFFBFDBFE), // blue
@@ -878,17 +807,6 @@ class _AllNotesViewState extends State<_AllNotesView> {
             );
             var notes = repo.getNotesInFolder(currentFolderId);
 
-            // Apply search filtering
-            if (_searchQuery.isNotEmpty) {
-              notes = notes
-                  .where(
-                    (n) => n.title
-                        .toLowerCase()
-                        .contains(_searchQuery.toLowerCase()),
-                  )
-                  .toList();
-            }
-
             String title = 'My Notes';
             if (currentFolderId != null) {
               final currentFolder = folderBox.values
@@ -902,19 +820,6 @@ class _AllNotesViewState extends State<_AllNotesView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Menu button for mobile
-                  if (MediaQuery.of(context).size.width <= 1000)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.menu,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                        onPressed: () => Scaffold.of(context).openDrawer(),
-                      ),
-                    ),
-
                   // Back button + Title row
                   Row(
                     children: [
@@ -925,8 +830,7 @@ class _AllNotesViewState extends State<_AllNotesView> {
                             final currentFolder = folderBox.values
                                 .where(
                                   (f) =>
-                                      !f.isDeleted &&
-                                      f.id == currentFolderId,
+                                      !f.isDeleted && f.id == currentFolderId,
                                 )
                                 .firstOrNull;
                             notesProvider.navigateToFolder(
@@ -961,17 +865,17 @@ class _AllNotesViewState extends State<_AllNotesView> {
                           ),
                         ),
                         child: GestureDetector(
-                          onTap: () => _showCreateFolderDialog(
-                            context,
-                            notesProvider,
-                          ),
+                          onTap: () =>
+                              _showCreateFolderDialog(context, notesProvider),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 Icons.create_new_folder_outlined,
                                 size: 16,
-                                color: isDark ? Colors.grey[300] : Colors.grey[700],
+                                color: isDark
+                                    ? Colors.grey[300]
+                                    : Colors.grey[700],
                               ),
                               const SizedBox(width: 6),
                               Text(
@@ -979,7 +883,9 @@ class _AllNotesViewState extends State<_AllNotesView> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: isDark ? Colors.grey[300] : Colors.grey[700],
+                                  color: isDark
+                                      ? Colors.grey[300]
+                                      : Colors.grey[700],
                                 ),
                               ),
                             ],
@@ -989,88 +895,6 @@ class _AllNotesViewState extends State<_AllNotesView> {
                     ],
                   ),
                   const SizedBox(height: 20),
-
-                  // Glassmorphism search bar
-                  GlassCard(
-                    borderRadius: 16,
-                    padding: EdgeInsets.zero,
-                    child: TextField(
-                      onChanged: (val) => setState(() => _searchQuery = val),
-                      decoration: InputDecoration(
-                        hintText: 'Search notes...',
-                        hintStyle: TextStyle(
-                          color: isDark ? Colors.grey[500] : Colors.grey[400],
-                          fontSize: 14,
-                        ),
-                        prefixIcon: Icon(
-                          Icons.search,
-                          color: isDark ? Colors.grey[400] : Colors.grey[500],
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                      ),
-                      style: TextStyle(
-                        color: isDark ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Category filter chips
-                  SizedBox(
-                    height: 38,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _filterChips.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
-                      itemBuilder: (context, index) {
-                        final chip = _filterChips[index];
-                        final isActive = chip == _selectedChip;
-                        return GestureDetector(
-                          onTap: () => setState(() => _selectedChip = chip),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isActive
-                                  ? Theme.of(context).colorScheme.primary
-                                  : isDark
-                                      ? Colors.white.withValues(alpha: 0.05)
-                                      : Colors.white.withValues(alpha: 0.6),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isActive
-                                    ? Colors.transparent
-                                    : isDark
-                                        ? Colors.white.withValues(alpha: 0.08)
-                                        : Colors.black.withValues(alpha: 0.06),
-                              ),
-                            ),
-                            child: Text(
-                              chip,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.8,
-                                color: isActive
-                                    ? Colors.white
-                                    : isDark
-                                        ? Colors.grey[400]
-                                        : Colors.grey[600],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 24),
 
                   // Folders section
                   if (folders.isNotEmpty) ...[
@@ -1105,20 +929,18 @@ class _AllNotesViewState extends State<_AllNotesView> {
                             padding: const EdgeInsets.all(16),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Icon(
                                       Icons.folder,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .primary,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
                                       size: 32,
                                     ),
                                     PopupMenuButton<String>(
@@ -1160,9 +982,7 @@ class _AllNotesViewState extends State<_AllNotesView> {
                                         PopupMenuItem(
                                           value: 'move',
                                           child: Text(
-                                            AppLocalizations.of(
-                                              context,
-                                            )!.move,
+                                            AppLocalizations.of(context)!.move,
                                           ),
                                         ),
                                         PopupMenuItem(
@@ -1212,8 +1032,7 @@ class _AllNotesViewState extends State<_AllNotesView> {
                           onAction: () async {
                             final note = await showDialog<Note>(
                               context: context,
-                              builder: (context) =>
-                                  const CreateNoteDialog(),
+                              builder: (context) => const CreateNoteDialog(),
                             );
                             if (note != null && context.mounted) {
                               LibraryScreen.openNote(context, note);
@@ -1238,20 +1057,18 @@ class _AllNotesViewState extends State<_AllNotesView> {
                         final width = constraints.maxWidth;
                         int crossAxisCount = width > 1200
                             ? 4
-                            : (width > 800
-                                ? 3
-                                : (width > 500 ? 2 : 1));
+                            : (width > 900 ? 3 : 2); // Mobile gets 2 columns
 
                         return GridView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: crossAxisCount,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 16,
-                            childAspectRatio: 0.85,
-                          ),
+                                crossAxisCount: crossAxisCount,
+                                mainAxisSpacing: 16,
+                                crossAxisSpacing: 16,
+                                childAspectRatio: 0.85,
+                              ),
                           itemCount: notes.length + 1, // +1 for placeholder
                           itemBuilder: (context, index) {
                             // Create New Note placeholder
@@ -1281,7 +1098,6 @@ class _AllNotesViewState extends State<_AllNotesView> {
       },
     );
   }
-
 
   void _showCreateFolderDialog(BuildContext context, NotesProvider provider) {
     final controller = TextEditingController();
@@ -1480,7 +1296,7 @@ class _NoteGalleryCard extends StatelessWidget {
           children: [
             // Colored thumbnail header
             Container(
-              height: 80,
+              height: 60,
               width: double.infinity,
               decoration: BoxDecoration(
                 color: isDark
@@ -1494,7 +1310,7 @@ class _NoteGalleryCard extends StatelessWidget {
               child: Center(
                 child: Icon(
                   Icons.description_outlined,
-                  size: 32,
+                  size: 28,
                   color: isDark
                       ? pastelColor.withValues(alpha: 0.6)
                       : pastelColor.withValues(alpha: 0.8),
@@ -1504,7 +1320,7 @@ class _NoteGalleryCard extends StatelessWidget {
             // Card body
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1618,11 +1434,7 @@ class _CreateNotePlaceholder extends StatelessWidget {
                   color: primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(
-                  Icons.add,
-                  color: primary,
-                  size: 24,
-                ),
+                child: Icon(Icons.add, color: primary, size: 24),
               ),
               const SizedBox(height: 12),
               Text(
@@ -1637,230 +1449,6 @@ class _CreateNotePlaceholder extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _RecentNoteItem extends StatelessWidget {
-
-  final Note note;
-  const _RecentNoteItem({required this.note});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final colorScheme = Theme.of(context).colorScheme;
-    final notesProvider = Provider.of<NotesProvider>(context, listen: false);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => LibraryScreen.openNote(context, note),
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(
-                    Icons.description_outlined,
-                    color: colorScheme.primary,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        note.title.isNotEmpty ? note.title : 'Untitled Note',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${DateFormat.yMMMd().format(note.updatedAt)} • ${note.strokes.length} strokes',
-                        style: TextStyle(
-                          color: isDark ? Colors.grey[500] : Colors.grey[800],
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                PopupMenuButton<String>(
-                  icon: Icon(
-                    Icons.more_vert,
-                    size: 18,
-                    color: isDark ? Colors.grey[400] : Colors.grey[800],
-                  ),
-                  onSelected: (value) {
-                    if (value == 'rename') {
-                      _showRenameDialog(context, notesProvider);
-                    } else if (value == 'move') {
-                      _showMoveDialog(context, notesProvider);
-                    } else if (value == 'delete') {
-                      _showDeleteDialog(context, notesProvider);
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(value: 'rename', child: Text('Rename')),
-                    const PopupMenuItem(value: 'move', child: Text('Move')),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Text(
-                        'Delete',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showMoveDialog(BuildContext context, NotesProvider provider) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(AppLocalizations.of(context)!.moveNoteTo),
-          content: SizedBox(
-            width: 300,
-            child: ValueListenableBuilder(
-              valueListenable: Hive.box<Folder>(
-                NotesRepository.folderBoxName,
-              ).listenable(),
-              builder: (context, Box<Folder> box, _) {
-                final folders = box.values
-                    .where((f) => !f.isDeleted && f.type == FolderType.notebook)
-                    .toList();
-
-                return ListView(
-                  shrinkWrap: true,
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.home_outlined),
-                      title: Text(AppLocalizations.of(context)!.myNotesRoot),
-                      onTap: () {
-                        provider.moveNote(note, null);
-                        Navigator.pop(context);
-                      },
-                    ),
-                    const Divider(),
-                    ...folders.map(
-                      (f) => ListTile(
-                        leading: const Icon(Icons.folder_outlined),
-                        title: Text(f.title),
-                        onTap: () {
-                          provider.moveNote(note, f.id);
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(AppLocalizations.of(context)!.cancel),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showRenameDialog(BuildContext context, NotesProvider provider) {
-    final controller = TextEditingController(text: note.title);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.renameNote),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: AppLocalizations.of(context)!.noteTitle,
-            border: const OutlineInputBorder(),
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context)!.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                provider.renameNote(note, controller.text);
-                Navigator.pop(context);
-              }
-            },
-            child: Text(AppLocalizations.of(context)!.save),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showDeleteDialog(BuildContext context, NotesProvider provider) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.deleteNote),
-        content: Text(
-          AppLocalizations.of(context)!.deleteNoteConfirm(note.title),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context)!.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              provider.deleteNote(note.id);
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: Text(AppLocalizations.of(context)!.delete),
-          ),
-        ],
       ),
     );
   }
@@ -1913,6 +1501,107 @@ class _HeaderButton extends StatelessWidget {
       label: Text(label),
       style: ElevatedButton.styleFrom(
         backgroundColor: Theme.of(context).cardColor,
+      ),
+    );
+  }
+}
+
+class _MobileBottomNavBar extends StatelessWidget {
+  const _MobileBottomNavBar();
+
+  @override
+  Widget build(BuildContext context) {
+    final libraryProvider = Provider.of<LibraryProvider>(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    int selectedIndex = 0;
+    switch (libraryProvider.currentView) {
+      case LibraryView.dashboard:
+        selectedIndex = 0;
+        break;
+      case LibraryView.courses:
+        selectedIndex = 1;
+        break;
+      case LibraryView.tasks:
+        selectedIndex = 2;
+        break;
+      default:
+        selectedIndex = 3;
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        border: Border(
+          top: BorderSide(
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+          ),
+        ),
+      ),
+      child: SafeArea(
+        child: BottomNavigationBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: Theme.of(context).colorScheme.primary,
+          unselectedItemColor: isDark ? Colors.grey[500] : Colors.grey[600],
+          currentIndex: selectedIndex,
+          selectedFontSize: 12,
+          unselectedFontSize: 12,
+          onTap: (index) {
+            if (index == 0) {
+              libraryProvider.setView(LibraryView.dashboard);
+            } else if (index == 1) {
+              libraryProvider.setView(LibraryView.courses);
+            } else if (index == 2) {
+              libraryProvider.setView(LibraryView.tasks);
+            } else if (index == 3) {
+              Scaffold.of(context).openDrawer();
+            }
+          },
+          items: [
+            BottomNavigationBarItem(
+              icon: const Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Icon(Icons.dashboard_outlined),
+              ),
+              activeIcon: const Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Icon(Icons.dashboard),
+              ),
+              label: AppLocalizations.of(context)?.dashboard ?? 'Dashboard',
+            ),
+            BottomNavigationBarItem(
+              icon: const Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Icon(Icons.book_outlined),
+              ),
+              activeIcon: const Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Icon(Icons.book),
+              ),
+              label: AppLocalizations.of(context)?.courses ?? 'Courses',
+            ),
+            BottomNavigationBarItem(
+              icon: const Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Icon(Icons.check_circle_outline),
+              ),
+              activeIcon: const Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Icon(Icons.check_circle),
+              ),
+              label: AppLocalizations.of(context)?.tasks ?? 'Tasks',
+            ),
+            const BottomNavigationBarItem(
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Icon(Icons.more_horiz),
+              ),
+              label: 'More',
+            ),
+          ],
+        ),
       ),
     );
   }

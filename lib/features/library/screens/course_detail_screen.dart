@@ -526,7 +526,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
     Color primaryColor,
   ) {
     final isMobile = MediaQuery.of(context).size.width < 800;
-    
+
     if (isMobile) {
       return SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 0),
@@ -557,7 +557,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
         ),
       );
     }
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 0),
       child: Column(
@@ -645,13 +645,15 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
           ),
           const SizedBox(height: 16),
           ValueListenableBuilder(
-            valueListenable:
-                Hive.box<Grade>(NotesRepository.gradeBoxName).listenable(),
+            valueListenable: Hive.box<Grade>(
+              NotesRepository.gradeBoxName,
+            ).listenable(),
             builder: (context, Box<Grade> gradeBox, _) {
-              final courseGrades = gradeBox.values
-                  .where((g) => g.courseId == _course.id)
-                  .toList()
-                ..sort((a, b) => b.date.compareTo(a.date));
+              final courseGrades =
+                  gradeBox.values
+                      .where((g) => g.courseId == _course.id)
+                      .toList()
+                    ..sort((a, b) => b.date.compareTo(a.date));
               final recent = courseGrades.take(3).toList();
 
               if (recent.isEmpty) {
@@ -797,14 +799,13 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
           ),
           const SizedBox(height: 16),
           ValueListenableBuilder(
-            valueListenable:
-                Hive.box<Attendance>(NotesRepository.attendanceBoxName)
-                    .listenable(),
+            valueListenable: Hive.box<Attendance>(
+              NotesRepository.attendanceBoxName,
+            ).listenable(),
             builder: (context, Box<Attendance> attBox, _) {
-              final courseAtt = attBox.values
-                  .where((a) => a.courseId == _course.id)
-                  .toList()
-                ..sort((a, b) => b.date.compareTo(a.date));
+              final courseAtt =
+                  attBox.values.where((a) => a.courseId == _course.id).toList()
+                    ..sort((a, b) => b.date.compareTo(a.date));
               final recent = courseAtt.take(5).toList();
 
               if (recent.isEmpty) {
@@ -821,19 +822,22 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
 
               return Column(
                 children: recent.map((att) {
-                  final isPresent = att.status == AttendanceStatus.present ||
+                  final isPresent =
+                      att.status == AttendanceStatus.present ||
                       att.status == AttendanceStatus.excused;
                   final statusColor = isPresent ? Colors.green : Colors.red;
                   final statusLabel = att.status == AttendanceStatus.present
                       ? 'Present'
                       : att.status == AttendanceStatus.excused
-                          ? 'Excused'
-                          : 'Absent';
+                      ? 'Excused'
+                      : 'Absent';
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: isDark
                           ? Colors.white.withValues(alpha: 0.03)
@@ -868,7 +872,9 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 3),
+                            horizontal: 10,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: statusColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
@@ -893,7 +899,6 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
       ),
     );
   }
-
 
   Widget _buildQuickActions(
     BuildContext context,
@@ -1152,7 +1157,6 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                   ],
                 ),
               ),
-
             ],
           ),
           const SizedBox(width: 24),
@@ -2161,39 +2165,123 @@ class AddGradeDialogState extends State<AddGradeDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.grade != null ? 'Edit Grade' : 'Add Grade'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _titleController,
-            decoration: const InputDecoration(labelText: 'Assignment Title'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _scoreController,
-            decoration: const InputDecoration(labelText: 'Grade (%)'),
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _weightController,
-            decoration: const InputDecoration(
-              labelText: 'Weight (%)',
-              hintText: 'e.g. 20',
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: GlassCard(
+        constraints: const BoxConstraints(maxWidth: 400),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  widget.grade != null ? 'Edit Grade' : 'Add Grade',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
             ),
-            keyboardType: TextInputType.number,
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+            const SizedBox(height: 24),
+            TextField(
+              controller: _titleController,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+              decoration: InputDecoration(
+                labelText: 'Assignment Title',
+                filled: true,
+                fillColor: isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.05),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _scoreController,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+              decoration: InputDecoration(
+                labelText: 'Grade (%)',
+                filled: true,
+                fillColor: isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.05),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _weightController,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+              decoration: InputDecoration(
+                labelText: 'Weight (%)',
+                hintText: 'e.g. 20',
+                filled: true,
+                fillColor: isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.05),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'Save',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
         ),
-        ElevatedButton(onPressed: _save, child: const Text('Save')),
-      ],
+      ),
     );
   }
 }

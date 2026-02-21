@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:classlly/data/models/academic_calendar_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
+import 'package:classlly/core/services/notification_service.dart';
 
 class AcademicCalendarProvider with ChangeNotifier {
   final NotesRepository _repository;
+  final NotificationService _notificationService;
 
   List<AcademicPeriod> _periods = [];
   List<AcademicEvent> _events = [];
@@ -13,8 +15,11 @@ class AcademicCalendarProvider with ChangeNotifier {
   List<AcademicPeriod> get periods => _periods;
   List<AcademicEvent> get events => _events;
 
-  AcademicCalendarProvider({NotesRepository? repository})
-    : _repository = repository ?? NotesRepository() {
+  AcademicCalendarProvider({
+    NotesRepository? repository,
+    NotificationService? notificationService,
+  }) : _repository = repository ?? NotesRepository(),
+       _notificationService = notificationService ?? NotificationService() {
     Future.microtask(() => _loadData());
   }
 
@@ -90,20 +95,20 @@ class AcademicCalendarProvider with ChangeNotifier {
     }
     final allEvents = _repository.getAllEvents();
     for (var event in allEvents) {
-      await _repository.deleteEvent(event.id);
+      await deleteEvent(event.id);
     }
     _loadData();
   }
 
   Future<List<dynamic>> getAvailableTemplates() async {
     const serverUrl = 'https://classlly-server.vercel.app/api/calendars';
-    
+
     try {
       debugPrint('Fetching templates from $serverUrl...');
-      final response = await http.get(Uri.parse(serverUrl)).timeout(
-        const Duration(seconds: 15),
-      );
-      
+      final response = await http
+          .get(Uri.parse(serverUrl))
+          .timeout(const Duration(seconds: 15));
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final calendars = data['calendars'] as List<dynamic>;
@@ -118,10 +123,6 @@ class AcademicCalendarProvider with ChangeNotifier {
       rethrow;
     }
   }
-
-
-
-
 
   Future<void> addPeriod({
     required String name,
@@ -149,22 +150,51 @@ class AcademicCalendarProvider with ChangeNotifier {
     _loadData();
   }
 
+  void _scheduleEventReminder(AcademicEvent event) {
+    if (event.date.isBefore(DateTime.now())) return;
+
+    // Explicit 6:00 AM override
+    final scheduledDate = DateTime(
+      event.date.year,
+      event.date.month,
+      event.date.day,
+      6,
+      0,
+    );
+
+    _notificationService.scheduleEventReminder(
+      eventId: event.id,
+      title: event.name,
+      eventDate: scheduledDate,
+    );
+  }
+
+  void _cancelEventReminder(String eventId) {
+    _notificationService.cancelNotification(eventId.hashCode);
+  }
+
   Future<void> addEvent({
     required String name,
     required DateTime date,
     required AcademicEventType type,
   }) async {
+    await _notificationService.requestPermissions();
     final event = AcademicEvent.create(name: name, date: date, type: type);
     await _repository.saveEvent(event);
+    _scheduleEventReminder(event);
     _loadData();
   }
 
   Future<void> updateEvent(AcademicEvent event) async {
+    await _notificationService.requestPermissions();
     await _repository.saveEvent(event);
+    _cancelEventReminder(event.id);
+    _scheduleEventReminder(event);
     _loadData();
   }
 
   Future<void> deleteEvent(String id) async {
+    _cancelEventReminder(id);
     await _repository.deleteEvent(id);
     _loadData();
   }
@@ -248,5 +278,4 @@ class AcademicCalendarProvider with ChangeNotifier {
       'periodType': 'teaching',
     };
   }
-
 }

@@ -122,17 +122,6 @@ class _TasksScreenState extends State<TasksScreen> {
         children: [
           Row(
             children: [
-              if (MediaQuery.of(context).size.width <= 1000)
-                Padding(
-                  padding: const EdgeInsets.only(right: 16),
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.menu,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                    onPressed: () => Scaffold.of(context).openDrawer(),
-                  ),
-                ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

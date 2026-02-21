@@ -13,6 +13,7 @@ class GlassCard extends StatelessWidget {
   final Border? border;
   final double? width;
   final double? height;
+  final BoxConstraints? constraints;
 
   const GlassCard({
     super.key,
@@ -26,6 +27,7 @@ class GlassCard extends StatelessWidget {
     this.border,
     this.width,
     this.height,
+    this.constraints,
   });
 
   @override
@@ -47,6 +49,7 @@ class GlassCard extends StatelessWidget {
       return Container(
         width: width,
         height: height,
+        constraints: constraints,
         margin: margin,
         padding: padding,
         decoration: BoxDecoration(
@@ -66,6 +69,7 @@ class GlassCard extends StatelessWidget {
     return Container(
       width: width,
       height: height,
+      constraints: constraints,
       margin: margin,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),

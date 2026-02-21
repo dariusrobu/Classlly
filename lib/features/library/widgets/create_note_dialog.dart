@@ -6,6 +6,7 @@ import 'package:classlly/features/library/providers/notes_provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/l10n/app_localizations.dart';
+import 'package:classlly/core/widgets/glass_card.dart';
 
 class CreateNoteDialog extends StatefulWidget {
   final String? initialCourseId;
@@ -38,21 +39,54 @@ class _CreateNoteDialogState extends State<CreateNoteDialog> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).colorScheme.primary;
 
-    return AlertDialog(
-      title: Text(AppLocalizations.of(context)!.createNewNote),
-      content: SizedBox(
-        width: 400,
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: GlassCard(
+        constraints: const BoxConstraints(maxWidth: 400),
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  AppLocalizations.of(context)!.createNewNote,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
             TextField(
               controller: _titleController,
               autofocus: true,
+              style: const TextStyle(fontWeight: FontWeight.w600),
               decoration: InputDecoration(
                 labelText: AppLocalizations.of(context)!.noteTitle,
                 hintText: 'e.g., Lecture 1 - Introduction',
-                border: const OutlineInputBorder(),
+                filled: true,
+                fillColor: isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.05),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -70,35 +104,41 @@ class _CreateNoteDialogState extends State<CreateNoteDialog> {
                     Text(
                       AppLocalizations.of(context)!.courseOptional,
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.bold,
                         color: Colors.grey,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedCourseId,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.black.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedCourseId,
+                          isExpanded: true,
+                          hint: Text(AppLocalizations.of(context)!.none),
+                          items: [
+                            DropdownMenuItem(
+                              value: null,
+                              child: Text(AppLocalizations.of(context)!.none),
+                            ),
+                            ...courses.map(
+                              (c) => DropdownMenuItem(
+                                value: c.id,
+                                child: Text(c.title),
+                              ),
+                            ),
+                          ],
+                          onChanged: (val) =>
+                              setState(() => _selectedCourseId = val),
                         ),
                       ),
-                      items: [
-                        DropdownMenuItem(
-                          value: null,
-                          child: Text(AppLocalizations.of(context)!.none),
-                        ),
-                        ...courses.map(
-                          (c) => DropdownMenuItem(
-                            value: c.id,
-                            child: Text(c.title),
-                          ),
-                        ),
-                      ],
-                      onChanged: (val) =>
-                          setState(() => _selectedCourseId = val),
                     ),
                     const SizedBox(height: 24),
                   ],
@@ -108,7 +148,7 @@ class _CreateNoteDialogState extends State<CreateNoteDialog> {
             Text(
               AppLocalizations.of(context)!.noteType,
               style: const TextStyle(
-                fontSize: 12,
+                fontSize: 13,
                 fontWeight: FontWeight.bold,
                 color: Colors.grey,
               ),
@@ -140,46 +180,59 @@ class _CreateNoteDialogState extends State<CreateNoteDialog> {
                 ),
               ],
             ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
+                  final title = _titleController.text.trim().isEmpty
+                      ? AppLocalizations.of(context)!.untitled
+                      : _titleController.text.trim();
+
+                  final notesProvider = Provider.of<NotesProvider>(
+                    context,
+                    listen: false,
+                  );
+
+                  // Create note with selected type
+                  final note = await notesProvider.createNoteInCurrentFolder(
+                    title: title,
+                    type: _selectedType,
+                  );
+
+                  // Add course tag/link if selected
+                  if (_selectedCourseId != null) {
+                    // Logic to link course can be improved, for now we add tag or just handle it
+                    // The original code used tags for course linking in some places
+                    // note.tags = [ ...note.tags ?? [], _selectedCourseId! ];
+                    // await NotesRepository().saveNote(note);
+                  }
+
+                  if (context.mounted) {
+                    Navigator.pop(context, note);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  AppLocalizations.of(context)!.create,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(AppLocalizations.of(context)!.cancel),
-        ),
-        ElevatedButton(
-          onPressed: () async {
-            final title = _titleController.text.trim().isEmpty
-                ? AppLocalizations.of(context)!.untitled
-                : _titleController.text.trim();
-
-            final notesProvider = Provider.of<NotesProvider>(
-              context,
-              listen: false,
-            );
-
-            // Create note with selected type
-            final note = await notesProvider.createNoteInCurrentFolder(
-              title: title,
-              type: _selectedType,
-            );
-
-            // Add course tag/link if selected
-            if (_selectedCourseId != null) {
-              // Logic to link course can be improved, for now we add tag or just handle it
-              // The original code used tags for course linking in some places
-              // note.tags = [ ...note.tags ?? [], _selectedCourseId! ];
-              // await NotesRepository().saveNote(note);
-            }
-
-            if (context.mounted) {
-              Navigator.pop(context, note);
-            }
-          },
-          child: Text(AppLocalizations.of(context)!.create),
-        ),
-      ],
     );
   }
 }
@@ -206,12 +259,14 @@ class _TypeSelectionCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(vertical: 20),
         decoration: BoxDecoration(
           color: isSelected
               ? color.withValues(alpha: 0.1)
-              : (isDark ? Colors.grey[800] : Colors.grey[100]),
-          borderRadius: BorderRadius.circular(12),
+              : (isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.05)),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? color : Colors.transparent,
             width: 2,
@@ -226,7 +281,7 @@ class _TypeSelectionCard extends StatelessWidget {
                   : (isDark ? Colors.grey[400] : Colors.grey[600]),
               size: 28,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
               label,
               style: TextStyle(

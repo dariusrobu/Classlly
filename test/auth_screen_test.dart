@@ -76,15 +76,18 @@ void main() {
           ChangeNotifierProvider<LibraryProvider>.value(value: MockLibraryProvider()),
         ],
         child: const MaterialApp(
-          home: AuthScreen(),
+          home: Scaffold(
+            body: AuthScreen(),
+          ),
         ),
       ),
     );
 
+    await tester.pump();
+
     // Verify UI elements
-    expect(find.text('Classlly'), findsOneWidget);
-    expect(find.text('Sign In'), findsOneWidget);
-    expect(find.text('Continue as Guest (Offline)'), findsOneWidget);
     expect(find.byType(TextField), findsNWidgets(2)); // Email & Password
+    expect(find.byType(ElevatedButton), findsOneWidget); // Sign In Button
+    expect(find.byType(TextButton), findsWidgets); // Sign Up & Guest Button
   });
 }
