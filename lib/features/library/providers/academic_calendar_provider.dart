@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:classlly/data/models/academic_calendar_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/core/services/notification_service.dart';
@@ -101,25 +101,15 @@ class AcademicCalendarProvider with ChangeNotifier {
   }
 
   Future<List<dynamic>> getAvailableTemplates() async {
-    const serverUrl = 'https://classlly-server.vercel.app/api/calendars';
-
     try {
-      debugPrint('Fetching templates from $serverUrl...');
-      final response = await http
-          .get(Uri.parse(serverUrl))
-          .timeout(const Duration(seconds: 15));
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final calendars = data['calendars'] as List<dynamic>;
-        debugPrint('Found ${calendars.length} templates from server.');
-        return calendars;
-      } else {
-        debugPrint('Server returned ${response.statusCode}');
-        throw Exception('Failed to load templates: ${response.statusCode}');
-      }
+      debugPrint('Loading templates from local asset...');
+      final jsonString = await rootBundle.loadString('assets/data/calendars.json');
+      final data = jsonDecode(jsonString);
+      final calendars = data['calendars'] as List<dynamic>;
+      debugPrint('Found ${calendars.length} templates locally.');
+      return calendars;
     } catch (e) {
-      debugPrint('Error fetching templates from server: $e');
+      debugPrint('Error reading local templates: $e');
       rethrow;
     }
   }

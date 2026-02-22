@@ -391,27 +391,39 @@ class DashboardHeader extends StatelessWidget {
             ),
             if (weekInfo != null)
               Container(
-                margin: const EdgeInsets.only(top: 4),
+                margin: const EdgeInsets.only(top: 8),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
-                  vertical: 3,
+                  vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  weekInfo['week'] != null
-                      ? 'WEEK ${weekInfo['week']} · ${weekInfo['label'].toUpperCase()}'
-                      : weekInfo['label'].toUpperCase(),
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 10,
-                    letterSpacing: 0.5,
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                   ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.event_note_rounded,
+                      size: 12,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      weekInfo['week'] != null
+                          ? 'WEEK ${weekInfo['week']} • ${weekInfo['label'].toUpperCase()}'
+                          : weekInfo['label'].toUpperCase(),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
           ],
