@@ -689,18 +689,21 @@ class ScheduleCard extends StatelessWidget {
     final weekInfo = calendarProvider.getWeekInfo(now);
 
     final todaysLectures = <Course>[];
-    if (weekInfo != null) {
-      for (var course in courseProvider.courses) {
-        if (course.courseDay == dayName) {
-          bool show =
-              course.courseFrequency == 'Weekly' ||
-              (course.courseFrequency == 'Bi-Weekly (odd)' &&
-                  weekInfo['isOdd']) ||
-              (course.courseFrequency == 'Bi-Weekly (even)' &&
-                  !weekInfo['isOdd']);
-          if (show) {
-            todaysLectures.add(course);
+    for (var course in courseProvider.courses) {
+      if (course.courseDay == dayName) {
+        bool show = course.courseFrequency == 'Weekly';
+        
+        // If we have week information, we can also check bi-weekly courses
+        if (!show && weekInfo != null) {
+          if (course.courseFrequency == 'Bi-Weekly (odd)' && weekInfo['isOdd']) {
+            show = true;
+          } else if (course.courseFrequency == 'Bi-Weekly (even)' && !weekInfo['isOdd']) {
+            show = true;
           }
+        }
+        
+        if (show) {
+          todaysLectures.add(course);
         }
       }
     }

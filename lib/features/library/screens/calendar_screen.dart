@@ -9,6 +9,7 @@ import 'package:classlly/features/library/providers/course_provider.dart';
 import 'package:classlly/data/models/task_model.dart';
 import 'package:classlly/data/models/academic_calendar_model.dart';
 
+import 'package:classlly/features/library/widgets/add_event_dialog.dart';
 // import 'package:classlly/l10n/app_localizations.dart';
 
 enum CalendarView { day, week, month }
@@ -151,7 +152,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
             const SizedBox(width: 16),
             // New Event Button
             ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AddEventDialog(
+                    initialDate: _selectedDay ?? _focusedDay,
+                  ),
+                );
+              },
               icon: const Icon(Icons.add, size: 18),
               label: const Text('New Event'),
               style: ElevatedButton.styleFrom(
