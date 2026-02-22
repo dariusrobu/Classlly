@@ -2,12 +2,12 @@ import 'package:classlly/data/repositories/auth_repository.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/features/auth/screens/signup_screen.dart';
 import 'package:classlly/features/auth/screens/profile_setup_screen.dart';
+import 'package:classlly/features/auth/screens/restore_screen.dart';
 import 'package:classlly/core/services/cloud_storage_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:classlly/features/library/screens/library_screen.dart';
-import 'package:classlly/features/library/providers/library_provider.dart';
 import 'package:classlly/features/library/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -112,14 +112,10 @@ class _AuthScreenState extends State<AuthScreen> {
 
   void _navigateToLibrary() {
     if (mounted) {
-      final repo = NotesRepository();
-      final prefs = repo.getPreferences();
-      prefs.hasCompletedOnboarding = true;
-      repo.savePreferences(prefs);
-
-      Provider.of<LibraryProvider>(context, listen: false).initSync();
+      // Navigate to RestoreScreen, which pulls Supabase data into Hive
+      // and then automatically moves to LibraryScreen when done.
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const LibraryScreen()),
+        MaterialPageRoute(builder: (_) => const RestoreScreen()),
       );
     }
   }

@@ -71,7 +71,9 @@ class DashboardSidebar extends StatelessWidget {
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           letterSpacing: -0.5,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          color: isDark
+                              ? Colors.white
+                              : const Color(0xFF0F172A),
                         ),
                       ),
                       Text(
@@ -80,7 +82,9 @@ class DashboardSidebar extends StatelessWidget {
                           fontSize: 9,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 1.5,
-                          color: isDark ? Colors.grey[500] : Colors.grey[500],
+                          color: isDark
+                              ? const Color(0xFFA1A1AA)
+                              : Colors.grey[500],
                         ),
                       ),
                     ],
@@ -188,10 +192,7 @@ class DashboardSidebar extends StatelessWidget {
               ),
             ),
             // User Card at bottom
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: const UserCard(),
-            ),
+            Padding(padding: const EdgeInsets.all(16), child: const UserCard()),
           ],
         ),
       ),
@@ -273,7 +274,7 @@ class SidebarItem extends StatelessWidget {
                   size: 20,
                   color: isActive
                       ? Colors.white
-                      : (isDark ? Colors.grey[400] : Colors.grey[500]),
+                      : (isDark ? const Color(0xFFA1A1AA) : Colors.grey[500]),
                 ),
                 const SizedBox(width: 12),
                 Text(
@@ -283,7 +284,7 @@ class SidebarItem extends StatelessWidget {
                     fontSize: 14,
                     color: isActive
                         ? Colors.white
-                        : (isDark ? Colors.grey[400] : Colors.grey[500]),
+                        : (isDark ? const Color(0xFFA1A1AA) : Colors.grey[500]),
                   ),
                 ),
               ],
@@ -332,10 +333,9 @@ class UserCard extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withValues(alpha: 0.15),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: Colors.white.withValues(alpha: 0.5),
@@ -374,7 +374,9 @@ class UserCard extends StatelessWidget {
                     profile.major.isNotEmpty ? profile.major : 'Student',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark ? Colors.grey[500] : Colors.grey[500],
+                      color: isDark
+                          ? const Color(0xFFA1A1AA)
+                          : Colors.grey[500],
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -384,7 +386,7 @@ class UserCard extends StatelessWidget {
             Icon(
               Icons.settings_outlined,
               size: 16,
-              color: isDark ? Colors.grey[600] : Colors.grey[400],
+              color: isDark ? const Color(0xFFA1A1AA) : Colors.grey[400],
             ),
           ],
         ),

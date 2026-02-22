@@ -65,8 +65,10 @@ class _TasksScreenState extends State<TasksScreen> {
                             title: AppLocalizations.of(context)!.noTasksYet,
                             subtitle: 'Create a task to stay organized.',
                             actionLabel: AppLocalizations.of(context)!.addTask,
-                            onAction: () => showDialog(
+                            onAction: () => showModalBottomSheet(
                               context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
                               builder: (context) => const AddTaskScreen(),
                             ),
                           )
@@ -142,7 +144,31 @@ class _TasksScreenState extends State<TasksScreen> {
               ),
             ],
           ),
-          // Removed Board/List toggle and Filter dropdown
+          ElevatedButton.icon(
+            onPressed: () => showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => const AddTaskScreen(),
+            ),
+            icon: const Icon(Icons.add_rounded, size: 20),
+            label: Text(
+              AppLocalizations.of(context)!.addTask,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 12,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
+            ),
+          ),
         ],
       ),
     );
@@ -289,23 +315,27 @@ class _TasksScreenState extends State<TasksScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 if (task.category != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getPriorityColor(
-                        task.priority,
-                      ).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      task.category!.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: _getPriorityColor(task.priority),
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _getPriorityColor(
+                          task.priority,
+                        ).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        _getCategoryLabel(context, task.category!).toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: _getPriorityColor(task.priority),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ),
@@ -462,7 +492,7 @@ class _TasksScreenState extends State<TasksScreen> {
                     Icon(Icons.label, size: 16, color: subTextColor),
                     const SizedBox(width: 8),
                     Text(
-                      '${AppLocalizations.of(context)!.category}: ${task.category}',
+                      '${AppLocalizations.of(context)!.category}: ${_getCategoryLabel(context, task.category!)}',
                       style: TextStyle(color: textColor),
                     ),
                   ],
@@ -489,8 +519,10 @@ class _TasksScreenState extends State<TasksScreen> {
             ElevatedButton.icon(
               onPressed: () {
                 Navigator.pop(context);
-                showDialog(
+                showModalBottomSheet(
                   context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
                   builder: (context) => AddTaskScreen(taskToEdit: task),
                 );
               },
@@ -540,8 +572,10 @@ class _TasksScreenState extends State<TasksScreen> {
               PopupMenuButton<String>(
                 onSelected: (value) {
                   if (value == 'add') {
-                    showDialog(
+                    showModalBottomSheet(
                       context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
                       builder: (context) => const AddTaskScreen(),
                     );
                   } else if (value == 'calendar') {
@@ -616,8 +650,10 @@ class _TasksScreenState extends State<TasksScreen> {
                   title: AppLocalizations.of(context)!.freeDay,
                   subtitle: AppLocalizations.of(context)!.noTasksScheduled,
                   actionLabel: AppLocalizations.of(context)!.addTask,
-                  onAction: () => showDialog(
+                  onAction: () => showModalBottomSheet(
                     context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
                     builder: (context) => const AddTaskScreen(),
                   ),
                 )
@@ -716,6 +752,27 @@ class _TasksScreenState extends State<TasksScreen> {
           t.dueDate!.month == day.month &&
           t.dueDate!.day == day.day;
     }).toList();
+  }
+
+  String _getCategoryLabel(BuildContext context, String key) {
+    final k = key.toLowerCase();
+    switch (k) {
+      case 'assignment':
+        return AppLocalizations.of(context)!.assignment;
+      case 'exam':
+        return AppLocalizations.of(context)!.exam;
+      case 'reading':
+        return AppLocalizations.of(context)!.reading;
+      case 'project':
+        return AppLocalizations.of(context)!.project;
+      case 'personal':
+        return AppLocalizations.of(context)!.personal;
+      case 'other':
+        return AppLocalizations.of(context)!.other;
+      default:
+        // If it's not a known key, it might be an old localized string
+        return key;
+    }
   }
 
   Color _getPriorityColor(int priority) {

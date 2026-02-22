@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:classlly/features/canvas/providers/canvas_provider.dart';
 import 'package:classlly/features/audio/providers/audio_provider.dart';
 import 'package:classlly/data/models/note_models.dart';
+import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/features/canvas/widgets/drawing_painter.dart';
 import 'package:classlly/features/canvas/widgets/text_block_widget.dart';
 import 'package:classlly/features/canvas/widgets/canvas_template_painter.dart';
@@ -20,6 +21,21 @@ import 'package:file_picker/file_picker.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:image/image.dart' as img;
 import 'package:classlly/l10n/app_localizations.dart';
+import 'package:classlly/features/canvas/widgets/advanced_pdf_crop_dialog.dart';
+import 'package:classlly/core/services/presence_service.dart';
+import 'package:classlly/features/library/providers/profile_provider.dart';
+
+class _HeaderDivider extends StatelessWidget {
+  const _HeaderDivider();
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 20,
+      color: Colors.grey.withValues(alpha: 0.3),
+    );
+  }
+}
 
 class CanvasScreen extends StatefulWidget {
   const CanvasScreen({super.key});
@@ -34,6 +50,10 @@ class _CanvasScreenState extends State<CanvasScreen> {
   final TextEditingController _titleController = TextEditingController();
   bool _isSidebarVisible = true;
   bool _isInit = true;
+  final PresenceService _presenceService = PresenceService();
+  List<Map<String, dynamic>> _remoteUsers = [];
+  StreamSubscription? _presenceSub;
+  Timer? _cursorThrottle;
 
   static const double pageWidth = 1000.0;
   static const double pageHeight = 1414.0;
@@ -50,6 +70,16 @@ class _CanvasScreenState extends State<CanvasScreen> {
         listen: false,
       ).currentNote?.title;
       _titleController.text = title ?? AppLocalizations.of(context)!.untitled;
+
+      // Initialize Presence
+      final note = Provider.of<CanvasProvider>(context, listen: false).currentNote;
+      final profile = Provider.of<ProfileProvider>(context, listen: false).studentProfile;
+      if (note != null) {
+        _presenceService.joinNote(note.id, profile.name ?? 'Student');
+        _presenceSub = _presenceService.presenceStream.listen((users) {
+          if (mounted) setState(() => _remoteUsers = users);
+        });
+      }
     });
   }
 
@@ -72,6 +102,9 @@ class _CanvasScreenState extends State<CanvasScreen> {
     Provider.of<CanvasProvider>(context, listen: false).stopStudyTracking();
     _transformationController.dispose();
     _titleController.dispose();
+    _presenceSub?.cancel();
+    _presenceService.dispose();
+    _cursorThrottle?.cancel();
     super.dispose();
   }
 
@@ -117,7 +150,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
             canvasProvider.redo(),
       },
       child: Scaffold(
-        backgroundColor: isDark ? Colors.black : Colors.grey[300],
+        backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF9FAFB),
         body: Stack(
           children: [
             Row(
@@ -125,14 +158,9 @@ class _CanvasScreenState extends State<CanvasScreen> {
                 if (_isSidebarVisible)
                   _buildSidebar(isDark, canvasProvider, primaryColor),
                 Expanded(
-                  child: Column(
+                  child: Stack(
                     children: [
-                      _buildTopHeader(
-                        canvasProvider,
-                        audioProvider,
-                        isDark,
-                        primaryColor,
-                      ),
+
                       Expanded(
                         child: Stack(
                           children: [
@@ -147,6 +175,15 @@ class _CanvasScreenState extends State<CanvasScreen> {
                                 maxScale: 5.0,
                                 panEnabled: isHandTool,
                                 scaleEnabled: true,
+                                onInteractionUpdate: (details) {
+                                  if (_cursorThrottle?.isActive ?? false) return;
+                                  _cursorThrottle = Timer(const Duration(milliseconds: 100), () {
+                                    final scenePoint = _transformationController.toScene(
+                                      details.focalPoint,
+                                    );
+                                    _presenceService.updateLocalPresence(cursor: scenePoint);
+                                  });
+                                },
                                 child: Container(
                                   padding: const EdgeInsets.all(100),
                                   child: SizedBox(
@@ -191,16 +228,54 @@ class _CanvasScreenState extends State<CanvasScreen> {
                                                             ),
                                                       ) ??
                                                   [],
-                                              // Text Layer
-                                              ...textBlocks.map(
-                                                (block) => TextBlockWidget(
-                                                  key: ValueKey(block.id),
-                                                  block: block,
+                                                ...textBlocks.map(
+                                                  (block) => TextBlockWidget(
+                                                    key: ValueKey(block.id),
+                                                    block: block,
+                                                  ),
                                                 ),
-                                              ),
-                                            ],
+
+                                                // Remote Cursors
+                                                ..._remoteUsers
+                                                    .where((u) => u['cursor_x'] != null)
+                                                    .map((u) {
+                                                  return Positioned(
+                                                    left: u['cursor_x'],
+                                                    top: u['cursor_y'],
+                                                    child: IgnorePointer(
+                                                      child: Column(
+                                                        children: [
+                                                          const Icon(
+                                                            Icons.navigation_rounded,
+                                                            color: Colors.blueAccent,
+                                                            size: 20,
+                                                          ),
+                                                          Container(
+                                                            padding: const EdgeInsets.symmetric(
+                                                              horizontal: 6,
+                                                              vertical: 2,
+                                                            ),
+                                                            decoration: BoxDecoration(
+                                                              color: Colors.blueAccent,
+                                                              borderRadius:
+                                                                  BorderRadius.circular(4),
+                                                            ),
+                                                            child: Text(
+                                                              u['name'] ?? 'Other',
+                                                              style: const TextStyle(
+                                                                color: Colors.white,
+                                                                fontSize: 10,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  );
+                                                }),
+                                              ],
+                                            ),
                                           ),
-                                        ),
                                         const SizedBox(height: 40),
                                         ElevatedButton.icon(
                                           onPressed: () =>
@@ -230,6 +305,59 @@ class _CanvasScreenState extends State<CanvasScreen> {
                                 ),
                               ),
                             ),
+                            // Right Side Tool Dock
+                            Positioned(
+                              right: 24,
+                              top: MediaQuery.of(context).size.height / 3, // Roughly middle
+                              child: _RightSideDock(
+                                isDark: isDark, 
+                                primaryColor: primaryColor,
+                                onToggleSidebar: () {
+                                  setState(() {
+                                    _isSidebarVisible = !_isSidebarVisible;
+                                  });
+                                },
+                                onAddText: () {
+                                  canvasProvider.setActiveTool(CanvasTool.text);
+                                },
+                                onAddImage: () async {
+                                  try {
+                                    final sWidth = MediaQuery.of(context).size.width;
+                                    final sHeight = MediaQuery.of(context).size.height;
+                                    canvasProvider.setActiveTool(CanvasTool.image);
+                                    final picker = ImagePicker();
+                                    final xFile = await picker.pickImage(
+                                      source: ImageSource.gallery,
+                                    );
+                                    if (xFile != null) {
+                                      final bytes = await xFile.readAsBytes();
+                                      final matrix = _transformationController.value;
+                                      final inverseMatrix = Matrix4.inverted(matrix);
+                                      final screenCenter = Offset(sWidth / 2, sHeight / 2);
+                                      final canvasCenter = MatrixUtils.transformPoint(
+                                        inverseMatrix,
+                                        screenCenter,
+                                      );
+
+                                      canvasProvider.addImage(
+                                        base64Encode(bytes),
+                                        canvasCenter,
+                                        timestamp: audioProvider.isRecording
+                                            ? audioProvider.elapsedRecordingMillis
+                                            : null,
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Failed to add image: $e')),
+                                      );
+                                    }
+                                  }
+                                },
+                              ),
+                            ),
+                            // Bottom Toolbar
                             Positioned(
                               bottom: 32,
                               left: 0,
@@ -238,12 +366,6 @@ class _CanvasScreenState extends State<CanvasScreen> {
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    // if (audioProvider.isPlaying ||
-                                    //     canvasProvider.playbackTime != null)
-                                    //   const Padding(
-                                    //     padding: EdgeInsets.only(bottom: 12),
-                                    //     child: PlaybackControl(),
-                                    //   ),
                                     _CanvasToolbars(
                                       transformationController:
                                           _transformationController,
@@ -253,6 +375,17 @@ class _CanvasScreenState extends State<CanvasScreen> {
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: _buildTopHeader(
+                          canvasProvider,
+                          audioProvider,
+                          isDark,
+                          primaryColor,
                         ),
                       ),
                     ],
@@ -562,204 +695,270 @@ class _CanvasScreenState extends State<CanvasScreen> {
 
   Widget _buildTopHeader(
     CanvasProvider canvasProvider,
-
     AudioProvider audioProvider,
-
     bool isDark,
-
     Color primaryColor,
   ) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF0A0A0B).withValues(alpha: 0.8)
-            : Colors.white.withValues(alpha: 0.8),
-        border: Border(
-          bottom: BorderSide(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.05)
-                : Colors.black.withValues(alpha: 0.05),
-          ),
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Left Pill: Pen Icon & Title & Undo/Redo
+            Container(
+              height: 48,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    color: isDark ? Colors.white : Colors.black87,
+                    iconSize: 20,
+                    tooltip: 'Back to Dashboard',
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.mode_edit_outline, size: 16, color: primaryColor),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    canvasProvider.currentNote?.title ?? AppLocalizations.of(context)!.untitled,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                ],
+              ),
+            ),
+
+            // Right Pill: Export & Save
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Export Button
+                Container(
+                  height: 40,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                  ),
+                  child: InkWell(
+                    onTap: () => PdfService().exportNote(canvasProvider.currentNote!),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.output_rounded, size: 16, color: Colors.grey[700]), // Export icon
+                        const SizedBox(width: 6),
+                        Text(
+                          'Export PDF',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Save Module Button
+                Container(
+                  height: 40,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: primaryColor,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: primaryColor.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: InkWell(
+                    onTap: () {
+                      canvasProvider.saveNote();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Module Saved!'))
+                      );
+                      Navigator.pop(context);
+                    },
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.save_rounded, size: 16, color: Colors.white),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'Save Module',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Delete Button
+                Container(
+                  height: 40,
+                  width: 40,
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF9FAFB),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    color: Colors.black87,
+                    onPressed: () async {
+                      if (canvasProvider.currentNote == null) return;
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (c) => AlertDialog(
+                          title: const Text('Delete Note?'),
+                          content: const Text('Are you sure you want to delete this note? This cannot be undone.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(c, false),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(c, true),
+                              style: TextButton.styleFrom(foregroundColor: Colors.red),
+                              child: const Text('Delete'),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirm == true) {
+                        await NotesRepository().deleteNote(canvasProvider.currentNote!.id);
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Note deleted')),
+                          );
+                        }
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-      child: SafeArea(
-        bottom: false,
-        top: true,
-        minimum: const EdgeInsets.only(top: 8),
-        child: Container(
-          height: 72,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              IconButton(
-                icon: const Icon(
-                  Icons.arrow_back_ios_new,
-                  size: 20,
-                  color: Colors.grey,
-                ),
-                onPressed: () => Navigator.pop(context),
-                tooltip: AppLocalizations.of(context)!.backToLibrary,
-              ),
-              if (!isMobile) const SizedBox(width: 8),
-              IconButton(
-                icon: Icon(
-                  _isSidebarVisible ? Icons.menu_open : Icons.menu,
-                  color: Colors.grey,
-                ),
-                onPressed: () =>
-                    setState(() => _isSidebarVisible = !_isSidebarVisible),
-                tooltip: AppLocalizations.of(context)!.toggleSidebar,
-              ),
-              if (!isMobile) ...[
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: Icon(
-                    Icons.undo,
-                    color: canvasProvider.canUndo
-                        ? Colors.grey
-                        : Colors.grey.withValues(alpha: 0.3),
-                  ),
-                  onPressed:
-                      canvasProvider.canUndo ? canvasProvider.undo : null,
-                  tooltip: AppLocalizations.of(context)!.undo,
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.redo,
-                    color: canvasProvider.canRedo
-                        ? Colors.grey
-                        : Colors.grey.withValues(alpha: 0.3),
-                  ),
-                  onPressed:
-                      canvasProvider.canRedo ? canvasProvider.redo : null,
-                  tooltip: AppLocalizations.of(context)!.redo,
-                ),
-              ],
-              if (!isMobile)
-                const VerticalDivider(width: 48, indent: 24, endIndent: 24)
-              else
-                const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        // Logic to edit title could go here
-                      },
-                      child: Text(
-                        canvasProvider.currentNote?.title.toUpperCase() ??
-                            AppLocalizations.of(
-                              context,
-                            )!.untitled.toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.grey,
-                          letterSpacing: 1.5,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Flexible(
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: canvasProvider.isSyncing
-                                  ? Colors.orange
-                                  : Colors.greenAccent,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              canvasProvider.isSyncing
-                                  ? AppLocalizations.of(context)!.syncing
-                                  : AppLocalizations.of(context)!.autoSavedAt(
-                                      DateFormat.Hm().format(DateTime.now()),
-                                    ),
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: Icon(
-                  canvasProvider.isStylusOnly
-                      ? Icons.do_not_touch
-                      : Icons.touch_app,
-                  color: canvasProvider.isStylusOnly
-                      ? primaryColor
-                      : Colors.grey,
-                ),
-                onPressed: canvasProvider.toggleStylusOnly,
-                tooltip: AppLocalizations.of(context)!.stylusOnlyMode,
-              ),
-              const SizedBox(width: 8),
-              if (!isMobile) ...[
-                const _AvatarStack(),
-                const SizedBox(width: 16),
-              ],
-              if (isMobile)
-                IconButton(
-                  onPressed: () =>
-                      PdfService().exportNote(canvasProvider.currentNote!),
-                  icon: Icon(
-                    Icons.ios_share_rounded,
-                    color: primaryColor,
-                    size: 24,
-                  ),
-                  tooltip: AppLocalizations.of(context)!.export,
-                )
-              else
-                ElevatedButton.icon(
-                  onPressed: () =>
-                      PdfService().exportNote(canvasProvider.currentNote!),
-                  icon: const Icon(Icons.ios_share_rounded, size: 18),
-                  label: Text(
-                    AppLocalizations.of(context)!.export,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor,
-                    foregroundColor: Colors.white,
-                    elevation: 4,
-                    shadowColor: primaryColor.withValues(alpha: 0.3),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-            ],
+    );
+  }
+}
+
+class _RightSideDock extends StatelessWidget {
+  final bool isDark;
+  final Color primaryColor;
+  final VoidCallback onToggleSidebar;
+  final VoidCallback onAddText;
+  final VoidCallback onAddImage;
+
+  const _RightSideDock({
+    required this.isDark, 
+    required this.primaryColor,
+    required this.onToggleSidebar,
+    required this.onAddText,
+    required this.onAddImage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 56,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
           ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildDockItem('LAYERS', Icons.layers_outlined, context, onTap: onToggleSidebar),
+          const SizedBox(height: 24),
+          _buildDockItem('TEXT', Icons.text_fields_rounded, context, onTap: onAddText),
+          const SizedBox(height: 24),
+          _buildDockItem('IMG', Icons.image_outlined, context, onTap: onAddImage),
+          const SizedBox(height: 24),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Divider(height: 1),
+          ),
+          const SizedBox(height: 24),
+          _buildDockItem('', Icons.grid_4x4_rounded, context, showText: false, onTap: () {}),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDockItem(String label, IconData icon, BuildContext context, {bool showText = true, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (showText) ...[
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 8,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+              color: isDark ? Colors.grey[400] : Colors.grey[500],
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+        Icon(
+          icon,
+          size: 20,
+          color: isDark ? Colors.grey[300] : Colors.grey[600],
         ),
+      ],
       ),
     );
   }
@@ -935,10 +1134,10 @@ class _CanvasToolbarsState extends State<_CanvasToolbars> {
         );
 
         if (pageImage != null && context.mounted) {
-          // Show Crop Dialog
+          // Show Advanced Crop Dialog
           final croppedBytes = await showDialog<Uint8List>(
             context: context,
-            builder: (context) => _PdfCropDialog(imageBytes: pageImage.bytes),
+            builder: (context) => AdvancedPdfCropDialog(imageBytes: pageImage.bytes),
           );
 
           if (croppedBytes != null && context.mounted) {
@@ -974,13 +1173,13 @@ class _CanvasToolbarsState extends State<_CanvasToolbars> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     final canvasProvider = Provider.of<CanvasProvider>(context);
     final audioProvider = Provider.of<AudioProvider>(context);
-    final bool showTextToolbar =
-        canvasProvider.activeTool == CanvasTool.text ||
-        canvasProvider.selectedTextBlocks.isNotEmpty;
+    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
@@ -994,29 +1193,29 @@ class _CanvasToolbarsState extends State<_CanvasToolbars> {
           child: child,
         ),
       ),
-      child: showTextToolbar
-          ? const _TextToolsPanel(key: ValueKey('text_toolbar'))
-          : Column(
-              key: const ValueKey('drawing_toolbar_col'),
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (canvasProvider.activeTool == CanvasTool.eraser)
-                  const _EraserSettingsPanel(),
-                _DrawingToolsPanel(
-                  key: const ValueKey('drawing_toolbar'),
-                  onPickColor: () => _showColorPicker(context, canvasProvider),
-                  onPickPdf: () =>
-                      _pickPdfSnippet(context, canvasProvider, audioProvider),
-                  transformationController: widget.transformationController,
-                ),
-              ],
-            ),
+      child: Column(
+        key: const ValueKey('drawing_toolbar_col'),
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (canvasProvider.activeTool == CanvasTool.eraser)
+            _EraserSettingsPanel(isDark: isDark),
+          _DrawingToolsPanel(
+            key: const ValueKey('drawing_toolbar'),
+            onPickColor: () => _showColorPicker(context, canvasProvider),
+            onPickPdf: () =>
+                _pickPdfSnippet(context, canvasProvider, audioProvider),
+            transformationController: widget.transformationController,
+            isDark: isDark
+          ),
+        ],
+      ),
     );
   }
 }
 
 class _EraserSettingsPanel extends StatelessWidget {
-  const _EraserSettingsPanel();
+  final bool isDark;
+  const _EraserSettingsPanel({required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -1025,9 +1224,19 @@ class _EraserSettingsPanel extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
-      child: _GlassContainer(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1037,9 +1246,10 @@ class _EraserSettingsPanel extends StatelessWidget {
               isActive: canvasProvider.eraserMode == EraserMode.pixel,
               onTap: () => canvasProvider.setEraserMode(EraserMode.pixel),
               activeColor: primaryColor,
+              isDark: isDark
             ),
             const SizedBox(width: 12),
-            Container(width: 1, height: 16, color: Colors.white24),
+            Container(width: 1, height: 16, color: isDark ? Colors.white24 : Colors.grey[300]),
             const SizedBox(width: 12),
             _EraserModeButton(
               icon: Icons.delete_sweep,
@@ -1047,6 +1257,7 @@ class _EraserSettingsPanel extends StatelessWidget {
               isActive: canvasProvider.eraserMode == EraserMode.object,
               onTap: () => canvasProvider.setEraserMode(EraserMode.object),
               activeColor: primaryColor,
+              isDark: isDark
             ),
           ],
         ),
@@ -1061,6 +1272,7 @@ class _EraserModeButton extends StatelessWidget {
   final bool isActive;
   final VoidCallback onTap;
   final Color activeColor;
+  final bool isDark;
 
   const _EraserModeButton({
     required this.icon,
@@ -1068,6 +1280,7 @@ class _EraserModeButton extends StatelessWidget {
     required this.isActive,
     required this.onTap,
     required this.activeColor,
+    required this.isDark
   });
 
   @override
@@ -1076,14 +1289,14 @@ class _EraserModeButton extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          Icon(icon, size: 16, color: isActive ? activeColor : Colors.white70),
+          Icon(icon, size: 16, color: isActive ? activeColor : (isDark ? Colors.white70 : Colors.grey[700])),
           const SizedBox(width: 6),
           Text(
             label,
             style: TextStyle(
               fontSize: 12,
               fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              color: isActive ? activeColor : Colors.white70,
+              color: isActive ? activeColor : (isDark ? Colors.white70 : Colors.grey[700]),
             ),
           ),
         ],
@@ -1092,146 +1305,20 @@ class _EraserModeButton extends StatelessWidget {
   }
 }
 
-class _TextToolsPanel extends StatelessWidget {
-  const _TextToolsPanel({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    final canvasProvider = Provider.of<CanvasProvider>(context);
-    final allColors = [...AppTheme.noteColors, ...canvasProvider.savedColors];
-    final TextBlock? selectedBlock =
-        canvasProvider.selectedTextBlocks.isNotEmpty
-        ? canvasProvider.selectedTextBlocks.first
-        : null;
-
-    return _GlassContainer(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      borderRadius: BorderRadius.circular(32),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.text_fields, color: Colors.white, size: 20),
-            const SizedBox(width: 12),
-            _vDivider(),
-            _ToolIcon(
-              icon: Icons.format_bold,
-              isActive: selectedBlock?.isBold ?? false,
-              onTap: () {
-                if (selectedBlock != null) {
-                  canvasProvider.updateTextBlockStyle(
-                    selectedBlock.id,
-                    isBold: !selectedBlock.isBold,
-                  );
-                }
-              },
-            ),
-            _ToolIcon(
-              icon: Icons.format_italic,
-              isActive: selectedBlock?.isItalic ?? false,
-              onTap: () {
-                if (selectedBlock != null) {
-                  canvasProvider.updateTextBlockStyle(
-                    selectedBlock.id,
-                    isItalic: !selectedBlock.isItalic,
-                  );
-                }
-              },
-            ),
-            _ToolIcon(
-              icon: Icons.format_underlined,
-              isActive: selectedBlock?.isUnderline ?? false,
-              onTap: () {
-                if (selectedBlock != null) {
-                  canvasProvider.updateTextBlockStyle(
-                    selectedBlock.id,
-                    isUnderline: !selectedBlock.isUnderline,
-                  );
-                }
-              },
-            ),
-            _ToolIcon(
-              icon: Icons.format_paint,
-              isActive: selectedBlock?.hasBackground ?? false,
-              onTap: () {
-                if (selectedBlock != null) {
-                  canvasProvider.updateTextBlockStyle(
-                    selectedBlock.id,
-                    hasBackground: !selectedBlock.hasBackground,
-                  );
-                }
-              },
-            ),
-            _vDivider(),
-            _PropertySlider(
-              label: AppLocalizations.of(context)!.size,
-              value: selectedBlock?.fontSize ?? 16.0,
-              min: 10,
-              max: 60,
-              onChanged: (val) {
-                if (selectedBlock != null) {
-                  canvasProvider.updateTextBlockStyle(
-                    selectedBlock.id,
-                    fontSize: val,
-                  );
-                }
-              },
-            ),
-            _vDivider(),
-            ...allColors.map(
-              (color) => _ColorCircle(
-                color: color,
-                isSelected: selectedBlock?.color == color.toARGB32(),
-                onTap: () {
-                  if (selectedBlock != null) {
-                    canvasProvider.updateTextBlockStyle(
-                      selectedBlock.id,
-                      color: color.toARGB32(),
-                    );
-                  }
-                },
-              ),
-            ),
-            _vDivider(),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.check, color: Colors.white, size: 20),
-                onPressed: () {
-                  canvasProvider.clearSelection();
-                  canvasProvider.setActiveTool(CanvasTool.select);
-                },
-                tooltip: AppLocalizations.of(context)!.save,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _vDivider() => Container(
-    width: 1,
-    height: 24,
-    color: Colors.white10,
-    margin: const EdgeInsets.symmetric(horizontal: 12),
-  );
-}
 
 class _DrawingToolsPanel extends StatelessWidget {
   final VoidCallback onPickColor;
   final VoidCallback onPickPdf;
   final TransformationController transformationController;
+  final bool isDark;
 
   const _DrawingToolsPanel({
     super.key,
     required this.onPickColor,
     required this.onPickPdf,
     required this.transformationController,
+    required this.isDark
   });
 
   @override
@@ -1240,9 +1327,19 @@ class _DrawingToolsPanel extends StatelessWidget {
     final audioProvider = Provider.of<AudioProvider>(context);
     final allColors = [...AppTheme.noteColors, ...canvasProvider.savedColors];
 
-    return _GlassContainer(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      borderRadius: BorderRadius.circular(32),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(36),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -1250,83 +1347,40 @@ class _DrawingToolsPanel extends StatelessWidget {
           children: [
             // Tools
             _ToolIcon(
-              icon: Icons.pan_tool,
+              icon: Icons.pan_tool_outlined,
               isActive: canvasProvider.activeTool == CanvasTool.hand,
+              isDark: isDark,
               onTap: () => canvasProvider.setActiveTool(CanvasTool.hand),
             ),
+            const SizedBox(width: 4),
             _ToolIcon(
-              icon: Icons.gesture,
+              icon: Icons.highlight_alt_rounded,
               isActive: canvasProvider.activeTool == CanvasTool.select,
+              isDark: isDark,
               onTap: () => canvasProvider.setActiveTool(CanvasTool.select),
             ),
-            _vDivider(),
+            _vDivider(isDark: isDark),
             _ToolIcon(
-              icon: Icons.edit,
+              icon: Icons.edit_rounded,
               isActive: canvasProvider.activeTool == CanvasTool.pencil,
+              isDark: isDark,
               onTap: () => canvasProvider.setActiveTool(CanvasTool.pencil),
             ),
+            const SizedBox(width: 4),
             _ToolIcon(
-              icon: Icons.border_color,
+              icon: Icons.border_color_rounded,
               isActive: canvasProvider.activeTool == CanvasTool.highlighter,
+              isDark: isDark,
               onTap: () => canvasProvider.setActiveTool(CanvasTool.highlighter),
             ),
+            const SizedBox(width: 4),
             _ToolIcon(
-              icon: Icons.cleaning_services,
+              icon: Icons.healing_rounded, // or cleaning_services
               isActive: canvasProvider.activeTool == CanvasTool.eraser,
+              isDark: isDark,
               onTap: () => canvasProvider.setActiveTool(CanvasTool.eraser),
             ),
-            _vDivider(),
-            // Insert
-            _ToolIcon(
-              icon: Icons.text_fields,
-              isActive: canvasProvider.activeTool == CanvasTool.text,
-              onTap: () => canvasProvider.setActiveTool(CanvasTool.text),
-            ),
-            _ToolIcon(
-              icon: Icons.image,
-              isActive: canvasProvider.activeTool == CanvasTool.image,
-              onTap: () async {
-                try {
-                  final sWidth = MediaQuery.of(context).size.width;
-                  final sHeight = MediaQuery.of(context).size.height;
-                  canvasProvider.setActiveTool(CanvasTool.image);
-                  final picker = ImagePicker();
-                  final xFile = await picker.pickImage(
-                    source: ImageSource.gallery,
-                  );
-                  if (xFile != null) {
-                    final bytes = await xFile.readAsBytes();
-                    final matrix = transformationController.value;
-                    final inverseMatrix = Matrix4.inverted(matrix);
-                    final screenCenter = Offset(sWidth / 2, sHeight / 2);
-                    final canvasCenter = MatrixUtils.transformPoint(
-                      inverseMatrix,
-                      screenCenter,
-                    );
-
-                    canvasProvider.addImage(
-                      base64Encode(bytes),
-                      canvasCenter,
-                      timestamp: audioProvider.isRecording
-                          ? audioProvider.elapsedRecordingMillis
-                          : null,
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to add image: $e')),
-                    );
-                  }
-                }
-              },
-            ),
-            _ToolIcon(
-              icon: Icons.picture_as_pdf_outlined,
-              isActive: false,
-              onTap: onPickPdf,
-            ),
-            _vDivider(),
+            _vDivider(isDark: isDark),
             // Properties
             _PropertySlider(
               label: AppLocalizations.of(context)!.width,
@@ -1335,6 +1389,7 @@ class _DrawingToolsPanel extends StatelessWidget {
               max: 20,
               onChanged: (v) => canvasProvider.setWidth(v),
             ),
+            const SizedBox(width: 8),
             _PropertySlider(
               label: AppLocalizations.of(context)!.opacity,
               value: canvasProvider.currentOpacity,
@@ -1342,7 +1397,7 @@ class _DrawingToolsPanel extends StatelessWidget {
               max: 1.0,
               onChanged: (v) => canvasProvider.setOpacity(v),
             ),
-            _vDivider(),
+            _vDivider(isDark: isDark),
             // Colors
             ...allColors.map((color) {
               final isSaved = canvasProvider.savedColors.contains(color);
@@ -1390,18 +1445,19 @@ class _DrawingToolsPanel extends StatelessWidget {
                 ),
               );
             }),
-            _ToolIcon(icon: Icons.add, isActive: false, onTap: onPickColor),
+            const SizedBox(width: 4),
+            _ToolIcon(icon: Icons.add, isActive: false, isDark: isDark, onTap: onPickColor),
           ],
         ),
       ),
     );
   }
 
-  Widget _vDivider() => Container(
+  Widget _vDivider({required bool isDark}) => Container(
     width: 1,
     height: 24,
-    color: Colors.white10,
-    margin: const EdgeInsets.symmetric(horizontal: 12),
+    color: isDark ? Colors.white10 : Colors.grey[300],
+    margin: const EdgeInsets.symmetric(horizontal: 16),
   );
 }
 
@@ -1491,10 +1547,13 @@ class _ToolIcon extends StatelessWidget {
   final IconData icon;
   final bool isActive;
   final VoidCallback onTap;
+  final bool isDark;
+
   const _ToolIcon({
     required this.icon,
     required this.isActive,
     required this.onTap,
+    required this.isDark
   });
   @override
   Widget build(BuildContext context) {
@@ -1502,18 +1561,18 @@ class _ToolIcon extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 36,
-        height: 36,
+        width: 40,
+        height: 40,
         decoration: BoxDecoration(
           color: isActive
-              ? Colors.white.withValues(alpha: 0.1)
+              ? primaryColor.withValues(alpha: 0.1)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Icon(
           icon,
-          size: 18,
-          color: isActive ? primaryColor : Colors.white70,
+          size: 20,
+          color: isActive ? primaryColor : (isDark ? Colors.white70 : Colors.grey[700]),
         ),
       ),
     );
@@ -1579,9 +1638,19 @@ class CanvasGestureDetector extends StatelessWidget {
                   : null,
             );
           } else if (canvasProvider.activeTool == CanvasTool.select) {
-            canvasProvider.selectItemAt(offset, audioProvider);
-            canvasProvider.startResize(offset);
-            if (!canvasProvider.isResizing) canvasProvider.startMove();
+            bool hitExisting = canvasProvider.hitTestSelection(offset);
+            if (hitExisting) {
+              canvasProvider.startResize(offset);
+              if (!canvasProvider.isResizing) canvasProvider.startMove(offset);
+            } else {
+              bool hitNew = canvasProvider.selectItemAt(offset, audioProvider);
+              if (hitNew) {
+                canvasProvider.startResize(offset);
+                if (!canvasProvider.isResizing) canvasProvider.startMove(offset);
+              } else {
+                canvasProvider.startLasso(offset);
+              }
+            }
           } else if (canvasProvider.activeTool == CanvasTool.image) {
             final picker = ImagePicker();
             final xFile = await picker.pickImage(source: ImageSource.gallery);
@@ -1628,7 +1697,11 @@ class CanvasGestureDetector extends StatelessWidget {
           } else if (canvasProvider.activeTool == CanvasTool.eraser) {
             canvasProvider.eraseAt(offset);
           } else if (canvasProvider.activeTool == CanvasTool.select) {
-            canvasProvider.moveSelection(event.delta);
+            if (canvasProvider.lassoPath.isNotEmpty) {
+              canvasProvider.updateLasso(offset);
+            } else {
+              canvasProvider.moveSelection(event.delta, absolutePosition: offset);
+            }
           }
         },
         onPointerUp: (event) {
@@ -1647,7 +1720,12 @@ class CanvasGestureDetector extends StatelessWidget {
                   : null,
             );
           } else if (canvasProvider.activeTool == CanvasTool.select) {
-            canvasProvider.saveNote();
+            if (canvasProvider.lassoPath.isNotEmpty) {
+              canvasProvider.endLasso();
+            } else {
+              canvasProvider.endMove();
+              canvasProvider.saveNote();
+            }
           }
         },
         child: CustomPaint(
@@ -1655,11 +1733,13 @@ class CanvasGestureDetector extends StatelessWidget {
             strokes: canvasProvider.currentNote?.strokes ?? [],
             selectedStrokes: canvasProvider.selectedStrokes,
             selectedImages: canvasProvider.selectedImages,
+            selectedTextBlocks: canvasProvider.selectedTextBlocks,
             activePoints: canvasProvider.activePoints,
             activeColor: canvasProvider.currentColor,
             activeWidth: canvasProvider.currentWidth,
             playbackTime: playbackTime,
             ghostPoints: canvasProvider.ghostShape?.points,
+            lassoPath: canvasProvider.lassoPath,
           ),
           child: Container(),
         ),
@@ -1733,33 +1813,45 @@ class PlaybackControl extends StatelessWidget {
   }
 }
 
+
 class _AvatarStack extends StatelessWidget {
-  const _AvatarStack();
+  final List<Map<String, dynamic>> users;
+  const _AvatarStack({required this.users});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _avatar('A', Colors.blue),
-        const SizedBox(width: -8),
-        _avatar('B', Colors.green),
-        const SizedBox(width: -8),
-        _avatar('C', Colors.orange),
-        const SizedBox(width: 8),
-        Text(
-          '+2',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey[600],
+        for (int i = 0; i < users.length && i < 3; i++)
+          Align(
+            widthFactor: 0.6,
+            child: _UserAvatar(
+              name: users[i]['name'] ?? 'U',
+              color: Colors.accents[i % Colors.accents.length],
+            ),
           ),
-        ),
+        if (users.length > 3)
+          Align(
+            widthFactor: 0.6,
+            child: _UserAvatar(
+              name: '+${users.length - 3}',
+              color: Colors.grey,
+            ),
+          ),
       ],
     );
   }
+}
 
-  Widget _avatar(String initial, Color color) {
+class _UserAvatar extends StatelessWidget {
+  final String name;
+  final Color color;
+  const _UserAvatar({required this.name, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final String initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
     return Container(
       width: 28,
       height: 28,
@@ -1778,126 +1870,6 @@ class _AvatarStack extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _PdfCropDialog extends StatefulWidget {
-  final Uint8List imageBytes;
-  const _PdfCropDialog({required this.imageBytes});
-
-  @override
-  State<_PdfCropDialog> createState() => _PdfCropDialogState();
-}
-
-class _PdfCropDialogState extends State<_PdfCropDialog> {
-  Rect _cropRect = const Rect.fromLTWH(50, 50, 200, 200);
-  final GlobalKey _imageKey = GlobalKey();
-
-  void _onCrop() {
-    final renderBox =
-        _imageKey.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
-
-    final imageSize = renderBox.size;
-    final decodedImage = img.decodeImage(widget.imageBytes);
-    if (decodedImage == null) return;
-
-    final scaleX = decodedImage.width / imageSize.width;
-    final scaleY = decodedImage.height / imageSize.height;
-
-    final cropX = (_cropRect.left * scaleX).toInt();
-    final cropY = (_cropRect.top * scaleY).toInt();
-    final cropW = (_cropRect.width * scaleX).toInt();
-    final cropH = (_cropRect.height * scaleY).toInt();
-
-    final cropped = img.copyCrop(
-      decodedImage,
-      x: cropX,
-      y: cropY,
-      width: cropW,
-      height: cropH,
-    );
-
-    Navigator.pop(context, Uint8List.fromList(img.encodePng(cropped)));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Crop Snippet'),
-      content: SizedBox(
-        width: 500,
-        height: 500,
-        child: Stack(
-          children: [
-            Image.memory(
-              widget.imageBytes,
-              key: _imageKey,
-              fit: BoxFit.contain,
-            ),
-            Positioned.fromRect(
-              rect: _cropRect,
-              child: GestureDetector(
-                onPanUpdate: (details) {
-                  setState(() {
-                    _cropRect = Rect.fromLTWH(
-                      (_cropRect.left + details.delta.dx).clamp(0, 400),
-                      (_cropRect.top + details.delta.dy).clamp(0, 400),
-                      _cropRect.width,
-                      _cropRect.height,
-                    );
-                  });
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.blue, width: 2),
-                    color: Colors.blue.withValues(alpha: 0.2),
-                  ),
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: GestureDetector(
-                          onPanUpdate: (details) {
-                            setState(() {
-                              _cropRect = Rect.fromLTWH(
-                                _cropRect.left,
-                                _cropRect.top,
-                                (_cropRect.width + details.delta.dx).clamp(
-                                  20,
-                                  500,
-                                ),
-                                (_cropRect.height + details.delta.dy).clamp(
-                                  20,
-                                  500,
-                                ),
-                              );
-                            });
-                          },
-                          child: const Icon(
-                            Icons.drag_handle,
-                            color: Colors.blue,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(onPressed: _onCrop, child: const Text('Insert')),
-      ],
     );
   }
 }

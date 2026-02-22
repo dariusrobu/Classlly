@@ -103,6 +103,16 @@ class CanvasProvider with ChangeNotifier {
   List<TextBlock> get selectedTextBlocks => _selectedTextBlocks;
   List<ImageBlock> get selectedImages => _selectedImages;
 
+  List<Offset> _lassoPath = [];
+  List<Offset> get lassoPath => _lassoPath;
+
+  // Drag and resize state caching
+  List<Stroke> _dragInitialStrokes = [];
+  List<TextBlock> _dragInitialTextBlocks = [];
+  List<ImageBlock> _dragInitialImages = [];
+  Rect? _dragInitialRect;
+  Offset? _dragStartPos;
+
   String? _activeResizeHandle;
   Rect? _selectionRect;
 
@@ -217,31 +227,70 @@ class CanvasProvider with ChangeNotifier {
     } else {
       _activeResizeHandle = null;
     }
-    if (_activeResizeHandle != null) _takeSnapshot();
+    if (_activeResizeHandle != null) {
+      _takeSnapshot();
+      _cacheDragInitialState(position);
+    }
+  }
+
+  void _cacheDragInitialState(Offset position) {
+    _dragStartPos = position;
+    _dragInitialRect = _calculateSelectionBounds()?.inflate(10);
+    _dragInitialStrokes = _selectedStrokes.map((s) => Stroke(
+      points: List.from(s.points), 
+      color: s.color, 
+      width: s.width, 
+      createdAt: s.createdAt, 
+      toolType: s.toolType
+    )).toList();
+    _dragInitialImages = _selectedImages.map((img) => ImageBlock(
+      id: img.id,
+      base64Data: img.base64Data,
+      x: img.x,
+      y: img.y,
+      width: img.width,
+      height: img.height,
+      createdAt: img.createdAt
+    )).toList();
+    _dragInitialTextBlocks = _selectedTextBlocks.map((b) => TextBlock(
+      id: b.id,
+      text: b.text,
+      x: b.x,
+      y: b.y,
+      createdAt: b.createdAt,
+      color: b.color,
+      fontSize: b.fontSize,
+      isBold: b.isBold,
+      hasBackground: b.hasBackground,
+      isItalic: b.isItalic,
+      isUnderline: b.isUnderline
+    )).toList();
   }
 
   void resizeSelection(Offset position) {
-    if (_activeResizeHandle == null || _selectionRect == null) return;
+    if (_activeResizeHandle == null || _dragInitialRect == null || _dragStartPos == null) return;
+
+    final initialRect = _dragInitialRect!;
 
     Offset pivot;
     Offset oldCorner;
 
     switch (_activeResizeHandle) {
       case 'tl':
-        pivot = _selectionRect!.bottomRight;
-        oldCorner = _selectionRect!.topLeft;
+        pivot = initialRect.bottomRight;
+        oldCorner = initialRect.topLeft;
         break;
       case 'tr':
-        pivot = _selectionRect!.bottomLeft;
-        oldCorner = _selectionRect!.topRight;
+        pivot = initialRect.bottomLeft;
+        oldCorner = initialRect.topRight;
         break;
       case 'bl':
-        pivot = _selectionRect!.topRight;
-        oldCorner = _selectionRect!.bottomLeft;
+        pivot = initialRect.topRight;
+        oldCorner = initialRect.bottomLeft;
         break;
       case 'br':
-        pivot = _selectionRect!.topLeft;
-        oldCorner = _selectionRect!.bottomRight;
+        pivot = initialRect.topLeft;
+        oldCorner = initialRect.bottomRight;
         break;
       default:
         return;
@@ -250,39 +299,63 @@ class CanvasProvider with ChangeNotifier {
     double scaleX = (position.dx - pivot.dx) / (oldCorner.dx - pivot.dx);
     double scaleY = (position.dy - pivot.dy) / (oldCorner.dy - pivot.dy);
 
-    if (scaleX.abs() < 0.1) scaleX = 0.1;
-    if (scaleY.abs() < 0.1) scaleY = 0.1;
+    if (scaleX.abs() < 0.1) scaleX = 0.1 * scaleX.sign;
+    if (scaleY.abs() < 0.1) scaleY = 0.1 * scaleY.sign;
 
-    for (var stroke in _selectedStrokes) {
-      final newPoints = stroke.points
-          .map(
-            (p) => StrokePoint(
-              x: pivot.dx + (p.x - pivot.dx) * scaleX,
-              y: pivot.dy + (p.y - pivot.dy) * scaleY,
-              pressure: p.pressure,
-            ),
-          )
-          .toList();
+    for (int i = 0; i < _selectedStrokes.length; i++) {
+      var initialStroke = _dragInitialStrokes[i];
+      var currentStroke = _selectedStrokes[i];
 
-      final index = _currentNote!.strokes.indexOf(stroke);
+      final newPoints = initialStroke.points.map((p) => StrokePoint(
+        x: pivot.dx + (p.x - pivot.dx) * scaleX,
+        y: pivot.dy + (p.y - pivot.dy) * scaleY,
+        pressure: p.pressure,
+      )).toList();
+
+      final index = _currentNote!.strokes.indexOf(currentStroke);
       if (index != -1) {
         _currentNote!.strokes[index] = Stroke(
           points: newPoints,
-          color: stroke.color,
-          width: stroke.width * (scaleX + scaleY) / 2,
-          createdAt: stroke.createdAt,
-          toolType: stroke.toolType,
+          color: initialStroke.color,
+          width: initialStroke.width * (scaleX.abs() + scaleY.abs()) / 2,
+          createdAt: initialStroke.createdAt,
+          toolType: initialStroke.toolType,
         );
-        _selectedStrokes[_selectedStrokes.indexOf(stroke)] =
-            _currentNote!.strokes[index];
+        _selectedStrokes[i] = _currentNote!.strokes[index];
       }
     }
 
-    for (var img in _selectedImages) {
-      img.width = (img.width * scaleX).abs().clamp(50, 2000);
-      img.height = (img.height * scaleY).abs().clamp(50, 2000);
-      img.x = pivot.dx + (img.x - pivot.dx) * scaleX;
-      img.y = pivot.dy + (img.y - pivot.dy) * scaleY;
+    for (int i = 0; i < _selectedImages.length; i++) {
+      var initialImg = _dragInitialImages[i];
+      var currentImg = _selectedImages[i];
+
+      currentImg.width = (initialImg.width * scaleX).abs().clamp(50, 2000);
+      currentImg.height = (initialImg.height * scaleY).abs().clamp(50, 2000);
+      currentImg.x = pivot.dx + (initialImg.x - pivot.dx) * scaleX;
+      currentImg.y = pivot.dy + (initialImg.y - pivot.dy) * scaleY;
+    }
+
+    for (int i = 0; i < _selectedTextBlocks.length; i++) {
+      var initialBlock = _dragInitialTextBlocks[i];
+      var currentBlock = _selectedTextBlocks[i];
+
+      final index = _currentNote!.textBlocks.indexOf(currentBlock);
+      if (index != -1) {
+        _currentNote!.textBlocks[index] = TextBlock(
+          id: initialBlock.id,
+          text: initialBlock.text,
+          x: pivot.dx + (initialBlock.x - pivot.dx) * scaleX,
+          y: pivot.dy + (initialBlock.y - pivot.dy) * scaleY,
+          createdAt: initialBlock.createdAt,
+          color: initialBlock.color,
+          fontSize: (initialBlock.fontSize * ((scaleX.abs() + scaleY.abs()) / 2)).clamp(10.0, 150.0),
+          isBold: initialBlock.isBold,
+          hasBackground: initialBlock.hasBackground,
+          isItalic: initialBlock.isItalic,
+          isUnderline: initialBlock.isUnderline,
+        );
+        _selectedTextBlocks[i] = _currentNote!.textBlocks[index];
+      }
     }
 
     _selectionRect = _calculateSelectionBounds()?.inflate(10);
@@ -309,6 +382,13 @@ class CanvasProvider with ChangeNotifier {
       if (img.y + img.height > maxY) maxY = img.y + img.height;
     }
 
+    for (var block in _selectedTextBlocks) {
+      if (block.x < minX) minX = block.x;
+      if (block.x + 100 > maxX) maxX = block.x + 100; // rough width estimate
+      if (block.y < minY) minY = block.y;
+      if (block.y + 30 > maxY) maxY = block.y + 30; // rough height estimate
+    }
+
     if (minX == double.infinity) return null;
     return Rect.fromLTRB(minX, minY, maxX, maxY);
   }
@@ -317,7 +397,10 @@ class CanvasProvider with ChangeNotifier {
 
   void endResize() {
     _activeResizeHandle = null;
-    _selectionRect = null;
+    _selectionRect = _calculateSelectionBounds()?.inflate(10);
+    _dragInitialStrokes.clear();
+    _dragInitialTextBlocks.clear();
+    _dragInitialImages.clear();
     saveNote();
   }
 
@@ -364,6 +447,7 @@ class CanvasProvider with ChangeNotifier {
     _selectedStrokes = [];
     _selectedTextBlocks = [];
     _selectedImages = [];
+    _selectionRect = null;
     notifyListeners();
   }
 
@@ -721,8 +805,9 @@ class CanvasProvider with ChangeNotifier {
     }
   }
 
-  void startMove() {
+  void startMove(Offset position) {
     _takeSnapshot();
+    _cacheDragInitialState(position);
   }
 
   void addTextBlock(Offset offset, {int? timestamp}) {
@@ -736,6 +821,7 @@ class CanvasProvider with ChangeNotifier {
       createdAt: timestamp ?? -1,
     );
     _currentNote!.textBlocks.add(block);
+    _selectedTextBlocks = [block];
     notifyListeners();
   }
 
@@ -863,61 +949,203 @@ class CanvasProvider with ChangeNotifier {
     }
   }
 
-  void moveSelection(Offset delta) {
+  void moveSelection(Offset delta, {Offset? absolutePosition}) {
     if (_currentNote == null) return;
-    for (var stroke in _selectedStrokes) {
-      final newPoints = stroke.points
-          .map(
-            (p) => StrokePoint(
-              x: p.x + delta.dx,
-              y: p.y + delta.dy,
-              pressure: p.pressure,
-            ),
-          )
-          .toList();
-      final index = _currentNote!.strokes.indexOf(stroke);
-      if (index != -1) {
-        _currentNote!.strokes[index] = Stroke(
-          points: newPoints,
-          color: stroke.color,
-          width: stroke.width,
-          createdAt: stroke.createdAt,
-          toolType: stroke.toolType,
-        );
-        _selectedStrokes[_selectedStrokes.indexOf(stroke)] =
-            _currentNote!.strokes[index];
+
+    if (absolutePosition != null && _dragStartPos != null) {
+      // Use absolute cached drag state to prevent accumulative floating errors
+      final totalDelta = absolutePosition - _dragStartPos!;
+      
+      for (int i = 0; i < _selectedStrokes.length; i++) {
+        var initialStroke = _dragInitialStrokes[i];
+        var currentStroke = _selectedStrokes[i];
+        
+        final newPoints = initialStroke.points
+            .map((p) => StrokePoint(
+                  x: p.x + totalDelta.dx,
+                  y: p.y + totalDelta.dy,
+                  pressure: p.pressure,
+                ))
+            .toList();
+        final index = _currentNote!.strokes.indexOf(currentStroke);
+        if (index != -1) {
+          _currentNote!.strokes[index] = Stroke(
+            points: newPoints,
+            color: initialStroke.color,
+            width: initialStroke.width,
+            createdAt: initialStroke.createdAt,
+            toolType: initialStroke.toolType,
+          );
+          _selectedStrokes[i] = _currentNote!.strokes[index];
+        }
+      }
+
+      for (int i = 0; i < _selectedTextBlocks.length; i++) {
+        var initialBlock = _dragInitialTextBlocks[i];
+        var currentBlock = _selectedTextBlocks[i];
+        final index = _currentNote!.textBlocks.indexOf(currentBlock);
+        if (index != -1) {
+          _currentNote!.textBlocks[index] = TextBlock(
+            id: initialBlock.id,
+            text: initialBlock.text,
+            x: initialBlock.x + totalDelta.dx,
+            y: initialBlock.y + totalDelta.dy,
+            createdAt: initialBlock.createdAt,
+            color: initialBlock.color,
+            fontSize: initialBlock.fontSize,
+            isBold: initialBlock.isBold,
+            hasBackground: initialBlock.hasBackground,
+            isItalic: initialBlock.isItalic,
+            isUnderline: initialBlock.isUnderline,
+          );
+          _selectedTextBlocks[i] = _currentNote!.textBlocks[index];
+        }
+      }
+
+      for (int i = 0; i < _selectedImages.length; i++) {
+        var initialImg = _dragInitialImages[i];
+        var currentImg = _selectedImages[i];
+        currentImg.x = initialImg.x + totalDelta.dx;
+        currentImg.y = initialImg.y + totalDelta.dy;
+      }
+    } else {
+      // Fallback relative movement
+      for (var stroke in _selectedStrokes) {
+        final newPoints = stroke.points
+            .map(
+              (p) => StrokePoint(
+                x: p.x + delta.dx,
+                y: p.y + delta.dy,
+                pressure: p.pressure,
+              ),
+            )
+            .toList();
+        final index = _currentNote!.strokes.indexOf(stroke);
+        if (index != -1) {
+          _currentNote!.strokes[index] = Stroke(
+            points: newPoints,
+            color: stroke.color,
+            width: stroke.width,
+            createdAt: stroke.createdAt,
+            toolType: stroke.toolType,
+          );
+          _selectedStrokes[_selectedStrokes.indexOf(stroke)] =
+              _currentNote!.strokes[index];
+        }
+      }
+      for (var block in _selectedTextBlocks) {
+        final index = _currentNote!.textBlocks.indexOf(block);
+        if (index != -1) {
+          final oldBlock = _currentNote!.textBlocks[index];
+          _currentNote!.textBlocks[index] = TextBlock(
+            id: block.id,
+            text: block.text,
+            x: block.x + delta.dx,
+            y: block.y + delta.dy,
+            createdAt: block.createdAt,
+            color: oldBlock.color,
+            fontSize: oldBlock.fontSize,
+            isBold: oldBlock.isBold,
+            hasBackground: oldBlock.hasBackground,
+            isItalic: oldBlock.isItalic,
+            isUnderline: oldBlock.isUnderline,
+          );
+          _selectedTextBlocks[_selectedTextBlocks.indexOf(block)] =
+              _currentNote!.textBlocks[index];
+        }
+      }
+      for (var img in _selectedImages) {
+        img.x += delta.dx;
+        img.y += delta.dy;
       }
     }
-    for (var block in _selectedTextBlocks) {
-      final index = _currentNote!.textBlocks.indexOf(block);
-      if (index != -1) {
-        final oldBlock = _currentNote!.textBlocks[index];
-        _currentNote!.textBlocks[index] = TextBlock(
-          id: block.id,
-          text: block.text,
-          x: block.x + delta.dx,
-          y: block.y + delta.dy,
-          createdAt: block.createdAt,
-          color: oldBlock.color,
-          fontSize: oldBlock.fontSize,
-          isBold: oldBlock.isBold,
-          hasBackground: oldBlock.hasBackground,
-          isItalic: oldBlock.isItalic,
-          isUnderline: oldBlock.isUnderline,
-        );
-        _selectedTextBlocks[_selectedTextBlocks.indexOf(block)] =
-            _currentNote!.textBlocks[index];
-      }
-    }
-    for (var img in _selectedImages) {
-      img.x += delta.dx;
-      img.y += delta.dy;
-    }
+
+    _selectionRect = _calculateSelectionBounds()?.inflate(10);
     notifyListeners();
   }
 
-  void selectItemAt(Offset position, AudioProvider audioProvider) {
-    if (_currentNote == null) return;
+  void endMove() {
+    _dragInitialStrokes.clear();
+    _dragInitialTextBlocks.clear();
+    _dragInitialImages.clear();
+    saveNote();
+  }
+
+  bool hitTestSelection(Offset position) {
+    if (_selectedStrokes.isEmpty && _selectedTextBlocks.isEmpty && _selectedImages.isEmpty) {
+      return false;
+    }
+    final rect = _calculateSelectionBounds();
+    if (rect == null) return false;
+    if (rect.inflate(10).contains(position)) {
+      return true;
+    }
+    return false;
+  }
+
+  void startLasso(Offset position) {
+    _lassoPath = [position];
+    notifyListeners();
+  }
+
+  void updateLasso(Offset position) {
+    if (_lassoPath.isNotEmpty) {
+      _lassoPath.add(position);
+      notifyListeners();
+    }
+  }
+
+  void endLasso() {
+    if (_currentNote == null || _lassoPath.length < 3) {
+      _lassoPath = [];
+      clearSelection();
+      notifyListeners();
+      return;
+    }
+
+    final insideStrokes = <Stroke>[];
+    final insideBlocks = <TextBlock>[];
+    final insideImages = <ImageBlock>[];
+
+    final polygon = _lassoPath.map((o) => StrokePoint(x: o.dx, y: o.dy)).toList();
+
+    for (var stroke in _currentNote!.strokes) {
+      if (stroke.points.isNotEmpty) {
+        bool isInside = false;
+        for (var p in stroke.points) {
+          if (GeometryUtils.isPointInPolygon(Offset(p.x, p.y), polygon)) {
+            isInside = true;
+            break;
+          }
+        }
+        if (isInside) insideStrokes.add(stroke);
+      }
+    }
+
+    for (var block in _currentNote!.textBlocks) {
+      if (GeometryUtils.isPointInPolygon(Offset(block.x, block.y), polygon)) {
+        insideBlocks.add(block);
+      }
+    }
+
+    for (var img in _currentNote!.images) {
+      if (GeometryUtils.isPointInPolygon(
+        Offset(img.x + img.width / 2, img.y + img.height / 2),
+        polygon,
+      )) {
+        insideImages.add(img);
+      }
+    }
+
+    _selectedStrokes = insideStrokes;
+    _selectedTextBlocks = insideBlocks;
+    _selectedImages = insideImages;
+    _lassoPath = [];
+    notifyListeners();
+  }
+
+  bool selectItemAt(Offset position, AudioProvider audioProvider) {
+    if (_currentNote == null) return false;
 
     // Images first
     for (var img in _currentNote!.images) {
@@ -928,7 +1156,7 @@ class CanvasProvider with ChangeNotifier {
         _selectedTextBlocks = [];
         _jumpToTimestamp(img.createdAt, audioProvider);
         notifyListeners();
-        return;
+        return true;
       }
     }
 
@@ -940,7 +1168,7 @@ class CanvasProvider with ChangeNotifier {
         _selectedImages = [];
         _jumpToTimestamp(block.createdAt, audioProvider);
         notifyListeners();
-        return;
+        return true;
       }
     }
     for (var stroke in _currentNote!.strokes) {
@@ -951,15 +1179,11 @@ class CanvasProvider with ChangeNotifier {
           _selectedImages = [];
           _jumpToTimestamp(stroke.createdAt, audioProvider);
           notifyListeners();
-          return;
+          return true;
         }
       }
     }
-    // If nothing found, clear selection
-    _selectedStrokes = [];
-    _selectedTextBlocks = [];
-    _selectedImages = [];
-    notifyListeners();
+    return false;
   }
 
   void _jumpToTimestamp(int timestamp, AudioProvider audio) {

@@ -29,6 +29,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
   TimeOfDay? _courseTime;
 
   // Seminar Info
+  bool _hasSeminar = false;
   final _seminarProfController = TextEditingController();
   final _seminarRoomController = TextEditingController();
   String? _seminarFrequency;
@@ -83,6 +84,11 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
       _courseTime = _parseTime(c.courseTime);
 
       // Seminar
+      _hasSeminar = c.seminarProfessor.isNotEmpty || 
+                    c.seminarLocation.isNotEmpty || 
+                    c.seminarFrequency.isNotEmpty || 
+                    c.seminarDay.isNotEmpty || 
+                    c.seminarTime.isNotEmpty;
       _seminarProfController.text = c.seminarProfessor;
       _seminarRoomController.text = c.seminarLocation;
       _seminarFrequency = _frequencies.contains(c.seminarFrequency)
@@ -133,11 +139,11 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
           courseFrequency: _courseFrequency ?? '',
           courseDay: _courseDay ?? '',
           courseTime: _formatTime(_courseTime),
-          seminarProfessor: _seminarProfController.text,
-          seminarLocation: _seminarRoomController.text,
-          seminarFrequency: _seminarFrequency ?? '',
-          seminarDay: _seminarDay ?? '',
-          seminarTime: _formatTime(_seminarTime),
+          seminarProfessor: _hasSeminar ? _seminarProfController.text : '',
+          seminarLocation: _hasSeminar ? _seminarRoomController.text : '',
+          seminarFrequency: _hasSeminar ? (_seminarFrequency ?? '') : '',
+          seminarDay: _hasSeminar ? (_seminarDay ?? '') : '',
+          seminarTime: _hasSeminar ? _formatTime(_seminarTime) : '',
         );
         await provider.saveCourse(updatedCourse);
       } else {
@@ -153,11 +159,11 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
           courseFrequency: _courseFrequency ?? '',
           courseDay: _courseDay ?? '',
           courseTime: _formatTime(_courseTime),
-          seminarProfessor: _seminarProfController.text,
-          seminarLocation: _seminarRoomController.text,
-          seminarFrequency: _seminarFrequency ?? '',
-          seminarDay: _seminarDay ?? '',
-          seminarTime: _formatTime(_seminarTime),
+          seminarProfessor: _hasSeminar ? _seminarProfController.text : '',
+          seminarLocation: _hasSeminar ? _seminarRoomController.text : '',
+          seminarFrequency: _hasSeminar ? (_seminarFrequency ?? '') : '',
+          seminarDay: _hasSeminar ? (_seminarDay ?? '') : '',
+          seminarTime: _hasSeminar ? _formatTime(_seminarTime) : '',
         );
         await provider.saveCourse(newCourse);
       }
@@ -335,73 +341,95 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                     const Divider(),
                     const SizedBox(height: 16),
 
-                    // --- Seminar Info ---
-                    Text(
-                      AppLocalizations.of(context)!.seminarDetails,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Theme.of(context).colorScheme.primary,
+                    Theme(
+                      data: Theme.of(context).copyWith(
+                        listTileTheme: const ListTileThemeData(
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      child: SwitchListTile(
+                        title: Text(
+                          AppLocalizations.of(context)!.seminarDetails,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Optional', 
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.withValues(alpha: 0.7),
+                          ),
+                        ),
+                        value: _hasSeminar,
+                        onChanged: (val) => setState(() => _hasSeminar = val),
+                        activeThumbImage: null,
+                        activeTrackColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                        activeColor: Theme.of(context).colorScheme.primary,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      AppLocalizations.of(context)!.seminarTeacher,
-                      _seminarProfController,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTextField(
-                            AppLocalizations.of(context)!.room,
-                            _seminarRoomController,
+                    if (_hasSeminar) ...[
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        AppLocalizations.of(context)!.seminarTeacher,
+                        _seminarProfController,
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              AppLocalizations.of(context)!.room,
+                              _seminarRoomController,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildDropdown(
-                            AppLocalizations.of(context)!.frequency,
-                            _seminarFrequency,
-                            [
-                              AppLocalizations.of(context)!.weekly,
-                              AppLocalizations.of(context)!.biWeeklyOdd,
-                              AppLocalizations.of(context)!.biWeeklyEven,
-                            ],
-                            (val) => setState(() => _seminarFrequency = val),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildDropdown(
+                              AppLocalizations.of(context)!.frequency,
+                              _seminarFrequency,
+                              [
+                                AppLocalizations.of(context)!.weekly,
+                                AppLocalizations.of(context)!.biWeeklyOdd,
+                                AppLocalizations.of(context)!.biWeeklyEven,
+                              ],
+                              (val) => setState(() => _seminarFrequency = val),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildDropdown(
-                            AppLocalizations.of(context)!.day,
-                            _seminarDay,
-                            [
-                              AppLocalizations.of(context)!.monday,
-                              AppLocalizations.of(context)!.tuesday,
-                              AppLocalizations.of(context)!.wednesday,
-                              AppLocalizations.of(context)!.thursday,
-                              AppLocalizations.of(context)!.friday,
-                              AppLocalizations.of(context)!.saturday,
-                              AppLocalizations.of(context)!.sunday,
-                            ],
-                            (val) => setState(() => _seminarDay = val),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildDropdown(
+                              AppLocalizations.of(context)!.day,
+                              _seminarDay,
+                              [
+                                AppLocalizations.of(context)!.monday,
+                                AppLocalizations.of(context)!.tuesday,
+                                AppLocalizations.of(context)!.wednesday,
+                                AppLocalizations.of(context)!.thursday,
+                                AppLocalizations.of(context)!.friday,
+                                AppLocalizations.of(context)!.saturday,
+                                AppLocalizations.of(context)!.sunday,
+                              ],
+                              (val) => setState(() => _seminarDay = val),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildTimePicker(
-                            AppLocalizations.of(context)!.time,
-                            _seminarTime,
-                            (val) => setState(() => _seminarTime = val),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildTimePicker(
+                              AppLocalizations.of(context)!.time,
+                              _seminarTime,
+                              (val) => setState(() => _seminarTime = val),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
 
                     const SizedBox(height: 24),
                     const Divider(),

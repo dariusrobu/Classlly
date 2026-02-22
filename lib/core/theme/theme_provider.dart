@@ -7,19 +7,20 @@ class ThemeProvider with ChangeNotifier {
   Color _accentColor = AppTheme.primaryPurple;
 
   ThemeProvider() {
-    _loadPreferences();
+    loadPreferences();
   }
 
   ThemeMode get themeMode => _themeMode;
   Color get accentColor => _accentColor;
 
-  void _loadPreferences() {
+  void loadPreferences() {
     try {
       final repository = NotesRepository();
       final prefs = repository.getPreferences();
 
       _themeMode = _parseThemeMode(prefs.themeMode);
       _accentColor = Color(prefs.accentColor);
+      notifyListeners();
     } catch (e) {
       debugPrint('Error loading preferences: $e');
     }

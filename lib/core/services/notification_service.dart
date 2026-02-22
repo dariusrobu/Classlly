@@ -20,11 +20,35 @@ class NotificationService {
     // Initialize Timezones
     tz.initializeTimeZones();
     try {
-      final timeZoneName = await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(timeZoneName.toString()));
+      // Use a race between the real lookup and a 3-second UTC fallback.
+      // On iOS 26.x beta, getLocalTimezone() can hang indefinitely.
+      final dynamic result = await Future.any([
+        FlutterTimezone.getLocalTimezone(),
+        Future.delayed(const Duration(seconds: 3), () => 'UTC'),
+      ]);
+      
+      String timezoneName;
+      if (result is String) {
+        timezoneName = result;
+      } else if (result != null) {
+        // Handle TimezoneInfo object from flutter_timezone 5.x+
+        try {
+          timezoneName = result.identifier;
+        } catch (_) {
+          timezoneName = result.toString();
+        }
+      } else {
+        timezoneName = 'UTC';
+      }
+
+      // Attempt to set location, fallback to UTC if the string is invalid
+      try {
+        tz.setLocalLocation(tz.getLocation(timezoneName));
+      } catch (e) {
+        tz.setLocalLocation(tz.getLocation('UTC'));
+      }
     } catch (e) {
       debugPrint('Could not initialize local timezone: $e');
-      // Fallback to UTC if detection fails to avoid crash
       tz.setLocalLocation(tz.getLocation('UTC'));
     }
 

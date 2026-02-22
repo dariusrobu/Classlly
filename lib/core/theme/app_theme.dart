@@ -18,11 +18,11 @@ class AppTheme {
     Color(0xFF84CC16), // Lime
   ];
 
-  // Dark Mode Palette (Slate)
-  static const Color backgroundDark = Color(0xFF0F172A); // Slate 900
-  static const Color sidebarDark = Color(0xFF1E293B); // Slate 800
-  static const Color cardDark = Color(0xFF1E293B); // Slate 800
-  static const Color borderDark = Color(0xFF334155); // Slate 700
+  // Dark Mode Palette (Neutral/Black)
+  static const Color backgroundDark = Color(0xFF000000); // Pure Black
+  static const Color sidebarDark = Color(0xFF0A0A0A); // Very Dark Neutral Gray
+  static const Color cardDark = Color(0xFF121212); // Card Surface Neutral Gray
+  static const Color borderDark = Color(0xFF222222); // Neutral Subtle Borders
 
   // Light Mode Palette (Slate)
   static const Color backgroundLight = Color(0xFFF8FAFC); // Slate 50
@@ -142,7 +142,7 @@ class AppTheme {
       dividerColor: borderDark,
       textTheme: _buildTextTheme(ThemeData.dark().textTheme).apply(
         bodyColor: const Color(0xFFF1F5F9), // Slate 100
-        displayColor: const Color(0xFFF1F5F9),
+        displayColor: const Color(0xFFFFFFFF), // Pure White headers
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: backgroundDark,
@@ -163,7 +163,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFF334155), // Slate 700
+        fillColor: const Color(0xFF222222), // Neutral input fill
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,

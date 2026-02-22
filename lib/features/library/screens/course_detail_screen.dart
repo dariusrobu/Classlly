@@ -59,8 +59,10 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
   }
 
   void _addTask(BuildContext context) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) => AddTaskScreen(initialCourseId: _course.id),
     );
   }
@@ -444,7 +446,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
     final primaryColor = Theme.of(context).colorScheme.primary;
     final bgGradient = isDark
         ? const LinearGradient(
-            colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+            colors: [Color(0xFF000000), Color(0xFF161616)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           )
@@ -453,6 +455,9 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           );
+
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final padding = isMobile ? 20.0 : 32.0;
 
     return Scaffold(
       body: Container(
@@ -467,7 +472,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                     return [
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const EdgeInsets.all(32),
+                          padding: EdgeInsets.all(padding),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -475,6 +480,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                                 context,
                                 isDark,
                                 primaryColor,
+                                isMobile,
                               ),
                               const SizedBox(height: 24),
                               _buildQuickActions(context, isDark, primaryColor),
@@ -526,14 +532,15 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
     Color primaryColor,
   ) {
     final isMobile = MediaQuery.of(context).size.width < 800;
+    final horizontalPadding = isMobile ? 20.0 : 32.0;
 
     if (isMobile) {
       return SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 0),
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildPerformanceCharts(isDark, primaryColor),
+            _buildPerformanceCharts(isDark, primaryColor, isMobile),
             const SizedBox(height: 24),
             _buildRecentGradesCard(isDark, primaryColor),
             const SizedBox(height: 24),
@@ -559,11 +566,11 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 0),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildPerformanceCharts(isDark, primaryColor),
+          _buildPerformanceCharts(isDark, primaryColor, isMobile),
           const SizedBox(height: 24),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -606,8 +613,9 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
   }
 
   Widget _buildNotesTab(BuildContext context, bool isDark, Color primaryColor) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 20 : 32),
       child: _buildRecentNotesList(isDark, primaryColor, limit: 100),
     );
   }
@@ -993,9 +1001,10 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
     BuildContext context,
     bool isDark,
     Color primaryColor,
+    bool isMobile,
   ) {
     return GlassCard(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 20 : 32),
       child: Wrap(
         alignment: WrapAlignment.spaceBetween,
         crossAxisAlignment: WrapCrossAlignment.center,
@@ -1067,7 +1076,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
               Text(
                 _course.title,
                 style: GoogleFonts.spaceGrotesk(
-                  fontSize: 40,
+                  fontSize: isMobile ? 28 : 40,
                   fontWeight: FontWeight.w900,
                   letterSpacing: -1,
                 ),
@@ -1244,8 +1253,10 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                     }
                   }
 
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
+                  return Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    alignment: WrapAlignment.start,
                     children: [
                       _headerStatItem(
                         AppLocalizations.of(context)!.currentGrade,
@@ -1254,13 +1265,14 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                             : '${NumberFormat('0.##').format(avg)}%',
                         gradeTrend,
                         isDark,
+                        isMobile,
                       ),
-                      const SizedBox(width: 16),
                       _headerStatItem(
                         AppLocalizations.of(context)!.attendance.toUpperCase(),
                         courseAtt.isEmpty ? 'N/A' : '${attendance.toInt()}%',
                         attTrend,
                         isDark,
+                        isMobile,
                       ),
                     ],
                   );
@@ -1278,10 +1290,11 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
     String value,
     int trendDirection,
     bool isDark,
+    bool isMobile,
   ) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      constraints: const BoxConstraints(minWidth: 140),
+      padding: EdgeInsets.all(isMobile ? 12 : 16),
+      constraints: BoxConstraints(minWidth: isMobile ? 120 : 140),
       decoration: BoxDecoration(
         color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -1308,11 +1321,14 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text(
-                value,
-                style: GoogleFonts.spaceGrotesk(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
+              Flexible(
+                child: Text(
+                  value,
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 8),
@@ -1331,7 +1347,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
     );
   }
 
-  Widget _buildPerformanceCharts(bool isDark, Color primaryColor) {
+  Widget _buildPerformanceCharts(bool isDark, Color primaryColor, bool isMobile) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final count = constraints.maxWidth > 800 ? 2 : 1;
@@ -1339,7 +1355,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
           crossAxisCount: count,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 2.4, // Shorter height
+          childAspectRatio: isMobile ? 1.8 : 2.4, // Provide more vertical space on mobile
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
           children: [

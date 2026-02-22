@@ -139,8 +139,10 @@ class _InlineQuickActions extends StatelessWidget {
                 label: AppLocalizations.of(context)!.addTask,
                 color: Theme.of(context).colorScheme.primary,
                 isSmall: isSmall,
-                onTap: () => showDialog(
+                onTap: () => showModalBottomSheet(
                   context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
                   builder: (context) => const AddTaskScreen(),
                 ),
               ),
@@ -162,7 +164,8 @@ class _InlineQuickActions extends StatelessWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                            AppLocalizations.of(context)!.addCourseFirst),
+                          AppLocalizations.of(context)!.addCourseFirst,
+                        ),
                       ),
                     );
                     return;
@@ -176,10 +179,12 @@ class _InlineQuickActions extends StatelessWidget {
                       builder: (context) => SimpleDialog(
                         title: Text(AppLocalizations.of(context)!.selectCourse),
                         children: courses
-                            .map((c) => SimpleDialogOption(
-                                  onPressed: () => Navigator.pop(context, c.id),
-                                  child: Text(c.title),
-                                ))
+                            .map(
+                              (c) => SimpleDialogOption(
+                                onPressed: () => Navigator.pop(context, c.id),
+                                child: Text(c.title),
+                              ),
+                            )
                             .toList(),
                       ),
                     );
@@ -187,7 +192,8 @@ class _InlineQuickActions extends StatelessWidget {
                   if (selectedCourseId != null && context.mounted) {
                     showDialog(
                       context: context,
-                      builder: (context) => AddGradeDialog(courseId: selectedCourseId!),
+                      builder: (context) =>
+                          AddGradeDialog(courseId: selectedCourseId!),
                     );
                   }
                 },
@@ -210,7 +216,8 @@ class _InlineQuickActions extends StatelessWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                            AppLocalizations.of(context)!.addCourseFirst),
+                          AppLocalizations.of(context)!.addCourseFirst,
+                        ),
                       ),
                     );
                     return;
@@ -224,10 +231,12 @@ class _InlineQuickActions extends StatelessWidget {
                       builder: (context) => SimpleDialog(
                         title: Text(AppLocalizations.of(context)!.selectCourse),
                         children: courses
-                            .map((c) => SimpleDialogOption(
-                                  onPressed: () => Navigator.pop(context, c.id),
-                                  child: Text(c.title),
-                                ))
+                            .map(
+                              (c) => SimpleDialogOption(
+                                onPressed: () => Navigator.pop(context, c.id),
+                                child: Text(c.title),
+                              ),
+                            )
                             .toList(),
                       ),
                     );
@@ -295,9 +304,7 @@ class QuickActionButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: color.withValues(alpha: 0.2),
-          ),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -345,8 +352,9 @@ class DashboardHeader extends StatelessWidget {
               Text(
                 AppLocalizations.of(context)!.welcomeBack(name),
                 style: TextStyle(
-                  fontSize:
-                      MediaQuery.of(context).size.width < 350 ? 20 : (MediaQuery.of(context).size.width < 600 ? 24 : 32),
+                  fontSize: MediaQuery.of(context).size.width < 350
+                      ? 20
+                      : (MediaQuery.of(context).size.width < 600 ? 24 : 32),
                   fontWeight: FontWeight.w900,
                   color: Theme.of(context).textTheme.headlineMedium?.color,
                   letterSpacing: -0.5,
@@ -358,7 +366,7 @@ class DashboardHeader extends StatelessWidget {
               Text(
                 'Your academic journey is looking bright today.',
                 style: TextStyle(
-                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  color: isDark ? const Color(0xFFA1A1AA) : Colors.grey[600],
                   fontSize: 14,
                 ),
               ),
@@ -376,7 +384,9 @@ class DashboardHeader extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: isDark ? Colors.grey[300] : const Color(0xFF0F172A),
+                color: isDark
+                    ? const Color(0xFFA1A1AA)
+                    : const Color(0xFF0F172A),
               ),
             ),
             if (weekInfo != null)
@@ -387,10 +397,9 @@ class DashboardHeader extends StatelessWidget {
                   vertical: 3,
                 ),
                 decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .primary
-                      .withValues(alpha: 0.1),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -436,7 +445,7 @@ class _PerformanceSection extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Flexible(
+              Expanded(
                 child: Text(
                   AppLocalizations.of(context)!.performanceOverview,
                   style: TextStyle(
@@ -444,24 +453,22 @@ class _PerformanceSection extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).textTheme.titleLarge?.color,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .primary
-                      .withValues(alpha: 0.1),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withValues(alpha: 0.2),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Text(
@@ -478,22 +485,24 @@ class _PerformanceSection extends StatelessWidget {
           const SizedBox(height: 28),
           Consumer<CourseProvider>(
             builder: (context, courseProvider, _) {
-              final attendanceRate =
-                  _calculateAttendance(courseProvider.courses);
+              final attendanceRate = _calculateAttendance(
+                courseProvider.courses,
+              );
 
               return Consumer<TaskProvider>(
                 builder: (context, taskProvider, _) {
                   final tasks = taskProvider.tasks;
-                  final completed =
-                      tasks.where((t) => t.isCompleted).length;
+                  final completed = tasks.where((t) => t.isCompleted).length;
                   final taskRate = tasks.isNotEmpty
                       ? (completed / tasks.length) * 100
                       : 0.0;
 
                   return LayoutBuilder(
                     builder: (context, constraints) {
-                      final gaugeSize =
-                          math.min(constraints.maxWidth / 2.5, 160.0);
+                      final gaugeSize = math.min(
+                        constraints.maxWidth / 2.5,
+                        160.0,
+                      );
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
@@ -501,8 +510,7 @@ class _PerformanceSection extends StatelessWidget {
                             size: gaugeSize,
                             percentage: attendanceRate,
                             label: 'ATTENDANCE',
-                            color:
-                                Theme.of(context).colorScheme.primary,
+                            color: Theme.of(context).colorScheme.primary,
                             subtitle:
                                 'You missed only ${(100 - attendanceRate).toInt() > 0 ? ((100 - attendanceRate) * courseProvider.courses.length / 100).ceil() : 0} classes',
                           ),
@@ -510,9 +518,9 @@ class _PerformanceSection extends StatelessWidget {
                             size: gaugeSize,
                             percentage: taskRate,
                             label: 'TASK SUCCESS',
-                            color:
-                                Theme.of(context).colorScheme.primary,
-                            subtitle: '$completed/${tasks.length} Tasks completed',
+                            color: Theme.of(context).colorScheme.primary,
+                            subtitle:
+                                '$completed/${tasks.length} Tasks completed',
                           ),
                         ],
                       );
@@ -555,8 +563,7 @@ class _DonutGauge extends StatelessWidget {
             painter: _DonutPainter(
               percentage: percentage / 100,
               color: color,
-              bgColor:
-                  Theme.of(context).dividerColor.withValues(alpha: 0.1),
+              bgColor: Theme.of(context).dividerColor.withValues(alpha: 0.1),
               strokeWidth: size * 0.08,
             ),
             child: Center(
@@ -568,10 +575,7 @@ class _DonutGauge extends StatelessWidget {
                     style: TextStyle(
                       fontSize: size * 0.22,
                       fontWeight: FontWeight.w900,
-                      color: Theme.of(context)
-                          .textTheme
-                          .bodyLarge
-                          ?.color,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
                       letterSpacing: -1,
                     ),
                   ),
@@ -581,7 +585,9 @@ class _DonutGauge extends StatelessWidget {
                       fontSize: size * 0.065,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.5,
-                      color: Colors.grey,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFFA1A1AA)
+                          : Colors.grey,
                     ),
                   ),
                 ],
@@ -593,16 +599,14 @@ class _DonutGauge extends StatelessWidget {
         SizedBox(
           width: size + 20,
           child: DefaultTextStyle(
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: Colors.grey,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFFA1A1AA)
+                  : Colors.grey,
             ),
             textAlign: TextAlign.center,
-            child: Text(
-              subtitle,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
+            child: Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
           ),
         ),
       ],
@@ -676,7 +680,8 @@ class ScheduleCard extends StatelessWidget {
     if (weekInfo != null) {
       for (var course in courseProvider.courses) {
         if (course.courseDay == dayName) {
-          bool show = course.courseFrequency == 'Weekly' ||
+          bool show =
+              course.courseFrequency == 'Weekly' ||
               (course.courseFrequency == 'Bi-Weekly (odd)' &&
                   weekInfo['isOdd']) ||
               (course.courseFrequency == 'Bi-Weekly (even)' &&
@@ -706,8 +711,10 @@ class ScheduleCard extends StatelessWidget {
               ),
               GestureDetector(
                 onTap: () {
-                  Provider.of<LibraryProvider>(context, listen: false)
-                      .setView(LibraryView.calendar);
+                  Provider.of<LibraryProvider>(
+                    context,
+                    listen: false,
+                  ).setView(LibraryView.calendar);
                 },
                 child: Text(
                   AppLocalizations.of(context)!.viewCalendar,
@@ -733,15 +740,18 @@ class ScheduleCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color:
-                          Theme.of(context).textTheme.bodyLarge?.color,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     AppLocalizations.of(context)!.relaxOrStudy,
-                    style: const TextStyle(
-                        color: Colors.grey, fontSize: 14),
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFFA1A1AA)
+                          : Colors.grey,
+                      fontSize: 14,
+                    ),
                   ),
                 ],
               ),
@@ -753,14 +763,14 @@ class ScheduleCard extends StatelessWidget {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .dividerColor
-                        .withValues(alpha: 0.04),
+                    color: Theme.of(
+                      context,
+                    ).dividerColor.withValues(alpha: 0.04),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: Theme.of(context)
-                          .dividerColor
-                          .withValues(alpha: 0.08),
+                      color: Theme.of(
+                        context,
+                      ).dividerColor.withValues(alpha: 0.08),
                     ),
                   ),
                   child: IntrinsicHeight(
@@ -779,8 +789,7 @@ class ScheduleCard extends StatelessWidget {
                         ),
                         Expanded(
                           child: ListTile(
-                            contentPadding:
-                                const EdgeInsets.symmetric(
+                            contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 4,
                             ),
@@ -788,10 +797,8 @@ class ScheduleCard extends StatelessWidget {
                               width: 40,
                               height: 40,
                               decoration: BoxDecoration(
-                                color: courseColor
-                                    .withValues(alpha: 0.1),
-                                borderRadius:
-                                    BorderRadius.circular(10),
+                                color: courseColor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(10),
                               ),
                               child: Icon(
                                 Icons.school_outlined,
@@ -808,8 +815,12 @@ class ScheduleCard extends StatelessWidget {
                             ),
                             subtitle: Text(
                               '${course.location.isNotEmpty ? '${course.location} · ' : ''}${course.courseTime}',
-                              style: const TextStyle(
-                                color: Colors.grey,
+                              style: TextStyle(
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? const Color(0xFFA1A1AA)
+                                    : Colors.grey,
                                 fontSize: 12,
                               ),
                             ),
@@ -818,7 +829,11 @@ class ScheduleCard extends StatelessWidget {
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
-                                color: Colors.grey[500],
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? const Color(0xFFA1A1AA)
+                                    : Colors.grey[500],
                               ),
                             ),
                             onTap: () => Navigator.push(
@@ -869,8 +884,10 @@ class _TasksForToday extends StatelessWidget {
               ),
               GestureDetector(
                 onTap: () {
-                  Provider.of<LibraryProvider>(context, listen: false)
-                      .setView(LibraryView.tasks);
+                  Provider.of<LibraryProvider>(
+                    context,
+                    listen: false,
+                  ).setView(LibraryView.tasks);
                 },
                 child: Text(
                   'View All Tasks',
@@ -896,12 +913,17 @@ class _TasksForToday extends StatelessWidget {
               final displayTasks = allTasks.take(4).toList();
 
               if (displayTasks.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
                   child: Center(
                     child: Text(
                       'All caught up! 🎉',
-                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                      style: TextStyle(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFFA1A1AA)
+                            : Colors.grey,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 );
@@ -910,12 +932,15 @@ class _TasksForToday extends StatelessWidget {
               return GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                gridDelegate:
-                    SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: MediaQuery.of(context).size.width < 500 ? 1 : 2,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: MediaQuery.of(context).size.width < 500
+                      ? 1
+                      : 2,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 16,
-                  childAspectRatio: MediaQuery.of(context).size.width < 500 ? 6.5 : 4.5,
+                  childAspectRatio: MediaQuery.of(context).size.width < 500
+                      ? 6.5
+                      : 4.5,
                 ),
                 itemCount: displayTasks.length,
                 itemBuilder: (context, index) {
@@ -943,10 +968,9 @@ class _TasksForToday extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: Theme.of(context)
-                                  .textTheme
-                                  .bodyLarge
-                                  ?.color,
+                              color: Theme.of(
+                                context,
+                              ).textTheme.bodyLarge?.color,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -990,16 +1014,18 @@ class RecentNotesCard extends StatelessWidget {
               ),
               GestureDetector(
                 onTap: () {
-                  Provider.of<LibraryProvider>(context, listen: false)
-                      .setView(LibraryView.allNotes);
+                  Provider.of<LibraryProvider>(
+                    context,
+                    listen: false,
+                  ).setView(LibraryView.allNotes);
                 },
                 child: Container(
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .dividerColor
-                        .withValues(alpha: 0.05),
+                    color: Theme.of(
+                      context,
+                    ).dividerColor.withValues(alpha: 0.05),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -1040,14 +1066,14 @@ class RecentNotesCard extends StatelessWidget {
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .dividerColor
-                                .withValues(alpha: 0.05),
+                            color: Theme.of(
+                              context,
+                            ).dividerColor.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: Theme.of(context)
-                                  .dividerColor
-                                  .withValues(alpha: 0.1),
+                              color: Theme.of(
+                                context,
+                              ).dividerColor.withValues(alpha: 0.1),
                             ),
                           ),
                           child: Row(
@@ -1055,49 +1081,49 @@ class RecentNotesCard extends StatelessWidget {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .primary
-                                      .withValues(alpha: 0.1),
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.primary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Icon(
                                   Icons.description,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .primary,
+                                  color: Theme.of(context).colorScheme.primary,
                                   size: 20,
                                 ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       note.title.isNotEmpty
                                           ? note.title
-                                          : AppLocalizations.of(context)!
-                                              .untitled,
+                                          : AppLocalizations.of(
+                                              context,
+                                            )!.untitled,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: Theme.of(context)
-                                            .textTheme
-                                            .bodyLarge
-                                            ?.color,
+                                        color: Theme.of(
+                                          context,
+                                        ).textTheme.bodyLarge?.color,
                                         fontSize: 14,
                                       ),
                                     ),
                                     Text(
-                                      AppLocalizations.of(context)!
-                                          .noteMetadata(
-                                        DateFormat.Md()
-                                            .format(note.updatedAt),
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.noteMetadata(
+                                        DateFormat.Md().format(note.updatedAt),
                                         note.strokes.length,
                                       ),
-                                      style: const TextStyle(
-                                        color: Colors.grey,
+                                      style: TextStyle(
+                                        color:
+                                            Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? const Color(0xFFA1A1AA)
+                                            : Colors.grey,
                                         fontSize: 12,
                                       ),
                                     ),
@@ -1193,8 +1219,8 @@ class CalendarCard extends StatelessWidget {
             calendarFormat: CalendarFormat.month,
             startingDayOfWeek: StartingDayOfWeek.sunday,
             rowHeight: 36,
-            eventLoader: (day) => _getEventsForDay(
-                day, calendarProvider, taskProvider.tasks),
+            eventLoader: (day) =>
+                _getEventsForDay(day, calendarProvider, taskProvider.tasks),
             headerVisible: false,
             calendarStyle: CalendarStyle(
               todayDecoration: BoxDecoration(
@@ -1240,7 +1266,6 @@ class CalendarCard extends StatelessWidget {
 }
 
 // ─── Kept for backwards compatibility with tests ───────────────────────────
-
 
 // StatsGrid kept as thin alias for backwards compat
 class StatsGrid extends StatelessWidget {

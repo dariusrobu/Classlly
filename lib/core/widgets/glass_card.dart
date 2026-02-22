@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // For kIsWeb
+import 'package:classlly/core/theme/app_theme.dart';
 
 class GlassCard extends StatelessWidget {
   final Widget child;
@@ -36,7 +37,7 @@ class GlassCard extends StatelessWidget {
 
     // Default colors based on theme if not provided
     final defaultBgColor = isDark
-        ? const Color(0xFF1E293B).withValues(alpha: opacity) // Slate 800
+        ? AppTheme.cardDark.withValues(alpha: opacity)
         : Colors.white.withValues(alpha: 0.8);
 
     final defaultBorderColor = isDark
@@ -57,7 +58,7 @@ class GlassCard extends StatelessWidget {
           color:
               backgroundColor ??
               (isDark
-                  ? const Color(0xFF1E293B).withValues(alpha: 0.95)
+                  ? AppTheme.cardDark.withValues(alpha: 0.95)
                   : Colors.white.withValues(alpha: 0.95)),
           border: border ?? Border.all(color: defaultBorderColor),
           borderRadius: BorderRadius.circular(borderRadius),

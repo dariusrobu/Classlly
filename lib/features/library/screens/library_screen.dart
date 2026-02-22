@@ -96,7 +96,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         decoration: BoxDecoration(
           gradient: isDark
               ? const LinearGradient(
-                  colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                  colors: [Color(0xFF000000), Color(0xFF161616)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 )
@@ -1519,14 +1519,17 @@ class _MobileBottomNavBar extends StatelessWidget {
       case LibraryView.dashboard:
         selectedIndex = 0;
         break;
-      case LibraryView.courses:
+      case LibraryView.calendar:
         selectedIndex = 1;
         break;
-      case LibraryView.tasks:
+      case LibraryView.courses:
         selectedIndex = 2;
         break;
-      default:
+      case LibraryView.tasks:
         selectedIndex = 3;
+        break;
+      default:
+        selectedIndex = 4;
     }
 
     return Container(
@@ -1552,10 +1555,12 @@ class _MobileBottomNavBar extends StatelessWidget {
             if (index == 0) {
               libraryProvider.setView(LibraryView.dashboard);
             } else if (index == 1) {
-              libraryProvider.setView(LibraryView.courses);
+              libraryProvider.setView(LibraryView.calendar);
             } else if (index == 2) {
-              libraryProvider.setView(LibraryView.tasks);
+              libraryProvider.setView(LibraryView.courses);
             } else if (index == 3) {
+              libraryProvider.setView(LibraryView.tasks);
+            } else if (index == 4) {
               Scaffold.of(context).openDrawer();
             }
           },
@@ -1563,40 +1568,55 @@ class _MobileBottomNavBar extends StatelessWidget {
             BottomNavigationBarItem(
               icon: const Padding(
                 padding: EdgeInsets.only(bottom: 4),
-                child: Icon(Icons.dashboard_outlined),
+                child: Icon(Icons.grid_view_outlined),
               ),
               activeIcon: const Padding(
                 padding: EdgeInsets.only(bottom: 4),
-                child: Icon(Icons.dashboard),
+                child: Icon(Icons.grid_view_rounded),
               ),
               label: AppLocalizations.of(context)?.dashboard ?? 'Dashboard',
             ),
             BottomNavigationBarItem(
               icon: const Padding(
                 padding: EdgeInsets.only(bottom: 4),
-                child: Icon(Icons.book_outlined),
+                child: Icon(Icons.calendar_month_outlined),
               ),
               activeIcon: const Padding(
                 padding: EdgeInsets.only(bottom: 4),
-                child: Icon(Icons.book),
+                child: Icon(Icons.calendar_month_rounded),
+              ),
+              label: AppLocalizations.of(context)?.calendar ?? 'Calendar',
+            ),
+            BottomNavigationBarItem(
+              icon: const Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Icon(Icons.auto_stories_outlined),
+              ),
+              activeIcon: const Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Icon(Icons.auto_stories_rounded),
               ),
               label: AppLocalizations.of(context)?.courses ?? 'Courses',
             ),
             BottomNavigationBarItem(
               icon: const Padding(
                 padding: EdgeInsets.only(bottom: 4),
-                child: Icon(Icons.check_circle_outline),
+                child: Icon(Icons.fact_check_outlined),
               ),
               activeIcon: const Padding(
                 padding: EdgeInsets.only(bottom: 4),
-                child: Icon(Icons.check_circle),
+                child: Icon(Icons.fact_check_rounded),
               ),
               label: AppLocalizations.of(context)?.tasks ?? 'Tasks',
             ),
             const BottomNavigationBarItem(
               icon: Padding(
                 padding: EdgeInsets.only(bottom: 4),
-                child: Icon(Icons.more_horiz),
+                child: Icon(Icons.menu_rounded),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Icon(Icons.menu_open_rounded),
               ),
               label: 'More',
             ),

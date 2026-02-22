@@ -6,21 +6,25 @@ class DrawingPainter extends CustomPainter {
   final List<Stroke> strokes;
   final List<Stroke> selectedStrokes;
   final List<ImageBlock> selectedImages;
+  final List<TextBlock> selectedTextBlocks;
   final List<StrokePoint> activePoints;
   final Color activeColor;
   final double activeWidth;
   final int? playbackTime;
   final List<StrokePoint>? ghostPoints;
+  final List<Offset>? lassoPath;
 
   DrawingPainter({
     required this.strokes,
     this.selectedStrokes = const [],
     this.selectedImages = const [],
+    this.selectedTextBlocks = const [],
     this.activePoints = const [],
     required this.activeColor,
     required this.activeWidth,
     this.playbackTime,
     this.ghostPoints,
+    this.lassoPath,
   });
 
   @override
@@ -54,9 +58,34 @@ class DrawingPainter extends CustomPainter {
       );
     }
 
-    if (selectedStrokes.isNotEmpty || selectedImages.isNotEmpty) {
+    if (lassoPath != null && lassoPath!.length > 1) {
+      _drawLassoPath(canvas);
+    }
+
+    if (selectedStrokes.isNotEmpty || selectedImages.isNotEmpty || selectedTextBlocks.isNotEmpty) {
       _drawSelectionBox(canvas, size);
     }
+  }
+
+  void _drawLassoPath(Canvas canvas) {
+    final path = Path();
+    path.moveTo(lassoPath!.first.dx, lassoPath!.first.dy);
+    for (int i = 1; i < lassoPath!.length; i++) {
+      path.lineTo(lassoPath![i].dx, lassoPath![i].dy);
+    }
+    path.close();
+
+    final fillPaint = Paint()
+      ..color = Colors.deepPurpleAccent.withValues(alpha: 0.05)
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(path, fillPaint);
+
+    final borderPaint = Paint()
+      ..color = Colors.deepPurpleAccent
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(path, borderPaint);
   }
 
   void _drawSelectionBox(Canvas canvas, Size size) {
@@ -79,6 +108,13 @@ class DrawingPainter extends CustomPainter {
       if (img.x + img.width > maxX) maxX = img.x + img.width;
       if (img.y < minY) minY = img.y;
       if (img.y + img.height > maxY) maxY = img.y + img.height;
+    }
+
+    for (var block in selectedTextBlocks) {
+      if (block.x < minX) minX = block.x;
+      if (block.x + 100 > maxX) maxX = block.x + 100;
+      if (block.y < minY) minY = block.y;
+      if (block.y + 30 > maxY) maxY = block.y + 30;
     }
 
     if (minX == double.infinity) return;

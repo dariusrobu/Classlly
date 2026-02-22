@@ -8,6 +8,8 @@ import 'package:classlly/core/services/cloud_storage_service.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:classlly/l10n/app_localizations.dart';
+import 'package:classlly/data/models/course_model.dart';
+import 'package:intl/intl.dart';
 
 class TextEditorScreen extends StatefulWidget {
   final Note note;
@@ -22,10 +24,11 @@ class _TextEditorScreenState extends State<TextEditorScreen> {
   late TextEditingController _titleController;
   late QuillController _quillController;
   final NotesRepository _repository = NotesRepository();
-  late final CloudStorageService _cloudService;
+  late CloudStorageService _cloudService;
   Timer? _debounceTimer;
   bool _isSyncing = false;
   final FocusNode _editorFocusNode = FocusNode();
+  Course? _course;
 
   @override
   void didChangeDependencies() {
@@ -37,6 +40,9 @@ class _TextEditorScreenState extends State<TextEditorScreen> {
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.note.title);
+    if (widget.note.notebookId != null) {
+      _course = _repository.getCourse(widget.note.notebookId!);
+    }
     _loadContent();
   }
 
@@ -157,58 +163,236 @@ class _TextEditorScreenState extends State<TextEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new,
-            color: Theme.of(context).iconTheme.color,
-          ),
-          onPressed: () => Navigator.pop(context),
+      backgroundColor: const Color(0xFFF8F9FA), // Premium light gray
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildTopHeader(),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildEditorHeader(),
+                    Expanded(
+                      child: Container(
+                        margin: const EdgeInsets.only(top: 24, bottom: 24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.grey.withValues(alpha: 0.1),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.02),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            _buildFloatingToolbar(),
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                                child: QuillEditor.basic(
+                                  controller: _quillController,
+                                  config: const QuillEditorConfig(
+                                    placeholder: 'Start typing...',
+                                    autoFocus: true,
+                                    expands: false,
+                                    scrollable: true,
+                                    padding: EdgeInsets.only(bottom: 50),
+                                  ),
+                                  focusNode: _editorFocusNode,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
-        title: TextField(
+      ),
+    );
+  }
+
+  Widget _buildTopHeader() {
+    final now = DateTime.now();
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final dateFormatted = isMobile
+        ? DateFormat("MMM d, yyyy").format(now)
+        : DateFormat("EEEE, MMMM d'rc'").format(now).replaceFirst('rc', _getDaySuffix(now.day));
+    
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 8.0 : 24.0, vertical: 12.0),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+            onPressed: () => Navigator.pop(context),
+            color: Colors.grey[700],
+          ),
+          if (!isMobile) ...[
+            const SizedBox(width: 8),
+            const Icon(Icons.calendar_today_outlined, size: 18, color: Colors.blue),
+            const SizedBox(width: 8),
+          ],
+          Text(
+            dateFormatted,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+          const Spacer(),
+          ElevatedButton.icon(
+            onPressed: () {
+              // TODO: Implement PDF Export
+            },
+            icon: const Icon(Icons.picture_as_pdf, size: 16),
+            label: const Text('Export PDF'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.grey[800],
+              elevation: 0,
+              side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getDaySuffix(int day) {
+    if (day >= 11 && day <= 13) {
+      return 'th';
+    }
+    switch (day % 10) {
+      case 1:
+        return 'st';
+      case 2:
+        return 'nd';
+      case 3:
+        return 'rd';
+      default:
+        return 'th';
+    }
+  }
+
+  Widget _buildEditorHeader() {
+    final breadcrumb = _course != null 
+        ? "${_course!.title.toUpperCase()} / NOTES"
+        : "GENERAL / NOTES";
+    final lastEdited = "Last edited just now"; // Ideally calculate from widget.note.updatedAt
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        Text(
+          breadcrumb,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
           controller: _titleController,
           decoration: const InputDecoration(
             border: InputBorder.none,
+            isDense: true,
+            contentPadding: EdgeInsets.zero,
             hintText: 'Untitled Note',
+            hintStyle: TextStyle(color: Colors.grey),
           ),
-          style: TextStyle(
-            fontSize: 20,
+          style: const TextStyle(
+            fontSize: 32,
             fontWeight: FontWeight.bold,
-            color: Theme.of(context).textTheme.titleLarge?.color,
+            letterSpacing: -0.5,
           ),
           onChanged: (val) => _save(),
         ),
-        actions: [
-          if (_isSyncing)
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Text(
+              lastEdited,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[500],
+                fontStyle: FontStyle.italic,
               ),
-            )
-          else
-            IconButton(
-              icon: Icon(
-                Icons.check,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              onPressed: () {
-                _save();
-                FocusScope.of(context).unfocus();
-              },
             ),
+            const SizedBox(width: 12),
+            if (_isSyncing)
+               const SizedBox(
+                 width: 12, height: 12,
+                 child: CircularProgressIndicator(strokeWidth: 2),
+               )
+            else
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.circle, size: 6, color: Colors.blue),
+                    SizedBox(width: 4),
+                    Text(
+                      'AUTOSAVED',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFloatingToolbar() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
-      body: SafeArea(
-        child: Column(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             QuillSimpleToolbar(
               controller: _quillController,
@@ -218,6 +402,17 @@ class _TextEditorScreenState extends State<TextEditorScreen> {
                 showInlineCode: false,
                 showSubscript: false,
                 showSuperscript: false,
+                showUndo: false,
+                showRedo: false,
+                showAlignmentButtons: false,
+                showIndent: false,
+                showStrikeThrough: false,
+                showClearFormat: false,
+                showHeaderStyle: false,
+                showQuote: false,
+                showCodeBlock: false,
+                showColorButton: true,
+                showBackgroundColorButton: true,
                 toolbarSectionSpacing: 0,
                 buttonOptions: QuillSimpleToolbarButtonOptions(
                   color: QuillToolbarColorButtonOptions(
@@ -229,34 +424,12 @@ class _TextEditorScreenState extends State<TextEditorScreen> {
                         _onColorButtonPressed(context, true),
                   ),
                 ),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.grey[900] : Colors.grey[100],
-                  border: Border(
-                    bottom: BorderSide(
-                      color: Theme.of(
-                        context,
-                      ).dividerColor.withValues(alpha: 0.1),
-                    ),
-                  ),
+                decoration: const BoxDecoration(
+                  color: Colors.transparent,
                 ),
               ),
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: QuillEditor.basic(
-                  controller: _quillController,
-                  config: const QuillEditorConfig(
-                    placeholder: 'Start typing...',
-                    autoFocus: true,
-                    expands: false, // Let it scroll naturally
-                    scrollable: true,
-                    padding: EdgeInsets.only(bottom: 50),
-                  ),
-                  focusNode: _editorFocusNode,
-                ),
-              ),
-            ),
+            const SizedBox(width: 8),
           ],
         ),
       ),

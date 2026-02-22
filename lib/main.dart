@@ -1,31 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:classlly/core/constants/supabase_config.dart';
-import 'package:classlly/core/services/cloud_provider.dart';
 import 'package:classlly/core/theme/app_theme.dart';
 import 'package:classlly/core/theme/theme_provider.dart';
-import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/features/canvas/providers/canvas_provider.dart';
 import 'package:classlly/features/audio/providers/audio_provider.dart';
-import 'package:classlly/features/library/screens/library_screen.dart';
 import 'package:classlly/features/library/providers/library_provider.dart';
 import 'package:classlly/features/library/providers/academic_calendar_provider.dart';
 import 'package:classlly/features/library/providers/profile_provider.dart';
 import 'package:classlly/features/library/providers/task_provider.dart';
 import 'package:classlly/features/library/providers/course_provider.dart';
 import 'package:classlly/features/library/providers/notes_provider.dart';
+import 'package:classlly/core/services/cloud_provider.dart';
 import 'package:classlly/core/services/cloud_storage_service.dart';
-import 'package:classlly/core/services/notification_service.dart';
-import 'package:classlly/features/auth/screens/onboarding_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:classlly/l10n/app_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
+import 'package:classlly/core/widgets/initialization_screen.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Global Error Handling
@@ -69,46 +63,30 @@ void main() async {
     );
   };
 
-  // Initialize Notifications
-  if (!kIsWeb && (Platform.isIOS || Platform.isAndroid || Platform.isMacOS)) {
-    final notificationService = NotificationService();
-    await notificationService.init();
-  }
-
-  // Initialize Hive
-  await Hive.initFlutter();
-  await NotesRepository.init();
-
-  // Initialize Supabase
-  await Supabase.initialize(
-    url: SupabaseConfig.url,
-    anonKey: SupabaseConfig.anonKey,
-  );
-
-  final app = MultiProvider(
-    providers: [
-      Provider<CloudStorageService>(
-        create: (_) => CloudProviderManager.getService(
-          CloudProviderManager.getCurrentProvider(),
+  runApp(
+    MultiProvider(
+      providers: [
+        Provider<CloudStorageService>(
+          create: (_) => CloudProviderManager.getService(
+            CloudProviderManager.getCurrentProvider(),
+          ),
         ),
-      ),
-      ChangeNotifierProvider(create: (_) => ThemeProvider()),
-      ChangeNotifierProvider(create: (_) => CanvasProvider()),
-      ChangeNotifierProvider(create: (_) => AudioProvider()),
-      ChangeNotifierProvider(
-        create: (context) =>
-            LibraryProvider(cloudService: context.read<CloudStorageService>()),
-      ),
-      ChangeNotifierProvider(create: (_) => AcademicCalendarProvider()),
-      ChangeNotifierProvider(create: (_) => ProfileProvider()),
-      ChangeNotifierProvider(create: (_) => TaskProvider()),
-      ChangeNotifierProvider(create: (_) => CourseProvider()),
-      ChangeNotifierProvider(create: (_) => NotesProvider()),
-    ],
-    child: const ClassllyApp(),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => CanvasProvider()),
+        ChangeNotifierProvider(create: (_) => AudioProvider()),
+        ChangeNotifierProvider(
+          create: (context) =>
+              LibraryProvider(cloudService: context.read<CloudStorageService>()),
+        ),
+        ChangeNotifierProvider(create: (_) => AcademicCalendarProvider()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => TaskProvider()),
+        ChangeNotifierProvider(create: (_) => CourseProvider()),
+        ChangeNotifierProvider(create: (_) => NotesProvider()),
+      ],
+      child: const ClassllyApp(),
+    ),
   );
-
-  runApp(app);
 }
 
 
@@ -119,9 +97,6 @@ class ClassllyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final repo = NotesRepository();
-    final prefs = repo.getPreferences();
-    final isLoggedIn = Supabase.instance.client.auth.currentUser != null;
 
     return MaterialApp(
       title: 'Classlly',
@@ -141,9 +116,7 @@ class ClassllyApp extends StatelessWidget {
         Locale('ro', 'RO'), // Romanian - Starts on Monday
       ],
       locale: const Locale('en', 'GB'),
-      home: (isLoggedIn || prefs.hasCompletedOnboarding)
-          ? const LibraryScreen()
-          : const OnboardingScreen(),
+      home: const InitializationScreen(),
     );
   }
 }

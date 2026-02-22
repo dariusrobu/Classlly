@@ -105,6 +105,14 @@ class SettingsScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 24),
                               _buildCloudSyncCard(context, isDark),
+                              const SizedBox(height: 48),
+                              _buildSectionHeader(
+                                'Danger Zone',
+                                'Irreversible actions for your account',
+                                isDark,
+                              ),
+                              const SizedBox(height: 24),
+                              _buildDangerZone(context, isDark),
                               const SizedBox(height: 100),
                             ],
                           ),
@@ -442,6 +450,89 @@ class SettingsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDangerZone(BuildContext context, bool isDark) {
+    return _buildGlassPanel(
+      isDark: isDark,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Row(
+          children: [
+            _iconBox(context, Icons.warning_amber_rounded, isDark, size: 48),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Delete All Data',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                  ),
+                  Text(
+                    'Permanently delete all notes, tasks, courses, and settings. This action cannot be undone.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.grey : Colors.grey[700],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Clear All Data?'),
+                    content: const Text(
+                      'Are you absolutely sure you want to permanently delete all your data? This includes all notebooks, tasks, and courses. This action cannot be undone.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(AppLocalizations.of(context)!.cancel),
+                      ),
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.redAccent,
+                        ),
+                        onPressed: () async {
+                          Navigator.pop(context); // close dialog
+                          await NotesRepository().clearAllData();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('All data has been cleared.'),
+                              ),
+                            );
+                          }
+                        },
+                        child: const Text('Delete Everything'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              icon: const Icon(Icons.delete_forever, size: 16),
+              label: const Text('Clear Data'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
+                foregroundColor: Colors.redAccent,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
           ],
         ),
       ),

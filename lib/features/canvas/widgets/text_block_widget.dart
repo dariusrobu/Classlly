@@ -38,8 +38,8 @@ class _TextBlockWidgetState extends State<TextBlockWidget> {
     final canvasProvider = Provider.of<CanvasProvider>(context);
 
     // Auto-exit editing if deselected externally (e.g. tapping canvas background)
-    if (!canvasProvider.selectedTextBlocks.contains(widget.block) &&
-        _isEditing) {
+    final isSelected = canvasProvider.selectedTextBlocks.any((b) => b.id == widget.block.id);
+    if (!isSelected && _isEditing) {
       // We must schedule this to avoid setState during build, or just do it?
       // Better to do it in a post-frame callback or just use the FocusNode to check?
       // Actually, if we just unfocus, the keyboard closes.
