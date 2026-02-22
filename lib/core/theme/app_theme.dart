@@ -19,8 +19,8 @@ class AppTheme {
   ];
 
   // Dark Mode Palette (Neutral/Black)
-  static const Color backgroundDark = Color(0xFF000000); // Pure Black
-  static const Color sidebarDark = Color(0xFF0A0A0A); // Very Dark Neutral Gray
+  static const Color backgroundDark = Color(0xFF0A0A0A); // Very Dark Gray
+  static const Color sidebarDark = Color(0xFF111111); // Sidebar Dark
   static const Color cardDark = Color(0xFF121212); // Card Surface Neutral Gray
   static const Color borderDark = Color(0xFF222222); // Neutral Subtle Borders
 

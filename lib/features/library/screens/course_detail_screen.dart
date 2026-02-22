@@ -446,7 +446,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
     final primaryColor = Theme.of(context).colorScheme.primary;
     final bgGradient = isDark
         ? const LinearGradient(
-            colors: [Color(0xFF000000), Color(0xFF161616)],
+            colors: [Color(0xFF0A0A0A), Color(0xFF1C1C1C)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           )
