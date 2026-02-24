@@ -63,6 +63,9 @@ class ICloudStorageService implements CloudStorageService {
   Stream<List<Note>> notesStream() => const Stream.empty();
 
   @override
+  Stream<void> get remoteUpdates => const Stream.empty();
+
+  @override
   Future<void> syncAll({bool interactive = false}) async {
     await syncProfile();
     await syncNotes();
@@ -151,6 +154,9 @@ class ICloudStorageService implements CloudStorageService {
     final data = await _downloadJson('profile.json');
     return data != null;
   }
+
+  @override
+  Future<bool> verifyConnection() async => true; // Best effort for iCloud API
 
   @override
   Future<void> deleteNote(String noteId) async {

@@ -28,7 +28,14 @@ class PresenceService {
           final payload = Map<String, dynamic>.from(state.presences.first.payload);
           // Only add others to the list for remote indicators
           if (payload['user_id'] != currentUserId) {
-            users.add(payload);
+            users.add({
+              'user_id': payload['user_id'],
+              'name': payload['name'] ?? 'Other Student',
+              'cursor_x': payload['cursor_x'],
+              'cursor_y': payload['cursor_y'],
+              'is_typing': payload['is_typing'] ?? false,
+              'updated_at': payload['updated_at'],
+            });
           }
         }
       }

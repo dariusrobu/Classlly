@@ -7,7 +7,7 @@ class ThemeProvider with ChangeNotifier {
   Color _accentColor = AppTheme.primaryPurple;
 
   ThemeProvider() {
-    loadPreferences();
+    // Preferences are explicitly loaded in InitializationScreen after Hive is ready.
   }
 
   ThemeMode get themeMode => _themeMode;

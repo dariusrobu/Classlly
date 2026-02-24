@@ -8,9 +8,11 @@ import 'package:classlly/data/models/academic_calendar_model.dart';
 import 'package:classlly/features/library/providers/library_provider.dart';
 import 'package:classlly/features/library/providers/academic_calendar_provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:classlly/core/services/cloud_provider.dart';
 import 'package:classlly/data/models/user_preferences_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/l10n/app_localizations.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -113,6 +115,16 @@ class SettingsScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 24),
                               _buildDangerZone(context, isDark),
+                              const SizedBox(height: 48),
+                              Center(
+                                child: SelectableText(
+                                  'User ID: ${Supabase.instance.client.auth.currentUser?.id ?? "Not logged in"}',
+                                  style: TextStyle(
+                                    color: isDark ? Colors.white30 : Colors.black38,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
                               const SizedBox(height: 100),
                             ],
                           ),
@@ -434,7 +446,7 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
                 ElevatedButton.icon(
-                  onPressed: () => libraryProvider.initSync(),
+                  onPressed: () => libraryProvider.initSync(interactive: true),
                   icon: const Icon(Icons.sync, size: 16),
                   label: Text(AppLocalizations.of(context)!.syncNow),
                   style: ElevatedButton.styleFrom(
@@ -449,7 +461,84 @@ class SettingsScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 20),
-
+            Divider(
+              height: 1,
+              color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Cloud Engine', // Hardcoded string since it's a new feature, ideally added to AppLocalizations later
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
+                ),
+                ValueListenableBuilder(
+                  valueListenable: Hive.box<UserPreferences>(NotesRepository.preferencesBoxName).listenable(),
+                  builder: (context, Box<UserPreferences> box, _) {
+                    final prefs = box.get('user_prefs') ?? UserPreferences();
+                    final currentProvider = CloudProvider.values.firstWhere(
+                      (p) => p.name == prefs.cloudProvider,
+                      orElse: () => CloudProvider.none,
+                    );
+                    return DropdownButton<CloudProvider>(
+                      value: currentProvider,
+                      dropdownColor: isDark ? Colors.grey[900] : Colors.white,
+                      underline: const SizedBox(),
+                      items: CloudProvider.values.where((p) => p.isAvailable).map((provider) {
+                        return DropdownMenuItem(
+                          value: provider,
+                          child: Text(
+                            provider.displayName,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (newProvider) async {
+                        if (newProvider != null) {
+                          if (newProvider != CloudProvider.none) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Verifying cloud connection...')),
+                            );
+                            
+                            final tempService = CloudProviderManager.getService(newProvider);
+                            final isHealthy = await tempService.verifyConnection();
+                            
+                            if (!context.mounted) return;
+                            
+                            if (!isHealthy) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text('Failed to connect. Please check your API keys and Database Schema.'),
+                                  backgroundColor: Colors.red.shade800,
+                                ),
+                              );
+                              return; // Abort switch
+                            }
+                          }
+                          
+                          prefs.cloudProvider = newProvider.name;
+                          await box.put('user_prefs', prefs);
+                          if (context.mounted) {
+                            libraryProvider.initSync(); // Re-initialize the engine
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Switched to ${newProvider.displayName}')),
+                            );
+                          }
+                        }
+                      },
+                    );
+                  },
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -597,8 +686,9 @@ class SettingsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Text(
                   AppLocalizations.of(context)!.periods,

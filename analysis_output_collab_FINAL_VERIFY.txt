@@ -1,0 +1,126 @@
+Analyzing Classlly...                                           
+
+warning • Unused import: 'package:classlly/core/theme/app_theme.dart' • integration_test/app_store_screenshots_test.dart:7:8 • unused_import
+warning • The value of the local variable 'mathId' isn't used • integration_test/app_store_screenshots_test.dart:102:11 • unused_local_variable
+warning • The value of the local variable 'physId' isn't used • integration_test/app_store_screenshots_test.dart:103:11 • unused_local_variable
+warning • The value of the local variable 'mathCourse' isn't used • integration_test/app_store_screenshots_test.dart:105:11 • unused_local_variable
+   info • Unnecessary use of double quotes • lib/core/widgets/initialization_screen.dart:27:21 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/core/widgets/initialization_screen.dart:43:33 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/core/widgets/initialization_screen.dart:51:33 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/core/widgets/initialization_screen.dart:59:18 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/core/widgets/initialization_screen.dart:114:35 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/core/widgets/initialization_screen.dart:124:34 • prefer_single_quotes
+   info • Use 'const' with the constructor to improve performance • lib/data/repositories/auth_repository.dart:110:13 • prefer_const_constructors
+warning • Unused import: 'package:classlly/features/library/providers/profile_provider.dart' • lib/features/auth/screens/academic_details_screen.dart:6:8 • unused_import
+   info • Don't use 'BuildContext's across async gaps • lib/features/auth/screens/academic_details_screen.dart:60:30 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/features/auth/screens/academic_details_screen.dart:62:47 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/features/auth/screens/academic_details_screen.dart:66:23 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/features/auth/screens/personal_info_screen.dart:79:32 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/features/auth/screens/personal_info_screen.dart:81:49 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/features/auth/screens/personal_info_screen.dart:84:25 • use_build_context_synchronously
+  error • The method '_buildCanvasGestureDetector' isn't defined for the type '_CanvasScreenState' • lib/features/canvas/screens/canvas_screen.dart:203:48 • undefined_method
+  error • Undefined name 'playbackTime' • lib/features/canvas/screens/canvas_screen.dart:206:49 • undefined_identifier
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:441:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:460:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:461:28 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:463:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:583:30 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:626:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:632:47 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:642:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:643:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:710:41 • deprecated_member_use
+  error • The method '_AvatarStack' isn't defined for the type '_CanvasScreenState' • lib/features/canvas/screens/canvas_screen.dart:726:19 • undefined_method
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:731:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:761:59 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:792:45 • deprecated_member_use
+   info • Use 'const' with the constructor to improve performance • lib/features/canvas/screens/canvas_screen.dart:806:28 • prefer_const_constructors
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:831:59 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/features/canvas/screens/canvas_screen.dart:860:41 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/features/canvas/screens/canvas_screen.dart:861:48 • use_build_context_synchronously
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:903:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:1226:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:1328:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:1529:41 • deprecated_member_use
+warning • The declaration '_GlassContainer' isn't referenced • lib/features/canvas/screens/canvas_screen.dart:1573:7 • unused_element
+  error • Function expressions can't be named • lib/features/canvas/screens/canvas_screen.dart:1598:10 • named_function_expression
+  error • Too many positional arguments: 0 expected, but 2 found • lib/features/canvas/screens/canvas_screen.dart:1598:37 • extra_positional_arguments_could_be_named
+  error • Undefined name '_cursorThrottle' • lib/features/canvas/screens/canvas_screen.dart:1610:17 • undefined_identifier
+  error • Undefined name '_cursorThrottle' • lib/features/canvas/screens/canvas_screen.dart:1611:13 • undefined_identifier
+  error • Undefined name '_presenceService' • lib/features/canvas/screens/canvas_screen.dart:1612:15 • undefined_identifier
+  error • The method '_isPenType' isn't defined for the type '_GlassContainer' • lib/features/canvas/screens/canvas_screen.dart:1629:15 • undefined_method
+  error • The method '_isPenType' isn't defined for the type '_GlassContainer' • lib/features/canvas/screens/canvas_screen.dart:1686:22 • undefined_method
+  error • The method '_isPenType' isn't defined for the type '_GlassContainer' • lib/features/canvas/screens/canvas_screen.dart:1709:15 • undefined_method
+  error • Expected to find ',' • lib/features/canvas/screens/canvas_screen.dart:1743:3 • expected_token
+  error • Function expressions can't be named • lib/features/canvas/screens/canvas_screen.dart:1743:8 • named_function_expression
+  error • Expected to find ')' • lib/features/canvas/screens/canvas_screen.dart:1753:19 • expected_token
+warning • Dead code • lib/features/canvas/screens/canvas_screen.dart:1755:1 • dead_code
+  error • 'class' can't be used as an identifier because it's a keyword • lib/features/canvas/screens/canvas_screen.dart:1755:1 • expected_identifier_but_got_keyword
+  error • Expected a statement • lib/features/canvas/screens/canvas_screen.dart:1755:1 • missing_statement
+  error • Expected to find ';' • lib/features/canvas/screens/canvas_screen.dart:1755:1 • expected_token
+  error • Undefined name 'class' • lib/features/canvas/screens/canvas_screen.dart:1755:1 • undefined_identifier
+  error • Expected to find ';' • lib/features/canvas/screens/canvas_screen.dart:1755:7 • expected_token
+  error • Undefined name 'PlaybackControl' • lib/features/canvas/screens/canvas_screen.dart:1755:7 • undefined_identifier
+  error • 'extends' can't be used as an identifier because it's a keyword • lib/features/canvas/screens/canvas_screen.dart:1755:23 • expected_identifier_but_got_keyword
+  error • Expected a statement • lib/features/canvas/screens/canvas_screen.dart:1755:23 • missing_statement
+  error • Expected to find ';' • lib/features/canvas/screens/canvas_screen.dart:1755:23 • expected_token
+  error • Undefined name 'extends' • lib/features/canvas/screens/canvas_screen.dart:1755:23 • undefined_identifier
+  error • Expected to find ';' • lib/features/canvas/screens/canvas_screen.dart:1755:31 • expected_token
+  error • The name 'PlaybackControl' isn't a class • lib/features/canvas/screens/canvas_screen.dart:1756:9 • creation_with_non_type
+warning • The declaration 'build' isn't referenced • lib/features/canvas/screens/canvas_screen.dart:1758:10 • unused_element
+  error • 'class' can't be used as an identifier because it's a keyword • lib/features/canvas/screens/canvas_screen.dart:1809:1 • expected_identifier_but_got_keyword
+  error • Expected a statement • lib/features/canvas/screens/canvas_screen.dart:1809:1 • missing_statement
+  error • Expected to find ';' • lib/features/canvas/screens/canvas_screen.dart:1809:1 • expected_token
+  error • Undefined name 'class' • lib/features/canvas/screens/canvas_screen.dart:1809:1 • undefined_identifier
+  error • Expected to find ';' • lib/features/canvas/screens/canvas_screen.dart:1809:7 • expected_token
+  error • Undefined name '_AvatarStack' • lib/features/canvas/screens/canvas_screen.dart:1809:7 • undefined_identifier
+  error • 'extends' can't be used as an identifier because it's a keyword • lib/features/canvas/screens/canvas_screen.dart:1809:20 • expected_identifier_but_got_keyword
+  error • Expected a statement • lib/features/canvas/screens/canvas_screen.dart:1809:20 • missing_statement
+  error • Expected to find ';' • lib/features/canvas/screens/canvas_screen.dart:1809:20 • expected_token
+  error • Undefined name 'extends' • lib/features/canvas/screens/canvas_screen.dart:1809:20 • undefined_identifier
+  error • Expected to find ';' • lib/features/canvas/screens/canvas_screen.dart:1809:28 • expected_token
+  error • The name '_AvatarStack' isn't a class • lib/features/canvas/screens/canvas_screen.dart:1811:9 • creation_with_non_type
+   info • 'required' is deprecated and shouldn't be used. In Dart 2.12 and later, use the built-in `required` keyword to mark a named parameter as required • lib/features/canvas/screens/canvas_screen.dart:1811:23 • deprecated_member_use
+  error • Expected to find ',' • lib/features/canvas/screens/canvas_screen.dart:1811:32 • expected_token
+  error • The getter 'users' isn't defined for the type '_GlassContainer' • lib/features/canvas/screens/canvas_screen.dart:1811:37 • undefined_getter
+warning • The declaration 'build' isn't referenced • lib/features/canvas/screens/canvas_screen.dart:1814:10 • unused_element
+  error • The final variable 'users' can't be read because it's potentially unassigned at this point • lib/features/canvas/screens/canvas_screen.dart:1815:9 • read_potentially_unassigned_final
+  error • The final variable 'users' can't be read because it's potentially unassigned at this point • lib/features/canvas/screens/canvas_screen.dart:1820:29 • read_potentially_unassigned_final
+  error • The method '_UserAvatar' isn't defined for the type '_GlassContainer' • lib/features/canvas/screens/canvas_screen.dart:1823:20 • undefined_method
+  error • The final variable 'users' can't be read because it's potentially unassigned at this point • lib/features/canvas/screens/canvas_screen.dart:1824:21 • read_potentially_unassigned_final
+  error • The final variable 'users' can't be read because it's potentially unassigned at this point • lib/features/canvas/screens/canvas_screen.dart:1828:13 • read_potentially_unassigned_final
+  error • The method '_UserAvatar' isn't defined for the type '_GlassContainer' • lib/features/canvas/screens/canvas_screen.dart:1831:20 • undefined_method
+  error • The final variable 'users' can't be read because it's potentially unassigned at this point • lib/features/canvas/screens/canvas_screen.dart:1832:25 • read_potentially_unassigned_final
+  error • 'class' can't be used as an identifier because it's a keyword • lib/features/canvas/screens/canvas_screen.dart:1841:1 • expected_identifier_but_got_keyword
+  error • Expected a statement • lib/features/canvas/screens/canvas_screen.dart:1841:1 • missing_statement
+  error • Expected to find ';' • lib/features/canvas/screens/canvas_screen.dart:1841:1 • expected_token
+  error • Undefined name 'class' • lib/features/canvas/screens/canvas_screen.dart:1841:1 • undefined_identifier
+  error • Expected to find ';' • lib/features/canvas/screens/canvas_screen.dart:1841:7 • expected_token
+  error • Undefined name '_UserAvatar' • lib/features/canvas/screens/canvas_screen.dart:1841:7 • undefined_identifier
+  error • 'extends' can't be used as an identifier because it's a keyword • lib/features/canvas/screens/canvas_screen.dart:1841:19 • expected_identifier_but_got_keyword
+  error • Expected a statement • lib/features/canvas/screens/canvas_screen.dart:1841:19 • missing_statement
+  error • Expected to find ';' • lib/features/canvas/screens/canvas_screen.dart:1841:19 • expected_token
+  error • Undefined name 'extends' • lib/features/canvas/screens/canvas_screen.dart:1841:19 • undefined_identifier
+  error • Expected to find ';' • lib/features/canvas/screens/canvas_screen.dart:1841:27 • expected_token
+  error • The name '_UserAvatar' isn't a class • lib/features/canvas/screens/canvas_screen.dart:1844:9 • creation_with_non_type
+   info • 'required' is deprecated and shouldn't be used. In Dart 2.12 and later, use the built-in `required` keyword to mark a named parameter as required • lib/features/canvas/screens/canvas_screen.dart:1844:22 • deprecated_member_use
+  error • Expected to find ',' • lib/features/canvas/screens/canvas_screen.dart:1844:31 • expected_token
+  error • The getter 'name' isn't defined for the type '_GlassContainer' • lib/features/canvas/screens/canvas_screen.dart:1844:36 • undefined_getter
+   info • 'required' is deprecated and shouldn't be used. In Dart 2.12 and later, use the built-in `required` keyword to mark a named parameter as required • lib/features/canvas/screens/canvas_screen.dart:1844:42 • deprecated_member_use
+  error • Expected to find ',' • lib/features/canvas/screens/canvas_screen.dart:1844:51 • expected_token
+  error • The getter 'color' isn't defined for the type '_GlassContainer' • lib/features/canvas/screens/canvas_screen.dart:1844:56 • undefined_getter
+warning • The declaration 'build' isn't referenced • lib/features/canvas/screens/canvas_screen.dart:1847:10 • unused_element
+  error • The final variable 'name' can't be read because it's potentially unassigned at this point • lib/features/canvas/screens/canvas_screen.dart:1848:28 • read_potentially_unassigned_final
+  error • The final variable 'name' can't be read because it's potentially unassigned at this point • lib/features/canvas/screens/canvas_screen.dart:1848:46 • read_potentially_unassigned_final
+  error • The final variable 'color' can't be read because it's potentially unassigned at this point • lib/features/canvas/screens/canvas_screen.dart:1853:16 • read_potentially_unassigned_final
+  error • The final variable 'color' can't be read because it's potentially unassigned at this point • lib/features/canvas/screens/canvas_screen.dart:1855:35 • read_potentially_unassigned_final
+  error • The final variable 'color' can't be read because it's potentially unassigned at this point • lib/features/canvas/screens/canvas_screen.dart:1863:20 • read_potentially_unassigned_final
+  error • Expected to find '}' • lib/features/canvas/screens/canvas_screen.dart:1870:1 • expected_token
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/library/screens/add_course_screen.dart:370:25 • deprecated_member_use
+   info • Use 'const' with the constructor to improve performance • lib/features/library/widgets/dashboard_sidebar.dart:195:13 • prefer_const_constructors
+   info • Unnecessary use of double quotes • lib/features/text_editor/screens/text_editor_screen.dart:233:22 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/features/text_editor/screens/text_editor_screen.dart:298:11 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/features/text_editor/screens/text_editor_screen.dart:299:11 • prefer_single_quotes
+   info • Use 'const' for final variables initialized to a constant value • lib/features/text_editor/screens/text_editor_screen.dart:300:5 • prefer_const_declarations
+   info • Unnecessary use of double quotes • lib/features/text_editor/screens/text_editor_screen.dart:300:24 • prefer_single_quotes
+

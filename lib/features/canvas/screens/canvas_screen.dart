@@ -5,7 +5,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import 'package:classlly/features/canvas/providers/canvas_provider.dart';
 import 'package:classlly/features/audio/providers/audio_provider.dart';
 import 'package:classlly/data/models/note_models.dart';
@@ -19,23 +18,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:pdfx/pdfx.dart';
-import 'package:image/image.dart' as img;
 import 'package:classlly/l10n/app_localizations.dart';
 import 'package:classlly/features/canvas/widgets/advanced_pdf_crop_dialog.dart';
 import 'package:classlly/core/services/presence_service.dart';
 import 'package:classlly/features/library/providers/profile_provider.dart';
+import 'package:classlly/features/canvas/widgets/cursor_painter.dart';
 
-class _HeaderDivider extends StatelessWidget {
-  const _HeaderDivider();
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 1,
-      height: 20,
-      color: Colors.grey.withValues(alpha: 0.3),
-    );
-  }
-}
 
 class CanvasScreen extends StatefulWidget {
   const CanvasScreen({super.key});
@@ -129,6 +117,10 @@ class _CanvasScreenState extends State<CanvasScreen> {
     final primaryColor = Theme.of(context).colorScheme.primary;
     final double pagesHeight =
         (_pageCount * pageHeight) + ((_pageCount - 1) * pageGap);
+    int? playbackTime = canvasProvider.playbackTime;
+    if (audioProvider.isPlaying) {
+      playbackTime = audioProvider.currentPosition.inMilliseconds;
+    }
 
     return CallbackShortcuts(
       bindings: {
@@ -212,8 +204,12 @@ class _CanvasScreenState extends State<CanvasScreen> {
                                                     ),
                                                 ],
                                               ),
-                                              const Positioned.fill(
-                                                child: CanvasGestureDetector(),
+                                               _buildCanvasGestureDetector(
+                                                canvasProvider,
+                                                audioProvider,
+                                                playbackTime,
+                                                pageWidth,
+                                                pageHeight,
                                               ),
                                               // Image Layer
                                               ...canvasProvider
@@ -446,7 +442,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
               return Container(
-                color: Colors.red.withValues(alpha: 0.1),
+                color: Colors.red.withOpacity(0.1),
                 child: const Icon(Icons.error_outline, color: Colors.red),
               );
             },
@@ -465,10 +461,10 @@ class _CanvasScreenState extends State<CanvasScreen> {
       width: 240,
       decoration: BoxDecoration(
         color: isDark
-            ? const Color(0xFF0A0A0B).withValues(alpha: 0.4)
-            : Colors.white.withValues(alpha: 0.4),
+            ? const Color(0xFF0A0A0B).withOpacity(0.4)
+            : Colors.white.withOpacity(0.4),
         border: Border(
-          right: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+          right: BorderSide(color: Colors.white.withOpacity(0.05)),
         ),
       ),
       child: SafeArea(
@@ -588,7 +584,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: isActive
-              ? primaryColor.withValues(alpha: 0.1)
+              ? primaryColor.withOpacity(0.1)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
@@ -631,13 +627,13 @@ class _CanvasScreenState extends State<CanvasScreen> {
                 border: Border.all(
                   color: isActive
                       ? primaryColor
-                      : Colors.white.withValues(alpha: 0.1),
+                      : Colors.white.withOpacity(0.1),
                   width: isActive ? 2 : 1,
                 ),
                 boxShadow: isActive
                     ? [
                         BoxShadow(
-                          color: primaryColor.withValues(alpha: 0.15),
+                          color: primaryColor.withOpacity(0.15),
                           blurRadius: 10,
                         ),
                       ]
@@ -647,8 +643,8 @@ class _CanvasScreenState extends State<CanvasScreen> {
                 painter: CanvasTemplatePainter(
                   type: template,
                   color: isDark
-                      ? Colors.white.withValues(alpha: 0.05)
-                      : Colors.black.withValues(alpha: 0.05),
+                      ? Colors.white.withOpacity(0.05)
+                      : Colors.black.withOpacity(0.05),
                   spacing: 12,
                 ),
               ),
@@ -699,8 +695,6 @@ class _CanvasScreenState extends State<CanvasScreen> {
     bool isDark,
     Color primaryColor,
   ) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 600;
 
     return SafeArea(
       child: Padding(
@@ -717,7 +711,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: Colors.black.withOpacity(0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -730,13 +724,15 @@ class _CanvasScreenState extends State<CanvasScreen> {
                     icon: const Icon(Icons.arrow_back),
                     color: isDark ? Colors.white : Colors.black87,
                     iconSize: 20,
-                    tooltip: 'Back to Dashboard',
                     onPressed: () => Navigator.pop(context),
                   ),
+                  const SizedBox(width: 8),
+                  _AvatarStack(users: _remoteUsers),
+                  const SizedBox(width: 12),
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: primaryColor.withValues(alpha: 0.1),
+                      color: primaryColor.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(Icons.mode_edit_outline, size: 16, color: primaryColor),
@@ -766,7 +762,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                    border: Border.all(color: Colors.grey.withOpacity(0.2)),
                   ),
                   child: InkWell(
                     onTap: () => PdfService().exportNote(canvasProvider.currentNote!),
@@ -797,7 +793,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: primaryColor.withValues(alpha: 0.3),
+                        color: primaryColor.withOpacity(0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),
@@ -836,7 +832,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF9FAFB),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                    border: Border.all(color: Colors.grey.withOpacity(0.2)),
                   ),
                   child: IconButton(
                     icon: const Icon(Icons.delete_outline, size: 20),
@@ -881,6 +877,164 @@ class _CanvasScreenState extends State<CanvasScreen> {
       ),
     );
   }
+
+  Widget _buildCanvasGestureDetector(
+    CanvasProvider canvasProvider,
+    AudioProvider audioProvider,
+    int? playbackTime,
+    double pageWidth,
+    double pageHeight,
+  ) {
+    return IgnorePointer(
+      ignoring: canvasProvider.activeTool == CanvasTool.hand,
+      child: Listener(
+        onPointerMove: (event) {
+          // 1. Throttled Presence Update
+          if (!(_cursorThrottle?.isActive ?? false)) {
+            _cursorThrottle = Timer(const Duration(milliseconds: 50), () {
+              _presenceService.updateLocalPresence(
+                cursor: event.localPosition,
+              );
+            });
+          }
+
+          // 2. Standard Canvas Logic
+          if (canvasProvider.isStylusOnly &&
+              event.kind == PointerDeviceKind.touch) {
+            return;
+          }
+          final offset = event.localPosition;
+
+          if (canvasProvider.isResizing) {
+            canvasProvider.resizeSelection(offset);
+            return;
+          }
+          if (_isPenType(canvasProvider.activeTool)) {
+            canvasProvider.updateStroke(
+              offset,
+              event.pressureMin > 0 ? event.pressure : 1.0,
+            );
+          } else if (canvasProvider.activeTool == CanvasTool.eraser) {
+            canvasProvider.eraseAt(offset);
+          } else if (canvasProvider.activeTool == CanvasTool.select) {
+            if (canvasProvider.lassoPath.isNotEmpty) {
+              canvasProvider.updateLasso(offset);
+            } else {
+              canvasProvider.moveSelection(event.delta, absolutePosition: offset);
+            }
+          }
+        },
+        onPointerDown: (event) async {
+          if (canvasProvider.isStylusOnly &&
+              event.kind == PointerDeviceKind.touch) {
+            return;
+          }
+
+          final offset = event.localPosition;
+
+          if (canvasProvider.activeTool == CanvasTool.text) {
+            canvasProvider.addTextBlock(
+              offset,
+              timestamp: audioProvider.isRecording
+                  ? audioProvider.elapsedRecordingMillis
+                  : null,
+            );
+          } else if (canvasProvider.activeTool == CanvasTool.select) {
+            bool hitExisting = canvasProvider.hitTestSelection(offset);
+            if (hitExisting) {
+              canvasProvider.startResize(offset);
+              if (!canvasProvider.isResizing) canvasProvider.startMove(offset);
+            } else {
+              bool hitNew = canvasProvider.selectItemAt(offset, audioProvider);
+              if (hitNew) {
+                canvasProvider.startResize(offset);
+                if (!canvasProvider.isResizing) canvasProvider.startMove(offset);
+              } else {
+                canvasProvider.startLasso(offset);
+              }
+            }
+          } else if (canvasProvider.activeTool == CanvasTool.image) {
+            final picker = ImagePicker();
+            final xFile = await picker.pickImage(source: ImageSource.gallery);
+            if (xFile != null) {
+              final bytes = await xFile.readAsBytes();
+              canvasProvider.addImage(
+                base64Encode(bytes),
+                offset,
+                timestamp: audioProvider.isRecording
+                    ? audioProvider.elapsedRecordingMillis
+                    : null,
+              );
+            }
+          } else if (_isPenType(canvasProvider.activeTool)) {
+            canvasProvider.startStroke(
+              offset,
+              event.pressureMin > 0
+                  ? event.pressure
+                  : 1.0, // Default pressure if not supported
+              timestamp: audioProvider.isRecording
+                  ? audioProvider.elapsedRecordingMillis
+                  : null,
+            );
+          } else if (canvasProvider.activeTool == CanvasTool.eraser) {
+            canvasProvider.eraseAt(offset);
+          }
+        },
+        onPointerUp: (event) {
+          if (canvasProvider.isStylusOnly &&
+              event.kind == PointerDeviceKind.touch) {
+            return;
+          }
+          if (canvasProvider.isResizing) {
+            canvasProvider.endResize();
+            return;
+          }
+          if (_isPenType(canvasProvider.activeTool)) {
+            canvasProvider.endStroke(
+              timestamp: audioProvider.isRecording
+                  ? audioProvider.elapsedRecordingMillis
+                  : null,
+            );
+          } else if (canvasProvider.activeTool == CanvasTool.select) {
+             if (canvasProvider.lassoPath.isNotEmpty) {
+              canvasProvider.endLasso();
+            } else {
+              canvasProvider.endMove();
+              canvasProvider.saveNote();
+            }
+          }
+        },
+        child: CustomPaint(
+          painter: DrawingPainter(
+            strokes: canvasProvider.currentNote?.strokes ?? [],
+            selectedStrokes: canvasProvider.selectedStrokes,
+            selectedImages: canvasProvider.selectedImages,
+            selectedTextBlocks: canvasProvider.selectedTextBlocks,
+            activePoints: canvasProvider.activePoints,
+            activeColor: canvasProvider.currentColor,
+            activeWidth: canvasProvider.currentWidth,
+            playbackTime: playbackTime,
+            ghostPoints: canvasProvider.ghostShape?.points,
+            lassoPath: canvasProvider.lassoPath,
+          ),
+          child: Container(),
+        ),
+      ),
+    );
+  }
+
+  bool _isPenType(CanvasTool tool) => {
+    CanvasTool.pen,
+    CanvasTool.monoline,
+    CanvasTool.fountain,
+    CanvasTool.reed,
+    CanvasTool.watercolor,
+    CanvasTool.pencil,
+    CanvasTool.marker,
+    CanvasTool.brush,
+    CanvasTool.highlighter,
+  }.contains(tool);
+
 }
 
 class _RightSideDock extends StatelessWidget {
@@ -908,7 +1062,7 @@ class _RightSideDock extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 15,
             offset: const Offset(0, 4),
           ),
@@ -1231,7 +1385,7 @@ class _EraserSettingsPanel extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -1324,7 +1478,6 @@ class _DrawingToolsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final canvasProvider = Provider.of<CanvasProvider>(context);
-    final audioProvider = Provider.of<AudioProvider>(context);
     final allColors = [...AppTheme.noteColors, ...canvasProvider.savedColors];
 
     return Container(
@@ -1334,7 +1487,7 @@ class _DrawingToolsPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(36),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 15,
             offset: const Offset(0, 4),
           ),
@@ -1535,7 +1688,7 @@ class _ColorCircle extends StatelessWidget {
               ? Border.all(color: Colors.white, width: 1.5)
               : null,
           boxShadow: isSelected
-              ? [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 4)]
+              ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 4)]
               : null,
         ),
       ),
@@ -1608,158 +1761,6 @@ class _GlassContainer extends StatelessWidget {
   }
 }
 
-class CanvasGestureDetector extends StatelessWidget {
-  const CanvasGestureDetector({super.key});
-  @override
-  Widget build(BuildContext context) {
-    final canvasProvider = Provider.of<CanvasProvider>(context);
-    final audioProvider = Provider.of<AudioProvider>(context, listen: false);
-    int? playbackTime = canvasProvider.playbackTime;
-    if (audioProvider.isPlaying) {
-      playbackTime = audioProvider.currentPosition.inMilliseconds;
-    }
-
-    return IgnorePointer(
-      ignoring: canvasProvider.activeTool == CanvasTool.hand,
-      child: Listener(
-        onPointerDown: (event) async {
-          if (canvasProvider.isStylusOnly &&
-              event.kind == PointerDeviceKind.touch) {
-            return;
-          }
-
-          final offset = event.localPosition;
-
-          if (canvasProvider.activeTool == CanvasTool.text) {
-            canvasProvider.addTextBlock(
-              offset,
-              timestamp: audioProvider.isRecording
-                  ? audioProvider.elapsedRecordingMillis
-                  : null,
-            );
-          } else if (canvasProvider.activeTool == CanvasTool.select) {
-            bool hitExisting = canvasProvider.hitTestSelection(offset);
-            if (hitExisting) {
-              canvasProvider.startResize(offset);
-              if (!canvasProvider.isResizing) canvasProvider.startMove(offset);
-            } else {
-              bool hitNew = canvasProvider.selectItemAt(offset, audioProvider);
-              if (hitNew) {
-                canvasProvider.startResize(offset);
-                if (!canvasProvider.isResizing) canvasProvider.startMove(offset);
-              } else {
-                canvasProvider.startLasso(offset);
-              }
-            }
-          } else if (canvasProvider.activeTool == CanvasTool.image) {
-            final picker = ImagePicker();
-            final xFile = await picker.pickImage(source: ImageSource.gallery);
-            if (xFile != null) {
-              final bytes = await xFile.readAsBytes();
-              canvasProvider.addImage(
-                base64Encode(bytes),
-                offset,
-                timestamp: audioProvider.isRecording
-                    ? audioProvider.elapsedRecordingMillis
-                    : null,
-              );
-            }
-          } else if (_isPenType(canvasProvider.activeTool)) {
-            canvasProvider.startStroke(
-              offset,
-              event.pressureMin > 0
-                  ? event.pressure
-                  : 1.0, // Default pressure if not supported
-              timestamp: audioProvider.isRecording
-                  ? audioProvider.elapsedRecordingMillis
-                  : null,
-            );
-          } else if (canvasProvider.activeTool == CanvasTool.eraser) {
-            canvasProvider.eraseAt(offset);
-          }
-        },
-        onPointerMove: (event) {
-          if (canvasProvider.isStylusOnly &&
-              event.kind == PointerDeviceKind.touch) {
-            return;
-          }
-          final offset = event.localPosition;
-
-          if (canvasProvider.isResizing) {
-            canvasProvider.resizeSelection(offset);
-            return;
-          }
-          if (_isPenType(canvasProvider.activeTool)) {
-            canvasProvider.updateStroke(
-              offset,
-              event.pressureMin > 0 ? event.pressure : 1.0,
-            );
-          } else if (canvasProvider.activeTool == CanvasTool.eraser) {
-            canvasProvider.eraseAt(offset);
-          } else if (canvasProvider.activeTool == CanvasTool.select) {
-            if (canvasProvider.lassoPath.isNotEmpty) {
-              canvasProvider.updateLasso(offset);
-            } else {
-              canvasProvider.moveSelection(event.delta, absolutePosition: offset);
-            }
-          }
-        },
-        onPointerUp: (event) {
-          if (canvasProvider.isStylusOnly &&
-              event.kind == PointerDeviceKind.touch) {
-            return;
-          }
-          if (canvasProvider.isResizing) {
-            canvasProvider.endResize();
-            return;
-          }
-          if (_isPenType(canvasProvider.activeTool)) {
-            canvasProvider.endStroke(
-              timestamp: audioProvider.isRecording
-                  ? audioProvider.elapsedRecordingMillis
-                  : null,
-            );
-          } else if (canvasProvider.activeTool == CanvasTool.select) {
-            if (canvasProvider.lassoPath.isNotEmpty) {
-              canvasProvider.endLasso();
-            } else {
-              canvasProvider.endMove();
-              canvasProvider.saveNote();
-            }
-          }
-        },
-        child: CustomPaint(
-          painter: DrawingPainter(
-            strokes: canvasProvider.currentNote?.strokes ?? [],
-            selectedStrokes: canvasProvider.selectedStrokes,
-            selectedImages: canvasProvider.selectedImages,
-            selectedTextBlocks: canvasProvider.selectedTextBlocks,
-            activePoints: canvasProvider.activePoints,
-            activeColor: canvasProvider.currentColor,
-            activeWidth: canvasProvider.currentWidth,
-            playbackTime: playbackTime,
-            ghostPoints: canvasProvider.ghostShape?.points,
-            lassoPath: canvasProvider.lassoPath,
-          ),
-          child: Container(),
-        ),
-      ),
-    );
-  }
-
-  bool _isPenType(CanvasTool tool) => [
-    CanvasTool.pen,
-    CanvasTool.monoline,
-    CanvasTool.fountain,
-    CanvasTool.reed,
-    CanvasTool.watercolor,
-    CanvasTool.pencil,
-    CanvasTool.marker,
-    CanvasTool.brush,
-    CanvasTool.highlighter,
-  ].contains(tool);
-}
-
 class PlaybackControl extends StatelessWidget {
   const PlaybackControl({super.key});
   @override
@@ -1820,6 +1821,8 @@ class _AvatarStack extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (users.isEmpty) return const SizedBox.shrink();
+    
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1828,7 +1831,7 @@ class _AvatarStack extends StatelessWidget {
             widthFactor: 0.6,
             child: _UserAvatar(
               name: users[i]['name'] ?? 'U',
-              color: Colors.accents[i % Colors.accents.length],
+              color: Colors.accents[i * 2 % Colors.accents.length],
             ),
           ),
         if (users.length > 3)

@@ -84,6 +84,9 @@ class _OfflineOnlyService implements CloudStorageService {
   Stream<List<Note>> notesStream() => const Stream.empty();
 
   @override
+  Stream<void> get remoteUpdates => const Stream.empty();
+
+  @override
   Future<void> syncAll({bool interactive = false}) async {}
 
   @override
@@ -109,6 +112,9 @@ class _OfflineOnlyService implements CloudStorageService {
 
   @override
   Future<void> syncProfile() async {}
+
+  @override
+  Future<bool> verifyConnection() async => true; // Always connected when offline
 
   @override
   Future<bool> hasProfile() async => true; // Always true for offline

@@ -1,0 +1,54 @@
+Analyzing Classlly...                                           
+
+warning • Unused import: 'package:classlly/core/theme/app_theme.dart' • integration_test/app_store_screenshots_test.dart:7:8 • unused_import
+warning • The value of the local variable 'mathId' isn't used • integration_test/app_store_screenshots_test.dart:102:11 • unused_local_variable
+warning • The value of the local variable 'physId' isn't used • integration_test/app_store_screenshots_test.dart:103:11 • unused_local_variable
+warning • The value of the local variable 'mathCourse' isn't used • integration_test/app_store_screenshots_test.dart:105:11 • unused_local_variable
+   info • Unnecessary use of double quotes • lib/core/widgets/initialization_screen.dart:27:21 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/core/widgets/initialization_screen.dart:43:33 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/core/widgets/initialization_screen.dart:51:33 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/core/widgets/initialization_screen.dart:59:18 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/core/widgets/initialization_screen.dart:114:35 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/core/widgets/initialization_screen.dart:124:34 • prefer_single_quotes
+   info • Use 'const' with the constructor to improve performance • lib/data/repositories/auth_repository.dart:110:13 • prefer_const_constructors
+warning • Unused import: 'package:classlly/features/library/providers/profile_provider.dart' • lib/features/auth/screens/academic_details_screen.dart:6:8 • unused_import
+   info • Don't use 'BuildContext's across async gaps • lib/features/auth/screens/academic_details_screen.dart:60:30 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/features/auth/screens/academic_details_screen.dart:62:47 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/features/auth/screens/academic_details_screen.dart:66:23 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/features/auth/screens/personal_info_screen.dart:79:32 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/features/auth/screens/personal_info_screen.dart:81:49 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/features/auth/screens/personal_info_screen.dart:84:25 • use_build_context_synchronously
+  error • The getter 'playbackTime' isn't defined for the type 'AudioProvider' • lib/features/canvas/screens/canvas_screen.dart:206:63 • undefined_getter
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:441:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:460:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:461:28 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:463:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:583:30 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:626:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:632:47 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:642:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:643:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:710:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:731:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:761:59 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:792:45 • deprecated_member_use
+   info • Use 'const' with the constructor to improve performance • lib/features/canvas/screens/canvas_screen.dart:806:28 • prefer_const_constructors
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:831:59 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/features/canvas/screens/canvas_screen.dart:860:41 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/features/canvas/screens/canvas_screen.dart:861:48 • use_build_context_synchronously
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:903:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:1226:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:1328:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:1529:41 • deprecated_member_use
+  error • Undefined name '_cursorThrottle' • lib/features/canvas/screens/canvas_screen.dart:1614:17 • undefined_identifier
+  error • Undefined name '_cursorThrottle' • lib/features/canvas/screens/canvas_screen.dart:1615:13 • undefined_identifier
+  error • Undefined name '_presenceService' • lib/features/canvas/screens/canvas_screen.dart:1616:15 • undefined_identifier
+  error • Expected a method, getter, setter or operator declaration • lib/features/canvas/screens/canvas_screen.dart:1758:1 • expected_executable
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/library/screens/add_course_screen.dart:370:25 • deprecated_member_use
+   info • Use 'const' with the constructor to improve performance • lib/features/library/widgets/dashboard_sidebar.dart:195:13 • prefer_const_constructors
+   info • Unnecessary use of double quotes • lib/features/text_editor/screens/text_editor_screen.dart:233:22 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/features/text_editor/screens/text_editor_screen.dart:298:11 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/features/text_editor/screens/text_editor_screen.dart:299:11 • prefer_single_quotes
+   info • Use 'const' for final variables initialized to a constant value • lib/features/text_editor/screens/text_editor_screen.dart:300:5 • prefer_const_declarations
+   info • Unnecessary use of double quotes • lib/features/text_editor/screens/text_editor_screen.dart:300:24 • prefer_single_quotes
+

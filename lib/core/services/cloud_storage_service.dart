@@ -3,6 +3,7 @@ import 'package:classlly/data/models/note_models.dart';
 abstract class CloudStorageService {
   // Sync Status
   Stream<List<Note>> notesStream();
+  Stream<void> get remoteUpdates;
 
   /// Syncs all data types (notes, courses, tasks, etc.)
   ///
@@ -21,6 +22,7 @@ abstract class CloudStorageService {
   Future<void> syncProfile();
 
   // Helper Methods
+  Future<bool> verifyConnection();
   Future<bool> hasProfile();
   Future<void> deleteNote(String noteId);
   Future<void> deleteUserContent();

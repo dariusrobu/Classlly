@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:classlly/data/models/note_models.dart';
 import 'package:classlly/data/models/course_model.dart';
 import 'package:classlly/data/models/task_model.dart';
@@ -11,6 +13,11 @@ import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+// Top-level function for Dart Isolate (must be outside the class)
+List<Note> parseNotesIsolate(List<Map<String, dynamic>> notesData) {
+  return notesData.map((data) => Note.fromJson(data)).toList();
+}
+
 /// Supabase implementation of [CloudStorageService].
 ///
 /// Uses a single `data JSONB` column per table, keyed by [id] and [user_id].
@@ -20,12 +27,127 @@ class SupabaseCloudService implements CloudStorageService {
 
   String? get _userId => _client.auth.currentUser?.id;
 
+  static final _remoteUpdatesController = StreamController<void>.broadcast();
+
   // ──────────────────────────────────────────────────────────
-  // Stream (placeholder — Realtime not yet wired)
+  // Stream & Realtime
   // ──────────────────────────────────────────────────────────
 
   @override
   Stream<List<Note>> notesStream() => const Stream.empty();
+
+  @override
+  Stream<void> get remoteUpdates => _remoteUpdatesController.stream;
+
+  static RealtimeChannel? _syncChannel;
+
+  /// Starts listening to the sync_store table for changes made by other devices.
+  void initRealtime() {
+    final uid = _userId;
+    if (uid == null) return;
+
+    if (_syncChannel != null) return; // Already listening
+
+    _syncChannel = _client.channel('public:sync_store').onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'sync_store',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'user_id',
+        value: uid,
+      ),
+      callback: (PostgresChangePayload payload) async {
+        await _handleRealtimePayload(payload);
+      },
+    ).subscribe();
+  }
+
+  Future<void> _handleRealtimePayload(PostgresChangePayload payload) async {
+    try {
+      if (payload.eventType == PostgresChangeEvent.delete) {
+        final oldRecord = payload.oldRecord;
+        final id = oldRecord['id'] as String?;
+        final collection = oldRecord['collection'] as String?;
+        if (id != null && collection != null) {
+          _deleteFromHive(collection, id);
+        }
+      } else {
+        final newRecord = payload.newRecord;
+        final collection = newRecord['collection'] as String?;
+        final rawData = newRecord['data'];
+        if (collection != null && rawData != null) {
+          await _upsertToHive(collection, rawData);
+        }
+      }
+      // Notify UI that a background sync arrived
+      _remoteUpdatesController.add(null);
+    } catch (e) {
+      debugPrint('SUPABASE_REALTIME payload error: $e');
+    }
+  }
+
+  void _deleteFromHive(String collection, String id) {
+    switch (collection) {
+      case 'tasks': Hive.box<Task>(NotesRepository.taskBoxName).delete(id); break;
+      case 'courses': Hive.box<Course>(NotesRepository.courseBoxName).delete(id); break;
+      case 'notes': Hive.box<Note>(NotesRepository.boxName).delete(id); break;
+      case 'folders': Hive.box<Folder>(NotesRepository.folderBoxName).delete(id); break;
+      case 'grades': Hive.box<Grade>(NotesRepository.gradeBoxName).delete(id); break;
+      case 'attendance': Hive.box<Attendance>(NotesRepository.attendanceBoxName).delete(id); break;
+    }
+  }
+
+  Future<void> _upsertToHive(String collection, dynamic rawData) async {
+    final Map<String, dynamic> dataMap;
+    if (rawData is String) {
+      dataMap = jsonDecode(rawData) as Map<String, dynamic>;
+    } else {
+      dataMap = Map<String, dynamic>.from(rawData as Map);
+    }
+
+    final repo = NotesRepository();
+    switch (collection) {
+      case 'tasks': await repo.saveTask(Task.fromJson(dataMap)); break;
+      case 'courses': await repo.saveCourse(Course.fromJson(dataMap)); break;
+      case 'notes': 
+        final incomingNote = Note.fromJson(dataMap);
+        final localBox = Hive.box<Note>(NotesRepository.boxName);
+        final existingNote = localBox.get(incomingNote.id);
+
+        if (existingNote != null) {
+          // SMART MERGE: Conflict Resolution
+          // If the note exists locally, we merge strokes and text blocks using timestamps
+          // to ensure offline edits made on THIS device aren't wiped out by an incoming sync.
+          
+          // 1. Merge Strokes
+          final Map<int, Stroke> strokeMap = {};
+          for (var s in existingNote.strokes) { strokeMap[s.createdAt] = s; }
+          for (var s in incomingNote.strokes) { strokeMap[s.createdAt] = s; }
+          final mergedStrokes = strokeMap.values.toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+          
+          // 2. Merge Text Blocks
+          final Map<int, TextBlock> textMap = {};
+          for (var t in existingNote.textBlocks) { textMap[t.createdAt] = t; }
+          for (var t in incomingNote.textBlocks) { textMap[t.createdAt] = t; }
+          final mergedTextBlocks = textMap.values.toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+          // 3. Apply merged lists to incoming note (which holds newest metadata like title)
+          incomingNote.strokes.clear();
+          incomingNote.strokes.addAll(mergedStrokes);
+          
+          incomingNote.textBlocks.clear();
+          incomingNote.textBlocks.addAll(mergedTextBlocks);
+        }
+        
+        await repo.saveNote(incomingNote); 
+        break;
+      case 'profiles': await repo.saveStudentProfile(StudentProfile.fromJson(dataMap)); break;
+      case 'folders': await repo.saveFolder(Folder.fromJson(dataMap)); break;
+      case 'grades': await repo.saveGrade(Grade.fromJson(dataMap)); break;
+      case 'attendance': await repo.saveAttendance(Attendance.fromJson(dataMap)); break;
+    }
+  }
 
   // ──────────────────────────────────────────────────────────
   // Upload — push local Hive data → Supabase
@@ -33,7 +155,13 @@ class SupabaseCloudService implements CloudStorageService {
 
   @override
   Future<void> syncAll({bool interactive = false}) async {
-    if (_userId == null) return;
+    final uid = _userId;
+    if (uid == null) {
+      debugPrint('SUPABASE_SYNC: No user logged in. Skipping sync.');
+      return;
+    }
+    
+    debugPrint('SUPABASE_SYNC: Starting syncAll for user $uid');
     await Future.wait([
       syncProfile(),
       syncCourses(),
@@ -43,120 +171,37 @@ class SupabaseCloudService implements CloudStorageService {
       syncGrades(),
       syncAttendance(),
     ]);
+    debugPrint('SUPABASE_SYNC: syncAll completed.');
   }
 
   @override
   Future<void> syncCourses() async {
-    final uid = _userId;
-    if (uid == null) return;
-    try {
-      final box = Hive.box<Course>(NotesRepository.courseBoxName);
-      final rows = box.values.map((c) => {
-        'id': c.id,
-        'user_id': uid,
-        'data': c.toJson(),
-        'updated_at': DateTime.now().toIso8601String(),
-      }).toList();
-      if (rows.isEmpty) return;
-      await _client.from('courses').upsert(rows, onConflict: 'id');
-    } catch (e) {
-      debugPrint('syncCourses error: $e');
-    }
+    await _syncGeneric<Course>(NotesRepository.courseBoxName, 'courses');
   }
 
   @override
   Future<void> syncTasks() async {
-    final uid = _userId;
-    if (uid == null) return;
-    try {
-      final box = Hive.box<Task>(NotesRepository.taskBoxName);
-      final rows = box.values.map((t) => {
-        'id': t.id,
-        'user_id': uid,
-        'data': t.toJson(),
-        'updated_at': DateTime.now().toIso8601String(),
-      }).toList();
-      if (rows.isEmpty) return;
-      await _client.from('tasks').upsert(rows, onConflict: 'id');
-    } catch (e) {
-      debugPrint('syncTasks error: $e');
-    }
+    await _syncGeneric<Task>(NotesRepository.taskBoxName, 'tasks');
   }
 
   @override
   Future<void> syncNotes() async {
-    final uid = _userId;
-    if (uid == null) return;
-    try {
-      final box = Hive.box<Note>(NotesRepository.boxName);
-      final rows = box.values.map((n) => {
-        'id': n.id,
-        'user_id': uid,
-        'data': n.toJson(),
-        'updated_at': DateTime.now().toIso8601String(),
-      }).toList();
-      if (rows.isEmpty) return;
-      await _client.from('notes').upsert(rows, onConflict: 'id');
-    } catch (e) {
-      debugPrint('syncNotes error: $e');
-    }
+    await _syncGeneric<Note>(NotesRepository.boxName, 'notes');
   }
 
   @override
   Future<void> syncFolders() async {
-    final uid = _userId;
-    if (uid == null) return;
-    try {
-      final box = Hive.box<Folder>(NotesRepository.folderBoxName);
-      final rows = box.values.map((f) => {
-        'id': f.id,
-        'user_id': uid,
-        'data': f.toJson(),
-        'updated_at': DateTime.now().toIso8601String(),
-      }).toList();
-      if (rows.isEmpty) return;
-      await _client.from('folders').upsert(rows, onConflict: 'id');
-    } catch (e) {
-      debugPrint('syncFolders error: $e');
-    }
+    await _syncGeneric<Folder>(NotesRepository.folderBoxName, 'folders');
   }
 
   @override
   Future<void> syncGrades() async {
-    final uid = _userId;
-    if (uid == null) return;
-    try {
-      final box = Hive.box<Grade>(NotesRepository.gradeBoxName);
-      final rows = box.values.map((g) => {
-        'id': g.id,
-        'user_id': uid,
-        'data': g.toJson(),
-        'updated_at': DateTime.now().toIso8601String(),
-      }).toList();
-      if (rows.isEmpty) return;
-      await _client.from('grades').upsert(rows, onConflict: 'id');
-    } catch (e) {
-      debugPrint('syncGrades error: $e');
-    }
+    await _syncGeneric<Grade>(NotesRepository.gradeBoxName, 'grades');
   }
 
   @override
   Future<void> syncAttendance() async {
-    final uid = _userId;
-    if (uid == null) return;
-    try {
-      final box = Hive.box<Attendance>(NotesRepository.attendanceBoxName);
-      final rows = box.values.map((a) => {
-        'id': a.id,
-        'user_id': uid,
-        'data': a.toJson(),
-        'updated_at': DateTime.now().toIso8601String(),
-      }).toList();
-      if (rows.isEmpty) return;
-      await _client.from('attendance').upsert(rows, onConflict: 'id');
-    } catch (e) {
-      debugPrint('syncAttendance error: $e');
-    }
+    await _syncGeneric<Attendance>(NotesRepository.attendanceBoxName, 'attendance');
   }
 
   @override
@@ -172,13 +217,43 @@ class SupabaseCloudService implements CloudStorageService {
     try {
       final repo = NotesRepository();
       final profile = repo.getStudentProfile();
-      await _client.from('profiles').upsert({
+      await _client.from('sync_store').upsert({
+        'id': 'profile',
         'user_id': uid,
+        'collection': 'profiles',
         'data': profile.toJson(),
         'updated_at': DateTime.now().toIso8601String(),
-      }, onConflict: 'user_id');
+      });
     } catch (e) {
-      debugPrint('syncProfile error: $e');
+      debugPrint('SUPABASE_DEBUG: syncProfile error: $e');
+    }
+  }
+
+  Future<void> _syncGeneric<T extends HiveObject>(String boxName, String collection) async {
+    final uid = _userId;
+    if (uid == null) return;
+    try {
+      final box = Hive.box<T>(boxName);
+      final rows = box.values.map((item) {
+        final json = (item as dynamic).toJson();
+        final id = (item as dynamic).id as String;
+        return {
+          'id': id,
+          'user_id': uid,
+          'collection': collection,
+          'data': json,
+          'updated_at': DateTime.now().toIso8601String(),
+        };
+      }).toList();
+      
+      if (rows.isEmpty) {
+        debugPrint('SUPABASE_DEBUG: No $collection to sync.');
+        return;
+      }
+      debugPrint('SUPABASE_DEBUG: Syncing ${rows.length} $collection...');
+      await _client.from('sync_store').upsert(rows);
+    } catch (e) {
+      debugPrint('SUPABASE_DEBUG: syncGeneric $collection error: $e');
     }
   }
 
@@ -195,148 +270,82 @@ class SupabaseCloudService implements CloudStorageService {
     if (uid == null) return;
 
     final repo = NotesRepository();
+    debugPrint('SUPABASE_RESTORE: Starting restoreAll for user $uid');
 
-    onProgress?.call('Restoring profile…', 0.05);
-    await _restoreProfile(uid, repo);
-
-    onProgress?.call('Restoring courses…', 0.20);
-    await _restoreCourses(uid, repo);
-
-    onProgress?.call('Restoring tasks…', 0.40);
-    await _restoreTasks(uid, repo);
-
-    onProgress?.call('Restoring notes…', 0.55);
-    await _restoreNotes(uid, repo);
-
-    onProgress?.call('Restoring folders…', 0.65);
-    await _restoreFolders(uid, repo);
-
-    onProgress?.call('Restoring grades…', 0.78);
-    await _restoreGrades(uid, repo);
-
-    onProgress?.call('Restoring attendance…', 0.90);
-    await _restoreAttendance(uid, repo);
-
-    onProgress?.call('Done', 1.0);
-  }
-
-  Future<void> _restoreProfile(String uid, NotesRepository repo) async {
     try {
-      final row = await _client
-          .from('profiles')
-          .select('data')
-          .eq('user_id', uid)
-          .maybeSingle();
-      if (row != null && row['data'] != null) {
-        final profile = StudentProfile.fromJson(
-          Map<String, dynamic>.from(row['data'] as Map),
-        );
-        await repo.saveStudentProfile(profile);
-      }
-    } catch (e) {
-      debugPrint('_restoreProfile error: $e');
-    }
-  }
+      final rows = await _client.from('sync_store').select('id, collection, data').eq('user_id', uid);
+      
+      final Map<String, List<Map<String, dynamic>>> groupedData = {
+        'profiles': [],
+        'courses': [],
+        'tasks': [],
+        'notes': [],
+        'folders': [],
+        'grades': [],
+        'attendance': [],
+      };
 
-  Future<void> _restoreCourses(String uid, NotesRepository repo) async {
-    try {
-      final rows = await _client
-          .from('courses')
-          .select('data')
-          .eq('user_id', uid);
-      for (final row in rows) {
-        final course = Course.fromJson(
-          Map<String, dynamic>.from(row['data'] as Map),
-        );
-        await repo.saveCourse(course);
+      for (var row in rows) {
+        final collection = row['collection'] as String;
+        final rawData = row['data'];
+        final Map<String, dynamic> dataMap;
+        if (rawData is String) {
+          dataMap = jsonDecode(rawData) as Map<String, dynamic>;
+        } else {
+          dataMap = Map<String, dynamic>.from(rawData as Map);
+        }
+        
+        if (groupedData.containsKey(collection)) {
+          groupedData[collection]!.add(dataMap);
+        }
       }
-    } catch (e) {
-      debugPrint('_restoreCourses error: $e');
-    }
-  }
 
-  Future<void> _restoreTasks(String uid, NotesRepository repo) async {
-    try {
-      final rows = await _client
-          .from('tasks')
-          .select('data')
-          .eq('user_id', uid);
-      for (final row in rows) {
-        final task = Task.fromJson(
-          Map<String, dynamic>.from(row['data'] as Map),
-        );
-        await repo.saveTask(task);
+      onProgress?.call('Restoring profiles...', 0.1);
+      final repo = NotesRepository();
+      for (var data in groupedData['profiles']!) {
+        await repo.saveStudentProfile(StudentProfile.fromJson(data));
       }
-    } catch (e) {
-      debugPrint('_restoreTasks error: $e');
-    }
-  }
 
-  Future<void> _restoreNotes(String uid, NotesRepository repo) async {
-    try {
-      final rows = await _client
-          .from('notes')
-          .select('data')
-          .eq('user_id', uid);
-      for (final row in rows) {
-        final note = Note.fromJson(
-          Map<String, dynamic>.from(row['data'] as Map),
-        );
-        await repo.saveNote(note);
+      onProgress?.call('Restoring courses...', 0.25);
+      for (var data in groupedData['courses']!) {
+        await repo.saveCourse(Course.fromJson(data));
       }
-    } catch (e) {
-      debugPrint('_restoreNotes error: $e');
-    }
-  }
 
-  Future<void> _restoreFolders(String uid, NotesRepository repo) async {
-    try {
-      final rows = await _client
-          .from('folders')
-          .select('data')
-          .eq('user_id', uid);
-      for (final row in rows) {
-        final folder = Folder.fromJson(
-          Map<String, dynamic>.from(row['data'] as Map),
-        );
-        await repo.saveFolder(folder);
+      onProgress?.call('Restoring tasks...', 0.40);
+      for (var data in groupedData['tasks']!) {
+        await repo.saveTask(Task.fromJson(data));
       }
-    } catch (e) {
-      debugPrint('_restoreFolders error: $e');
-    }
-  }
 
-  Future<void> _restoreGrades(String uid, NotesRepository repo) async {
-    try {
-      final rows = await _client
-          .from('grades')
-          .select('data')
-          .eq('user_id', uid);
-      for (final row in rows) {
-        final grade = Grade.fromJson(
-          Map<String, dynamic>.from(row['data'] as Map),
-        );
-        await repo.saveGrade(grade);
+      onProgress?.call('Restoring folders...', 0.55);
+      for (var data in groupedData['folders']!) {
+        await repo.saveFolder(Folder.fromJson(data));
       }
-    } catch (e) {
-      debugPrint('_restoreGrades error: $e');
-    }
-  }
 
-  Future<void> _restoreAttendance(String uid, NotesRepository repo) async {
-    try {
-      final rows = await _client
-          .from('attendance')
-          .select('data')
-          .eq('user_id', uid);
-      for (final row in rows) {
-        final attendance = Attendance.fromJson(
-          Map<String, dynamic>.from(row['data'] as Map),
-        );
-        await repo.saveAttendance(attendance);
+      onProgress?.call('Restoring notes...', 0.70);
+      // Offload heavy JSON parsing (especially thousands of drawing strokes) to a Background Isolate
+      // This prevents the UI from freezing entirely during a cold start hydration.
+      final notesData = groupedData['notes']!;
+      if (notesData.isNotEmpty) {
+        final parsedNotes = await compute(parseNotesIsolate, notesData);
+        for (var note in parsedNotes) {
+          await repo.saveNote(note);
+        }
       }
+
+      onProgress?.call('Restoring grades...', 0.85);
+      for (var data in groupedData['grades']!) {
+        await repo.saveGrade(Grade.fromJson(data));
+      }
+
+      onProgress?.call('Restoring attendance…', 0.95);
+      for (var data in groupedData['attendance']!) {
+        await repo.saveAttendance(Attendance.fromJson(data));
+      }
+
+      onProgress?.call('Done', 1.0);
+      debugPrint('SUPABASE_RESTORE: restoreAll completed.');
     } catch (e) {
-      debugPrint('_restoreAttendance error: $e');
+      debugPrint('SUPABASE_RESTORE error: $e');
     }
   }
 
@@ -345,14 +354,74 @@ class SupabaseCloudService implements CloudStorageService {
   // ──────────────────────────────────────────────────────────
 
   @override
+  Future<bool> verifyConnection() async {
+    final uid = _userId;
+    if (uid == null) return false;
+    
+    // JWT Service Role Check for BYOC security
+    final session = _client.auth.currentSession;
+    if (session != null) {
+      try {
+        final payloadChunks = session.accessToken.split('.');
+        if (payloadChunks.length == 3) {
+          final payloadBytes = base64Url.normalize(payloadChunks[1]);
+          final payloadString = utf8.decode(base64Url.decode(payloadBytes));
+          final payloadData = jsonDecode(payloadString);
+          if (payloadData['role'] == 'service_role') {
+            debugPrint('SUPABASE_SECURITY_RISK: service_role key provided instead of anon key.');
+            return false;
+          }
+        }
+      } catch (e) {
+        debugPrint('verifyConnection JWT check error: $e');
+      }
+    }
+
+    try {
+      // Setup health_check
+      final healthId = 'health_ping_${DateTime.now().millisecondsSinceEpoch}';
+      
+      // Attempt Write
+      await _client.from('sync_store').upsert({
+        'id': healthId,
+        'user_id': uid,
+        'collection': 'health_check',
+        'data': {'ping': true},
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+      
+      // Attempt Read
+      final result = await _client
+        .from('sync_store')
+        .select('id')
+        .eq('id', healthId)
+        .eq('user_id', uid)
+        .eq('collection', 'health_check')
+        .limit(1);
+        
+      if ((result as List).isEmpty) return false;
+      
+      // Cleanup
+      await _client.from('sync_store').delete().eq('id', healthId).eq('collection', 'health_check');
+      
+      return true;
+    } catch (e) {
+      // RLS or schema is improperly configured
+      debugPrint('SUPABASE_HANDSHAKE_ERROR: $e');
+      return false;
+    }
+  }
+
+  @override
   Future<bool> hasProfile() async {
     try {
       final uid = _userId;
       if (uid == null) return false;
       final response = await _client
-          .from('profiles')
-          .select('user_id')
+          .from('sync_store')
+          .select('id')
           .eq('user_id', uid)
+          .eq('collection', 'profiles')
           .maybeSingle();
       return response != null;
     } catch (e) {
@@ -366,7 +435,7 @@ class SupabaseCloudService implements CloudStorageService {
       final uid = _userId;
       if (uid == null) return false;
       final result = await _client
-          .from('courses')
+          .from('sync_store')
           .select('id')
           .eq('user_id', uid)
           .limit(1);
@@ -379,7 +448,7 @@ class SupabaseCloudService implements CloudStorageService {
   @override
   Future<void> deleteNote(String noteId) async {
     try {
-      await _client.from('notes').delete().eq('id', noteId);
+      await _client.from('sync_store').delete().eq('id', noteId).eq('collection', 'notes');
     } catch (e) {
       debugPrint('deleteNote error: $e');
     }
@@ -390,15 +459,7 @@ class SupabaseCloudService implements CloudStorageService {
     final uid = _userId;
     if (uid == null) return;
     try {
-      await Future.wait([
-        _client.from('notes').delete().eq('user_id', uid),
-        _client.from('courses').delete().eq('user_id', uid),
-        _client.from('tasks').delete().eq('user_id', uid),
-        _client.from('folders').delete().eq('user_id', uid),
-        _client.from('grades').delete().eq('user_id', uid),
-        _client.from('attendance').delete().eq('user_id', uid),
-        _client.from('profiles').delete().eq('user_id', uid),
-      ]);
+      await _client.from('sync_store').delete().eq('user_id', uid);
     } catch (e) {
       debugPrint('deleteUserContent error: $e');
     }

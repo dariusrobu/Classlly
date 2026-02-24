@@ -1,0 +1,77 @@
+Analyzing Classlly...                                           
+
+warning • Unused import: 'package:classlly/core/theme/app_theme.dart' • integration_test/app_store_screenshots_test.dart:7:8 • unused_import
+warning • The value of the local variable 'mathId' isn't used • integration_test/app_store_screenshots_test.dart:102:11 • unused_local_variable
+warning • The value of the local variable 'physId' isn't used • integration_test/app_store_screenshots_test.dart:103:11 • unused_local_variable
+warning • The value of the local variable 'mathCourse' isn't used • integration_test/app_store_screenshots_test.dart:105:11 • unused_local_variable
+   info • Unnecessary use of double quotes • lib/core/widgets/initialization_screen.dart:27:21 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/core/widgets/initialization_screen.dart:43:33 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/core/widgets/initialization_screen.dart:51:33 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/core/widgets/initialization_screen.dart:59:18 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/core/widgets/initialization_screen.dart:114:35 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/core/widgets/initialization_screen.dart:124:34 • prefer_single_quotes
+   info • Use 'const' with the constructor to improve performance • lib/data/repositories/auth_repository.dart:110:13 • prefer_const_constructors
+warning • Unused import: 'package:classlly/features/library/providers/profile_provider.dart' • lib/features/auth/screens/academic_details_screen.dart:6:8 • unused_import
+   info • Don't use 'BuildContext's across async gaps • lib/features/auth/screens/academic_details_screen.dart:60:30 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/features/auth/screens/academic_details_screen.dart:62:47 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/features/auth/screens/academic_details_screen.dart:66:23 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/features/auth/screens/personal_info_screen.dart:79:32 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/features/auth/screens/personal_info_screen.dart:81:49 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/features/auth/screens/personal_info_screen.dart:84:25 • use_build_context_synchronously
+  error • The method '_buildCanvasGestureDetector' isn't defined for the type '_CanvasScreenState' • lib/features/canvas/screens/canvas_screen.dart:203:48 • undefined_method
+  error • The getter 'playbackTime' isn't defined for the type 'AudioProvider' • lib/features/canvas/screens/canvas_screen.dart:206:63 • undefined_getter
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:441:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:460:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:461:28 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:463:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:583:30 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:626:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:632:47 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:642:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:643:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:710:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:731:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:761:59 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:792:45 • deprecated_member_use
+   info • Use 'const' with the constructor to improve performance • lib/features/canvas/screens/canvas_screen.dart:806:28 • prefer_const_constructors
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:831:59 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/features/canvas/screens/canvas_screen.dart:860:41 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/features/canvas/screens/canvas_screen.dart:861:48 • use_build_context_synchronously
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:903:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:1226:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:1328:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/canvas/screens/canvas_screen.dart:1529:41 • deprecated_member_use
+  error • Missing concrete implementation of 'StatelessWidget.build' • lib/features/canvas/screens/canvas_screen.dart:1537:7 • non_abstract_class_inherits_abstract_member
+warning • The declaration '_buildRightSideDockItem' isn't referenced • lib/features/canvas/screens/canvas_screen.dart:1550:10 • unused_element
+warning • The method doesn't override an inherited method • lib/features/canvas/screens/canvas_screen.dart:1550:10 • override_on_non_overriding_member
+  error • Classes can't be declared inside other classes • lib/features/canvas/screens/canvas_screen.dart:1577:1 • class_in_class
+  error • Expected a class member • lib/features/canvas/screens/canvas_screen.dart:1577:23 • expected_class_member
+   info • Missing type annotation • lib/features/canvas/screens/canvas_screen.dart:1577:31 • strict_top_level_inference
+   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/canvas/screens/canvas_screen.dart:1577:31 • non_constant_identifier_names
+  error • Methods must have an explicit list of parameters • lib/features/canvas/screens/canvas_screen.dart:1577:31 • missing_method_parameters
+  error • The name '_GlassContainer' isn't a class • lib/features/canvas/screens/canvas_screen.dart:1581:9 • creation_with_non_type
+   info • 'required' is deprecated and shouldn't be used. In Dart 2.12 and later, use the built-in `required` keyword to mark a named parameter as required • lib/features/canvas/screens/canvas_screen.dart:1582:5 • deprecated_member_use
+  error • Expected to find ',' • lib/features/canvas/screens/canvas_screen.dart:1582:14 • expected_token
+  error • The getter 'child' isn't defined for the type '_ToolIcon' • lib/features/canvas/screens/canvas_screen.dart:1582:19 • undefined_getter
+   info • 'required' is deprecated and shouldn't be used. In Dart 2.12 and later, use the built-in `required` keyword to mark a named parameter as required • lib/features/canvas/screens/canvas_screen.dart:1583:5 • deprecated_member_use
+  error • Expected to find ',' • lib/features/canvas/screens/canvas_screen.dart:1583:14 • expected_token
+  error • The getter 'padding' isn't defined for the type '_ToolIcon' • lib/features/canvas/screens/canvas_screen.dart:1583:19 • undefined_getter
+  error • The getter 'borderRadius' isn't defined for the type '_ToolIcon' • lib/features/canvas/screens/canvas_screen.dart:1584:10 • undefined_getter
+warning • The declaration 'build' isn't referenced • lib/features/canvas/screens/canvas_screen.dart:1587:10 • unused_element
+  error • The final variable 'borderRadius' can't be read because it's potentially unassigned at this point • lib/features/canvas/screens/canvas_screen.dart:1589:21 • read_potentially_unassigned_final
+  error • The final variable 'padding' can't be read because it's potentially unassigned at this point • lib/features/canvas/screens/canvas_screen.dart:1593:20 • read_potentially_unassigned_final
+  error • The final variable 'borderRadius' can't be read because it's potentially unassigned at this point • lib/features/canvas/screens/canvas_screen.dart:1597:27 • read_potentially_unassigned_final
+  error • The final variable 'child' can't be read because it's potentially unassigned at this point • lib/features/canvas/screens/canvas_screen.dart:1599:18 • read_potentially_unassigned_final
+warning • The declaration '_buildCanvasGestureDetector' isn't referenced • lib/features/canvas/screens/canvas_screen.dart:1606:10 • unused_element
+  error • Undefined name '_cursorThrottle' • lib/features/canvas/screens/canvas_screen.dart:1618:17 • undefined_identifier
+  error • Undefined name '_cursorThrottle' • lib/features/canvas/screens/canvas_screen.dart:1619:13 • undefined_identifier
+  error • Undefined name '_presenceService' • lib/features/canvas/screens/canvas_screen.dart:1620:15 • undefined_identifier
+  error • The method '_GlassContainer' isn't defined for the type 'PlaybackControl' • lib/features/canvas/screens/canvas_screen.dart:1771:12 • undefined_method
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/library/screens/add_course_screen.dart:370:25 • deprecated_member_use
+   info • Use 'const' with the constructor to improve performance • lib/features/library/widgets/dashboard_sidebar.dart:195:13 • prefer_const_constructors
+   info • Unnecessary use of double quotes • lib/features/text_editor/screens/text_editor_screen.dart:233:22 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/features/text_editor/screens/text_editor_screen.dart:298:11 • prefer_single_quotes
+   info • Unnecessary use of double quotes • lib/features/text_editor/screens/text_editor_screen.dart:299:11 • prefer_single_quotes
+   info • Use 'const' for final variables initialized to a constant value • lib/features/text_editor/screens/text_editor_screen.dart:300:5 • prefer_const_declarations
+   info • Unnecessary use of double quotes • lib/features/text_editor/screens/text_editor_screen.dart:300:24 • prefer_single_quotes
+

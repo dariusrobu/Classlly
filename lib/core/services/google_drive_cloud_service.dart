@@ -193,6 +193,9 @@ class GoogleDriveCloudService implements CloudStorageService {
   Stream<List<Note>> notesStream() => const Stream.empty();
 
   @override
+  Stream<void> get remoteUpdates => const Stream.empty();
+
+  @override
   Future<void> syncAll({bool interactive = false}) async {
     // Attempt to get API. If interactive, we might prompt user (not implemented here, relies on Auth Screen).
     final api = await _getDriveApi(interactive: interactive);
@@ -295,6 +298,12 @@ class GoogleDriveCloudService implements CloudStorageService {
   Future<bool> hasProfile() async {
     final data = await _downloadJson('profile.json');
     return data != null;
+  }
+
+  @override
+  Future<bool> verifyConnection() async {
+    final api = await _getDriveApi();
+    return api != null;
   }
 
   @override

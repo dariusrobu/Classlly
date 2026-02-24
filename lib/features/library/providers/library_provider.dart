@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:classlly/core/services/cloud_provider.dart';
 import 'package:classlly/core/services/cloud_storage_service.dart';
 import 'package:classlly/core/services/supabase_cloud_service.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
@@ -8,7 +10,7 @@ import 'package:classlly/data/models/task_model.dart';
 enum LibraryView { dashboard, allNotes, courses, tasks, calendar, archive }
 
 class LibraryProvider with ChangeNotifier {
-  final CloudStorageService _cloudService;
+  CloudStorageService _cloudService;
   final NotesRepository _localRepository = NotesRepository();
   StreamSubscription? _syncSubscription;
 
@@ -25,29 +27,66 @@ class LibraryProvider with ChangeNotifier {
   String? get selectedTag => _selectedTag;
   DateTime? get lastSynced => _lastSynced;
 
-  void initSync() async {
+  Future<void> initSync({bool interactive = false}) async {
     final prefs = _localRepository.getPreferences();
+    
+    // Auto-migrate legacy users to supabase if they are logged in but have 'none' selected
+    if (prefs.cloudProvider == 'none' && Supabase.instance.client.auth.currentUser != null) {
+      prefs.cloudProvider = 'supabase';
+      await _localRepository.savePreferences(prefs);
+    }
+
+    // Load the currently selected Cloud Engine
+    final currentProvider = CloudProvider.values.firstWhere(
+      (p) => p.name == prefs.cloudProvider,
+      orElse: () => CloudProvider.none,
+    );
+    _cloudService = CloudProviderManager.getService(currentProvider);
+
+    if (_cloudService is SupabaseCloudService) {
+      (_cloudService as SupabaseCloudService).initRealtime();
+    }
+
     final lastSync = prefs.lastSyncTimestamp;
 
-    // Only sync if >15 minutes since last sync to reduce egress
+    // Only sync if >1 minute since last sync to ensure relative freshness
+    // Or if interactive (manual button press)
     final shouldSync =
-        lastSync == null || DateTime.now().difference(lastSync).inMinutes > 15;
+        interactive ||
+        lastSync == null ||
+        DateTime.now().difference(lastSync).inMinutes > 1;
 
     if (shouldSync) {
-      await _cloudService.syncAll();
+      debugPrint('SUPABASE_SYNC: Triggering sync and restore...');
+      
+      await _cloudService.syncAll(interactive: interactive);
+      
+      // Also RESTORE to pull changes from other devices
+      if (_cloudService is SupabaseCloudService) {
+        await (_cloudService as SupabaseCloudService).restoreAll();
+      }
+
       _lastSynced = DateTime.now();
+      
+      // Update prefs
+      prefs.lastSyncTimestamp = _lastSynced;
+      await _localRepository.savePreferences(prefs);
+      
       notifyListeners();
     } else {
       _lastSynced = lastSync;
     }
 
-    // Note: Realtime stream disabled to reduce egress.
-    // Re-enable when implementing real-time collaboration.
-    // _syncSubscription?.cancel();
-    // _syncSubscription = _cloudService.notesStream().listen((remoteNotes) {
-    //   _lastSynced = DateTime.now();
-    //   notifyListeners();
-    // });
+    _syncSubscription?.cancel();
+    _syncSubscription = _cloudService.remoteUpdates.listen((_) {
+      _lastSynced = DateTime.now();
+      
+      final prefs = _localRepository.getPreferences();
+      prefs.lastSyncTimestamp = _lastSynced;
+      _localRepository.savePreferences(prefs);
+      
+      notifyListeners();
+    });
 
     // Seed initial data if empty (Tasks and Courses)
     if (_localRepository.getAllTasks().isEmpty &&

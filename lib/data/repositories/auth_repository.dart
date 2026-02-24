@@ -1,12 +1,10 @@
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
-import 'package:flutter/foundation.dart';
 import 'package:classlly/core/services/supabase_cloud_service.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:crypto/crypto.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 class AuthRepository {
   SupabaseClient get _client => Supabase.instance.client;
@@ -44,7 +42,14 @@ class AuthRepository {
   }
 
   Future<void> signOut() async {
-    await NotesRepository().clearAllData();
+    // Before wiping the local device for a guest, push the latest changes up.
+    if (_auth.currentSession != null) {
+      try {
+        await SupabaseCloudService().syncAll();
+      } catch (e) {
+        print('Warning: Could not sync data before sign out: $e');
+      }
+    }
     await _auth.signOut();
   }
 

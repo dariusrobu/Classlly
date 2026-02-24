@@ -34,12 +34,13 @@ class _TasksScreenState extends State<TasksScreen> {
 
         // Task filtering for Kanban
         final highPriorityTasks = allTasks
-            .where((t) => !t.isCompleted && t.priority == 2)
+            .where((t) => !t.isDeleted && !t.isCompleted && t.priority == 2)
             .toList();
         final todoTasks = allTasks
-            .where((t) => !t.isCompleted && t.priority != 2)
+            .where((t) => !t.isDeleted && !t.isCompleted && t.priority != 2)
             .toList();
-        final doneTasks = allTasks.where((t) => t.isCompleted).toList();
+        final doneTasks =
+            allTasks.where((t) => !t.isDeleted && t.isCompleted).toList();
 
         final tasksForAgenda = _getTasksForDay(allTasks, DateTime.now());
         final isLargeScreen = MediaQuery.of(context).size.width > 1200;
@@ -747,7 +748,7 @@ class _TasksScreenState extends State<TasksScreen> {
 
   List<Task> _getTasksForDay(List<Task> tasks, DateTime day) {
     return tasks.where((t) {
-      if (t.dueDate == null) return false;
+      if (t.isDeleted || t.dueDate == null) return false;
       return t.dueDate!.year == day.year &&
           t.dueDate!.month == day.month &&
           t.dueDate!.day == day.day;

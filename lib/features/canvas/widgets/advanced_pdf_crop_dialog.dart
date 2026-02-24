@@ -1,10 +1,11 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 
 /// Advanced PDF Crop Dialog with 8-point handles, rule-of-thirds grid, and background processing.
+enum CropShape { rectangle, oval }
+
 class AdvancedPdfCropDialog extends StatefulWidget {
   final Uint8List imageBytes;
   const AdvancedPdfCropDialog({super.key, required this.imageBytes});
@@ -25,6 +26,12 @@ class _AdvancedPdfCropDialogState extends State<AdvancedPdfCropDialog> {
   
   final GlobalKey _imageKey = GlobalKey();
   bool _isProcessing = false;
+  
+  // Rotation in degrees (0, 90, 180, 270)
+  int _rotation = 0;
+  
+  // Current selection shape
+  CropShape _cropShape = CropShape.rectangle;
 
   @override
   void initState() {
@@ -72,6 +79,8 @@ class _AdvancedPdfCropDialogState extends State<AdvancedPdfCropDialog> {
         y: (_cropRect.top * scaleY).toInt(),
         width: (_cropRect.width * scaleX).toInt(),
         height: (_cropRect.height * scaleY).toInt(),
+        rotation: _rotation,
+        shape: _cropShape,
       );
 
       // Process in background isolate
@@ -154,17 +163,21 @@ class _AdvancedPdfCropDialogState extends State<AdvancedPdfCropDialog> {
                               ),
                               child: Stack(
                                 children: [
-                                  Image.memory(
-                                    widget.imageBytes,
-                                    key: _imageKey,
-                                    width: displayW,
-                                    height: displayH,
-                                    fit: BoxFit.fill,
+                                  RotatedBox(
+                                    quarterTurns: _rotation ~/ 90,
+                                    child: Image.memory(
+                                      widget.imageBytes,
+                                      key: _imageKey,
+                                      width: displayW,
+                                      height: displayH,
+                                      fit: BoxFit.fill,
+                                    ),
                                   ),
                                   // Dimmed overlay
                                   Positioned.fill(
                                     child: _CropOverlay(
                                       cropRect: _cropRect,
+                                      cropShape: _cropShape,
                                       onChanged: (newRect) {
                                         setState(() => _cropRect = newRect);
                                       },
@@ -195,6 +208,44 @@ class _AdvancedPdfCropDialogState extends State<AdvancedPdfCropDialog> {
                           style: TextStyle(color: Colors.grey, fontSize: 12),
                         ),
                         const Spacer(),
+                        // Rotation Control
+                        IconButton(
+                          icon: const Icon(Icons.rotate_right_rounded, color: Colors.white70),
+                          tooltip: 'Rotate 90°',
+                          onPressed: () {
+                            setState(() {
+                              _rotation = (_rotation + 90) % 360;
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        // Shape Toggle
+                        SegmentedButton<CropShape>(
+                          segments: const [
+                            ButtonSegment(
+                              value: CropShape.rectangle,
+                              icon: Icon(Icons.rectangle_outlined, size: 18),
+                              label: Text('Rect'),
+                            ),
+                            ButtonSegment(
+                              value: CropShape.oval,
+                              icon: Icon(Icons.circle_outlined, size: 18),
+                              label: Text('Oval'),
+                            ),
+                          ],
+                          selected: {_cropShape},
+                          onSelectionChanged: (set) {
+                            setState(() => _cropShape = set.first);
+                          },
+                          style: SegmentedButton.styleFrom(
+                            backgroundColor: Colors.white10,
+                            foregroundColor: Colors.white70,
+                            selectedBackgroundColor: Theme.of(context).primaryColor,
+                            selectedForegroundColor: Colors.white,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
                         if (_isProcessing)
                           const SizedBox(
                             width: 20,
@@ -232,11 +283,13 @@ class _AdvancedPdfCropDialogState extends State<AdvancedPdfCropDialog> {
 
 class _CropOverlay extends StatelessWidget {
   final Rect cropRect;
+  final CropShape cropShape;
   final ValueChanged<Rect> onChanged;
   final Size imageSize;
 
   const _CropOverlay({
     required this.cropRect,
+    required this.cropShape,
     required this.onChanged,
     required this.imageSize,
   });
@@ -248,17 +301,18 @@ class _CropOverlay extends StatelessWidget {
         // Darkened areas around crop rect
         CustomPaint(
           size: Size.infinite,
-          painter: _DimmerPainter(cropRect: cropRect),
+          painter: _DimmerPainter(cropRect: cropRect, shape: cropShape),
         ),
         // The crop window itself
         Positioned.fromRect(
           rect: cropRect,
           child: Container(
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.white, width: 1),
+              border: Border.all(color: Colors.white70, width: 1.5),
+              shape: cropShape == CropShape.oval ? BoxShape.circle : BoxShape.rectangle,
             ),
             child: CustomPaint(
-              painter: _GridPainter(),
+              painter: _GridPainter(shape: cropShape),
               child: Stack(
                 children: [
                   // Middle move handle
@@ -269,7 +323,7 @@ class _CropOverlay extends StatelessWidget {
                     child: Container(color: Colors.transparent),
                   ),
                   // Corner/Side handles
-                  ..._buildHandles(),
+                  ..._buildHandles(context),
                 ],
               ),
             ),
@@ -285,49 +339,61 @@ class _CropOverlay extends StatelessWidget {
     return Rect.fromLTWH(left, top, rect.width, rect.height);
   }
 
-  List<Widget> _buildHandles() {
+  List<Widget> _buildHandles(BuildContext context) {
     return [
       // Corners
       _handle(
+        context,
         Alignment.topLeft,
         (d) => _resize(top: d.dy, left: d.dx),
         Icons.circle,
       ),
       _handle(
+        context,
         Alignment.topRight,
         (d) => _resize(top: d.dy, right: d.dx),
         Icons.circle,
       ),
       _handle(
+        context,
         Alignment.bottomLeft,
         (d) => _resize(bottom: d.dy, left: d.dx),
         Icons.circle,
       ),
       _handle(
+        context,
         Alignment.bottomRight,
         (d) => _resize(bottom: d.dy, right: d.dx),
         Icons.circle,
       ),
       // Sides
-      _handle(Alignment.topCenter, (d) => _resize(top: d.dy), null),
-      _handle(Alignment.bottomCenter, (d) => _resize(bottom: d.dy), null),
-      _handle(Alignment.centerLeft, (d) => _resize(left: d.dx), null),
-      _handle(Alignment.centerRight, (d) => _resize(right: d.dx), null),
+      _handle(context, Alignment.topCenter, (d) => _resize(top: d.dy), null),
+      _handle(context, Alignment.bottomCenter, (d) => _resize(bottom: d.dy), null),
+      _handle(context, Alignment.centerLeft, (d) => _resize(left: d.dx), null),
+      _handle(context, Alignment.centerRight, (d) => _resize(right: d.dx), null),
     ];
   }
 
-  Widget _handle(Alignment alignment, Function(Offset) onDrag, IconData? icon) {
+  Widget _handle(BuildContext context, Alignment alignment, Function(Offset) onDrag, IconData? icon) {
     return Align(
       alignment: alignment,
       child: GestureDetector(
         onPanUpdate: (details) => onDrag(details.delta),
         child: Container(
-          width: 24,
-          height: 24,
+          width: 22,
+          height: 22,
           decoration: BoxDecoration(
-            color: icon != null ? Colors.white : Colors.white70,
+            color: Colors.white,
             shape: icon != null ? BoxShape.circle : BoxShape.rectangle,
             borderRadius: icon == null ? BorderRadius.circular(2) : null,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.3),
+                blurRadius: 4,
+                spreadRadius: 1,
+              ),
+            ],
+            border: Border.all(color: Theme.of(context).primaryColor, width: 2),
           ),
           margin: const EdgeInsets.all(-4), // Overlap edge
         ),
@@ -365,70 +431,127 @@ class _CropOverlay extends StatelessWidget {
 
 class _DimmerPainter extends CustomPainter {
   final Rect cropRect;
-  _DimmerPainter({required this.cropRect});
+  final CropShape shape;
+  _DimmerPainter({required this.cropRect, required this.shape});
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..color = Colors.black.withValues(alpha: 0.6);
     
-    // Top
-    canvas.drawRect(Rect.fromLTRB(0, 0, size.width, cropRect.top), paint);
-    // Bottom
-    canvas.drawRect(Rect.fromLTRB(0, cropRect.bottom, size.width, size.height), paint);
-    // Left
-    canvas.drawRect(Rect.fromLTRB(0, cropRect.top, cropRect.left, cropRect.bottom), paint);
-    // Right
-    canvas.drawRect(Rect.fromLTRB(cropRect.right, cropRect.top, size.width, cropRect.bottom), paint);
+    if (shape == CropShape.rectangle) {
+      // Top
+      canvas.drawRect(Rect.fromLTRB(0, 0, size.width, cropRect.top), paint);
+      // Bottom
+      canvas.drawRect(Rect.fromLTRB(0, cropRect.bottom, size.width, size.height), paint);
+      // Left
+      canvas.drawRect(Rect.fromLTRB(0, cropRect.top, cropRect.left, cropRect.bottom), paint);
+      // Right
+      canvas.drawRect(Rect.fromLTRB(cropRect.right, cropRect.top, size.width, cropRect.bottom), paint);
+    } else {
+      // Path with hole for oval
+      final path = Path()
+        ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
+        ..addOval(cropRect);
+      path.fillType = PathFillType.evenOdd;
+      canvas.drawPath(path, paint);
+    }
   }
 
   @override
-  bool shouldRepaint(_DimmerPainter oldDelegate) => oldDelegate.cropRect != cropRect;
+  bool shouldRepaint(_DimmerPainter oldDelegate) => 
+      oldDelegate.cropRect != cropRect || oldDelegate.shape != shape;
 }
 
 class _GridPainter extends CustomPainter {
+  final CropShape shape;
+  _GridPainter({required this.shape});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = Colors.white.withValues(alpha: 0.3)
       ..strokeWidth = 1;
 
-    // Horizontal lines
-    canvas.drawLine(Offset(0, size.height / 3), Offset(size.width, size.height / 3), paint);
-    canvas.drawLine(Offset(0, 2 * size.height / 3), Offset(size.width, 2 * size.height / 3), paint);
+    if (shape == CropShape.rectangle) {
+      // Horizontal lines
+      canvas.drawLine(Offset(0, size.height / 3), Offset(size.width, size.height / 3), paint);
+      canvas.drawLine(Offset(0, 2 * size.height / 3), Offset(size.width, 2 * size.height / 3), paint);
 
-    // Vertical lines
-    canvas.drawLine(Offset(size.width / 3, 0), Offset(size.width / 3, size.height), paint);
-    canvas.drawLine(Offset(2 * size.width / 3, 0), Offset(2 * size.width / 3, size.height), paint);
+      // Vertical lines
+      canvas.drawLine(Offset(size.width / 3, 0), Offset(size.width / 3, size.height), paint);
+      canvas.drawLine(Offset(2 * size.width / 3, 0), Offset(2 * size.width / 3, size.height), paint);
+    } else {
+      // Cross for oval
+      canvas.drawLine(Offset(size.width / 2, 0), Offset(size.width / 2, size.height), paint);
+      canvas.drawLine(Offset(0, size.height / 2), Offset(size.width, size.height / 2), paint);
+    }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _GridPainter oldDelegate) => oldDelegate.shape != shape;
 }
 
 class _CropParams {
   final Uint8List imageBytes;
   final int x, y, width, height;
+  final int rotation;
+  final CropShape shape;
   _CropParams({
     required this.imageBytes,
     required this.x,
     required this.y,
     required this.width,
     required this.height,
+    required this.rotation,
+    required this.shape,
   });
 }
 
 /// Top-level function for background isolate processing
 Uint8List _processCrop(_CropParams params) {
-  final image = img.decodeImage(params.imageBytes);
+  var image = img.decodeImage(params.imageBytes);
   if (image == null) throw Exception('Failed to decode image');
   
-  final cropped = img.copyCrop(
+  // Handle Rotation
+  if (params.rotation != 0) {
+    image = img.copyRotate(image, angle: params.rotation);
+  }
+  
+  // Handle Crop
+  var cropped = img.copyCrop(
     image,
     x: params.x,
     y: params.y,
     width: params.width,
     height: params.height,
   );
+  
+  // Handle Oval Masking
+  if (params.shape == CropShape.oval) {
+    final masked = img.Image(
+      width: cropped.width,
+      height: cropped.height,
+      numChannels: 4,
+    );
+    
+    final centerX = cropped.width / 2;
+    final centerY = cropped.height / 2;
+    final radiusX = cropped.width / 2;
+    final radiusY = cropped.height / 2;
+    
+    for (var y = 0; y < cropped.height; y++) {
+      for (var x = 0; x < cropped.width; x++) {
+        final dx = (x - centerX) / radiusX;
+        final dy = (y - centerY) / radiusY;
+        if (dx * dx + dy * dy <= 1.0) {
+          masked.setPixel(x, y, cropped.getPixel(x, y));
+        } else {
+          masked.setPixel(x, y, img.ColorRgba8(0, 0, 0, 0));
+        }
+      }
+    }
+    cropped = masked;
+  }
   
   return Uint8List.fromList(img.encodePng(cropped));
 }

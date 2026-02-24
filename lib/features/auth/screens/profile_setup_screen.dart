@@ -90,9 +90,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       final repo = NotesRepository();
       await repo.saveStudentProfile(profile);
 
-      // 3. Mark Onboarding as complete
+      // 3. Mark Onboarding as complete & Set Provider
       final prefs = repo.getPreferences();
       prefs.hasCompletedOnboarding = true;
+      prefs.cloudProvider = 'supabase';
       await repo.savePreferences(prefs);
 
       // 4. Trigger Cloud Sync (which handles upserting profile)
@@ -156,9 +157,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       final repo = NotesRepository();
       await repo.saveStudentProfile(profile);
 
-      // Mark Onboarding as complete
+      // Mark Onboarding as complete & Set Provider
       final prefs = repo.getPreferences();
       prefs.hasCompletedOnboarding = true;
+      prefs.cloudProvider = 'supabase';
       await repo.savePreferences(prefs);
 
       // Sync minimal profile

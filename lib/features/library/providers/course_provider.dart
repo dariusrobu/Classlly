@@ -5,18 +5,32 @@ import 'package:classlly/data/models/course_model.dart';
 import 'package:classlly/data/models/grade_model.dart';
 import 'package:classlly/data/models/attendance_model.dart';
 import 'package:classlly/core/services/notification_service.dart';
+import 'package:classlly/core/services/cloud_storage_service.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:classlly/core/services/supabase_cloud_service.dart';
 
 class CourseProvider with ChangeNotifier {
   final NotesRepository _localRepository;
+  final CloudStorageService _cloudService;
   final NotificationService _notificationService;
 
   CourseProvider({
     NotesRepository? repository,
+    CloudStorageService? cloudService,
     NotificationService? notificationService,
   }) : _localRepository = repository ?? NotesRepository(),
-       _notificationService = notificationService ?? NotificationService();
+       _cloudService = cloudService ?? SupabaseCloudService(),
+       _notificationService = notificationService ?? NotificationService() {
+    Hive.box<Course>(NotesRepository.courseBoxName).watch().listen((_) => notifyListeners());
+    Hive.box<Grade>(NotesRepository.gradeBoxName).watch().listen((_) => notifyListeners());
+    Hive.box<Attendance>(NotesRepository.attendanceBoxName).watch().listen((_) => notifyListeners());
+  }
 
   List<Course> get courses => _localRepository.getAllCourses();
+
+  void triggerReload() {
+    notifyListeners();
+  }
 
   double get totalAverageGrade {
     final allCourses = courses;
@@ -94,6 +108,8 @@ class CourseProvider with ChangeNotifier {
     _scheduleCourseNotifications(course);
     await recalculateStats();
 
+    _cloudService.syncCourses();
+
     notifyListeners();
   }
 
@@ -102,30 +118,36 @@ class CourseProvider with ChangeNotifier {
     await _localRepository.deleteCourse(courseId);
     await recalculateStats();
 
+    _cloudService.syncCourses();
+
     notifyListeners();
   }
 
   Future<void> saveAttendance(Attendance attendance) async {
     await _localRepository.saveAttendance(attendance);
     await recalculateStats();
+    _cloudService.syncAttendance();
     notifyListeners();
   }
 
   Future<void> deleteAttendance(String id) async {
     await _localRepository.deleteAttendance(id);
     await recalculateStats();
+    _cloudService.syncAttendance();
     notifyListeners();
   }
 
   Future<void> saveGrade(Grade grade) async {
     await _localRepository.saveGrade(grade);
     await recalculateStats();
+    _cloudService.syncGrades();
     notifyListeners();
   }
 
   Future<void> deleteGrade(String id) async {
     await _localRepository.deleteGrade(id);
     await recalculateStats();
+    _cloudService.syncGrades();
     notifyListeners();
   }
 

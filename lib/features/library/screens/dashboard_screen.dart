@@ -676,6 +676,35 @@ class _DonutPainter extends CustomPainter {
       percentage != oldDelegate.percentage || color != oldDelegate.color;
 }
 
+class _ScheduleItem {
+  final Course course;
+  final bool isSeminar;
+  final String timeString; // "10:00 - 12:00"
+  final DateTime startTime; // For sorting
+
+  _ScheduleItem({
+    required this.course,
+    required this.isSeminar,
+    required this.timeString,
+    required this.startTime,
+  });
+
+  static DateTime _parseTime(String timeString, DateTime referenceDay) {
+    try {
+      final parts = timeString.split('-');
+      if (parts.isEmpty) return referenceDay;
+      final startStr = parts[0].trim();
+      final timeParts = startStr.split(':');
+      if (timeParts.length == 2) {
+        final hour = int.parse(timeParts[0]);
+        final minute = int.parse(timeParts[1]);
+        return DateTime(referenceDay.year, referenceDay.month, referenceDay.day, hour, minute);
+      }
+    } catch (_) {}
+    return referenceDay;
+  }
+}
+
 // ─── Schedule Card (with colored left borders) ─────────────────────────────
 class ScheduleCard extends StatelessWidget {
   const ScheduleCard({super.key});
@@ -688,12 +717,12 @@ class ScheduleCard extends StatelessWidget {
     final dayName = DateFormat('EEEE').format(now);
     final weekInfo = calendarProvider.getWeekInfo(now);
 
-    final todaysLectures = <Course>[];
+    final todaysItems = <_ScheduleItem>[];
+
     for (var course in courseProvider.courses) {
+      // 1. Check Course (Lecture)
       if (course.courseDay == dayName) {
         bool show = course.courseFrequency == 'Weekly';
-        
-        // If we have week information, we can also check bi-weekly courses
         if (!show && weekInfo != null) {
           if (course.courseFrequency == 'Bi-Weekly (odd)' && weekInfo['isOdd']) {
             show = true;
@@ -701,12 +730,39 @@ class ScheduleCard extends StatelessWidget {
             show = true;
           }
         }
-        
         if (show) {
-          todaysLectures.add(course);
+          todaysItems.add(_ScheduleItem(
+            course: course,
+            isSeminar: false,
+            timeString: course.courseTime,
+            startTime: _ScheduleItem._parseTime(course.courseTime, now),
+          ));
+        }
+      }
+
+      // 2. Check Seminar
+      if (course.seminarDay == dayName) {
+        bool showSeminar = course.seminarFrequency == 'Weekly';
+        if (!showSeminar && weekInfo != null) {
+          if (course.seminarFrequency == 'Bi-Weekly (odd)' && weekInfo['isOdd']) {
+            showSeminar = true;
+          } else if (course.seminarFrequency == 'Bi-Weekly (even)' && !weekInfo['isOdd']) {
+            showSeminar = true;
+          }
+        }
+        if (showSeminar) {
+          todaysItems.add(_ScheduleItem(
+            course: course,
+            isSeminar: true,
+            timeString: course.seminarTime,
+            startTime: _ScheduleItem._parseTime(course.seminarTime, now),
+          ));
         }
       }
     }
+
+    // Sort by chronological order
+    todaysItems.sort((a, b) => a.startTime.compareTo(b.startTime));
 
     return GlassCard(
       padding: const EdgeInsets.all(24),
@@ -743,7 +799,7 @@ class ScheduleCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          if (todaysLectures.isEmpty)
+          if (todaysItems.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Column(
@@ -773,8 +829,10 @@ class ScheduleCard extends StatelessWidget {
             )
           else
             Column(
-              children: todaysLectures.map((course) {
-                final courseColor = Color(course.color);
+              children: todaysItems.map((item) {
+                final courseColor = Color(item.course.color);
+                final locationToUse = item.isSeminar ? item.course.seminarLocation : item.course.location;
+                
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
@@ -816,20 +874,20 @@ class ScheduleCard extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Icon(
-                                Icons.school_outlined,
+                                item.isSeminar ? Icons.people_outline : Icons.school_outlined,
                                 color: courseColor,
                                 size: 20,
                               ),
                             ),
                             title: Text(
-                              course.title,
+                              '${item.course.title}${item.isSeminar ? ' (Seminar)' : ''}',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
                               ),
                             ),
                             subtitle: Text(
-                              '${course.location.isNotEmpty ? '${course.location} · ' : ''}${course.courseTime}',
+                              '${locationToUse.isNotEmpty ? '$locationToUse · ' : ''}${item.timeString}',
                               style: TextStyle(
                                 color:
                                     Theme.of(context).brightness ==
@@ -840,7 +898,7 @@ class ScheduleCard extends StatelessWidget {
                               ),
                             ),
                             trailing: Text(
-                              course.courseTime,
+                              item.timeString,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
@@ -854,8 +912,7 @@ class ScheduleCard extends StatelessWidget {
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    CourseDetailScreen(course: course),
+                                builder: (context) => CourseDetailScreen(course: item.course),
                               ),
                             ),
                           ),

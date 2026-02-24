@@ -2,18 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/data/models/note_models.dart';
 import 'package:classlly/data/models/folder_model.dart';
+import 'package:classlly/core/services/cloud_storage_service.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:classlly/core/services/supabase_cloud_service.dart';
 
 class NotesProvider with ChangeNotifier {
   final NotesRepository _localRepository;
+  final CloudStorageService _cloudService;
   String? _currentFolderId;
 
-  NotesProvider({NotesRepository? repository})
-    : _localRepository = repository ?? NotesRepository();
+  NotesProvider({
+    NotesRepository? repository,
+    CloudStorageService? cloudService,
+  }) : _localRepository = repository ?? NotesRepository(),
+       _cloudService = cloudService ?? SupabaseCloudService() {
+    Hive.box<Note>(NotesRepository.boxName).watch().listen((_) => notifyListeners());
+    Hive.box<Folder>(NotesRepository.folderBoxName).watch().listen((_) => notifyListeners());
+  }
 
   String? get currentFolderId => _currentFolderId;
   List<Note> get notes => _localRepository.getAllNotes();
   List<Note> get deletedNotes => _localRepository.getDeletedNotes();
   List<Folder> get deletedFolders => _localRepository.getDeletedFolders();
+
+  void triggerReload() {
+    notifyListeners();
+  }
 
   void navigateToFolder(String? folderId) {
     _currentFolderId = folderId;
@@ -33,6 +47,7 @@ class NotesProvider with ChangeNotifier {
   Future<void> renameFolder(Folder folder, String newTitle) async {
     folder.title = newTitle;
     await _localRepository.saveFolder(folder);
+    _cloudService.syncFolders();
     notifyListeners();
   }
 
@@ -41,6 +56,7 @@ class NotesProvider with ChangeNotifier {
     if (folder != null) {
       folder.isDeleted = true;
       await _localRepository.saveFolder(folder);
+      _cloudService.syncFolders();
       notifyListeners();
     }
   }
@@ -50,6 +66,7 @@ class NotesProvider with ChangeNotifier {
     if (folder != null) {
       folder.isDeleted = false;
       await _localRepository.saveFolder(folder);
+      _cloudService.syncFolders();
       notifyListeners();
     }
   }
@@ -63,6 +80,7 @@ class NotesProvider with ChangeNotifier {
     if (folder.id == newParentId) return;
     folder.parentId = newParentId;
     await _localRepository.saveFolder(folder);
+    _cloudService.syncFolders();
     notifyListeners();
   }
 
@@ -76,6 +94,7 @@ class NotesProvider with ChangeNotifier {
       type: type,
     );
     await _localRepository.saveNote(note);
+    _cloudService.syncNotes();
     notifyListeners();
     return note;
   }
@@ -83,12 +102,14 @@ class NotesProvider with ChangeNotifier {
   Future<void> renameNote(Note note, String newTitle) async {
     note.title = newTitle;
     await _localRepository.saveNote(note);
+    _cloudService.syncNotes();
     notifyListeners();
   }
 
   Future<void> moveNote(Note note, String? newFolderId) async {
     note.notebookId = newFolderId;
     await _localRepository.saveNote(note);
+    _cloudService.syncNotes();
     notifyListeners();
   }
 
@@ -97,6 +118,7 @@ class NotesProvider with ChangeNotifier {
     if (note != null) {
       note.isDeleted = true;
       await _localRepository.saveNote(note);
+      _cloudService.syncNotes();
       notifyListeners();
     }
   }
@@ -106,6 +128,7 @@ class NotesProvider with ChangeNotifier {
     if (note != null) {
       note.isDeleted = false;
       await _localRepository.saveNote(note);
+      _cloudService.syncNotes();
       notifyListeners();
     }
   }

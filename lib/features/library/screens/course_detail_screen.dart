@@ -1981,7 +1981,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
       valueListenable: Hive.box<Task>(NotesRepository.taskBoxName).listenable(),
       builder: (context, Box<Task> box, _) {
         final tasks = box.values
-            .where((t) => t.courseId == _course.id && !t.isCompleted)
+            .where((t) => t.courseId == _course.id && !t.isCompleted && !t.isDeleted)
             .toList();
 
         final displayTasks = showAll ? tasks : tasks.take(3).toList();

@@ -1,6 +1,10 @@
 import 'package:classlly/core/services/supabase_cloud_service.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/features/library/providers/library_provider.dart';
+import 'package:classlly/features/library/providers/course_provider.dart';
+import 'package:classlly/features/library/providers/task_provider.dart';
+import 'package:classlly/features/library/providers/notes_provider.dart';
+import 'package:classlly/features/library/providers/profile_provider.dart';
 import 'package:classlly/features/library/screens/library_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -51,6 +55,7 @@ class _RestoreScreenState extends State<RestoreScreen> {
       final repo = NotesRepository();
       final prefs = repo.getPreferences();
       prefs.hasCompletedOnboarding = true;
+      prefs.cloudProvider = 'supabase';
       await repo.savePreferences(prefs);
     } catch (e) {
       debugPrint('RestoreScreen error: $e');
@@ -62,6 +67,13 @@ class _RestoreScreenState extends State<RestoreScreen> {
 
   void _finish() {
     if (!mounted) return;
+    
+    // Notify all primary providers that underlying Hive data has changed
+    Provider.of<CourseProvider>(context, listen: false).triggerReload();
+    Provider.of<TaskProvider>(context, listen: false).triggerReload();
+    Provider.of<NotesProvider>(context, listen: false).triggerReload();
+    Provider.of<ProfileProvider>(context, listen: false).triggerReload();
+    
     Provider.of<LibraryProvider>(context, listen: false).initSync();
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const LibraryScreen()),

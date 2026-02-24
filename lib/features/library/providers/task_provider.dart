@@ -3,22 +3,34 @@ import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/data/models/task_model.dart';
 import 'package:classlly/core/services/notification_service.dart';
 import 'package:classlly/core/services/widget_service.dart';
+import 'package:classlly/core/services/cloud_storage_service.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:classlly/core/services/supabase_cloud_service.dart';
 
 class TaskProvider with ChangeNotifier {
   final NotesRepository _localRepository;
+  final CloudStorageService _cloudService;
   final NotificationService _notificationService;
   final WidgetService _widgetService;
 
   TaskProvider({
     NotesRepository? repository,
+    CloudStorageService? cloudService,
     NotificationService? notificationService,
     WidgetService? widgetService,
   }) : _localRepository = repository ?? NotesRepository(),
+       _cloudService = cloudService ?? SupabaseCloudService(),
        _notificationService = notificationService ?? NotificationService(),
-       _widgetService = widgetService ?? WidgetService();
+       _widgetService = widgetService ?? WidgetService() {
+    Hive.box<Task>(NotesRepository.taskBoxName).watch().listen((_) => notifyListeners());
+  }
 
   List<Task> get tasks => _localRepository.getAllTasks();
   List<Task> get deletedTasks => _localRepository.getDeletedTasks();
+
+  void triggerReload() {
+    notifyListeners();
+  }
 
   Future<void> saveTask(Task task) async {
     await _notificationService.requestPermissions();
@@ -27,6 +39,9 @@ class TaskProvider with ChangeNotifier {
 
     // Update widget
     await _widgetService.refreshUpNextWidget();
+
+    // Sync to cloud
+    _cloudService.syncTasks();
 
     notifyListeners();
   }
@@ -87,6 +102,7 @@ class TaskProvider with ChangeNotifier {
     _notificationService.cancelNotification(taskId.hashCode);
     await _localRepository.deleteTask(taskId);
     await _widgetService.refreshUpNextWidget();
+    _cloudService.syncTasks();
     notifyListeners();
   }
 
