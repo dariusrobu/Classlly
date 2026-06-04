@@ -9,9 +9,12 @@ import 'package:classlly/data/models/folder_model.dart';
 import 'package:classlly/data/models/student_profile_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/core/services/cloud_storage_service.dart';
+import 'package:classlly/core/services/rls_verifier.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:classlly/data/models/academic_calendar_model.dart';
+import 'package:classlly/data/models/user_preferences_model.dart';
 
 // Top-level function for Dart Isolate (must be outside the class)
 List<Note> parseNotesIsolate(List<Map<String, dynamic>> notesData) {
@@ -48,19 +51,22 @@ class SupabaseCloudService implements CloudStorageService {
 
     if (_syncChannel != null) return; // Already listening
 
-    _syncChannel = _client.channel('public:sync_store').onPostgresChanges(
-      event: PostgresChangeEvent.all,
-      schema: 'public',
-      table: 'sync_store',
-      filter: PostgresChangeFilter(
-        type: PostgresChangeFilterType.eq,
-        column: 'user_id',
-        value: uid,
-      ),
-      callback: (PostgresChangePayload payload) async {
-        await _handleRealtimePayload(payload);
-      },
-    ).subscribe();
+    _syncChannel = _client
+        .channel('public:sync_store')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'sync_store',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: uid,
+          ),
+          callback: (PostgresChangePayload payload) async {
+            await _handleRealtimePayload(payload);
+          },
+        )
+        .subscribe();
   }
 
   Future<void> _handleRealtimePayload(PostgresChangePayload payload) async {
@@ -89,12 +95,35 @@ class SupabaseCloudService implements CloudStorageService {
 
   void _deleteFromHive(String collection, String id) {
     switch (collection) {
-      case 'tasks': Hive.box<Task>(NotesRepository.taskBoxName).delete(id); break;
-      case 'courses': Hive.box<Course>(NotesRepository.courseBoxName).delete(id); break;
-      case 'notes': Hive.box<Note>(NotesRepository.boxName).delete(id); break;
-      case 'folders': Hive.box<Folder>(NotesRepository.folderBoxName).delete(id); break;
-      case 'grades': Hive.box<Grade>(NotesRepository.gradeBoxName).delete(id); break;
-      case 'attendance': Hive.box<Attendance>(NotesRepository.attendanceBoxName).delete(id); break;
+      case 'tasks':
+        Hive.box<Task>(NotesRepository.taskBoxName).delete(id);
+        break;
+      case 'courses':
+        Hive.box<Course>(NotesRepository.courseBoxName).delete(id);
+        break;
+      case 'notes':
+        Hive.box<Note>(NotesRepository.boxName).delete(id);
+        break;
+      case 'folders':
+        Hive.box<Folder>(NotesRepository.folderBoxName).delete(id);
+        break;
+      case 'grades':
+        Hive.box<Grade>(NotesRepository.gradeBoxName).delete(id);
+        break;
+      case 'attendance':
+        Hive.box<Attendance>(NotesRepository.attendanceBoxName).delete(id);
+        break;
+      case 'periods':
+        Hive.box<AcademicPeriod>(NotesRepository.periodsBoxName).delete(id);
+        break;
+      case 'events':
+        Hive.box<AcademicEvent>(NotesRepository.eventsBoxName).delete(id);
+        break;
+      case 'preferences':
+        Hive.box<UserPreferences>(
+          NotesRepository.preferencesBoxName,
+        ).delete(id);
+        break;
     }
   }
 
@@ -108,9 +137,13 @@ class SupabaseCloudService implements CloudStorageService {
 
     final repo = NotesRepository();
     switch (collection) {
-      case 'tasks': await repo.saveTask(Task.fromJson(dataMap)); break;
-      case 'courses': await repo.saveCourse(Course.fromJson(dataMap)); break;
-      case 'notes': 
+      case 'tasks':
+        await repo.saveTask(Task.fromJson(dataMap));
+        break;
+      case 'courses':
+        await repo.saveCourse(Course.fromJson(dataMap));
+        break;
+      case 'notes':
         final incomingNote = Note.fromJson(dataMap);
         final localBox = Hive.box<Note>(NotesRepository.boxName);
         final existingNote = localBox.get(incomingNote.id);
@@ -119,33 +152,60 @@ class SupabaseCloudService implements CloudStorageService {
           // SMART MERGE: Conflict Resolution
           // If the note exists locally, we merge strokes and text blocks using timestamps
           // to ensure offline edits made on THIS device aren't wiped out by an incoming sync.
-          
+
           // 1. Merge Strokes
           final Map<int, Stroke> strokeMap = {};
-          for (var s in existingNote.strokes) { strokeMap[s.createdAt] = s; }
-          for (var s in incomingNote.strokes) { strokeMap[s.createdAt] = s; }
-          final mergedStrokes = strokeMap.values.toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-          
+          for (var s in existingNote.strokes) {
+            strokeMap[s.createdAt] = s;
+          }
+          for (var s in incomingNote.strokes) {
+            strokeMap[s.createdAt] = s;
+          }
+          final mergedStrokes = strokeMap.values.toList()
+            ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
           // 2. Merge Text Blocks
           final Map<int, TextBlock> textMap = {};
-          for (var t in existingNote.textBlocks) { textMap[t.createdAt] = t; }
-          for (var t in incomingNote.textBlocks) { textMap[t.createdAt] = t; }
-          final mergedTextBlocks = textMap.values.toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+          for (var t in existingNote.textBlocks) {
+            textMap[t.createdAt] = t;
+          }
+          for (var t in incomingNote.textBlocks) {
+            textMap[t.createdAt] = t;
+          }
+          final mergedTextBlocks = textMap.values.toList()
+            ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
           // 3. Apply merged lists to incoming note (which holds newest metadata like title)
           incomingNote.strokes.clear();
           incomingNote.strokes.addAll(mergedStrokes);
-          
+
           incomingNote.textBlocks.clear();
           incomingNote.textBlocks.addAll(mergedTextBlocks);
         }
-        
-        await repo.saveNote(incomingNote); 
+
+        await repo.saveNote(incomingNote);
         break;
-      case 'profiles': await repo.saveStudentProfile(StudentProfile.fromJson(dataMap)); break;
-      case 'folders': await repo.saveFolder(Folder.fromJson(dataMap)); break;
-      case 'grades': await repo.saveGrade(Grade.fromJson(dataMap)); break;
-      case 'attendance': await repo.saveAttendance(Attendance.fromJson(dataMap)); break;
+      case 'profiles':
+        await repo.saveStudentProfile(StudentProfile.fromJson(dataMap));
+        break;
+      case 'folders':
+        await repo.saveFolder(Folder.fromJson(dataMap));
+        break;
+      case 'grades':
+        await repo.saveGrade(Grade.fromJson(dataMap));
+        break;
+      case 'attendance':
+        await repo.saveAttendance(Attendance.fromJson(dataMap));
+        break;
+      case 'periods':
+        await repo.savePeriod(AcademicPeriod.fromJson(dataMap));
+        break;
+      case 'events':
+        await repo.saveEvent(AcademicEvent.fromJson(dataMap));
+        break;
+      case 'preferences':
+        await repo.savePreferences(UserPreferences.fromJson(dataMap));
+        break;
     }
   }
 
@@ -160,7 +220,7 @@ class SupabaseCloudService implements CloudStorageService {
       debugPrint('SUPABASE_SYNC: No user logged in. Skipping sync.');
       return;
     }
-    
+
     debugPrint('SUPABASE_SYNC: Starting syncAll for user $uid');
     await Future.wait([
       syncProfile(),
@@ -170,6 +230,8 @@ class SupabaseCloudService implements CloudStorageService {
       syncFolders(),
       syncGrades(),
       syncAttendance(),
+      syncCalendar(),
+      syncPreferences(),
     ]);
     debugPrint('SUPABASE_SYNC: syncAll completed.');
   }
@@ -201,13 +263,18 @@ class SupabaseCloudService implements CloudStorageService {
 
   @override
   Future<void> syncAttendance() async {
-    await _syncGeneric<Attendance>(NotesRepository.attendanceBoxName, 'attendance');
+    await _syncGeneric<Attendance>(
+      NotesRepository.attendanceBoxName,
+      'attendance',
+    );
   }
 
   @override
   Future<void> syncCalendar() async {
-    // Calendar events come from an external API (academic calendar),
-    // so they don't need to be backed up to Supabase.
+    await Future.wait([
+      _syncGeneric<AcademicPeriod>(NotesRepository.periodsBoxName, 'periods'),
+      _syncGeneric<AcademicEvent>(NotesRepository.eventsBoxName, 'events'),
+    ]);
   }
 
   @override
@@ -229,7 +296,29 @@ class SupabaseCloudService implements CloudStorageService {
     }
   }
 
-  Future<void> _syncGeneric<T extends HiveObject>(String boxName, String collection) async {
+  @override
+  Future<void> syncPreferences() async {
+    final uid = _userId;
+    if (uid == null) return;
+    try {
+      final repo = NotesRepository();
+      final prefs = repo.getPreferences();
+      await _client.from('sync_store').upsert({
+        'id': 'user_prefs',
+        'user_id': uid,
+        'collection': 'preferences',
+        'data': prefs.toJson(),
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      debugPrint('SUPABASE_DEBUG: syncPreferences error: $e');
+    }
+  }
+
+  Future<void> _syncGeneric<T extends HiveObject>(
+    String boxName,
+    String collection,
+  ) async {
     final uid = _userId;
     if (uid == null) return;
     try {
@@ -245,7 +334,7 @@ class SupabaseCloudService implements CloudStorageService {
           'updated_at': DateTime.now().toIso8601String(),
         };
       }).toList();
-      
+
       if (rows.isEmpty) {
         debugPrint('SUPABASE_DEBUG: No $collection to sync.');
         return;
@@ -269,12 +358,14 @@ class SupabaseCloudService implements CloudStorageService {
     final uid = _userId;
     if (uid == null) return;
 
-    final repo = NotesRepository();
     debugPrint('SUPABASE_RESTORE: Starting restoreAll for user $uid');
 
     try {
-      final rows = await _client.from('sync_store').select('id, collection, data').eq('user_id', uid);
-      
+      final rows = await _client
+          .from('sync_store')
+          .select('id, collection, data')
+          .eq('user_id', uid);
+
       final Map<String, List<Map<String, dynamic>>> groupedData = {
         'profiles': [],
         'courses': [],
@@ -283,6 +374,9 @@ class SupabaseCloudService implements CloudStorageService {
         'folders': [],
         'grades': [],
         'attendance': [],
+        'periods': [],
+        'events': [],
+        'preferences': [],
       };
 
       for (var row in rows) {
@@ -294,7 +388,7 @@ class SupabaseCloudService implements CloudStorageService {
         } else {
           dataMap = Map<String, dynamic>.from(rawData as Map);
         }
-        
+
         if (groupedData.containsKey(collection)) {
           groupedData[collection]!.add(dataMap);
         }
@@ -342,6 +436,19 @@ class SupabaseCloudService implements CloudStorageService {
         await repo.saveAttendance(Attendance.fromJson(data));
       }
 
+      onProgress?.call('Restoring calendar...', 0.98);
+      for (var data in groupedData['periods']!) {
+        await repo.savePeriod(AcademicPeriod.fromJson(data));
+      }
+      for (var data in groupedData['events']!) {
+        await repo.saveEvent(AcademicEvent.fromJson(data));
+      }
+
+      onProgress?.call('Restoring settings...', 0.99);
+      for (var data in groupedData['preferences']!) {
+        await repo.savePreferences(UserPreferences.fromJson(data));
+      }
+
       onProgress?.call('Done', 1.0);
       debugPrint('SUPABASE_RESTORE: restoreAll completed.');
     } catch (e) {
@@ -357,7 +464,7 @@ class SupabaseCloudService implements CloudStorageService {
   Future<bool> verifyConnection() async {
     final uid = _userId;
     if (uid == null) return false;
-    
+
     // JWT Service Role Check for BYOC security
     final session = _client.auth.currentSession;
     if (session != null) {
@@ -368,7 +475,9 @@ class SupabaseCloudService implements CloudStorageService {
           final payloadString = utf8.decode(base64Url.decode(payloadBytes));
           final payloadData = jsonDecode(payloadString);
           if (payloadData['role'] == 'service_role') {
-            debugPrint('SUPABASE_SECURITY_RISK: service_role key provided instead of anon key.');
+            debugPrint(
+              'SUPABASE_SECURITY_RISK: service_role key provided instead of anon key.',
+            );
             return false;
           }
         }
@@ -380,7 +489,7 @@ class SupabaseCloudService implements CloudStorageService {
     try {
       // Setup health_check
       final healthId = 'health_ping_${DateTime.now().millisecondsSinceEpoch}';
-      
+
       // Attempt Write
       await _client.from('sync_store').upsert({
         'id': healthId,
@@ -389,27 +498,42 @@ class SupabaseCloudService implements CloudStorageService {
         'data': {'ping': true},
         'updated_at': DateTime.now().toIso8601String(),
       });
-      
+
       // Attempt Read
       final result = await _client
-        .from('sync_store')
-        .select('id')
-        .eq('id', healthId)
-        .eq('user_id', uid)
-        .eq('collection', 'health_check')
-        .limit(1);
-        
+          .from('sync_store')
+          .select('id')
+          .eq('id', healthId)
+          .eq('user_id', uid)
+          .eq('collection', 'health_check')
+          .limit(1);
+
       if ((result as List).isEmpty) return false;
-      
+
       // Cleanup
-      await _client.from('sync_store').delete().eq('id', healthId).eq('collection', 'health_check');
-      
+      await _client
+          .from('sync_store')
+          .delete()
+          .eq('id', healthId)
+          .eq('collection', 'health_check');
+
+      // Verify RLS policies
+      final rlsResult = await _verifyRLS();
+      if (!rlsResult.isSecure) {
+        debugPrint('SUPABASE_RLS_WARNING: ${rlsResult.message}');
+      }
+
       return true;
     } catch (e) {
       // RLS or schema is improperly configured
       debugPrint('SUPABASE_HANDSHAKE_ERROR: $e');
       return false;
     }
+  }
+
+  Future<RLSVerificationResult> _verifyRLS() async {
+    final verifier = RLSVerifier();
+    return await verifier.verify();
   }
 
   @override
@@ -448,7 +572,11 @@ class SupabaseCloudService implements CloudStorageService {
   @override
   Future<void> deleteNote(String noteId) async {
     try {
-      await _client.from('sync_store').delete().eq('id', noteId).eq('collection', 'notes');
+      await _client
+          .from('sync_store')
+          .delete()
+          .eq('id', noteId)
+          .eq('collection', 'notes');
     } catch (e) {
       debugPrint('deleteNote error: $e');
     }

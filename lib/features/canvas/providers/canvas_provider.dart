@@ -5,6 +5,7 @@ import 'package:classlly/data/models/note_models.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 
 import 'package:classlly/core/utils/geometry_utils.dart';
+import 'package:classlly/core/utils/shape_recognizer.dart';
 import 'package:classlly/core/theme/app_theme.dart';
 import 'package:classlly/features/audio/providers/audio_provider.dart';
 
@@ -41,10 +42,8 @@ class NoteStateSnapshot {
 class CanvasProvider with ChangeNotifier {
   final NotesRepository _repository;
 
-
-  CanvasProvider({
-    NotesRepository? repository,
-  }) : _repository = repository ?? NotesRepository();
+  CanvasProvider({NotesRepository? repository})
+    : _repository = repository ?? NotesRepository();
 
   final List<NoteStateSnapshot> _undoStack = [];
   final List<NoteStateSnapshot> _redoStack = [];
@@ -66,20 +65,22 @@ class CanvasProvider with ChangeNotifier {
     return prefs.savedColors.map((c) => Color(c)).toList();
   }
 
-  void addColor(Color color) {
-    final prefs = _repository.getPreferences();
-    if (!prefs.savedColors.contains(color.toARGB32())) {
-      prefs.savedColors.add(color.toARGB32());
-      _repository.savePreferences(prefs);
+  void addColor(Color color) async {
+    if (!savedColors.contains(color)) {
+      await _repository.updatePreferences((p) {
+        if (!p.savedColors.contains(color.toARGB32())) {
+          p.savedColors.add(color.toARGB32());
+        }
+      });
       notifyListeners();
     }
     setColor(color);
   }
 
-  void removeColor(Color color) {
-    final prefs = _repository.getPreferences();
-    prefs.savedColors.remove(color.toARGB32());
-    _repository.savePreferences(prefs);
+  void removeColor(Color color) async {
+    await _repository.updatePreferences((p) {
+      p.savedColors.remove(color.toARGB32());
+    });
     notifyListeners();
   }
 
@@ -236,39 +237,54 @@ class CanvasProvider with ChangeNotifier {
   void _cacheDragInitialState(Offset position) {
     _dragStartPos = position;
     _dragInitialRect = _calculateSelectionBounds()?.inflate(10);
-    _dragInitialStrokes = _selectedStrokes.map((s) => Stroke(
-      points: List.from(s.points), 
-      color: s.color, 
-      width: s.width, 
-      createdAt: s.createdAt, 
-      toolType: s.toolType
-    )).toList();
-    _dragInitialImages = _selectedImages.map((img) => ImageBlock(
-      id: img.id,
-      base64Data: img.base64Data,
-      x: img.x,
-      y: img.y,
-      width: img.width,
-      height: img.height,
-      createdAt: img.createdAt
-    )).toList();
-    _dragInitialTextBlocks = _selectedTextBlocks.map((b) => TextBlock(
-      id: b.id,
-      text: b.text,
-      x: b.x,
-      y: b.y,
-      createdAt: b.createdAt,
-      color: b.color,
-      fontSize: b.fontSize,
-      isBold: b.isBold,
-      hasBackground: b.hasBackground,
-      isItalic: b.isItalic,
-      isUnderline: b.isUnderline
-    )).toList();
+    _dragInitialStrokes = _selectedStrokes
+        .map(
+          (s) => Stroke(
+            points: List.from(s.points),
+            color: s.color,
+            width: s.width,
+            createdAt: s.createdAt,
+            toolType: s.toolType,
+          ),
+        )
+        .toList();
+    _dragInitialImages = _selectedImages
+        .map(
+          (img) => ImageBlock(
+            id: img.id,
+            base64Data: img.base64Data,
+            x: img.x,
+            y: img.y,
+            width: img.width,
+            height: img.height,
+            createdAt: img.createdAt,
+          ),
+        )
+        .toList();
+    _dragInitialTextBlocks = _selectedTextBlocks
+        .map(
+          (b) => TextBlock(
+            id: b.id,
+            text: b.text,
+            x: b.x,
+            y: b.y,
+            createdAt: b.createdAt,
+            color: b.color,
+            fontSize: b.fontSize,
+            isBold: b.isBold,
+            hasBackground: b.hasBackground,
+            isItalic: b.isItalic,
+            isUnderline: b.isUnderline,
+          ),
+        )
+        .toList();
   }
 
   void resizeSelection(Offset position) {
-    if (_activeResizeHandle == null || _dragInitialRect == null || _dragStartPos == null) return;
+    if (_activeResizeHandle == null ||
+        _dragInitialRect == null ||
+        _dragStartPos == null)
+      return;
 
     final initialRect = _dragInitialRect!;
 
@@ -306,11 +322,15 @@ class CanvasProvider with ChangeNotifier {
       var initialStroke = _dragInitialStrokes[i];
       var currentStroke = _selectedStrokes[i];
 
-      final newPoints = initialStroke.points.map((p) => StrokePoint(
-        x: pivot.dx + (p.x - pivot.dx) * scaleX,
-        y: pivot.dy + (p.y - pivot.dy) * scaleY,
-        pressure: p.pressure,
-      )).toList();
+      final newPoints = initialStroke.points
+          .map(
+            (p) => StrokePoint(
+              x: pivot.dx + (p.x - pivot.dx) * scaleX,
+              y: pivot.dy + (p.y - pivot.dy) * scaleY,
+              pressure: p.pressure,
+            ),
+          )
+          .toList();
 
       final index = _currentNote!.strokes.indexOf(currentStroke);
       if (index != -1) {
@@ -348,7 +368,9 @@ class CanvasProvider with ChangeNotifier {
           y: pivot.dy + (initialBlock.y - pivot.dy) * scaleY,
           createdAt: initialBlock.createdAt,
           color: initialBlock.color,
-          fontSize: (initialBlock.fontSize * ((scaleX.abs() + scaleY.abs()) / 2)).clamp(10.0, 150.0),
+          fontSize:
+              (initialBlock.fontSize * ((scaleX.abs() + scaleY.abs()) / 2))
+                  .clamp(10.0, 150.0),
           isBold: initialBlock.isBold,
           hasBackground: initialBlock.hasBackground,
           isItalic: initialBlock.isItalic,
@@ -558,8 +580,9 @@ class CanvasProvider with ChangeNotifier {
     _activePoints = [];
 
     // --- Shape Recognition ---
-    final shape = GeometryUtils.recognizeShape(pointsToSave);
-    if (shape != null) {
+    final recognizer = ShapeRecognizer();
+    final shape = recognizer.recognize(pointsToSave);
+    if (shape != null && shape.confidence > 0.6) {
       // Replace last stroke with shape points
       _currentNote!.strokes.removeLast();
       _currentNote!.strokes.add(
@@ -955,17 +978,19 @@ class CanvasProvider with ChangeNotifier {
     if (absolutePosition != null && _dragStartPos != null) {
       // Use absolute cached drag state to prevent accumulative floating errors
       final totalDelta = absolutePosition - _dragStartPos!;
-      
+
       for (int i = 0; i < _selectedStrokes.length; i++) {
         var initialStroke = _dragInitialStrokes[i];
         var currentStroke = _selectedStrokes[i];
-        
+
         final newPoints = initialStroke.points
-            .map((p) => StrokePoint(
-                  x: p.x + totalDelta.dx,
-                  y: p.y + totalDelta.dy,
-                  pressure: p.pressure,
-                ))
+            .map(
+              (p) => StrokePoint(
+                x: p.x + totalDelta.dx,
+                y: p.y + totalDelta.dy,
+                pressure: p.pressure,
+              ),
+            )
             .toList();
         final index = _currentNote!.strokes.indexOf(currentStroke);
         if (index != -1) {
@@ -1072,7 +1097,9 @@ class CanvasProvider with ChangeNotifier {
   }
 
   bool hitTestSelection(Offset position) {
-    if (_selectedStrokes.isEmpty && _selectedTextBlocks.isEmpty && _selectedImages.isEmpty) {
+    if (_selectedStrokes.isEmpty &&
+        _selectedTextBlocks.isEmpty &&
+        _selectedImages.isEmpty) {
       return false;
     }
     final rect = _calculateSelectionBounds();
@@ -1107,7 +1134,9 @@ class CanvasProvider with ChangeNotifier {
     final insideBlocks = <TextBlock>[];
     final insideImages = <ImageBlock>[];
 
-    final polygon = _lassoPath.map((o) => StrokePoint(x: o.dx, y: o.dy)).toList();
+    final polygon = _lassoPath
+        .map((o) => StrokePoint(x: o.dx, y: o.dy))
+        .toList();
 
     for (var stroke in _currentNote!.strokes) {
       if (stroke.points.isNotEmpty) {
@@ -1197,8 +1226,6 @@ class CanvasProvider with ChangeNotifier {
       await _repository.saveNote(_currentNote!);
       _debounceTimer?.cancel();
       _debounceTimer?.cancel();
-      // Auto-save logic is handled by local repository save above.
-      // Cloud sync should be triggered by CloudStorageService listener or periodic sync.
     }
   }
 

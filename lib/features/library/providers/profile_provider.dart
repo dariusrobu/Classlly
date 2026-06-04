@@ -8,17 +8,14 @@ import 'package:classlly/data/models/grade_model.dart';
 import 'package:classlly/data/models/task_model.dart';
 import 'package:classlly/core/services/cloud_storage_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:classlly/core/services/supabase_cloud_service.dart';
 
 class ProfileProvider with ChangeNotifier {
   final NotesRepository _localRepository;
-  final CloudStorageService _cloudService;
 
    ProfileProvider({
     NotesRepository? repository,
     CloudStorageService? cloudService,
-  }) : _localRepository = repository ?? NotesRepository(),
-       _cloudService = cloudService ?? SupabaseCloudService() {
+  }) : _localRepository = repository ?? NotesRepository() {
     Hive.box<StudentProfile>(NotesRepository.profileBoxName).watch().listen((_) => notifyListeners());
   }
 

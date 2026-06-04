@@ -114,6 +114,9 @@ class _OfflineOnlyService implements CloudStorageService {
   Future<void> syncProfile() async {}
 
   @override
+  Future<void> syncPreferences() async {}
+
+  @override
   Future<bool> verifyConnection() async => true; // Always connected when offline
 
   @override

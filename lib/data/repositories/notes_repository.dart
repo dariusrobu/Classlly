@@ -9,6 +9,8 @@ import 'package:classlly/data/models/user_preferences_model.dart';
 import 'package:classlly/data/models/academic_calendar_model.dart';
 import 'package:classlly/data/models/student_profile_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:classlly/core/services/sync_manager.dart';
+import 'package:classlly/core/services/offline_queue_service.dart';
 
 class NotesRepository {
   static const String boxName = 'notes';
@@ -34,7 +36,7 @@ class NotesRepository {
   static Future<void> _handleMigrations() async {
     final prefsBox = await Hive.openBox<UserPreferences>(preferencesBoxName);
     final prefs = prefsBox.get('user_prefs');
-    
+
     // If no version exists, it's a new install or legacy
     final int version = prefs?.schemaVersion ?? 0;
 
@@ -42,7 +44,7 @@ class NotesRepository {
       // In a real production app, you might migrate data.
       // For now, if version is 0 (legacy), we might need to reset or migrate.
       // Example: if (version == 0) { ... migrate ... }
-      
+
       if (prefs != null) {
         prefs.schemaVersion = currentSchemaVersion;
         await prefsBox.put('user_prefs', prefs);
@@ -236,6 +238,15 @@ class NotesRepository {
     await _prefsBox.put('user_prefs', prefs);
   }
 
+  /// Atomically updates preferences by loading the latest version,
+  /// applying the [update] function, and saving it back.
+  /// This prevents race conditions where stale preferences overwrite each other.
+  Future<void> updatePreferences(void Function(UserPreferences) update) async {
+    final prefs = getPreferences();
+    update(prefs);
+    await savePreferences(prefs);
+  }
+
   // --- Academic Calendar ---
   List<AcademicPeriod> getAllPeriods() {
     return _periodsBox.values.toList()
@@ -267,7 +278,8 @@ class NotesRepository {
     if (_profileBox.isEmpty) {
       final user = Supabase.instance.client.auth.currentUser;
       // If user is logged in, use their name, otherwise Guest
-      final name = user?.userMetadata?['full_name'] as String? ?? 'Guest Student';
+      final name =
+          user?.userMetadata?['full_name'] as String? ?? 'Guest Student';
 
       final defaultProfile = StudentProfile(
         name: name,
@@ -311,6 +323,30 @@ class NotesRepository {
   Future<void> saveNote(Note note) async {
     note.updatedAt = DateTime.now();
     await _box.put(note.id, note);
+  }
+
+  Future<void> saveNoteQueued(Note note, {bool isNew = false}) async {
+    await saveNote(note);
+
+    final syncManager = SyncManager();
+    await syncManager.queueOperation(
+      id: note.id,
+      collection: 'notes',
+      operation: isNew ? SyncOperationType.create : SyncOperationType.update,
+      data: note.toJson(),
+    );
+  }
+
+  Future<void> deleteNoteQueued(String id) async {
+    await _box.delete(id);
+
+    final syncManager = SyncManager();
+    await syncManager.queueOperation(
+      id: id,
+      collection: 'notes',
+      operation: SyncOperationType.delete,
+      data: {},
+    );
   }
 
   Future<void> deleteNote(String id) async {

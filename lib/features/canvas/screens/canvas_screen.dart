@@ -22,8 +22,6 @@ import 'package:classlly/l10n/app_localizations.dart';
 import 'package:classlly/features/canvas/widgets/advanced_pdf_crop_dialog.dart';
 import 'package:classlly/core/services/presence_service.dart';
 import 'package:classlly/features/library/providers/profile_provider.dart';
-import 'package:classlly/features/canvas/widgets/cursor_painter.dart';
-
 
 class CanvasScreen extends StatefulWidget {
   const CanvasScreen({super.key});
@@ -60,8 +58,14 @@ class _CanvasScreenState extends State<CanvasScreen> {
       _titleController.text = title ?? AppLocalizations.of(context)!.untitled;
 
       // Initialize Presence
-      final note = Provider.of<CanvasProvider>(context, listen: false).currentNote;
-      final profile = Provider.of<ProfileProvider>(context, listen: false).studentProfile;
+      final note = Provider.of<CanvasProvider>(
+        context,
+        listen: false,
+      ).currentNote;
+      final profile = Provider.of<ProfileProvider>(
+        context,
+        listen: false,
+      ).studentProfile;
       if (note != null) {
         _presenceService.joinNote(note.id, profile.name ?? 'Student');
         _presenceSub = _presenceService.presenceStream.listen((users) {
@@ -142,7 +146,9 @@ class _CanvasScreenState extends State<CanvasScreen> {
             canvasProvider.redo(),
       },
       child: Scaffold(
-        backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF9FAFB),
+        backgroundColor: isDark
+            ? const Color(0xFF121212)
+            : const Color(0xFFF9FAFB),
         body: Stack(
           children: [
             Row(
@@ -152,7 +158,6 @@ class _CanvasScreenState extends State<CanvasScreen> {
                 Expanded(
                   child: Stack(
                     children: [
-
                       Expanded(
                         child: Stack(
                           children: [
@@ -168,13 +173,20 @@ class _CanvasScreenState extends State<CanvasScreen> {
                                 panEnabled: isHandTool,
                                 scaleEnabled: true,
                                 onInteractionUpdate: (details) {
-                                  if (_cursorThrottle?.isActive ?? false) return;
-                                  _cursorThrottle = Timer(const Duration(milliseconds: 100), () {
-                                    final scenePoint = _transformationController.toScene(
-                                      details.focalPoint,
-                                    );
-                                    _presenceService.updateLocalPresence(cursor: scenePoint);
-                                  });
+                                  if (_cursorThrottle?.isActive ?? false)
+                                    return;
+                                  _cursorThrottle = Timer(
+                                    const Duration(milliseconds: 100),
+                                    () {
+                                      final scenePoint =
+                                          _transformationController.toScene(
+                                            details.focalPoint,
+                                          );
+                                      _presenceService.updateLocalPresence(
+                                        cursor: scenePoint,
+                                      );
+                                    },
+                                  );
                                 },
                                 child: Container(
                                   padding: const EdgeInsets.all(100),
@@ -204,7 +216,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
                                                     ),
                                                 ],
                                               ),
-                                               _buildCanvasGestureDetector(
+                                              _buildCanvasGestureDetector(
                                                 canvasProvider,
                                                 audioProvider,
                                                 playbackTime,
@@ -224,54 +236,63 @@ class _CanvasScreenState extends State<CanvasScreen> {
                                                             ),
                                                       ) ??
                                                   [],
-                                                ...textBlocks.map(
-                                                  (block) => TextBlockWidget(
-                                                    key: ValueKey(block.id),
-                                                    block: block,
-                                                  ),
+                                              ...textBlocks.map(
+                                                (block) => TextBlockWidget(
+                                                  key: ValueKey(block.id),
+                                                  block: block,
                                                 ),
+                                              ),
 
-                                                // Remote Cursors
-                                                ..._remoteUsers
-                                                    .where((u) => u['cursor_x'] != null)
-                                                    .map((u) {
-                                                  return Positioned(
-                                                    left: u['cursor_x'],
-                                                    top: u['cursor_y'],
-                                                    child: IgnorePointer(
-                                                      child: Column(
-                                                        children: [
-                                                          const Icon(
-                                                            Icons.navigation_rounded,
-                                                            color: Colors.blueAccent,
-                                                            size: 20,
-                                                          ),
-                                                          Container(
-                                                            padding: const EdgeInsets.symmetric(
-                                                              horizontal: 6,
-                                                              vertical: 2,
-                                                            ),
-                                                            decoration: BoxDecoration(
-                                                              color: Colors.blueAccent,
-                                                              borderRadius:
-                                                                  BorderRadius.circular(4),
-                                                            ),
-                                                            child: Text(
-                                                              u['name'] ?? 'Other',
-                                                              style: const TextStyle(
-                                                                color: Colors.white,
-                                                                fontSize: 10,
+                                              // Remote Cursors
+                                              ..._remoteUsers.where((u) => u['cursor_x'] != null).map((
+                                                u,
+                                              ) {
+                                                return Positioned(
+                                                  left: u['cursor_x'],
+                                                  top: u['cursor_y'],
+                                                  child: IgnorePointer(
+                                                    child: Column(
+                                                      children: [
+                                                        const Icon(
+                                                          Icons
+                                                              .navigation_rounded,
+                                                          color:
+                                                              Colors.blueAccent,
+                                                          size: 20,
+                                                        ),
+                                                        Container(
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 6,
+                                                                vertical: 2,
                                                               ),
-                                                            ),
+                                                          decoration: BoxDecoration(
+                                                            color: Colors
+                                                                .blueAccent,
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  4,
+                                                                ),
                                                           ),
-                                                        ],
-                                                      ),
+                                                          child: Text(
+                                                            u['name'] ??
+                                                                'Other',
+                                                            style:
+                                                                const TextStyle(
+                                                                  color: Colors
+                                                                      .white,
+                                                                  fontSize: 10,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
-                                                  );
-                                                }),
-                                              ],
-                                            ),
+                                                  ),
+                                                );
+                                              }),
+                                            ],
                                           ),
+                                        ),
                                         const SizedBox(height: 40),
                                         ElevatedButton.icon(
                                           onPressed: () =>
@@ -304,9 +325,11 @@ class _CanvasScreenState extends State<CanvasScreen> {
                             // Right Side Tool Dock
                             Positioned(
                               right: 24,
-                              top: MediaQuery.of(context).size.height / 3, // Roughly middle
+                              top:
+                                  MediaQuery.of(context).size.height /
+                                  3, // Roughly middle
                               child: _RightSideDock(
-                                isDark: isDark, 
+                                isDark: isDark,
                                 primaryColor: primaryColor,
                                 onToggleSidebar: () {
                                   setState(() {
@@ -318,35 +341,55 @@ class _CanvasScreenState extends State<CanvasScreen> {
                                 },
                                 onAddImage: () async {
                                   try {
-                                    final sWidth = MediaQuery.of(context).size.width;
-                                    final sHeight = MediaQuery.of(context).size.height;
-                                    canvasProvider.setActiveTool(CanvasTool.image);
+                                    final sWidth = MediaQuery.of(
+                                      context,
+                                    ).size.width;
+                                    final sHeight = MediaQuery.of(
+                                      context,
+                                    ).size.height;
+                                    canvasProvider.setActiveTool(
+                                      CanvasTool.image,
+                                    );
                                     final picker = ImagePicker();
                                     final xFile = await picker.pickImage(
                                       source: ImageSource.gallery,
                                     );
                                     if (xFile != null) {
                                       final bytes = await xFile.readAsBytes();
-                                      final matrix = _transformationController.value;
-                                      final inverseMatrix = Matrix4.inverted(matrix);
-                                      final screenCenter = Offset(sWidth / 2, sHeight / 2);
-                                      final canvasCenter = MatrixUtils.transformPoint(
-                                        inverseMatrix,
-                                        screenCenter,
+                                      final matrix =
+                                          _transformationController.value;
+                                      final inverseMatrix = Matrix4.inverted(
+                                        matrix,
                                       );
+                                      final screenCenter = Offset(
+                                        sWidth / 2,
+                                        sHeight / 2,
+                                      );
+                                      final canvasCenter =
+                                          MatrixUtils.transformPoint(
+                                            inverseMatrix,
+                                            screenCenter,
+                                          );
 
                                       canvasProvider.addImage(
                                         base64Encode(bytes),
                                         canvasCenter,
                                         timestamp: audioProvider.isRecording
-                                            ? audioProvider.elapsedRecordingMillis
+                                            ? audioProvider
+                                                  .elapsedRecordingMillis
                                             : null,
                                       );
                                     }
                                   } catch (e) {
                                     if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Failed to add image: $e')),
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Failed to add image: $e',
+                                          ),
+                                        ),
                                       );
                                     }
                                   }
@@ -583,9 +626,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
         margin: const EdgeInsets.only(bottom: 4),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive
-              ? primaryColor.withOpacity(0.1)
-              : Colors.transparent,
+          color: isActive ? primaryColor.withOpacity(0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -695,7 +736,6 @@ class _CanvasScreenState extends State<CanvasScreen> {
     bool isDark,
     Color primaryColor,
   ) {
-
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
@@ -735,11 +775,16 @@ class _CanvasScreenState extends State<CanvasScreen> {
                       color: primaryColor.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.mode_edit_outline, size: 16, color: primaryColor),
+                    child: Icon(
+                      Icons.mode_edit_outline,
+                      size: 16,
+                      color: primaryColor,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    canvasProvider.currentNote?.title ?? AppLocalizations.of(context)!.untitled,
+                    canvasProvider.currentNote?.title ??
+                        AppLocalizations.of(context)!.untitled,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -765,11 +810,16 @@ class _CanvasScreenState extends State<CanvasScreen> {
                     border: Border.all(color: Colors.grey.withOpacity(0.2)),
                   ),
                   child: InkWell(
-                    onTap: () => PdfService().exportNote(canvasProvider.currentNote!),
+                    onTap: () =>
+                        PdfService().exportNote(canvasProvider.currentNote!),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.output_rounded, size: 16, color: Colors.grey[700]), // Export icon
+                        Icon(
+                          Icons.output_rounded,
+                          size: 16,
+                          color: Colors.grey[700],
+                        ), // Export icon
                         const SizedBox(width: 6),
                         Text(
                           'Export PDF',
@@ -784,6 +834,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
+                // Save Module Button
                 // Save Module Button
                 Container(
                   height: 40,
@@ -803,14 +854,18 @@ class _CanvasScreenState extends State<CanvasScreen> {
                     onTap: () {
                       canvasProvider.saveNote();
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Module Saved!'))
+                        const SnackBar(content: Text('Module Saved!')),
                       );
                       Navigator.pop(context);
                     },
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.save_rounded, size: 16, color: Colors.white),
+                        const Icon(
+                          Icons.save_rounded,
+                          size: 16,
+                          color: Colors.white,
+                        ),
                         const SizedBox(width: 6),
                         const Text(
                           'Save Module',
@@ -830,7 +885,9 @@ class _CanvasScreenState extends State<CanvasScreen> {
                   height: 40,
                   width: 40,
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF9FAFB),
+                    color: isDark
+                        ? const Color(0xFF1A1A1A)
+                        : const Color(0xFFF9FAFB),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.grey.withOpacity(0.2)),
                   ),
@@ -843,7 +900,9 @@ class _CanvasScreenState extends State<CanvasScreen> {
                         context: context,
                         builder: (c) => AlertDialog(
                           title: const Text('Delete Note?'),
-                          content: const Text('Are you sure you want to delete this note? This cannot be undone.'),
+                          content: const Text(
+                            'Are you sure you want to delete this note? This cannot be undone.',
+                          ),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(c, false),
@@ -851,7 +910,9 @@ class _CanvasScreenState extends State<CanvasScreen> {
                             ),
                             TextButton(
                               onPressed: () => Navigator.pop(c, true),
-                              style: TextButton.styleFrom(foregroundColor: Colors.red),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.red,
+                              ),
                               child: const Text('Delete'),
                             ),
                           ],
@@ -859,7 +920,9 @@ class _CanvasScreenState extends State<CanvasScreen> {
                       );
 
                       if (confirm == true) {
-                        await NotesRepository().deleteNote(canvasProvider.currentNote!.id);
+                        await NotesRepository().deleteNote(
+                          canvasProvider.currentNote!.id,
+                        );
                         if (context.mounted) {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -892,9 +955,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
           // 1. Throttled Presence Update
           if (!(_cursorThrottle?.isActive ?? false)) {
             _cursorThrottle = Timer(const Duration(milliseconds: 50), () {
-              _presenceService.updateLocalPresence(
-                cursor: event.localPosition,
-              );
+              _presenceService.updateLocalPresence(cursor: event.localPosition);
             });
           }
 
@@ -920,7 +981,10 @@ class _CanvasScreenState extends State<CanvasScreen> {
             if (canvasProvider.lassoPath.isNotEmpty) {
               canvasProvider.updateLasso(offset);
             } else {
-              canvasProvider.moveSelection(event.delta, absolutePosition: offset);
+              canvasProvider.moveSelection(
+                event.delta,
+                absolutePosition: offset,
+              );
             }
           }
         },
@@ -948,7 +1012,8 @@ class _CanvasScreenState extends State<CanvasScreen> {
               bool hitNew = canvasProvider.selectItemAt(offset, audioProvider);
               if (hitNew) {
                 canvasProvider.startResize(offset);
-                if (!canvasProvider.isResizing) canvasProvider.startMove(offset);
+                if (!canvasProvider.isResizing)
+                  canvasProvider.startMove(offset);
               } else {
                 canvasProvider.startLasso(offset);
               }
@@ -996,7 +1061,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
                   : null,
             );
           } else if (canvasProvider.activeTool == CanvasTool.select) {
-             if (canvasProvider.lassoPath.isNotEmpty) {
+            if (canvasProvider.lassoPath.isNotEmpty) {
               canvasProvider.endLasso();
             } else {
               canvasProvider.endMove();
@@ -1034,7 +1099,6 @@ class _CanvasScreenState extends State<CanvasScreen> {
     CanvasTool.brush,
     CanvasTool.highlighter,
   }.contains(tool);
-
 }
 
 class _RightSideDock extends StatelessWidget {
@@ -1045,7 +1109,7 @@ class _RightSideDock extends StatelessWidget {
   final VoidCallback onAddImage;
 
   const _RightSideDock({
-    required this.isDark, 
+    required this.isDark,
     required this.primaryColor,
     required this.onToggleSidebar,
     required this.onAddText,
@@ -1071,48 +1135,75 @@ class _RightSideDock extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildDockItem('LAYERS', Icons.layers_outlined, context, onTap: onToggleSidebar),
+          _buildDockItem(
+            'LAYERS',
+            Icons.layers_outlined,
+            context,
+            onTap: onToggleSidebar,
+          ),
           const SizedBox(height: 24),
-          _buildDockItem('TEXT', Icons.text_fields_rounded, context, onTap: onAddText),
+          _buildDockItem(
+            'TEXT',
+            Icons.text_fields_rounded,
+            context,
+            onTap: onAddText,
+          ),
           const SizedBox(height: 24),
-          _buildDockItem('IMG', Icons.image_outlined, context, onTap: onAddImage),
+          _buildDockItem(
+            'IMG',
+            Icons.image_outlined,
+            context,
+            onTap: onAddImage,
+          ),
           const SizedBox(height: 24),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Divider(height: 1),
           ),
           const SizedBox(height: 24),
-          _buildDockItem('', Icons.grid_4x4_rounded, context, showText: false, onTap: () {}),
+          _buildDockItem(
+            '',
+            Icons.grid_4x4_rounded,
+            context,
+            showText: false,
+            onTap: () {},
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildDockItem(String label, IconData icon, BuildContext context, {bool showText = true, required VoidCallback onTap}) {
+  Widget _buildDockItem(
+    String label,
+    IconData icon,
+    BuildContext context, {
+    bool showText = true,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (showText) ...[
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 8,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-              color: isDark ? Colors.grey[400] : Colors.grey[500],
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showText) ...[
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 8,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+                color: isDark ? Colors.grey[400] : Colors.grey[500],
+              ),
             ),
+            const SizedBox(height: 8),
+          ],
+          Icon(
+            icon,
+            size: 20,
+            color: isDark ? Colors.grey[300] : Colors.grey[600],
           ),
-          const SizedBox(height: 8),
         ],
-        Icon(
-          icon,
-          size: 20,
-          color: isDark ? Colors.grey[300] : Colors.grey[600],
-        ),
-      ],
       ),
     );
   }
@@ -1291,7 +1382,8 @@ class _CanvasToolbarsState extends State<_CanvasToolbars> {
           // Show Advanced Crop Dialog
           final croppedBytes = await showDialog<Uint8List>(
             context: context,
-            builder: (context) => AdvancedPdfCropDialog(imageBytes: pageImage.bytes),
+            builder: (context) =>
+                AdvancedPdfCropDialog(imageBytes: pageImage.bytes),
           );
 
           if (croppedBytes != null && context.mounted) {
@@ -1327,12 +1419,11 @@ class _CanvasToolbarsState extends State<_CanvasToolbars> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final canvasProvider = Provider.of<CanvasProvider>(context);
     final audioProvider = Provider.of<AudioProvider>(context);
-    
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return AnimatedSwitcher(
@@ -1359,7 +1450,7 @@ class _CanvasToolbarsState extends State<_CanvasToolbars> {
             onPickPdf: () =>
                 _pickPdfSnippet(context, canvasProvider, audioProvider),
             transformationController: widget.transformationController,
-            isDark: isDark
+            isDark: isDark,
           ),
         ],
       ),
@@ -1400,10 +1491,14 @@ class _EraserSettingsPanel extends StatelessWidget {
               isActive: canvasProvider.eraserMode == EraserMode.pixel,
               onTap: () => canvasProvider.setEraserMode(EraserMode.pixel),
               activeColor: primaryColor,
-              isDark: isDark
+              isDark: isDark,
             ),
             const SizedBox(width: 12),
-            Container(width: 1, height: 16, color: isDark ? Colors.white24 : Colors.grey[300]),
+            Container(
+              width: 1,
+              height: 16,
+              color: isDark ? Colors.white24 : Colors.grey[300],
+            ),
             const SizedBox(width: 12),
             _EraserModeButton(
               icon: Icons.delete_sweep,
@@ -1411,7 +1506,7 @@ class _EraserSettingsPanel extends StatelessWidget {
               isActive: canvasProvider.eraserMode == EraserMode.object,
               onTap: () => canvasProvider.setEraserMode(EraserMode.object),
               activeColor: primaryColor,
-              isDark: isDark
+              isDark: isDark,
             ),
           ],
         ),
@@ -1434,7 +1529,7 @@ class _EraserModeButton extends StatelessWidget {
     required this.isActive,
     required this.onTap,
     required this.activeColor,
-    required this.isDark
+    required this.isDark,
   });
 
   @override
@@ -1443,14 +1538,22 @@ class _EraserModeButton extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          Icon(icon, size: 16, color: isActive ? activeColor : (isDark ? Colors.white70 : Colors.grey[700])),
+          Icon(
+            icon,
+            size: 16,
+            color: isActive
+                ? activeColor
+                : (isDark ? Colors.white70 : Colors.grey[700]),
+          ),
           const SizedBox(width: 6),
           Text(
             label,
             style: TextStyle(
               fontSize: 12,
               fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              color: isActive ? activeColor : (isDark ? Colors.white70 : Colors.grey[700]),
+              color: isActive
+                  ? activeColor
+                  : (isDark ? Colors.white70 : Colors.grey[700]),
             ),
           ),
         ],
@@ -1458,8 +1561,6 @@ class _EraserModeButton extends StatelessWidget {
     );
   }
 }
-
-
 
 class _DrawingToolsPanel extends StatelessWidget {
   final VoidCallback onPickColor;
@@ -1472,7 +1573,7 @@ class _DrawingToolsPanel extends StatelessWidget {
     required this.onPickColor,
     required this.onPickPdf,
     required this.transformationController,
-    required this.isDark
+    required this.isDark,
   });
 
   @override
@@ -1599,7 +1700,12 @@ class _DrawingToolsPanel extends StatelessWidget {
               );
             }),
             const SizedBox(width: 4),
-            _ToolIcon(icon: Icons.add, isActive: false, isDark: isDark, onTap: onPickColor),
+            _ToolIcon(
+              icon: Icons.add,
+              isActive: false,
+              isDark: isDark,
+              onTap: onPickColor,
+            ),
           ],
         ),
       ),
@@ -1706,7 +1812,7 @@ class _ToolIcon extends StatelessWidget {
     required this.icon,
     required this.isActive,
     required this.onTap,
-    required this.isDark
+    required this.isDark,
   });
   @override
   Widget build(BuildContext context) {
@@ -1725,7 +1831,9 @@ class _ToolIcon extends StatelessWidget {
         child: Icon(
           icon,
           size: 20,
-          color: isActive ? primaryColor : (isDark ? Colors.white70 : Colors.grey[700]),
+          color: isActive
+              ? primaryColor
+              : (isDark ? Colors.white70 : Colors.grey[700]),
         ),
       ),
     );
@@ -1814,7 +1922,6 @@ class PlaybackControl extends StatelessWidget {
   }
 }
 
-
 class _AvatarStack extends StatelessWidget {
   final List<Map<String, dynamic>> users;
   const _AvatarStack({required this.users});
@@ -1822,7 +1929,7 @@ class _AvatarStack extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (users.isEmpty) return const SizedBox.shrink();
-    
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

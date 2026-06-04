@@ -11,6 +11,7 @@ import 'package:classlly/features/auth/screens/onboarding_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:classlly/features/library/providers/library_provider.dart';
 import 'package:classlly/core/theme/theme_provider.dart';
+import 'package:classlly/core/services/sync_manager.dart';
 
 /// Handles the early initialization of Hive, Supabase, and Notifications
 /// after the app has already booted into the Flutter engine.
@@ -24,7 +25,7 @@ class InitializationScreen extends StatefulWidget {
 }
 
 class _InitializationScreenState extends State<InitializationScreen> {
-  String _message = "Starting Classlly...";
+  String _message = 'Starting Classlly...';
   bool _hasError = false;
   String? _errorDetail;
 
@@ -36,27 +37,31 @@ class _InitializationScreenState extends State<InitializationScreen> {
 
   Future<void> _initialize() async {
     try {
-      if (!kIsWeb && (Platform.isIOS || Platform.isAndroid || Platform.isMacOS)) {
+      if (!kIsWeb &&
+          (Platform.isIOS || Platform.isAndroid || Platform.isMacOS)) {
         await NotificationService().init();
       }
 
-      setState(() => _message = "Loading local storage...");
+      setState(() => _message = 'Loading local storage...');
       await Hive.initFlutter();
       await NotesRepository.init();
-      
+
       if (mounted) {
         Provider.of<ThemeProvider>(context, listen: false).loadPreferences();
       }
-      
-      setState(() => _message = "Connecting to cloud...");
+
+      setState(() => _message = 'Connecting to cloud...');
       await Supabase.initialize(
         url: SupabaseConfig.url,
         anonKey: SupabaseConfig.anonKey,
       );
 
+      setState(() => _message = 'Initializing sync services...');
+      await SyncManager().init();
+
       _finish();
     } catch (e, stack) {
-      debugPrint("CRITICAL Initialization Error: $e");
+      debugPrint('CRITICAL Initialization Error: $e');
       debugPrint(stack.toString());
       if (mounted) {
         setState(() {
@@ -69,7 +74,7 @@ class _InitializationScreenState extends State<InitializationScreen> {
 
   void _finish() {
     if (!mounted) return;
-    
+
     final repo = NotesRepository();
     final prefs = repo.getPreferences();
     final isLoggedIn = Supabase.instance.client.auth.currentUser != null;
@@ -99,7 +104,11 @@ class _InitializationScreenState extends State<InitializationScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, color: Colors.redAccent, size: 64),
+                const Icon(
+                  Icons.error_outline,
+                  color: Colors.redAccent,
+                  size: 64,
+                ),
                 const SizedBox(height: 24),
                 const Text(
                   'Initialization Failed',
@@ -111,7 +120,7 @@ class _InitializationScreenState extends State<InitializationScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  _errorDetail ?? "Unknown error occurred during startup",
+                  _errorDetail ?? 'Unknown error occurred during startup',
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
@@ -121,7 +130,7 @@ class _InitializationScreenState extends State<InitializationScreen> {
                     setState(() {
                       _hasError = false;
                       _errorDetail = null;
-                      _message = "Retrying startup...";
+                      _message = 'Retrying startup...';
                     });
                     _initialize();
                   },

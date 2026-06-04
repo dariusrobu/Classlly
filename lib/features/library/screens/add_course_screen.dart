@@ -367,7 +367,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                         onChanged: (val) => setState(() => _hasSeminar = val),
                         activeThumbImage: null,
                         activeTrackColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
-                        activeColor: Theme.of(context).colorScheme.primary,
+                        activeThumbColor: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     if (_hasSeminar) ...[

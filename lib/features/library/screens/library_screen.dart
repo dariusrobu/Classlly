@@ -21,6 +21,7 @@ import 'package:classlly/features/library/screens/add_course_screen.dart';
 import 'package:classlly/features/library/screens/tasks_screen.dart';
 import 'package:classlly/features/library/screens/calendar_screen.dart';
 import 'package:classlly/features/library/screens/dashboard_screen.dart';
+import 'package:classlly/features/library/screens/search_screen.dart';
 import 'package:classlly/features/library/widgets/empty_state.dart';
 import 'package:classlly/features/text_editor/screens/text_editor_screen.dart';
 import 'package:classlly/features/library/widgets/create_note_dialog.dart';
@@ -886,6 +887,59 @@ class _AllNotesViewState extends State<_AllNotesView> {
                                   color: isDark
                                       ? Colors.grey[300]
                                       : Colors.grey[700],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              // Search button
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? Colors.white.withValues(alpha: 0.05)
+                                      : Colors.white.withValues(alpha: 0.6),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isDark
+                                        ? Colors.white.withValues(alpha: 0.08)
+                                        : Colors.black.withValues(alpha: 0.06),
+                                  ),
+                                ),
+                                child: GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const SearchScreen(),
+                                      ),
+                                    );
+                                  },
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.search,
+                                        size: 16,
+                                        color: isDark
+                                            ? Colors.grey[300]
+                                            : Colors.grey[700],
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Search',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark
+                                              ? Colors.grey[300]
+                                              : Colors.grey[700],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],

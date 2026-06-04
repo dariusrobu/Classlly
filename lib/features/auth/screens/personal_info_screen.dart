@@ -76,6 +76,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           final cloudService = Provider.of<CloudStorageService>(context, listen: false);
           await cloudService.syncProfile();
 
+          if (!mounted) return;
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(AppLocalizations.of(context)!.profileUpdated),

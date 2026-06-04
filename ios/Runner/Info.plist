@@ -32,7 +32,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>com.robudarius.classlly</string>
-				<string>com.googleusercontent.apps.153868073469-0qfpvncp240nqhp8e5cnhge4p1j2h6uh</string>
+				<string>REVERSED_CLIENT_ID</string>
 			</array>
 		</dict>
 	</array>
@@ -79,7 +79,6 @@
 	<true/>
 	<key>UIBackgroundModes</key>
 	<array>
-		<string>audio</string>
 		<string>fetch</string>
 	</array>
 	<key>UILaunchStoryboardName</key>

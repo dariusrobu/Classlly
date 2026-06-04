@@ -13,6 +13,7 @@ import 'package:classlly/data/models/user_preferences_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/l10n/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:classlly/data/repositories/auth_repository.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -514,13 +515,54 @@ class SettingsScreen extends StatelessWidget {
                             if (!context.mounted) return;
                             
                             if (!isHealthy) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text('Failed to connect. Please check your API keys and Database Schema.'),
-                                  backgroundColor: Colors.red.shade800,
-                                ),
-                              );
-                              return; // Abort switch
+                              if (newProvider == CloudProvider.googleDrive) {
+                                // Google Drive specifically might need re-auth for provider token
+                                final shouldAuth = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Authorize Google Drive'),
+                                    content: const Text('Google Drive requires authorization to access your files. Would you like to sign in with Google now?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, false),
+                                        child: Text(AppLocalizations.of(context)!.cancel),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, true),
+                                        child: const Text('Authorize'),
+                                      ),
+                                    ],
+                                  ),
+                                ) ?? false;
+                                
+                                if (shouldAuth) {
+                                  try {
+                                    await AuthRepository().signInWithGoogle();
+                                    // Try once more after auth
+                                    final secondTry = await tempService.verifyConnection();
+                                    if (!secondTry) throw Exception('Authorization failed to grant Drive access.');
+                                  } catch (e) {
+                                    if (!context.mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Authorization failed: $e'),
+                                        backgroundColor: Colors.red.shade800,
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                } else {
+                                  return; // User cancelled
+                                }
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text('Failed to connect. Please check your API keys and Database Schema.'),
+                                    backgroundColor: Colors.red.shade800,
+                                  ),
+                                );
+                                return; // Abort switch
+                              }
                             }
                           }
                           

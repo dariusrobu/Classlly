@@ -1,8 +1,9 @@
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:classlly/core/services/supabase_cloud_service.dart';
-import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:crypto/crypto.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -15,6 +16,22 @@ class AuthRepository {
 
   User? get currentUser => _auth.currentUser;
 
+  static const String _settingsBoxName = 'app_settings';
+  static const String _lastUserIdKey = 'last_user_id';
+
+  static const List<String> userDataBoxes = [
+    'notes',
+    'courses',
+    'tasks',
+    'folders',
+    'sync_store',
+    'student_profile',
+    'user_preferences',
+    'academic_calendar',
+    'attendance',
+    'grades',
+  ];
+
   Future<void> deleteAccount() async {
     final cloudService = SupabaseCloudService();
     await cloudService.deleteUserContent();
@@ -25,24 +42,24 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
-    return await _auth.signInWithPassword(
+    final response = await _auth.signInWithPassword(
       email: email,
       password: password,
     );
+    await _handleSignIn(response.user?.id);
+    return response;
   }
 
   Future<AuthResponse> signUpWithEmailPassword({
     required String email,
     required String password,
   }) async {
-    return await _auth.signUp(
-      email: email,
-      password: password,
-    );
+    final response = await _auth.signUp(email: email, password: password);
+    await _handleSignIn(response.user?.id);
+    return response;
   }
 
   Future<void> signOut() async {
-    // Before wiping the local device for a guest, push the latest changes up.
     if (_auth.currentSession != null) {
       try {
         await SupabaseCloudService().syncAll();
@@ -54,51 +71,30 @@ class AuthRepository {
   }
 
   Future<AuthResponse> signInWithGoogle() async {
-    print('DEBUG: AuthRepository.signInWithGoogle called (BROWSER ONLY MODE)');
-    return _signInWithGoogleOAuth();
-  }
-
-  /// Browser-based Google OAuth for desktop platforms.
-  Future<AuthResponse> _signInWithGoogleOAuth() async {
-    // Listen for auth state change from the OAuth callback
-    final completer = Completer<AuthResponse>();
-    late final StreamSubscription<AuthState> subscription;
-
-    subscription = _auth.onAuthStateChange.listen((event) {
-      if (event.event == AuthChangeEvent.signedIn && event.session != null) {
-        subscription.cancel();
-        if (!completer.isCompleted) {
-          completer.complete(AuthResponse(
-            session: event.session,
-            user: event.session!.user,
-          ));
-        }
-      }
-    });
-
-    final success = await _auth.signInWithOAuth(
-      OAuthProvider.google,
-      redirectTo: 'com.robudarius.classlly://login-callback',
-      scopes: 'https://www.googleapis.com/auth/drive.file',
-      queryParams: {
-        'access_type': 'offline',
-        'prompt': 'consent',
-      },
+    final GoogleSignIn googleSignIn = GoogleSignIn(
+      clientId: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
+      scopes: ['email', 'profile'],
     );
 
-    if (!success) {
-      subscription.cancel();
-      throw const AuthException('Google Sign In failed to launch');
+    final googleUser = await googleSignIn.signIn();
+
+    if (googleUser == null) {
+      throw const AuthException('Google Sign In was cancelled');
     }
 
-    // Wait for the callback with a timeout
-    return completer.future.timeout(
-      const Duration(minutes: 2),
-      onTimeout: () {
-        subscription.cancel();
-        throw const AuthException('Google Sign In timed out');
-      },
+    final googleAuth = await googleUser.authentication;
+
+    if (googleAuth.idToken == null) {
+      throw const AuthException('No ID token received from Google');
+    }
+
+    final response = await _auth.signInWithIdToken(
+      provider: OAuthProvider.google,
+      idToken: googleAuth.idToken!,
     );
+
+    await _handleSignIn(response.user?.id);
+    return response;
   }
 
   Future<AuthResponse> signInWithApple() async {
@@ -114,14 +110,66 @@ class AuthRepository {
     );
 
     if (credential.identityToken == null) {
-      throw AuthException('No identity token received from Apple');
+      throw const AuthException('No identity token received from Apple');
     }
 
-    return await _auth.signInWithIdToken(
+    final response = await _auth.signInWithIdToken(
       provider: OAuthProvider.apple,
       idToken: credential.identityToken!,
       nonce: rawNonce,
     );
+
+    await _handleSignIn(response.user?.id);
+    return response;
+  }
+
+  Future<void> _handleSignIn(String? userId) async {
+    if (userId == null) return;
+
+    final lastUserId = await _getLastUserId();
+
+    if (lastUserId != null && lastUserId != userId) {
+      print('New user detected, clearing local data...');
+      await _clearUserData();
+    }
+
+    await _setLastUserId(userId);
+    print('Signed in as user: $userId');
+  }
+
+  Future<String?> _getLastUserId() async {
+    try {
+      final box = await Hive.openBox(_settingsBoxName);
+      return box.get(_lastUserIdKey) as String?;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<void> _setLastUserId(String userId) async {
+    try {
+      final box = await Hive.openBox(_settingsBoxName);
+      await box.put(_lastUserIdKey, userId);
+    } catch (e) {
+      print('Error saving last user ID: $e');
+    }
+  }
+
+  Future<void> _clearUserData() async {
+    try {
+      for (final boxName in userDataBoxes) {
+        try {
+          if (Hive.isBoxOpen(boxName)) {
+            await Hive.box(boxName).clear();
+          }
+        } catch (e) {
+          print('Warning: Could not clear box $boxName: $e');
+        }
+      }
+      print('User data cleared');
+    } catch (e) {
+      print('Error clearing user data: $e');
+    }
   }
 
   String _generateRandomString() {

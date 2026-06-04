@@ -10,6 +10,9 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:classlly/l10n/app_localizations.dart';
 import 'package:classlly/data/models/course_model.dart';
 import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 class TextEditorScreen extends StatefulWidget {
   final Note note;
@@ -198,7 +201,12 @@ class _TextEditorScreenState extends State<TextEditorScreen> {
                             _buildFloatingToolbar(),
                             Expanded(
                               child: Padding(
-                                padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                                padding: const EdgeInsets.fromLTRB(
+                                  24,
+                                  24,
+                                  24,
+                                  24,
+                                ),
                                 child: QuillEditor.basic(
                                   controller: _quillController,
                                   config: const QuillEditorConfig(
@@ -230,11 +238,16 @@ class _TextEditorScreenState extends State<TextEditorScreen> {
     final now = DateTime.now();
     final isMobile = MediaQuery.of(context).size.width < 600;
     final dateFormatted = isMobile
-        ? DateFormat("MMM d, yyyy").format(now)
-        : DateFormat("EEEE, MMMM d'rc'").format(now).replaceFirst('rc', _getDaySuffix(now.day));
-    
+        ? DateFormat('MMM d, yyyy').format(now)
+        : DateFormat(
+            "EEEE, MMMM d'rc'",
+          ).format(now).replaceFirst('rc', _getDaySuffix(now.day));
+
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 8.0 : 24.0, vertical: 12.0),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 8.0 : 24.0,
+        vertical: 12.0,
+      ),
       child: Row(
         children: [
           IconButton(
@@ -244,20 +257,47 @@ class _TextEditorScreenState extends State<TextEditorScreen> {
           ),
           if (!isMobile) ...[
             const SizedBox(width: 8),
-            const Icon(Icons.calendar_today_outlined, size: 18, color: Colors.blue),
+            const Icon(
+              Icons.calendar_today_outlined,
+              size: 18,
+              color: Colors.blue,
+            ),
             const SizedBox(width: 8),
           ],
           Text(
             dateFormatted,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           ),
           const Spacer(),
           ElevatedButton.icon(
-            onPressed: () {
-              // TODO: Implement PDF Export
+            onPressed: () async {
+              final plainText = _quillController.document.toPlainText();
+              final pdf = pw.Document();
+
+              pdf.addPage(
+                pw.Page(
+                  pageFormat: PdfPageFormat.a4,
+                  build: (context) => pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        _titleController.text,
+                        style: pw.TextStyle(
+                          fontSize: 24,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                      pw.SizedBox(height: 16),
+                      pw.Text(plainText),
+                    ],
+                  ),
+                ),
+              );
+
+              await Printing.sharePdf(
+                bytes: await pdf.save(),
+                filename: '${_titleController.text}.pdf',
+              );
             },
             icon: const Icon(Icons.picture_as_pdf, size: 16),
             label: const Text('Export PDF'),
@@ -294,10 +334,11 @@ class _TextEditorScreenState extends State<TextEditorScreen> {
   }
 
   Widget _buildEditorHeader() {
-    final breadcrumb = _course != null 
-        ? "${_course!.title.toUpperCase()} / NOTES"
-        : "GENERAL / NOTES";
-    final lastEdited = "Last edited just now"; // Ideally calculate from widget.note.updatedAt
+    final breadcrumb = _course != null
+        ? '${_course!.title.toUpperCase()} / NOTES'
+        : 'GENERAL / NOTES';
+    const lastEdited =
+        'Last edited just now'; // Ideally calculate from widget.note.updatedAt
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -342,10 +383,11 @@ class _TextEditorScreenState extends State<TextEditorScreen> {
             ),
             const SizedBox(width: 12),
             if (_isSyncing)
-               const SizedBox(
-                 width: 12, height: 12,
-                 child: CircularProgressIndicator(strokeWidth: 2),
-               )
+              const SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
             else
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -424,9 +466,7 @@ class _TextEditorScreenState extends State<TextEditorScreen> {
                         _onColorButtonPressed(context, true),
                   ),
                 ),
-                decoration: const BoxDecoration(
-                  color: Colors.transparent,
-                ),
+                decoration: const BoxDecoration(color: Colors.transparent),
               ),
             ),
             const SizedBox(width: 8),

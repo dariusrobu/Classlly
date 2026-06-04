@@ -378,9 +378,19 @@ class DashboardHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
+              DateFormat('EEEE').format(DateTime.now()).toUpperCase(),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: Theme.of(context).colorScheme.primary,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
               MediaQuery.of(context).size.width < 500
                   ? DateFormat('MMM d, yyyy').format(DateTime.now())
-                  : DateFormat('EEEE, MMMM d, yyyy').format(DateTime.now()),
+                  : DateFormat('MMMM d, yyyy').format(DateTime.now()),
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -886,17 +896,19 @@ class ScheduleCard extends StatelessWidget {
                                 fontSize: 14,
                               ),
                             ),
-                            subtitle: Text(
-                              '${locationToUse.isNotEmpty ? '$locationToUse · ' : ''}${item.timeString}',
-                              style: TextStyle(
-                                color:
-                                    Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? const Color(0xFFA1A1AA)
-                                    : Colors.grey,
-                                fontSize: 12,
-                              ),
-                            ),
+                            subtitle: locationToUse.isNotEmpty
+                                ? Text(
+                                    locationToUse,
+                                    style: TextStyle(
+                                      color:
+                                          Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? const Color(0xFFA1A1AA)
+                                          : Colors.grey,
+                                      fontSize: 12,
+                                    ),
+                                  )
+                                : null,
                             trailing: Text(
                               item.timeString,
                               style: TextStyle(

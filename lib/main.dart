@@ -76,7 +76,11 @@ void main() {
           create: (context) =>
               LibraryProvider(cloudService: context.read<CloudStorageService>()),
         ),
-        ChangeNotifierProvider(create: (_) => AcademicCalendarProvider()),
+        ChangeNotifierProvider(
+          create: (context) => AcademicCalendarProvider(
+            cloudService: context.read<CloudStorageService>(),
+          ),
+        ),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => TaskProvider()),
         ChangeNotifierProvider(create: (_) => CourseProvider()),

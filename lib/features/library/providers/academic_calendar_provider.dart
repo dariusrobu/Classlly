@@ -4,10 +4,15 @@ import 'package:flutter/services.dart';
 import 'package:classlly/data/models/academic_calendar_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/core/services/notification_service.dart';
+import 'package:http/http.dart' as http;
+import 'package:classlly/core/services/cloud_storage_service.dart';
+import 'package:classlly/core/services/supabase_cloud_service.dart';
 
 class AcademicCalendarProvider with ChangeNotifier {
   final NotesRepository _repository;
   final NotificationService _notificationService;
+  final CloudStorageService _cloudService;
+  static const String _vercelBaseUrl = 'https://classlly-server.vercel.app';
 
   List<AcademicPeriod> _periods = [];
   List<AcademicEvent> _events = [];
@@ -18,8 +23,10 @@ class AcademicCalendarProvider with ChangeNotifier {
   AcademicCalendarProvider({
     NotesRepository? repository,
     NotificationService? notificationService,
+    CloudStorageService? cloudService,
   }) : _repository = repository ?? NotesRepository(),
-       _notificationService = notificationService ?? NotificationService() {
+       _notificationService = notificationService ?? NotificationService(),
+       _cloudService = cloudService ?? SupabaseCloudService() {
     Future.microtask(() => _loadData());
   }
 
@@ -82,6 +89,7 @@ class AcademicCalendarProvider with ChangeNotifier {
         }
       }
       debugPrint('Template loaded successfully.');
+      _cloudService.syncCalendar();
     } catch (e, stack) {
       debugPrint('Error loading template: $e');
       debugPrint(stack.toString());
@@ -97,20 +105,42 @@ class AcademicCalendarProvider with ChangeNotifier {
     for (var event in allEvents) {
       await deleteEvent(event.id);
     }
+    await _cloudService.syncCalendar();
     _loadData();
   }
 
   Future<List<dynamic>> getAvailableTemplates() async {
+    // 1. Try Vercel Remote Fetch
     try {
-      debugPrint('Loading templates from local assets...');
-      final String response = await rootBundle.loadString('assets/data/calendars.json');
+      debugPrint('Fetching templates from Vercel: $_vercelBaseUrl/api/calendars');
+      final response = await http.get(
+        Uri.parse('$_vercelBaseUrl/api/calendars'),
+      ).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final calendars = data['calendars'] as List<dynamic>;
+        debugPrint('Successfully fetched ${calendars.length} templates from Vercel.');
+        return calendars;
+      } else {
+        debugPrint('Vercel fetch failed with status: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error fetching from Vercel: $e. Falling back to local assets.');
+    }
+
+    // 2. Fallback to Local Assets
+    try {
+      debugPrint('Loading templates from local assets (fallback)...');
+      // Fix: path was calendars.json, correct is academic_calendars.json
+      final String response = await rootBundle.loadString('assets/data/academic_calendars.json');
       final data = jsonDecode(response);
       final calendars = data['calendars'] as List<dynamic>;
       debugPrint('Found ${calendars.length} templates locally.');
       return calendars;
     } catch (e) {
       debugPrint('Error fetching templates from local assets: $e');
-      rethrow;
+      return []; // Return empty list instead of rethrowing to prevent crash
     }
   }
 
@@ -127,16 +157,19 @@ class AcademicCalendarProvider with ChangeNotifier {
       type: type,
     );
     await _repository.savePeriod(period);
+    _cloudService.syncCalendar();
     _loadData();
   }
 
   Future<void> updatePeriod(AcademicPeriod period) async {
     await _repository.savePeriod(period);
+    _cloudService.syncCalendar();
     _loadData();
   }
 
   Future<void> deletePeriod(String id) async {
     await _repository.deletePeriod(id);
+    _cloudService.syncCalendar();
     _loadData();
   }
 
@@ -172,6 +205,7 @@ class AcademicCalendarProvider with ChangeNotifier {
     final event = AcademicEvent.create(name: name, date: date, type: type);
     await _repository.saveEvent(event);
     _scheduleEventReminder(event);
+    _cloudService.syncCalendar();
     _loadData();
   }
 
@@ -180,12 +214,14 @@ class AcademicCalendarProvider with ChangeNotifier {
     await _repository.saveEvent(event);
     _cancelEventReminder(event.id);
     _scheduleEventReminder(event);
+    _cloudService.syncCalendar();
     _loadData();
   }
 
   Future<void> deleteEvent(String id) async {
     _cancelEventReminder(id);
     await _repository.deleteEvent(id);
+    _cloudService.syncCalendar();
     _loadData();
   }
 

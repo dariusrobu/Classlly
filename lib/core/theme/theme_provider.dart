@@ -66,13 +66,13 @@ class ThemeProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void _savePreferences() {
+  Future<void> _savePreferences() async {
     try {
       final repository = NotesRepository();
-      final prefs = repository.getPreferences();
-      prefs.themeMode = _themeModeToString(_themeMode);
-      prefs.accentColor = _accentColor.toARGB32();
-      repository.savePreferences(prefs);
+      await repository.updatePreferences((prefs) {
+        prefs.themeMode = _themeModeToString(_themeMode);
+        prefs.accentColor = _accentColor.toARGB32();
+      });
     } catch (e) {
       debugPrint('Error saving preferences: $e');
     }

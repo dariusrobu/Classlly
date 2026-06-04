@@ -49,3 +49,7 @@ android/key.properties
 android/local.properties
 *.jks
 *.keystore
+
+# Google OAuth2 credentials - DO NOT COMMIT
+client_secret_*.json
+client_*.plist

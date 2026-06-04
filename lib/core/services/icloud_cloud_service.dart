@@ -20,11 +20,19 @@ class ICloudStorageService implements CloudStorageService {
     final tempFile = File('${tempDir.path}/$fileName');
     await tempFile.writeAsString(jsonEncode(data));
 
-    await ICloudStorage.upload(
-      containerId: _containerId,
-      filePath: tempFile.path,
-      destinationRelativePath: fileName,
-    );
+    try {
+      await ICloudStorage.upload(
+        containerId: _containerId,
+        filePath: tempFile.path,
+        destinationRelativePath: fileName,
+      );
+    } catch (e) {
+      debugPrint('iCloud upload error for $fileName: $e');
+      if (e.toString().contains('Invalid containerId')) {
+        debugPrint('TIP: Ensure you are signed into iCloud on this device and "Classlly" is enabled in iCloud settings.');
+      }
+      rethrow;
+    }
 
     // Clean up temp file
     if (await tempFile.exists()) {
@@ -150,13 +158,35 @@ class ICloudStorageService implements CloudStorageService {
   }
 
   @override
+  Future<void> syncPreferences() async {}
+
+  @override
   Future<bool> hasProfile() async {
     final data = await _downloadJson('profile.json');
     return data != null;
   }
 
   @override
-  Future<bool> verifyConnection() async => true; // Best effort for iCloud API
+  Future<bool> verifyConnection() async {
+    try {
+      final healthId = 'health_check_${DateTime.now().millisecondsSinceEpoch}';
+      final fileName = '$healthId.json';
+      
+      // Attempt Write
+      await _uploadJson(fileName, {'ping': true, 'timestamp': healthId});
+      
+      // Attempt Delete (Cleanup)
+      await ICloudStorage.delete(
+        containerId: _containerId,
+        relativePath: fileName,
+      );
+      
+      return true;
+    } catch (e) {
+      debugPrint('iCloud Handshake Failed: $e');
+      return false;
+    }
+  }
 
   @override
   Future<void> deleteNote(String noteId) async {

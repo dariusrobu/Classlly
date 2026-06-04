@@ -20,6 +20,7 @@ abstract class CloudStorageService {
   Future<void> syncGrades();
   Future<void> syncAttendance();
   Future<void> syncProfile();
+  Future<void> syncPreferences();
 
   // Helper Methods
   Future<bool> verifyConnection();

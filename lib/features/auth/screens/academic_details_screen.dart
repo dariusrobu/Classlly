@@ -3,7 +3,6 @@ import 'package:classlly/data/models/student_profile_model.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:classlly/core/services/cloud_storage_service.dart';
 import 'package:provider/provider.dart';
-import 'package:classlly/features/library/providers/profile_provider.dart';
 import 'package:classlly/l10n/app_localizations.dart';
 
 class AcademicDetailsScreen extends StatefulWidget {
@@ -56,6 +55,8 @@ class _AcademicDetailsScreenState extends State<AcademicDetailsScreen> {
         // Sync profile using CloudStorageService
         final cloudService = Provider.of<CloudStorageService>(context, listen: false);
         await cloudService.syncProfile();
+
+        if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

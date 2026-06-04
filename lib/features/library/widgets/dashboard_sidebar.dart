@@ -192,7 +192,7 @@ class DashboardSidebar extends StatelessWidget {
               ),
             ),
             // User Card at bottom
-            Padding(padding: const EdgeInsets.all(16), child: const UserCard()),
+            const Padding(padding: EdgeInsets.all(16), child: UserCard()),
           ],
         ),
       ),

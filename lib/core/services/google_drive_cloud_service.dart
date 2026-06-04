@@ -41,7 +41,7 @@ class GoogleDriveCloudService implements CloudStorageService {
       final accessToken = AccessToken(
         'Bearer',
         session.providerToken!,
-        DateTime.now().add(const Duration(hours: 1)), // Assumed expiry if unknown
+        DateTime.now().toUtc().add(const Duration(hours: 1)), // Assumed expiry if unknown
       );
 
       // Create credentials. If we have a refresh token, use it for auto-refresh.
@@ -295,6 +295,9 @@ class GoogleDriveCloudService implements CloudStorageService {
   }
 
   @override
+  Future<void> syncPreferences() async {}
+
+  @override
   Future<bool> hasProfile() async {
     final data = await _downloadJson('profile.json');
     return data != null;
@@ -302,6 +305,12 @@ class GoogleDriveCloudService implements CloudStorageService {
 
   @override
   Future<bool> verifyConnection() async {
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session == null || session.providerToken == null) {
+      debugPrint('GoogleDrive: verifyConnection failed - missing session or providerToken');
+      return false;
+    }
+    
     final api = await _getDriveApi();
     return api != null;
   }

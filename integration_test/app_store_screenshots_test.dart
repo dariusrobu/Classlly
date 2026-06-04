@@ -4,13 +4,11 @@ import 'package:integration_test/integration_test.dart';
 import 'package:classlly/main.dart';
 import 'package:classlly/data/repositories/notes_repository.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:classlly/core/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:classlly/data/models/course_model.dart';
 import 'package:classlly/data/models/task_model.dart';
 import 'package:classlly/data/models/grade_model.dart';
 import 'package:classlly/data/models/academic_calendar_model.dart';
-import 'package:uuid/uuid.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:classlly/core/constants/supabase_config.dart';
 import 'package:classlly/core/services/cloud_storage_service.dart';
@@ -99,29 +97,6 @@ void main() {
     // ---------------------------------------------------------
     
     // Courses
-    final mathId = const Uuid().v4();
-    final physId = const Uuid().v4();
-    
-    final mathCourse = Course.create(
-      title: 'Mathematics',
-      color: Colors.blueAccent,
-      icon: Icons.calculate,
-      credits: 3,
-      schedule: 'Mon 10:00 AM',
-      location: 'Hall A',
-      professor: 'Dr. Smith'
-    ); // Our create factory might differ, using standard model if needed or specific fields.
-    // Actually the `create` factory I saw handles ID gen.
-    // Let's rely on repo.saveCourse
-    
-    // Since I can't easily use the `create` factory output without saving, let's just make one and save it.
-    // The model uses HiveObject, so we should be careful.
-    
-    // Let's use the UI flow for Courses just to be safe on model logic, 
-    // OR create simpler objects if I know the structure. 
-    // I know the structure from previous `view_file`.
-    // I will use `Course.create` then update ID? no, create makes ID.
-    // I need to capture the ID to link tasks/grades.
     
     final c1 = Course.create(
         title: 'Advanced Mathematics',
